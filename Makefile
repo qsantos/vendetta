@@ -5,7 +5,7 @@ TARGETS = vendetta
 
 all: $(TARGETS)
 
-vendetta: main.o draw.o world.o character.o
+vendetta: main.o draw.o world.o character.o mine.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
