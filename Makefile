@@ -1,6 +1,6 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99
-LDFLAGS = -O3 -lsfml-graphics -lsfml-window -lsfml-system -lGLU 
+LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system
 TARGETS = vendetta
 
 all: $(TARGETS)
