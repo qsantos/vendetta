@@ -1,7 +1,7 @@
-typedef struct character character_t;
-
 #ifndef CHARACTER_H
 #define CHARACTER_H
+
+typedef struct character character_t;
 
 struct character
 {

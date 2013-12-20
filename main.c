@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <SFML/Graphics.h>
 
-#include "character.h"
+#include "world.h"
+#include "draw.h"
 
 int main(void)
 {
@@ -14,13 +15,10 @@ int main(void)
 	if (texture == NULL)
 		exit(1);
 
-	sfSprite* sprite = sfSprite_create();
-	sfSprite_setTexture(sprite, texture, sfTrue);
+	world_t world;
+	world_init(&world);
 
-	sfIntRect rect = {24*1, 32*2, 24, 32};
-	sfSprite_setTextureRect(sprite, rect);
-
-	character_t player = {0, 0, 0, 0};
+	character_t* player = &world.characters[0];
 
 	sfClock* clock = sfClock_create();
 	while (sfRenderWindow_isOpen(window))
@@ -41,23 +39,19 @@ int main(void)
 			}
 		}
 
-		player.go_x = 100 * (sfKeyboard_isKeyPressed(sfKeyRight) - 2*sfKeyboard_isKeyPressed(sfKeyLeft));
-		player.go_y = 100 * (sfKeyboard_isKeyPressed(sfKeyDown)  - 2*sfKeyboard_isKeyPressed(sfKeyUp));
+		player->go_x = 100 * (sfKeyboard_isKeyPressed(sfKeyRight) - 2*sfKeyboard_isKeyPressed(sfKeyLeft));
+		player->go_y = 100 * (sfKeyboard_isKeyPressed(sfKeyDown)  - 2*sfKeyboard_isKeyPressed(sfKeyUp));
 
-		character_doRound(&player, duration);
+		world_doRound(&world, duration);
 
 		sfRenderWindow_clear(window, sfBlack);
-
-		sfVector2f pos = { player.x, player.y };
-		sfSprite_setPosition(sprite, pos);
-		sfRenderWindow_drawSprite(window, sprite, NULL);
-
+		draw_world(window, &world);
 		sfRenderWindow_display(window);
 	}
 
 	sfClock_destroy(clock);
-	sfSprite_destroy(sprite);
-	sfTexture_destroy(texture);
+//	sfSprite_destroy(sprite); // TODO
+//	sfTexture_destroy(texture);
 	sfRenderWindow_destroy(window);
 	return 0;
 }
