@@ -1,11 +1,11 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99
-LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system
+LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
 TARGETS = vendetta
 
 all: $(TARGETS)
 
-vendetta: main.o
+vendetta: main.o character.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c

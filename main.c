@@ -1,12 +1,7 @@
 #include <stdlib.h>
 #include <SFML/Graphics.h>
 
-typedef struct character character_t;
-struct character
-{
-	float x;
-	float y;
-};
+#include "character.h"
 
 int main(void)
 {
@@ -25,7 +20,7 @@ int main(void)
 	sfIntRect rect = {24*1, 32*2, 24, 32};
 	sfSprite_setTextureRect(sprite, rect);
 
-	character_t player = {0, 0};
+	character_t player = {0, 0, 0, 0};
 
 	sfClock* clock = sfClock_create();
 	while (sfRenderWindow_isOpen(window))
@@ -46,15 +41,10 @@ int main(void)
 			}
 		}
 
-		if (sfKeyboard_isKeyPressed(sfKeyUp))
-			player.y -= 100 * duration;
-		else if (sfKeyboard_isKeyPressed(sfKeyDown))
-			player.y += 100 * duration;
+		player.go_x = 100 * (sfKeyboard_isKeyPressed(sfKeyRight) - 2*sfKeyboard_isKeyPressed(sfKeyLeft));
+		player.go_y = 100 * (sfKeyboard_isKeyPressed(sfKeyDown)  - 2*sfKeyboard_isKeyPressed(sfKeyUp));
 
-		if (sfKeyboard_isKeyPressed(sfKeyLeft))
-			player.x -= 100 * duration;
-		else if (sfKeyboard_isKeyPressed(sfKeyRight))
-			player.x += 100 * duration;
+		character_doRound(&player, duration);
 
 		sfRenderWindow_clear(window, sfBlack);
 
