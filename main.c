@@ -50,12 +50,21 @@ int main(void)
 
 				sfVector2i pix = {e->x, e->y};
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(window, pix, world_view);
-				printf("%i %f %f\n", e->button, pos.x, pos.y);
+				player->go_x = pos.x;
+				player->go_y = pos.y;
 			}
 		}
 
-		player->go_x = 100 * (sfKeyboard_isKeyPressed(sfKeyRight) - 2*sfKeyboard_isKeyPressed(sfKeyLeft));
-		player->go_y = 100 * (sfKeyboard_isKeyPressed(sfKeyDown)  - 2*sfKeyboard_isKeyPressed(sfKeyUp));
+		sfBool up    = sfKeyboard_isKeyPressed(sfKeyUp);
+		sfBool down  = sfKeyboard_isKeyPressed(sfKeyDown);
+		sfBool left  = sfKeyboard_isKeyPressed(sfKeyLeft);
+		sfBool right = sfKeyboard_isKeyPressed(sfKeyRight);
+
+		if (up || down || left || right)
+		{
+			player->go_x = player->x + 100 * (right - 2*left);
+			player->go_y = player->y + 100 * (down  - 2*up);
+		}
 
 		world_doRound(&world, duration);
 

@@ -1,34 +1,40 @@
 #include "character.h"
 
 #include <math.h>
+#include <string.h>
 
 #define M_PI 3.14159265358979323846
 
 void character_doRound(character_t* c, float duration)
 {
-	if (c->go_x == 0 && c->go_y == 0)
+	float dx = c->go_x - c->x;
+	float dy = c->go_y - c->y;
+	if (dx == 0 && dy == 0)
 		return;
 
 	float dir;
-	if (c->go_x > 0)
+	if (dx > 0)
 	{
-		dir = atan(c->go_y / c->go_x);
-		if (c->go_y < 0)
+		dir = atan(dy / dx);
+		if (dy < 0)
 			dir += 2 * M_PI;
 	}
-	else if (c->go_x < 0)
+	else if (dx < 0)
 	{
-		dir = atan(c->go_y / c->go_x) + M_PI;
+		dir = atan(dy / dx) + M_PI;
 	}
-	else // c->go_x == 0
+	else // dx == 0
 	{
 		dir = M_PI / 2;
-		if (c->go_y < 0)
+		if (dy < 0)
 			dir += M_PI;
 	}
 
-	float maxDistance = 100 * duration;
+	float remDistance = sqrt(dx*dx + dy*dy);
+	float distance = 100 * duration;
+	if (distance > remDistance)
+		distance = remDistance;
 
-	c->x += maxDistance * cos(dir);
-	c->y += maxDistance * sin(dir);
+	c->x += distance * cos(dir);
+	c->y += distance * sin(dir);
 }

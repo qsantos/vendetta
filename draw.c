@@ -20,7 +20,7 @@ void draw_character(sfRenderWindow* render, character_t* c)
 
 	}
 
-	sfVector2f pos = { c->x, c->y };
+	sfVector2f pos = {c->x, c->y};
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(render, sprite, NULL);
 }
@@ -42,7 +42,7 @@ void draw_mine(sfRenderWindow* render, mine_t* m)
 		sfSprite_setTextureRect(sprite, rect);
 	}
 
-	sfVector2f pos = { m->x, m->y };
+	sfVector2f pos = {m->x, m->y};
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(render, sprite, NULL);
 }
