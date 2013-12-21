@@ -3,7 +3,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "../util.h"
+
 #define PANEL_N_COLS 3
+
+overlay_t* overlay_init(void)
+{
+	overlay_t* o = CALLOC(overlay_t, 1);
+	o->selectedBuilding = NULL;
+	return o;
+}
+
+void overlay_exit(overlay_t* o)
+{
+	free(o);
+}
 
 void draw_overlay(game_t* g)
 {
@@ -46,7 +60,7 @@ int overlay_catch(game_t* g, float x, float y)
 	int id = PANEL_N_COLS*i + j;
 	if (j < PANEL_N_COLS && id < g->u->n_buildings)
 	{
-		printf("%i\n", id);
+		g->o->selectedBuilding = &g->u->buildings[id];
 		return 1;
 	}
 
