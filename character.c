@@ -14,12 +14,25 @@ void character_init(character_t* c)
 	c->o.h = 32;
 	c->go_x = 0;
 	c->go_y = 0;
+	c->go_o = NULL;
 }
 
 void character_doRound(character_t* c, float duration)
 {
-	float dx = c->go_x - c->o.x;
-	float dy = c->go_y - c->o.y;
+	float dx;
+	float dy;
+	if (c->go_o != NULL)
+	{
+		dx = c->go_o->x;
+		dy = c->go_o->y;
+	}
+	else
+	{
+		dx = c->go_x;
+		dy = c->go_y;
+	}
+	dx -= c->o.x;
+	dy -= c->o.y;
 	if (dx == 0 && dy == 0)
 		return;
 

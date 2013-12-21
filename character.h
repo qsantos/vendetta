@@ -11,6 +11,7 @@ struct character
 
 	float go_x;
 	float go_y;
+	object_t* go_o;
 };
 
 void character_init   (character_t* c);
