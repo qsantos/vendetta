@@ -62,6 +62,9 @@ void game_loop(game_t* g)
 				if (e->button != sfMouseLeft)
 					continue;
 
+				if (overlay_catch(g, e->x, e->y))
+					continue;
+
 				sfVector2i pix = {e->x, e->y};
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g.render, pix, world_view);
 				object_t* o = world_objectAt(&g->w, pos.x, pos.y);
