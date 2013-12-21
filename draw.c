@@ -2,14 +2,14 @@
 
 #include <stdlib.h>
 
-void draw_object(sfRenderWindow* render, object_t* o, sfSprite* sprite)
+void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 {
-	sfVector2f pos = {o->x - o->w / 2, o->y - o->h};
+	sfVector2f pos = {o->x - o->w/2, o->y - o->h};
 	sfSprite_setPosition(sprite, pos);
-	sfRenderWindow_drawSprite(render, sprite, NULL);
+	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
-void draw_character(sfRenderWindow* render, character_t* c)
+void draw_character(graphics_t* g, character_t* c)
 {
 	static sfTexture* texture = NULL;
 	static sfSprite*  sprite  = NULL;
@@ -27,10 +27,10 @@ void draw_character(sfRenderWindow* render, character_t* c)
 
 	}
 
-	draw_object(render, &c->o, sprite);
+	draw_object(g, &c->o, sprite);
 }
 
-void draw_mine(sfRenderWindow* render, mine_t* m)
+void draw_mine(graphics_t* g, mine_t* m)
 {
 	static sfTexture* texture = NULL;
 	static sfSprite*  sprite  = NULL;
@@ -47,12 +47,12 @@ void draw_mine(sfRenderWindow* render, mine_t* m)
 		sfSprite_setTextureRect(sprite, rect);
 	}
 
-	draw_object(render, &m->o, sprite);
+	draw_object(g, &m->o, sprite);
 }
 
-void draw_world(sfRenderWindow* render, world_t* w)
+void draw_world(graphics_t* g, world_t* w)
 {
 	for (size_t i = 0; i < 10; i++)
-		draw_mine(render, &w->mines[i]);
-	draw_character(render, &w->characters[0]);
+		draw_mine(g, &w->mines[i]);
+	draw_character(g, &w->characters[0]);
 }

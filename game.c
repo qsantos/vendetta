@@ -81,7 +81,7 @@ void game_loop(game_t* g)
 		sfView_setCenter(world_view, pos);
 		sfRenderWindow_setView(g->g.render, world_view);
 
-		draw_world(g->g.render, &g->w);
+		draw_world(&g->g, &g->w);
 
 		sfRenderWindow_setView(g->g.render, default_view);
 
