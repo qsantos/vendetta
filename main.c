@@ -62,15 +62,15 @@ int main(void)
 
 		if (up || down || left || right)
 		{
-			player->go_x = player->x + 100 * (right - 2*left);
-			player->go_y = player->y + 100 * (down  - 2*up);
+			player->go_x = player->o.x + 100 * (right - 2*left);
+			player->go_y = player->o.y + 100 * (down  - 2*up);
 		}
 
 		world_doRound(&world, duration);
 
 		sfRenderWindow_clear(window, sfBlack);
 
-		sfVector2f pos = {player->x, player->y};
+		sfVector2f pos = {player->o.x, player->o.y};
 		sfView_setCenter(world_view, pos);
 		sfRenderWindow_setView(window, world_view);
 

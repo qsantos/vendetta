@@ -5,10 +5,16 @@
 
 #define M_PI 3.14159265358979323846
 
+void character_init(character_t* c)
+{
+	memset(c, 0, sizeof(character_t));
+	c->o.t = O_CHARACTER;
+}
+
 void character_doRound(character_t* c, float duration)
 {
-	float dx = c->go_x - c->x;
-	float dy = c->go_y - c->y;
+	float dx = c->go_x - c->o.x;
+	float dy = c->go_y - c->o.y;
 	if (dx == 0 && dy == 0)
 		return;
 
@@ -35,6 +41,6 @@ void character_doRound(character_t* c, float duration)
 	if (distance > remDistance)
 		distance = remDistance;
 
-	c->x += distance * cos(dir);
-	c->y += distance * sin(dir);
+	c->o.x += distance * cos(dir);
+	c->o.y += distance * sin(dir);
 }
