@@ -9,7 +9,8 @@ OBJ = $(SRC:.c=.o)
 all: $(TARGETS)
 
 vendetta: $(OBJ)
-	$(CC) $(LDFLAGS) $^ -o $@
+	@$(CC) $(LDFLAGS) $^ -o $@
+	@echo $(CC) $(LDFLAGS) [...] -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
