@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <SFML/Graphics.h>
 
+#include "world/world.h"
+#include "universe/universe.h"
 #include "draw.h"
 
 int main(void)
@@ -15,8 +17,11 @@ int main(void)
 	if (texture == NULL)
 		exit(1);
 
+	universe_t universe;
+	universe_init(&universe);
+
 	world_t world;
-	world_init(&world);
+	world_init(&world, &universe);
 
 	character_t* player = &world.characters[0];
 

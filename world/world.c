@@ -4,13 +4,14 @@
 #include <string.h>
 #include <limits.h>
 
-void world_init(world_t* w)
+void world_init(world_t* w, universe_t* u)
 {
+	w->universe = u;
 	character_init(&w->characters[0]);
 	for (size_t i = 0; i < 10; i++)
 	{
 		mine_t* m = &w->mines[i];
-		mine_init(m);
+		mine_init(m, &u->mines[0]);
 		m->o.x = (float) rand() / INT_MAX * 1000;
 		m->o.y = (float) rand() / INT_MAX * 1000;
 	}

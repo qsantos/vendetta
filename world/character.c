@@ -1,7 +1,10 @@
 #include "character.h"
 
+#include <stdio.h>
 #include <math.h>
 #include <string.h>
+
+#include "mine.h"
 
 #define M_PI 3.14159265358979323846
 
@@ -33,8 +36,19 @@ void character_doRound(character_t* c, float duration)
 	}
 	dx -= c->o.x;
 	dy -= c->o.y;
-	if (dx == 0 && dy == 0)
+	float remDistance = sqrt(dx*dx + dy*dy);
+	if (remDistance == 0)
+	{
+		if (c->go_o == NULL)
+			return;
+
+		if (c->go_o->t != O_MINE)
+			return;
+
+		mine_t* m = (mine_t*) c->go_o;
+		printf("I just arrived at a %s\n", m->t->name);
 		return;
+	}
 
 	float dir;
 	if (dx > 0)
@@ -54,7 +68,6 @@ void character_doRound(character_t* c, float duration)
 			dir += M_PI;
 	}
 
-	float remDistance = sqrt(dx*dx + dy*dy);
 	float distance = 100 * duration;
 	if (distance > remDistance)
 		distance = remDistance;
