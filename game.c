@@ -4,6 +4,7 @@
 
 #include "util.h"
 #include "draw.h"
+#include "overlay/overlay.h"
 
 void game_init(game_t* g)
 {
@@ -84,6 +85,8 @@ void game_loop(game_t* g)
 		draw_world(&g->g, &g->w);
 
 		sfRenderWindow_setView(g->g.render, default_view);
+
+		draw_overlay(g);
 
 		sfRenderWindow_display(g->g.render);
 	}
