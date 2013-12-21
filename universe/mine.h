@@ -9,6 +9,7 @@ struct kindOf_mine
 {
 	const char* name;
 
+	int material_id;
 	kindOf_material_t* material;
 };
 

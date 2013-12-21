@@ -2,6 +2,7 @@
 #define W_CHARACTER_H
 
 #include "object.h"
+#include "../universe/universe.h"
 
 typedef struct character character_t;
 
@@ -12,9 +13,12 @@ struct character
 	float go_x;
 	float go_y;
 	object_t* go_o;
+
+	float* materials;
 };
 
-void character_init   (character_t* c);
+void character_init   (character_t* c, universe_t* u);
+void character_deinit (character_t* c);
 void character_doRound(character_t* c, float duration);
 
 #endif

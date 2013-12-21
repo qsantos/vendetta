@@ -7,7 +7,7 @@
 void world_init(world_t* w, universe_t* u)
 {
 	w->universe = u;
-	character_init(&w->characters[0]);
+	character_init(&w->characters[0], u);
 	for (size_t i = 0; i < 10; i++)
 	{
 		mine_t* m = &w->mines[i];

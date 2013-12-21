@@ -1,5 +1,6 @@
 #include "character.h"
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -8,7 +9,7 @@
 
 #define M_PI 3.14159265358979323846
 
-void character_init(character_t* c)
+void character_init(character_t* c, universe_t* u)
 {
 	c->o.t = O_CHARACTER;
 	c->o.x = 0;
@@ -18,6 +19,18 @@ void character_init(character_t* c)
 	c->go_x = 0;
 	c->go_y = 0;
 	c->go_o = NULL;
+
+	c->materials = calloc(sizeof(float), u->n_materials);
+	if (c->materials == NULL)
+	{
+		fprintf(stderr, "Memory allocation error\n");
+		exit(1);
+	}
+}
+
+void character_deinit(character_t* c)
+{
+	free(c->materials);
 }
 
 void character_doRound(character_t* c, float duration)
@@ -46,7 +59,9 @@ void character_doRound(character_t* c, float duration)
 			return;
 
 		mine_t* m = (mine_t*) c->go_o;
-		printf("I just arrived at a %s\n", m->t->name);
+		int mat_id = m->t->material_id;
+		c->materials[mat_id] += 1 * duration;
+		printf("I now have %f of '%s'\n", c->materials[mat_id], m->t->material->name);
 		return;
 	}
 
