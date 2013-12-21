@@ -8,8 +8,11 @@ typedef struct universe universe_t;
 
 struct universe
 {
-	kindOf_material_t materials[1];
-	kindOf_mine_t     mines[1];
+	int n_materials;
+	kindOf_material_t materials[26];
+
+	int n_mines;
+	kindOf_mine_t mines[8];
 };
 
 void universe_init(universe_t* u);
