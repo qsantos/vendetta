@@ -16,7 +16,8 @@ struct world
 	mine_t      mines[10];
 };
 
-void world_init(world_t* w, universe_t* u);
+world_t* world_init(universe_t* u);
+void     world_exit(world_t* w);
 
 void world_doRound(world_t* w, float duration);
 

@@ -1,7 +1,11 @@
 #include "universe.h"
 
-void universe_init(universe_t* u)
+#include "../util.h"
+
+universe_t* universe_init(void)
 {
+	universe_t* u = CALLOC(universe_t, 1);
+
 	u->n_materials = 26;
 	u->materials[ 0].name = "Herbs";
 	u->materials[ 1].name = "Apples";
@@ -90,4 +94,11 @@ void universe_init(universe_t* u)
 	u->buildings[46].name = "Market";
 	u->buildings[47].name = "Palace";
 	u->buildings[48].name = "Cantonment";
+
+	return u;
+}
+
+void universe_exit(universe_t* u)
+{
+	free(u);
 }

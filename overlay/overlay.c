@@ -21,7 +21,7 @@ void draw_overlay(game_t* g)
 	}
 
 	sfVector2f pos = {0, 0};
-	for (int i = 0; i < g->u.n_buildings; i++)
+	for (int i = 0; i < g->u->n_buildings; i++)
 	{
 		sfIntRect rect = {28*i, 28*1, 28, 28};
 		sfSprite_setTextureRect(sprite, rect);
@@ -35,18 +35,16 @@ void draw_overlay(game_t* g)
 			pos.y += 28;
 		}
 
-		sfRenderWindow_drawSprite(g->g.render, sprite, NULL);
+		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	}
 }
 
 int overlay_catch(game_t* g, float x, float y)
 {
-	(void) g;
-
 	int i = y / 28;
 	int j = x / 28;
 	int id = PANEL_N_COLS*i + j;
-	if (j < PANEL_N_COLS && id < g->u.n_buildings)
+	if (j < PANEL_N_COLS && id < g->u->n_buildings)
 	{
 		printf("%i\n", id);
 		return 1;

@@ -16,9 +16,10 @@ struct universe
 	kindOf_mine_t mines[8];
 
 	int n_buildings;
-	kindOf_building_t buildings[10];
+	kindOf_building_t buildings[49];
 };
 
-void universe_init(universe_t* u);
+universe_t* universe_init(void);
+void        universe_exit(universe_t* u);
 
 #endif

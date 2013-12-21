@@ -12,7 +12,7 @@ struct graphics
 	sfSprite**      sprites;
 };
 
-void graphics_init(graphics_t* g);
-void graphics_exit(graphics_t* g);
+graphics_t* graphics_init(void);
+void        graphics_exit(graphics_t* g);
 
 #endif

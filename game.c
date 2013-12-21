@@ -8,14 +8,16 @@
 
 void game_init(game_t* g)
 {
-	universe_init(&g->u);
-	   world_init(&g->w, &g->u);
-	graphics_init(&g->g);
+	g->u = universe_init();
+	g->w = world_init(g->u);
+	g->g = graphics_init();
 }
 
 void game_exit(game_t* g)
 {
-	graphics_exit(&g->g);
+	graphics_exit(g->g);
+	world_exit(g->w);
+	universe_exit(g->u);
 }
 
 void game_loop(game_t* g)
@@ -24,28 +26,28 @@ void game_loop(game_t* g)
 	if (texture == NULL)
 		exit(1);
 
-	character_t* player = &g->w.characters[0];
+	character_t* player = &g->w->characters[0];
 
-	const sfView* default_view = sfRenderWindow_getDefaultView(g->g.render);
+	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	sfView* world_view = sfView_copy(default_view);
 
 	sfClock* clock = sfClock_create();
-	while (sfRenderWindow_isOpen(g->g.render))
+	while (sfRenderWindow_isOpen(g->g->render))
 	{
 		float duration = sfTime_asSeconds(sfClock_getElapsedTime(clock));
 		sfClock_restart(clock);
 
 		sfEvent event;
-		while (sfRenderWindow_pollEvent(g->g.render, &event))
+		while (sfRenderWindow_pollEvent(g->g->render, &event))
 		{
 			if (event.type == sfEvtClosed)
 			{
-				sfRenderWindow_close(g->g.render);
+				sfRenderWindow_close(g->g->render);
 			}
 			else if (event.type == sfEvtKeyPressed)
 			{
 				if (event.key.code == sfKeyEscape)
-					sfRenderWindow_close(g->g.render);
+					sfRenderWindow_close(g->g->render);
 			}
 			else if (event.type == sfEvtKeyReleased)
 			{
@@ -66,8 +68,8 @@ void game_loop(game_t* g)
 					continue;
 
 				sfVector2i pix = {e->x, e->y};
-				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g.render, pix, world_view);
-				object_t* o = world_objectAt(&g->w, pos.x, pos.y);
+				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, world_view);
+				object_t* o = world_objectAt(g->w, pos.x, pos.y);
 
 				player->go_x = pos.x;
 				player->go_y = pos.y;
@@ -87,21 +89,21 @@ void game_loop(game_t* g)
 			player->go_o = NULL;
 		}
 
-		world_doRound(&g->w, duration);
+		world_doRound(g->w, duration);
 
-		sfRenderWindow_clear(g->g.render, sfBlack);
+		sfRenderWindow_clear(g->g->render, sfBlack);
 
 		sfVector2f pos = {player->o.x, player->o.y};
 		sfView_setCenter(world_view, pos);
-		sfRenderWindow_setView(g->g.render, world_view);
+		sfRenderWindow_setView(g->g->render, world_view);
 
-		draw_world(&g->g, &g->w);
+		draw_world(g->g, g->w);
 
-		sfRenderWindow_setView(g->g.render, default_view);
+		sfRenderWindow_setView(g->g->render, default_view);
 
 		draw_overlay(g);
 
-		sfRenderWindow_display(g->g.render);
+		sfRenderWindow_display(g->g->render);
 	}
 
 	sfClock_destroy(clock);

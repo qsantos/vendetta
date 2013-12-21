@@ -4,8 +4,12 @@
 #include <string.h>
 #include <limits.h>
 
-void world_init(world_t* w, universe_t* u)
+#include "../util.h"
+
+world_t* world_init(universe_t* u)
 {
+	world_t* w = CALLOC(world_t, 1);
+
 	w->universe = u;
 	character_init(&w->characters[0], u);
 	for (size_t i = 0; i < 10; i++)
@@ -16,6 +20,13 @@ void world_init(world_t* w, universe_t* u)
 		m->o.x = (1 - 2*((float) rand()/INT_MAX)) * 500;
 		m->o.y = (1 - 2*((float) rand()/INT_MAX)) * 500;
 	}
+
+	return w;
+}
+
+void world_exit(world_t* w)
+{
+	free(w);
 }
 
 void world_doRound(world_t* w, float duration)
