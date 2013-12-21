@@ -3,7 +3,7 @@ CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99
 LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
 TARGETS = vendetta
 
-SRC = $(wildcard *.c world/*.c)
+SRC = $(wildcard *.c world/*.c universe/*.c)
 OBJ = $(SRC:.c=.o)
 
 all: $(TARGETS)
