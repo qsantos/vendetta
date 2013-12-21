@@ -13,8 +13,8 @@ void world_init(world_t* w, universe_t* u)
 		mine_t* m = &w->mines[i];
 		int type = rand() % u->n_mines;
 		mine_init(m, &u->mines[type]);
-		m->o.x = (float) rand() / INT_MAX * 1000;
-		m->o.y = (float) rand() / INT_MAX * 1000;
+		m->o.x = (1 - 2*((float) rand()/INT_MAX)) * 500;
+		m->o.y = (1 - 2*((float) rand()/INT_MAX)) * 500;
 	}
 }
 
