@@ -3,6 +3,7 @@
 
 #include "character.h"
 #include "mine.h"
+#include "object.h"
 
 typedef struct world world_t;
 
@@ -15,5 +16,7 @@ struct world
 void world_init(world_t* w);
 
 void world_doRound(world_t* w, float duration);
+
+object_t* world_objectAt(world_t* w, float x, float y);
 
 #endif

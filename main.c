@@ -50,8 +50,14 @@ int main(void)
 
 				sfVector2i pix = {e->x, e->y};
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(window, pix, world_view);
-				player->go_x = pos.x;
-				player->go_y = pos.y;
+				object_t* o = world_objectAt(&world, pos.x, pos.y);
+				if (o == NULL)
+				{
+					player->go_x = pos.x;
+					player->go_y = pos.y;
+					continue;
+				}
+				printf("%p\n", (void*) o);
 			}
 		}
 

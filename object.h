@@ -19,4 +19,6 @@ struct object
 	float h;
 };
 
+int object_isAt(object_t* o, float x, float y);
+
 #endif

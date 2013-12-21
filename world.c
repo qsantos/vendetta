@@ -20,3 +20,16 @@ void world_doRound(world_t* w, float duration)
 {
 	character_doRound(&w->characters[0], duration);
 }
+
+object_t* world_objectAt(world_t* w, float x, float y)
+{
+	for (size_t i = 0; i < 1; i++)
+		if (object_isAt((object_t*) &w->characters[i], x, y))
+			return (object_t*) &w->characters[i];
+
+	for (size_t i = 0; i < 10; i++)
+		if (object_isAt((object_t*) &w->mines[i], x, y))
+			return (object_t*) &w->mines[i];
+
+	return NULL;
+}
