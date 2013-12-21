@@ -31,14 +31,14 @@ void universe_init(universe_t* u)
 	u->materials[25].name = "Sulphur";
 
 	u->n_mines = 8;
-	u->mines[0] = (kindOf_mine_t){"Herbs",            0, &u->materials[ 0]};
-	u->mines[1] = (kindOf_mine_t){"Apple tree",       1, &u->materials[ 1]};
-	u->mines[2] = (kindOf_mine_t){"Tree",             2, &u->materials[ 2]};
-	u->mines[3] = (kindOf_mine_t){"Rocks",           12 ,&u->materials[12]};
-	u->mines[4] = (kindOf_mine_t){"Iron vein",       14, &u->materials[14]};
-	u->mines[5] = (kindOf_mine_t){"Crystals",        17, &u->materials[17]};
-	u->mines[6] = (kindOf_mine_t){"Gold ore",        23, &u->materials[23]};
-	u->mines[7] = (kindOf_mine_t){"Sulphur deposit", 25, &u->materials[25]};
+	u->mines[0] = (kindOf_mine_t){0, "Herbs",            0, &u->materials[ 0]};
+	u->mines[1] = (kindOf_mine_t){1, "Apple tree",       1, &u->materials[ 1]};
+	u->mines[2] = (kindOf_mine_t){2, "Tree",             2, &u->materials[ 2]};
+	u->mines[3] = (kindOf_mine_t){3, "Rocks",           12 ,&u->materials[12]};
+	u->mines[4] = (kindOf_mine_t){4, "Iron vein",       14, &u->materials[14]};
+	u->mines[5] = (kindOf_mine_t){5, "Crystals",        17, &u->materials[17]};
+	u->mines[6] = (kindOf_mine_t){6, "Gold ore",        23, &u->materials[23]};
+	u->mines[7] = (kindOf_mine_t){7, "Sulphur deposit", 25, &u->materials[25]};
 
 	u->n_buildings = 49;
 	u->buildings[ 0].name = "Wheat farm";

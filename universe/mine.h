@@ -7,6 +7,7 @@ typedef struct kindOf_mine kindOf_mine_t;
 
 struct kindOf_mine
 {
+	int id;
 	const char* name;
 
 	int material_id;

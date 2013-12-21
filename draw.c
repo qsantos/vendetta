@@ -43,10 +43,11 @@ void draw_mine(graphics_t* g, mine_t* m)
 
 		sprite = sfSprite_create();
 		sfSprite_setTexture(sprite, texture, sfTrue);
-		sfIntRect rect = {32*3, 32*0, 32, 32};
-		sfSprite_setTextureRect(sprite, rect);
 	}
 
+	int t = m->t->id;
+	sfIntRect rect = {32*t, 32*0, 32, 32};
+	sfSprite_setTextureRect(sprite, rect);
 	draw_object(g, &m->o, sprite);
 }
 
