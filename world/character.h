@@ -1,5 +1,5 @@
-#ifndef CHARACTER_H
-#define CHARACTER_H
+#ifndef W_CHARACTER_H
+#define W_CHARACTER_H
 
 #include "object.h"
 

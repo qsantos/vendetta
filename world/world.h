@@ -1,5 +1,5 @@
-#ifndef WORLD_H
-#define WORLD_H
+#ifndef W_WORLD_H
+#define W_WORLD_H
 
 #include "character.h"
 #include "mine.h"

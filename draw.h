@@ -3,7 +3,7 @@
 
 #include <SFML/Graphics.h>
 
-#include "world.h"
+#include "world/world.h"
 
 void draw_character(sfRenderWindow* render, character_t* c);
 void draw_mine     (sfRenderWindow* render, mine_t* m);

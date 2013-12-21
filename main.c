@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <SFML/Graphics.h>
 
-#include "world.h"
 #include "draw.h"
 
 int main(void)

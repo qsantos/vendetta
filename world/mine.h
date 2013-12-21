@@ -1,5 +1,5 @@
-#ifndef MINE_H
-#define MINE_H
+#ifndef W_MINE_H
+#define W_MINE_H
 
 #include "object.h"
 

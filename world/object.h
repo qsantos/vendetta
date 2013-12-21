@@ -1,5 +1,5 @@
-#ifndef OBJECT_H
-#define OBJECT_H
+#ifndef W_OBJECT_H
+#define W_OBJECT_H
 
 typedef enum
 {
