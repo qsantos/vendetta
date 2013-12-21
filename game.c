@@ -47,6 +47,15 @@ void game_loop(game_t* g)
 				if (event.key.code == sfKeyEscape)
 					sfRenderWindow_close(g->g.render);
 			}
+			else if (event.type == sfEvtKeyReleased)
+			{
+				sfKeyCode k = event.key.code;
+				if (k == sfKeyUp || k == sfKeyDown || k == sfKeyLeft || k == sfKeyRight)
+				{
+					player->go_x = player->o.x;
+					player->go_y = player->o.y;
+				}
+			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				sfMouseButtonEvent* e = &event.mouseButton;
@@ -72,6 +81,7 @@ void game_loop(game_t* g)
 		{
 			player->go_x = player->o.x + 100 * (right - 2*left);
 			player->go_y = player->o.y + 100 * (down  - 2*up);
+			player->go_o = NULL;
 		}
 
 		world_doRound(&g->w, duration);
