@@ -1,10 +1,10 @@
 #ifndef W_MINE_H
 #define W_MINE_H
 
+typedef struct mine mine_t;
+
 #include "object.h"
 #include "../universe/mine.h"
-
-typedef struct mine mine_t;
 
 struct mine
 {

@@ -1,11 +1,11 @@
 #ifndef GAME_H
 #define GAME_H
 
+typedef struct game game_t;
+
 #include "universe/universe.h"
 #include "world/world.h"
 #include "graphics.h"
-
-typedef struct game game_t;
 
 struct game
 {

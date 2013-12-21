@@ -1,10 +1,10 @@
 #ifndef W_CHARACTER_H
 #define W_CHARACTER_H
 
+typedef struct character character_t;
+
 #include "object.h"
 #include "../universe/universe.h"
-
-typedef struct character character_t;
 
 typedef enum
 {

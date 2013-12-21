@@ -1,12 +1,12 @@
 #ifndef W_WORLD_H
 #define W_WORLD_H
 
+typedef struct world world_t;
+
 #include "../universe/universe.h"
 #include "character.h"
 #include "mine.h"
 #include "object.h"
-
-typedef struct world world_t;
 
 struct world
 {

@@ -1,11 +1,11 @@
 #ifndef U_UNIVERSE_H
 #define U_UNIVERSE_H
 
+typedef struct universe universe_t;
+
 #include "material.h"
 #include "mine.h"
 #include "building.h"
-
-typedef struct universe universe_t;
 
 struct universe
 {
