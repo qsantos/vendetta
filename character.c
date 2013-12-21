@@ -7,8 +7,13 @@
 
 void character_init(character_t* c)
 {
-	memset(c, 0, sizeof(character_t));
 	c->o.t = O_CHARACTER;
+	c->o.x = 0;
+	c->o.y = 0;
+	c->o.w = 24;
+	c->o.h = 32;
+	c->go_x = 0;
+	c->go_y = 0;
 }
 
 void character_doRound(character_t* c, float duration)

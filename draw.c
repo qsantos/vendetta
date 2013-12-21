@@ -2,6 +2,13 @@
 
 #include <stdlib.h>
 
+void draw_object(sfRenderWindow* render, object_t* o, sfSprite* sprite)
+{
+	sfVector2f pos = {o->x - o->w / 2, o->y - o->h};
+	sfSprite_setPosition(sprite, pos);
+	sfRenderWindow_drawSprite(render, sprite, NULL);
+}
+
 void draw_character(sfRenderWindow* render, character_t* c)
 {
 	static sfTexture* texture = NULL;
@@ -20,9 +27,7 @@ void draw_character(sfRenderWindow* render, character_t* c)
 
 	}
 
-	sfVector2f pos = {c->o.x, c->o.y};
-	sfSprite_setPosition(sprite, pos);
-	sfRenderWindow_drawSprite(render, sprite, NULL);
+	draw_object(render, &c->o, sprite);
 }
 
 void draw_mine(sfRenderWindow* render, mine_t* m)
@@ -42,9 +47,7 @@ void draw_mine(sfRenderWindow* render, mine_t* m)
 		sfSprite_setTextureRect(sprite, rect);
 	}
 
-	sfVector2f pos = {m->o.x, m->o.y};
-	sfSprite_setPosition(sprite, pos);
-	sfRenderWindow_drawSprite(render, sprite, NULL);
+	draw_object(render, &m->o, sprite);
 }
 
 void draw_world(sfRenderWindow* render, world_t* w)

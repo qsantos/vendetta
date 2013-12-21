@@ -6,11 +6,13 @@
 
 void world_init(world_t* w)
 {
-	memset(w, 0, sizeof(world_t));
+	character_init(&w->characters[0]);
 	for (size_t i = 0; i < 10; i++)
 	{
-		w->mines[i].o.x = (float) rand() / INT_MAX * 1000;
-		w->mines[i].o.y = (float) rand() / INT_MAX * 1000;
+		mine_t* m = &w->mines[i];
+		mine_init(m);
+		m->o.x = (float) rand() / INT_MAX * 1000;
+		m->o.y = (float) rand() / INT_MAX * 1000;
 	}
 }
 

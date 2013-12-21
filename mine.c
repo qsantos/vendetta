@@ -4,6 +4,9 @@
 
 void mine_init(mine_t* m)
 {
-	memset(m, 0, sizeof(mine_t));
 	m->o.t = O_MINE;
+	m->o.x = 0;
+	m->o.y = 0;
+	m->o.w = 32;
+	m->o.h = 32;
 }
