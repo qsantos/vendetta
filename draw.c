@@ -22,11 +22,11 @@ void draw_character(graphics_t* g, character_t* c)
 
 		sprite = sfSprite_create();
 		sfSprite_setTexture(sprite, texture, sfTrue);
-		sfIntRect rect = {24*1, 32*2, 24, 32};
-		sfSprite_setTextureRect(sprite, rect);
 
 	}
 
+	sfIntRect rect = {24*1, 32*c->dir, 24, 32};
+	sfSprite_setTextureRect(sprite, rect);
 	draw_object(g, &c->o, sprite);
 }
 

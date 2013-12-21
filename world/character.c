@@ -19,6 +19,7 @@ void character_init(character_t* c, universe_t* u)
 	c->go_x = 0;
 	c->go_y = 0;
 	c->go_o = NULL;
+	c->dir  = D_SOUTH;
 
 	c->materials = calloc(sizeof(float), u->n_materials);
 	if (c->materials == NULL)
@@ -52,6 +53,8 @@ void character_doRound(character_t* c, float duration)
 	float remDistance = sqrt(dx*dx + dy*dy);
 	if (remDistance == 0)
 	{
+		c->dir = D_SOUTH;
+
 		if (c->go_o == NULL)
 			return;
 
@@ -82,6 +85,12 @@ void character_doRound(character_t* c, float duration)
 		if (dy < 0)
 			dir += M_PI;
 	}
+
+	c->dir = dir < M_PI * 1/4 ? D_EAST :
+	         dir < M_PI * 3/4 ? D_SOUTH :
+		 dir < M_PI * 5/4 ? D_WEST :
+		 dir < M_PI * 7/4 ? D_NORTH :
+		                     D_EAST;
 
 	float distance = 100 * duration;
 	if (distance > remDistance)

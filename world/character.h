@@ -6,13 +6,22 @@
 
 typedef struct character character_t;
 
+typedef enum
+{
+	D_NORTH,
+	D_EAST,
+	D_SOUTH,
+	D_WEST,
+} direction_t;
+
 struct character
 {
 	object_t o;
 
-	float go_x;
-	float go_y;
-	object_t* go_o;
+	float       go_x;
+	float       go_y;
+	object_t*   go_o;
+	direction_t dir;
 
 	float* materials;
 };
