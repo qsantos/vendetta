@@ -11,6 +11,9 @@ void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 
 void draw_character(graphics_t* g, character_t* c)
 {
+	if (c->inBuilding != NULL)
+		return;
+
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 	{
