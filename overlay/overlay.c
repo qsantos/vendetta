@@ -156,6 +156,50 @@ void draw_overlay(game_t* g)
 
 int overlay_catch(game_t* g, float x, float y)
 {
+	if (g->player->inBuilding != NULL)
+	{
+		kindOf_building_t* t = g->player->inBuilding->t;
+
+		sfText* text = NULL;
+		if (text == NULL)
+		{
+			text = sfText_create();
+			sfText_setFont         (text, g->g->font);
+			sfText_setCharacterSize(text, 18);
+		}
+
+		sfVector2f pos = {PANEL_N_COLS * 28 + 10, 50};
+		for (int i = 0; i < t->item_n; i++)
+		{
+			pos.y += 20;
+
+			components_t* l = &t->item_res[i];
+			if (l->n == 0)
+				continue;
+
+			component_t* c = &l->c[0];
+			if (!c->is_item)
+				exit(1);
+
+			const char* name = g->u->items[c->id].name;
+			sfText_setPosition(text, pos);
+			sfText_setString  (text, name);
+
+			sfFloatRect rect = sfText_getGlobalBounds(text);
+			if (!sfFloatRect_contains(&rect, x, y))
+				continue;
+
+			if (components_check(&t->item_req[i], &g->player->inventory))
+			{
+				components_apply(&t->item_req[i], &g->player->inventory, -1);
+				components_apply(&t->item_res[i], &g->player->inventory, +1);
+				printf("Built %s\n", name);
+			}
+
+			return 1;
+		}
+	}
+
 	int i = y / 28;
 	int j = x / 28;
 	int id = PANEL_N_COLS*i + j;
