@@ -1,6 +1,7 @@
 #include "character.h"
 
 #include <math.h>
+#include <string.h>
 
 #include "../util.h"
 #include "mine.h"
@@ -20,6 +21,7 @@ void character_init(character_t* c, universe_t* u)
 	c->dir  = D_SOUTH;
 
 	c->materials = CALLOC(float, u->n_materials);
+	memset(c->materials, 0, sizeof(float)*u->n_materials);
 }
 
 void character_deinit(character_t* c)

@@ -19,6 +19,19 @@ void overlay_exit(overlay_t* o)
 	free(o);
 }
 
+static int build_ok(game_t* g, kindOf_building_t* b)
+{
+	material_list_t* req = &b->req;
+	for (int i = 0; i < req->length; i++)
+	{
+		float got  = g->player->materials[req->mat_ids[i]];
+		float need = req->amounts[i];
+		if (got < need)
+			return 0;
+	}
+	return 1;
+}
+
 void draw_buildPanel(game_t* g)
 {
 	static sfSprite* sprite = NULL;
@@ -31,7 +44,9 @@ void draw_buildPanel(game_t* g)
 	sfVector2f pos = {0, 0};
 	for (int i = 0; i < g->u->n_buildings; i++)
 	{
-		sfIntRect rect = {28*i, 28*1, 28, 28};
+		int ok = build_ok(g, &g->u->buildings[i]);
+
+		sfIntRect rect = {28*i, 28*ok, 28, 28};
 		sfSprite_setTextureRect(sprite, rect);
 
 		sfSprite_setPosition(sprite, pos);
@@ -94,7 +109,8 @@ int overlay_catch(game_t* g, float x, float y)
 	int id = PANEL_N_COLS*i + j;
 	if (j < PANEL_N_COLS && id < g->u->n_buildings)
 	{
-		g->o->selectedBuilding = &g->u->buildings[id];
+		if (build_ok(g, &g->u->buildings[id]))
+			g->o->selectedBuilding = &g->u->buildings[id];
 		return 1;
 	}
 
