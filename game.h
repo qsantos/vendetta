@@ -14,6 +14,8 @@ struct game
 	overlay_t*  o;
 	universe_t* u;
 	world_t*    w;
+
+	character_t* player;
 };
 
 void game_init(game_t* g);

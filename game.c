@@ -24,7 +24,7 @@ void game_exit(game_t* g)
 
 void game_loop(game_t* g)
 {
-	character_t* player = &g->w->characters[0];
+	g->player = &g->w->characters[0];
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	g->g->world_view = sfView_copy(default_view);
@@ -52,8 +52,8 @@ void game_loop(game_t* g)
 				sfKeyCode k = event.key.code;
 				if (k == sfKeyUp || k == sfKeyDown || k == sfKeyLeft || k == sfKeyRight)
 				{
-					player->go_x = player->o.x;
-					player->go_y = player->o.y;
+					g->player->go_x = g->player->o.x;
+					g->player->go_y = g->player->o.y;
 				}
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
@@ -69,9 +69,9 @@ void game_loop(game_t* g)
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
 				object_t* o = world_objectAt(g->w, pos.x, pos.y);
 
-				player->go_x = pos.x;
-				player->go_y = pos.y;
-				player->go_o = o;
+				g->player->go_x = pos.x;
+				g->player->go_y = pos.y;
+				g->player->go_o = o;
 			}
 		}
 
@@ -82,16 +82,16 @@ void game_loop(game_t* g)
 
 		if (up || down || left || right)
 		{
-			player->go_x = player->o.x + 100 * (right - 2*left);
-			player->go_y = player->o.y + 100 * (down  - 2*up);
-			player->go_o = NULL;
+			g->player->go_x = g->player->o.x + 100 * (right - 2*left);
+			g->player->go_y = g->player->o.y + 100 * (down  - 2*up);
+			g->player->go_o = NULL;
 		}
 
 		world_doRound(g->w, duration);
 
 		sfRenderWindow_clear(g->g->render, sfBlack);
 
-		sfVector2f pos = {player->o.x, player->o.y};
+		sfVector2f pos = {g->player->o.x, g->player->o.y};
 		sfView_setCenter(g->g->world_view, pos);
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
 
