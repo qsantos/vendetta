@@ -10,4 +10,6 @@ struct kindOf_item
 	wchar_t* name;
 };
 
+void kindOf_item_exit(kindOf_item_t* i);
+
 #endif

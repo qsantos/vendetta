@@ -13,4 +13,6 @@ struct kindOf_mine
 	int material_id;
 };
 
+void kindOf_mine_exit(kindOf_mine_t* m);
+
 #endif

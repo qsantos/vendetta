@@ -10,4 +10,6 @@ struct kindOf_material
 	wchar_t* name;
 };
 
+void kindOf_material_exit(kindOf_material_t* m);
+
 #endif

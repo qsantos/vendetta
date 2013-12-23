@@ -31,10 +31,18 @@ void universe_exit(universe_t* u)
 {
 	for (int i = 0; i < u->n_buildings; i++)
 		kindOf_building_exit(&u->buildings[i]);
-
 	free(u->buildings);
+
+	for (int i = 0; i < u->n_mines; i++)
+		kindOf_mine_exit(&u->mines[i]);
 	free(u->mines);
+
+	for (int i = 0; i < u->n_items; i++)
+		kindOf_item_exit(&u->items[i]);
 	free(u->items);
+
+	for (int i = 0; i < u->n_materials; i++)
+		kindOf_material_exit(&u->materials[i]);
 	free(u->materials);
 	free(u);
 }
