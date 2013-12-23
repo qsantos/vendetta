@@ -3,12 +3,14 @@
 
 typedef struct kindOf_mine kindOf_mine_t;
 
+#include <wchar.h>
+
 #include "material.h"
 
 struct kindOf_mine
 {
 	int id;
-	const char* name;
+	wchar_t* name;
 
 	int material_id;
 	kindOf_material_t* material;

@@ -65,17 +65,17 @@ void draw_swInventory(game_t* g)
 
 	for (int i = 0; i < g->u->n_materials; i++)
 	{
-		const char* name = g->u->materials[i].name;
+		const wchar_t* name = g->u->materials[i].name;
 		int amount = floor(g->player->inventory.materials[i]);
 
 		if (amount == 0)
 			continue;
 
-		char buffer[1024];
-		snprintf(buffer, sizeof(buffer), "%s: %i", name, amount);
+		wchar_t buffer[1024];
+		swprintf(buffer, 1024, L"%ls: %i", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setString  (text, buffer);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		pos.y += 20;
@@ -85,17 +85,17 @@ void draw_swInventory(game_t* g)
 
 	for (int i = 0; i < g->u->n_items; i++)
 	{
-		const char* name = g->u->items[i].name;
+		wchar_t* name = g->u->items[i].name;
 		int amount = g->player->inventory.items[i];
 
 		if (amount == 0)
 			continue;
 
-		char buffer[1024];
-		snprintf(buffer, sizeof(buffer), "%s: %i", name, amount);
+		wchar_t buffer[1024];
+		swprintf(buffer, 1024, L"%ls: %i", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setString  (text, buffer);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		pos.y += 20;
@@ -122,7 +122,7 @@ void draw_swBuilding(game_t* g)
 	sfVector2f pos = {PANEL_N_COLS * 28 + 10, 10};
 
 	sfText_setPosition(text, pos);
-	sfText_setString  (text, b->t->name);
+	sfText_setUnicodeString(text, (sfUint32*) b->t->name);
 	sfRenderWindow_drawText(g->g->render, text, NULL);
 
 	kindOf_building_t* t = b->t;
@@ -134,13 +134,13 @@ void draw_swBuilding(game_t* g)
 		if (c->is_item)
 			exit(1);
 
-		const char* action = t->make_req.n == 0 ? "Harvest" : "Transform to";
-		const char* name   = g->u->materials[c->id].name;
-		char buffer[1024];
-		snprintf(buffer, sizeof(buffer), "%s %s", action, name);
+		const wchar_t* action = t->make_req.n == 0 ? L"Harvest" : L"Transform to";
+		const wchar_t* name   = g->u->materials[c->id].name;
+		wchar_t buffer[1024];
+		swprintf(buffer, 1024, L"%ls %ls", action, name);
 
 		sfText_setPosition(text, pos);
-		sfText_setString  (text, buffer);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -157,9 +157,9 @@ void draw_swBuilding(game_t* g)
 		if (!c->is_item)
 			exit(1);
 
-		const char* name = g->u->items[c->id].name;
+		wchar_t* name = g->u->items[c->id].name;
 		sfText_setPosition(text, pos);
-		sfText_setString  (text, name);
+		sfText_setUnicodeString(text, (sfUint32*) name);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -235,9 +235,9 @@ int overlay_catch(game_t* g, float x, float y)
 			if (!c->is_item)
 				exit(1);
 
-			const char* name = g->u->items[c->id].name;
+			wchar_t* name = g->u->items[c->id].name;
 			sfText_setPosition(text, pos);
-			sfText_setString  (text, name);
+			sfText_setUnicodeString(text, (sfUint32*) name);
 
 			sfFloatRect rect = sfText_getGlobalBounds(text);
 			if (!sfFloatRect_contains(&rect, x, y))

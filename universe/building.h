@@ -3,12 +3,14 @@
 
 typedef struct kindOf_building kindOf_building_t;
 
+#include <wchar.h>
+
 #include "../graphics.h"
 #include "component.h"
 
 struct kindOf_building
 {
-	const char* name;
+	wchar_t* name;
 
 	float width;
 	float height;
@@ -27,7 +29,7 @@ struct kindOf_building
 	components_t* item_res;
 };
 
-void kindOf_building_init(kindOf_building_t* b, graphics_t* g, const char* name);
+void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name);
 void kindOf_building_exit(kindOf_building_t* b);
 
 int kindOf_building_newItem(kindOf_building_t* b);

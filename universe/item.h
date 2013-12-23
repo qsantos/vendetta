@@ -3,9 +3,11 @@
 
 typedef struct kindOf_item kindOf_item_t;
 
+#include <wchar.h>
+
 struct kindOf_item
 {
-	const char* name;
+	wchar_t* name;
 };
 
 #endif

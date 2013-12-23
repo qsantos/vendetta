@@ -2,12 +2,12 @@
 
 #include "../util.h"
 
-void kindOf_building_init(kindOf_building_t* b, graphics_t* g, const char* name)
+void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name)
 {
 	b->name = name;
 
 	char s[1024];
-	snprintf(s, 1024, "buildings/%s.png", name);
+	snprintf(s, 1024, "buildings/%ls.png", name);
 	int id = graphics_spriteForImg(g, s);
 	b->sprite = id;
 

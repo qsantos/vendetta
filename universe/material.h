@@ -3,9 +3,11 @@
 
 typedef struct kindOf_material kindOf_material_t;
 
+#include <wchar.h>
+
 struct kindOf_material
 {
-	const char* name;
+	wchar_t* name;
 };
 
 #endif
