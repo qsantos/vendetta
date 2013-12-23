@@ -5,6 +5,7 @@ typedef enum
 {
 	O_CHARACTER,
 	O_MINE,
+	O_BUILDING,
 } otype_t;
 
 typedef struct object object_t;
