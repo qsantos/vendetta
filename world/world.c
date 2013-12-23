@@ -48,6 +48,10 @@ object_t* world_objectAt(world_t* w, float x, float y)
 		if (object_isAt((object_t*) &w->mines[i], x, y))
 			return (object_t*) &w->mines[i];
 
+	for (size_t i = 0; i < w->n_buildings; i++)
+		if (object_isAt((object_t*) &w->buildings[i], x, y))
+			return (object_t*) &w->buildings[i];
+
 	return NULL;
 }
 

@@ -99,7 +99,11 @@ universe_t* universe_init(graphics_t* g)
 	{
 		char s[1024];
 		snprintf(s, 1024, "buildings/%s.png", u->buildings[i].name);
-		u->buildings[i].sprite = graphics_spriteForImg(g, s);
+		int id = graphics_spriteForImg(g, s);
+		sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
+		u->buildings[i].width  = rect.width;
+		u->buildings[i].height = rect.height;
+		u->buildings[i].sprite = id;
 	}
 
 	return u;
