@@ -16,6 +16,7 @@ void       overlay_exit(overlay_t* o);
 int overlay_catch(game_t* g, float x, float y);
 
 void draw_buildPanel(game_t* g);
+void draw_swBuilding(game_t* g);
 void draw_cursor    (game_t* g);
 void draw_overlay   (game_t* g);
 
