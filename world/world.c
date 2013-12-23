@@ -21,6 +21,10 @@ world_t* world_init(universe_t* u)
 		m->o.y = (1 - 2*((float) rand()/INT_MAX)) * 500;
 	}
 
+	w->n_buildings = 0;
+	w->a_buildings = 0;
+	w->buildings = NULL;
+
 	return w;
 }
 
@@ -45,4 +49,15 @@ object_t* world_objectAt(world_t* w, float x, float y)
 			return (object_t*) &w->mines[i];
 
 	return NULL;
+}
+
+void world_addBuilding(world_t* w, kindOf_building_t* b, float x, float y)
+{
+	if (w->n_buildings == w->a_buildings)
+	{
+		w->a_buildings = w->a_buildings ? 2*w->a_buildings : 1;
+		w->buildings = CREALLOC(w->buildings, building_t, w->a_buildings);
+	}
+
+	building_init(&w->buildings[w->n_buildings++], b, x, y);
 }

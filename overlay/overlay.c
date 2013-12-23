@@ -52,11 +52,12 @@ void draw_cursor(game_t* g)
 	sfVector2i posi = sfMouse_getPositionRenderWindow(g->g->render);
 	sfIntRect rect = {0, 0, 24, 24};
 
-	if (g->o->selectedBuilding != NULL)
+	kindOf_building_t* b = g->o->selectedBuilding;
+	if (b != NULL)
 	{
 		rect.left = 4 * 24;
 
-		int id = g->o->selectedBuilding->sprite;
+		int id = b->sprite;
 		sfSprite* sprite = g->g->sprites[id];
 
 		sfIntRect rect = sfSprite_getTextureRect(sprite);
@@ -94,6 +95,22 @@ int overlay_catch(game_t* g, float x, float y)
 	if (j < PANEL_N_COLS && id < g->u->n_buildings)
 	{
 		g->o->selectedBuilding = &g->u->buildings[id];
+		return 1;
+	}
+
+	kindOf_building_t* b = g->o->selectedBuilding;
+	if (b != NULL)
+	{
+		int id = b->sprite;
+		sfSprite* sprite = g->g->sprites[id];
+
+		sfVector2i pix = {x, y};
+		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
+
+		sfIntRect rect = sfSprite_getTextureRect(sprite);
+		world_addBuilding(g->w, b, pos.x, pos.y + rect.height/2);
+
+		g->o->selectedBuilding = NULL;
 		return 1;
 	}
 

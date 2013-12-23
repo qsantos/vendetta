@@ -7,6 +7,7 @@ typedef struct world world_t;
 #include "character.h"
 #include "mine.h"
 #include "object.h"
+#include "building.h"
 
 struct world
 {
@@ -14,6 +15,10 @@ struct world
 
 	character_t characters[1];
 	mine_t      mines[10];
+
+	size_t n_buildings;
+	size_t a_buildings;
+	building_t* buildings;
 };
 
 world_t* world_init(universe_t* u);
@@ -22,5 +27,7 @@ void     world_exit(world_t* w);
 void world_doRound(world_t* w, float duration);
 
 object_t* world_objectAt(world_t* w, float x, float y);
+
+void world_addBuilding(world_t* w, kindOf_building_t* b, float x, float y);
 
 #endif
