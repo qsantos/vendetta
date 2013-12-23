@@ -1,5 +1,7 @@
 #include "component.h"
 
+#include <math.h>
+
 #include "../util.h"
 #include "../world/inventory.h"
 
@@ -24,9 +26,15 @@ int components_check(components_t* l, inventory_t* inv)
 {
 	for (int i = 0; i < l->n; i++)
 	{
-		float got  = inv->materials[l->c[i].id];
-		float need = l->c[i].amount;
-		if (got < need)
+		component_t* c = &l->c[i];
+
+		float got;
+		if (c->is_item)
+			got = inv->items[c->id];
+		else
+			got = inv->materials[c->id];
+
+		if (got < c->amount)
 			return 0;
 	}
 	return 1;
@@ -37,9 +45,14 @@ float components_ratio(components_t* l, inventory_t* inv, float max_ratio)
 	float ret = max_ratio;
 	for (int i = 0; i < l->n; i++)
 	{
-		float got  = inv->materials[l->c[i].id];
-		float need = l->c[i].amount;
-		float r = got / need;
+		component_t* c = &l->c[i];
+
+		float r;
+		if (c->is_item)
+			r = floor(inv->items[c->id] / c->amount);
+		else
+			r = inv->materials[c->id] / c->amount;
+
 		if (ret < 0 || r < ret)
 			ret = r;
 	}
@@ -49,6 +62,14 @@ float components_ratio(components_t* l, inventory_t* inv, float max_ratio)
 void components_apply(components_t* l, inventory_t* inv, float ratio)
 {
 	for (int i = 0; i < l->n; i++)
-		if (!l->c[i].kept)
-			inv->materials[l->c[i].id] += ratio * l->c[i].amount;
+	{
+		component_t* c = &l->c[i];
+		if (l->c[i].kept)
+			continue;
+
+		if (c->is_item)
+			inv->items[c->id] += ratio * c->amount;
+		else
+			inv->materials[c->id] += ratio * c->amount;
+	}
 }
