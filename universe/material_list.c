@@ -23,3 +23,35 @@ void material_list_push(material_list_t* l, int id, float a)
 	l->mat_ids[n] = id;
 	l->amounts[n] = a;
 }
+
+int material_list_check(material_list_t* l, const float* amounts)
+{
+	for (int i = 0; i < l->length; i++)
+	{
+		float got  = amounts[l->mat_ids[i]];
+		float need = l->amounts[i];
+		if (got < need)
+			return 0;
+	}
+	return 1;
+}
+
+float material_list_ratio(material_list_t* l, const float* amounts, float max_ratio)
+{
+	float ret = max_ratio;
+	for (int i = 0; i < l->length; i++)
+	{
+		float got  = amounts[l->mat_ids[i]];
+		float need = l->amounts[i];
+		float r = got / need;
+		if (ret < 0 || r < ret)
+			ret = r;
+	}
+	return ret;
+}
+
+void material_list_apply(material_list_t* l, float* amounts, float ratio)
+{
+	for (int i = 0; i < l->length; i++)
+		amounts[l->mat_ids[i]] += ratio * l->amounts[i];
+}
