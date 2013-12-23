@@ -42,6 +42,14 @@ void game_loop(game_t* g)
 			{
 				sfRenderWindow_close(g->g->render);
 			}
+			else if (event.type == sfEvtLostFocus)
+			{
+				g->g->hasFocus = sfFalse;
+			}
+			else if (event.type == sfEvtGainedFocus)
+			{
+				g->g->hasFocus = sfTrue;
+			}
 			else if (event.type == sfEvtKeyPressed)
 			{
 				if (event.key.code == sfKeyEscape)
@@ -75,16 +83,19 @@ void game_loop(game_t* g)
 			}
 		}
 
-		sfBool up    = sfKeyboard_isKeyPressed(sfKeyUp);
-		sfBool down  = sfKeyboard_isKeyPressed(sfKeyDown);
-		sfBool left  = sfKeyboard_isKeyPressed(sfKeyLeft);
-		sfBool right = sfKeyboard_isKeyPressed(sfKeyRight);
-
-		if (up || down || left || right)
+		if (g->g->hasFocus)
 		{
-			g->player->go_x = g->player->o.x + 100 * (right - 2*left);
-			g->player->go_y = g->player->o.y + 100 * (down  - 2*up);
-			g->player->go_o = NULL;
+			sfBool up    = sfKeyboard_isKeyPressed(sfKeyUp);
+			sfBool down  = sfKeyboard_isKeyPressed(sfKeyDown);
+			sfBool left  = sfKeyboard_isKeyPressed(sfKeyLeft);
+			sfBool right = sfKeyboard_isKeyPressed(sfKeyRight);
+
+			if (up || down || left || right)
+			{
+				g->player->go_x = g->player->o.x + 100 * (right - 2*left);
+				g->player->go_y = g->player->o.y + 100 * (down  - 2*up);
+				g->player->go_o = NULL;
+			}
 		}
 
 		world_doRound(g->w, duration);
