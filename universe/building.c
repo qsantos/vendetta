@@ -14,9 +14,12 @@ void kindOf_building_init(kindOf_building_t* b, graphics_t* g, const char* name)
 	sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
 	b->width  = rect.width;
 	b->height = rect.height;
+
+	material_list_init(&b->req);
+	material_list_push(&b->req, 2, 5);
 }
 
 void kindOf_building_exit(kindOf_building_t* b)
 {
-	(void) b;
+	material_list_exit(&b->req);
 }
