@@ -16,6 +16,7 @@ graphics_t* graphics_init(void)
 	g->render = sfRenderWindow_create(mode, "Vendetta 0.2", sfResize | sfClose, NULL);
 	if (g->render == NULL)
 		exit(1);
+	sfRenderWindow_setMouseCursorVisible(g->render, sfFalse);
 
 	g->filenames = CALLOC(char*, HT_MAX_TEXTURES);
 	memset(g->filenames, 0, sizeof(char*) * HT_MAX_TEXTURES);

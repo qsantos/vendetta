@@ -19,7 +19,7 @@ void overlay_exit(overlay_t* o)
 	free(o);
 }
 
-void draw_overlay(game_t* g)
+void draw_buildPanel(game_t* g)
 {
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
@@ -45,6 +45,30 @@ void draw_overlay(game_t* g)
 
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	}
+}
+
+void draw_cursor(game_t* g)
+{
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
+	{
+		int id = graphics_spriteForImg(g->g, "cursors.png");
+		sprite = g->g->sprites[id];
+
+		sfIntRect rect = {0, 0, 24, 24};
+		sfSprite_setTextureRect(sprite, rect);
+	}
+
+	sfVector2i posi = sfMouse_getPositionRenderWindow(g->g->render);
+	sfVector2f posf = {posi.x, posi.y};
+	sfSprite_setPosition(sprite, posf);
+	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+}
+
+void draw_overlay(game_t* g)
+{
+	draw_buildPanel(g);
+	draw_cursor(g);
 }
 
 int overlay_catch(game_t* g, float x, float y)
