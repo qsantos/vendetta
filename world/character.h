@@ -4,6 +4,7 @@
 typedef struct character character_t;
 
 #include "object.h"
+#include "building.h"
 #include "../universe/universe.h"
 
 typedef enum
@@ -24,6 +25,8 @@ struct character
 	direction_t dir;
 
 	float* materials;
+
+	building_t* inBuilding;
 };
 
 void character_init   (character_t* c, universe_t* u);

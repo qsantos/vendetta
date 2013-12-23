@@ -23,6 +23,8 @@ void character_init(character_t* c, universe_t* u)
 
 	c->materials = CALLOC(float, u->n_materials);
 	memset(c->materials, 0, sizeof(float)*u->n_materials);
+
+	c->inBuilding = NULL;
 }
 
 void character_deinit(character_t* c)
@@ -46,6 +48,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	else if (o->t == O_BUILDING)
 	{
 		building_t* b = (building_t*) o;
+		c->inBuilding = b;
 		kindOf_building_t* t = b->t;
 
 		float ratio = material_list_ratio(&t->make_req, c->materials, 1 * duration);
@@ -72,12 +75,15 @@ void character_doRound(character_t* c, float duration)
 	}
 	dx -= c->o.x;
 	dy -= c->o.y;
+
 	float remDistance = sqrt(dx*dx + dy*dy);
 	if (remDistance == 0)
 	{
 		c->dir = D_SOUTH;
 		character_workAt(c, c->go_o, duration);
+		return;
 	}
+	c->inBuilding = NULL;
 
 	float dir;
 	if (dx > 0)
