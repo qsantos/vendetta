@@ -18,6 +18,10 @@ graphics_t* graphics_init(void)
 		exit(1);
 	sfRenderWindow_setMouseCursorVisible(g->render, sfFalse);
 
+	g->font = sfFont_createFromFile("DejaVuSans.ttf");
+	if (g->font == NULL)
+		exit(1);
+
 	g->filenames = CALLOC(char*, HT_MAX_TEXTURES);
 	memset(g->filenames, 0, sizeof(char*) * HT_MAX_TEXTURES);
 

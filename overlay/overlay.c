@@ -88,19 +88,23 @@ void draw_overlay(game_t* g)
 	building_t* b = g->player->inBuilding;
 	if (b != NULL)
 	{
-		sfFont* font = sfFont_createFromFile("DejaVuSans.ttf");
-		sfColor color = {255, 255, 255, 255};
-		sfVector2f pos = {PANEL_N_COLS * 28 + 10, 10};
+		sfText* text = NULL;
+		if (text == NULL)
+		{
+			sfColor color = {255, 255, 255, 255};
+			sfVector2f pos = {PANEL_N_COLS * 28 + 10, 10};
 
-		sfText* text = sfText_create();
-		sfText_setFont         (text, font);
-		sfText_setCharacterSize(text, 18);
-		sfText_setString       (text, b->t->name);
-		sfText_setColor        (text, color);
-		sfText_setPosition     (text, pos);
+			text = sfText_create();
+			sfText_setFont         (text, g->g->font);
+			sfText_setCharacterSize(text, 18);
+			sfText_setColor        (text, color);
+			sfText_setPosition     (text, pos);
+		}
 
+		sfText_setString(text, b->t->name);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
-		sfText_destroy(text);
+
+//		sfText_destroy(text); // TODO
 	}
 	draw_buildPanel(g);
 	draw_cursor(g);

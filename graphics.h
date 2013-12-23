@@ -8,6 +8,7 @@ typedef struct graphics graphics_t;
 struct graphics
 {
 	sfRenderWindow* render;
+	sfFont*         font;
 
 	sfView* world_view;
 
