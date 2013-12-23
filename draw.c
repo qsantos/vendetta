@@ -11,18 +11,11 @@ void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 
 void draw_character(graphics_t* g, character_t* c)
 {
-	static sfTexture* texture = NULL;
-	static sfSprite*  sprite  = NULL;
-	
-	if (texture == NULL)
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
 	{
-		texture = sfTexture_createFromFile("character.png", NULL);
-		if (texture == NULL)
-			exit(1);
-
-		sprite = sfSprite_create();
-		sfSprite_setTexture(sprite, texture, sfTrue);
-
+		int id = graphics_spriteForImg(g, "character.png");
+		sprite = g->sprites[id];
 	}
 
 	sfIntRect rect = {24*1, 32*c->dir, 24, 32};
@@ -32,17 +25,11 @@ void draw_character(graphics_t* g, character_t* c)
 
 void draw_mine(graphics_t* g, mine_t* m)
 {
-	static sfTexture* texture = NULL;
-	static sfSprite*  sprite  = NULL;
-	
-	if (texture == NULL)
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
 	{
-		texture = sfTexture_createFromFile("mines.png", NULL);
-		if (texture == NULL)
-			exit(1);
-
-		sprite = sfSprite_create();
-		sfSprite_setTexture(sprite, texture, sfTrue);
+		int id = graphics_spriteForImg(g, "mines.png");
+		sprite = g->sprites[id];
 	}
 
 	int t = m->t->id;

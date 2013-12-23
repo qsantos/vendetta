@@ -24,10 +24,6 @@ void game_exit(game_t* g)
 
 void game_loop(game_t* g)
 {
-	sfTexture* texture = sfTexture_createFromFile("character.png", NULL);
-	if (texture == NULL)
-		exit(1);
-
 	character_t* player = &g->w->characters[0];
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);

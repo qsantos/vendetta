@@ -21,17 +21,11 @@ void overlay_exit(overlay_t* o)
 
 void draw_overlay(game_t* g)
 {
-	static sfTexture* texture = NULL;
-	static sfSprite*  sprite  = NULL;
-	
-	if (texture == NULL)
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
 	{
-		texture = sfTexture_createFromFile("buildings.png", NULL);
-		if (texture == NULL)
-			exit(1);
-
-		sprite = sfSprite_create();
-		sfSprite_setTexture(sprite, texture, sfTrue);
+		int id = graphics_spriteForImg(g->g, "buildings.png");
+		sprite = g->g->sprites[id];
 	}
 
 	sfVector2f pos = {0, 0};
