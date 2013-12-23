@@ -38,9 +38,24 @@ void draw_mine(graphics_t* g, mine_t* m)
 	draw_object(g, &m->o, sprite);
 }
 
+void draw_building(graphics_t* g, building_t* b)
+{
+	int id = b->t->sprite;
+	sfSprite* sprite = g->sprites[id];
+
+	sfIntRect rect = sfSprite_getTextureRect(sprite);
+	sfVector2f pos = {b->o.x - rect.width/2, b->o.y - rect.height};
+	sfSprite_setPosition(sprite, pos);
+	sfRenderWindow_drawSprite(g->render, sprite, NULL);
+}
+
 void draw_world(graphics_t* g, world_t* w)
 {
+	for (size_t i = 0; i < w->n_buildings; i++)
+		draw_building(g, &w->buildings[i]);
+
 	for (size_t i = 0; i < 10; i++)
 		draw_mine(g, &w->mines[i]);
+
 	draw_character(g, &w->characters[0]);
 }
