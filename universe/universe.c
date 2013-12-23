@@ -34,6 +34,13 @@ universe_t* universe_init(graphics_t* g)
 	u->materials[24].name = "Ingot";
 	u->materials[25].name = "Sulphur";
 
+	u->n_items = 5;
+	u->items[0].name = "Working clothes";
+	u->items[1].name = "Luxury clothing";
+	u->items[2].name = "Hat";
+	u->items[3].name = "Axe";
+	u->items[4].name = "Hammer";
+
 	u->n_mines = 8;
 	u->mines[0] = (kindOf_mine_t){0, "Herbs",            0, &u->materials[ 0]};
 	u->mines[1] = (kindOf_mine_t){1, "Apple tree",       1, &u->materials[ 1]};

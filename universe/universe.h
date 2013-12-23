@@ -4,6 +4,7 @@
 typedef struct universe universe_t;
 
 #include "material.h"
+#include "item.h"
 #include "mine.h"
 #include "building.h"
 #include "../graphics.h"
@@ -12,6 +13,9 @@ struct universe
 {
 	int n_materials;
 	kindOf_material_t materials[26];
+
+	int n_items;
+	kindOf_item_t items[5];
 
 	int n_mines;
 	kindOf_mine_t mines[8];
