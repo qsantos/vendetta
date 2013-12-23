@@ -27,7 +27,7 @@ void game_loop(game_t* g)
 	character_t* player = &g->w->characters[0];
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
-	sfView* world_view = sfView_copy(default_view);
+	g->g->world_view = sfView_copy(default_view);
 
 	sfClock* clock = sfClock_create();
 	while (sfRenderWindow_isOpen(g->g->render))
@@ -66,7 +66,7 @@ void game_loop(game_t* g)
 					continue;
 
 				sfVector2i pix = {e->x, e->y};
-				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, world_view);
+				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
 				object_t* o = world_objectAt(g->w, pos.x, pos.y);
 
 				player->go_x = pos.x;
@@ -92,8 +92,8 @@ void game_loop(game_t* g)
 		sfRenderWindow_clear(g->g->render, sfBlack);
 
 		sfVector2f pos = {player->o.x, player->o.y};
-		sfView_setCenter(world_view, pos);
-		sfRenderWindow_setView(g->g->render, world_view);
+		sfView_setCenter(g->g->world_view, pos);
+		sfRenderWindow_setView(g->g->render, g->g->world_view);
 
 		draw_world(g->g, g->w);
 

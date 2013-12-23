@@ -9,6 +9,8 @@ struct graphics
 {
 	sfRenderWindow* render;
 
+	sfView* world_view;
+
 	char**      filenames;
 	sfTexture** textures;
 
