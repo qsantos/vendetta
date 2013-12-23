@@ -1,7 +1,5 @@
 #include "mine.h"
 
-#include <string.h>
-
 void mine_init(mine_t* m, kindOf_mine_t* t)
 {
 	m->o.t = O_MINE;

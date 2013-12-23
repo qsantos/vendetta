@@ -1,10 +1,8 @@
 #include "character.h"
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
-#include <string.h>
 
+#include "../util.h"
 #include "mine.h"
 
 #define M_PI 3.14159265358979323846
@@ -21,12 +19,7 @@ void character_init(character_t* c, universe_t* u)
 	c->go_o = NULL;
 	c->dir  = D_SOUTH;
 
-	c->materials = calloc(sizeof(float), u->n_materials);
-	if (c->materials == NULL)
-	{
-		fprintf(stderr, "Memory allocation error\n");
-		exit(1);
-	}
+	c->materials = CALLOC(float, u->n_materials);
 }
 
 void character_deinit(character_t* c)
