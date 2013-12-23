@@ -41,8 +41,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		mine_t* m = (mine_t*) o;
 		int mat_id = m->t->material_id;
 		c->inventory.materials[mat_id] += 1 * duration;
-
-		printf("I now have %f of '%s'\n", c->inventory.materials[mat_id], m->t->material->name);
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -51,10 +49,11 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		kindOf_building_t* t = b->t;
 
 		float ratio = components_ratio(&t->make_req, &c->inventory, 1 * duration);
-		components_apply(&t->make_req, &c->inventory, -ratio);
-		components_apply(&t->make_res, &c->inventory, +ratio);
-
-		printf("Working at %s\n", b->t->name);
+		if (ratio != 0)
+		{
+			components_apply(&t->make_req, &c->inventory, -ratio);
+			components_apply(&t->make_res, &c->inventory, +ratio);
+		}
 	}
 }
 

@@ -1,7 +1,6 @@
 #include "overlay.h"
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <math.h>
 
 #include "../util.h"
 
@@ -49,6 +48,60 @@ void draw_buildPanel(game_t* g)
 	}
 }
 
+void draw_swInventory(game_t* g)
+{
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		sfColor color = {255, 255, 255, 255};
+
+		text = sfText_create();
+		sfText_setFont         (text, g->g->font);
+		sfText_setCharacterSize(text, 18);
+		sfText_setColor        (text, color);
+	}
+
+	sfVector2f pos = {PANEL_N_COLS * 28 + 310, 10};
+
+	for (int i = 0; i < g->u->n_materials; i++)
+	{
+		const char* name = g->u->materials[i].name;
+		int amount = floor(g->player->inventory.materials[i]);
+
+		if (amount == 0)
+			continue;
+
+		char buffer[1024];
+		snprintf(buffer, sizeof(buffer), "%s: %i", name, amount);
+
+		sfText_setPosition(text, pos);
+		sfText_setString  (text, buffer);
+		sfRenderWindow_drawText(g->g->render, text, NULL);
+
+		pos.y += 20;
+	}
+
+	pos.y += 20;
+
+	for (int i = 0; i < g->u->n_items; i++)
+	{
+		const char* name = g->u->items[i].name;
+		int amount = g->player->inventory.items[i];
+
+		if (amount == 0)
+			continue;
+
+		char buffer[1024];
+		snprintf(buffer, sizeof(buffer), "%s: %i", name, amount);
+
+		sfText_setPosition(text, pos);
+		sfText_setString  (text, buffer);
+		sfRenderWindow_drawText(g->g->render, text, NULL);
+
+		pos.y += 20;
+	}
+}
+
 void draw_swBuilding(game_t* g)
 {
 	building_t* b = g->player->inBuilding;
@@ -84,7 +137,7 @@ void draw_swBuilding(game_t* g)
 		const char* action = t->make_req.n == 0 ? "Harvest" : "Transform to";
 		const char* name   = g->u->materials[c->id].name;
 		char buffer[1024];
-		snprintf(buffer, sizeof(buffer), "%s %s\n", action, name);
+		snprintf(buffer, sizeof(buffer), "%s %s", action, name);
 
 		sfText_setPosition(text, pos);
 		sfText_setString  (text, buffer);
@@ -150,6 +203,7 @@ void draw_cursor(game_t* g)
 void draw_overlay(game_t* g)
 {
 	draw_buildPanel(g);
+	draw_swInventory(g);
 	draw_swBuilding(g);
 	draw_cursor(g);
 }
@@ -193,7 +247,6 @@ int overlay_catch(game_t* g, float x, float y)
 			{
 				components_apply(&t->item_req[i], &g->player->inventory, -1);
 				components_apply(&t->item_res[i], &g->player->inventory, +1);
-				printf("Built %s\n", name);
 			}
 
 			return 1;
