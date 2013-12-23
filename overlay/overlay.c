@@ -55,14 +55,14 @@ void draw_cursor(game_t* g)
 	if (g->o->selectedBuilding != NULL)
 	{
 		rect.left = 4 * 24;
-		char s[1024];
-		snprintf(s, 1024, "buildings/%s.png", g->o->selectedBuilding->name);
-		int id = graphics_spriteForImg(g->g, s);
+
+		int id = g->o->selectedBuilding->sprite;
 		sfSprite* sprite = g->g->sprites[id];
 
 		sfIntRect rect = sfSprite_getTextureRect(sprite);
 		sfVector2f posf = {posi.x - rect.width/2, posi.y - rect.height/2};
 		sfSprite_setPosition(sprite, posf);
+
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	}
 

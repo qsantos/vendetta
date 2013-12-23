@@ -2,7 +2,7 @@
 
 #include "../util.h"
 
-universe_t* universe_init(void)
+universe_t* universe_init(graphics_t* g)
 {
 	universe_t* u = CALLOC(universe_t, 1);
 
@@ -94,6 +94,13 @@ universe_t* universe_init(void)
 	u->buildings[46].name = "Market";
 	u->buildings[47].name = "Palace";
 	u->buildings[48].name = "Cantonment";
+
+	for (int i = 0; i < u->n_buildings; i++)
+	{
+		char s[1024];
+		snprintf(s, 1024, "buildings/%s.png", u->buildings[i].name);
+		u->buildings[i].sprite = graphics_spriteForImg(g, s);
+	}
 
 	return u;
 }

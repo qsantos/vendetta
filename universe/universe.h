@@ -6,6 +6,7 @@ typedef struct universe universe_t;
 #include "material.h"
 #include "mine.h"
 #include "building.h"
+#include "../graphics.h"
 
 struct universe
 {
@@ -19,7 +20,7 @@ struct universe
 	kindOf_building_t buildings[49];
 };
 
-universe_t* universe_init(void);
+universe_t* universe_init(graphics_t* g);
 void        universe_exit(universe_t* u);
 
 #endif

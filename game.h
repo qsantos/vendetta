@@ -10,10 +10,10 @@ typedef struct game game_t;
 
 struct game
 {
-	universe_t* u;
-	world_t*    w;
 	graphics_t* g;
 	overlay_t*  o;
+	universe_t* u;
+	world_t*    w;
 };
 
 void game_init(game_t* g);

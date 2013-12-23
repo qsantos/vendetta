@@ -8,18 +8,18 @@
 
 void game_init(game_t* g)
 {
-	g->u = universe_init();
-	g->w =    world_init(g->u);
 	g->g = graphics_init();
 	g->o =  overlay_init();
+	g->u = universe_init(g->g);
+	g->w =    world_init(g->u);
 }
 
 void game_exit(game_t* g)
 {
-	overlay_exit (g->o);
-	graphics_exit(g->g);
 	world_exit   (g->w);
 	universe_exit(g->u);
+	overlay_exit (g->o);
+	graphics_exit(g->g);
 }
 
 void game_loop(game_t* g)
