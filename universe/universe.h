@@ -21,12 +21,12 @@ struct universe
 	kindOf_mine_t* mines;
 
 	int n_buildings;
-	kindOf_building_t buildings[49];
+	kindOf_building_t* buildings;
 };
 
 universe_t* universe_init(graphics_t* g);
 void        universe_exit(universe_t* u);
 
-void universe_parse(universe_t* u, const char* filename);
+void universe_parse(universe_t* u, graphics_t* g, const char* filename);
 
 #endif

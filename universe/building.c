@@ -2,12 +2,13 @@
 
 #include "../util.h"
 
-void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name)
+void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name, char* filename)
 {
 	b->name = name;
 
 	char s[1024];
-	snprintf(s, 1024, "buildings/%ls.png", name);
+	snprintf(s, 1024, "buildings/%s.png", filename);
+	free(filename);
 	int id = graphics_spriteForImg(g, s);
 	b->sprite = id;
 
@@ -37,6 +38,7 @@ void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name)
 void kindOf_building_exit(kindOf_building_t* b)
 {
 	components_exit(&b->build_req);
+	free(b->name);
 }
 
 int kindOf_building_newItem(kindOf_building_t* b)
