@@ -11,6 +11,9 @@ universe_t* universe_init(graphics_t* g)
 	u->n_materials = 0;
 	u->materials = NULL;
 
+	u->n_mines = 0;
+	u->mines = NULL;
+
 	const char* filename = "cfg/Parametres_Ressources.ini";
 	FILE* f = fopen(filename, "r");
 	if (f == NULL)
@@ -21,7 +24,7 @@ universe_t* universe_init(graphics_t* g)
 
 	char*  line  = NULL;
 	size_t nline = 0;
-	int cur_blck = 0; // 0 = none, 1 = material
+	int cur_blck = 0; // 0 = none, 1 = material, 2 = mine
 	int cur_id = 0;
 	while (1)
 	{
@@ -37,6 +40,20 @@ universe_t* universe_init(graphics_t* g)
 			{
 				u->materials = CREALLOC(u->materials, kindOf_material_t, cur_id);
 				u->n_materials = cur_id;
+			}
+			cur_id--;
+			continue;
+		}
+		else if (strncmp(line, "[TerrainRessource_", 18) == 0)
+		{
+			cur_blck = 2;
+			cur_id = atoi(line+18);
+			if (cur_id > u->n_mines)
+			{
+				u->mines = CREALLOC(u->mines, kindOf_mine_t, cur_id);
+				for (int i = u->n_mines; i < cur_id; i++)
+					u->mines[i].id = i;
+				u->n_mines = cur_id;
 			}
 			cur_id--;
 			continue;
@@ -68,18 +85,22 @@ universe_t* universe_init(graphics_t* g)
 			swprintf(buffer, 1024, L"%s", val);
 			u->materials[cur_id].name = wcsdup(buffer);
 		}
+		else if (cur_blck == 2)
+		{
+			if (strcmp(var, "Nom") == 0)
+			{
+				wchar_t buffer[1024];
+				swprintf(buffer, 1024, L"%s", val);
+				u->mines[cur_id].name = wcsdup(buffer);
+			}
+			else if (strcmp(var, "TypeRessource") == 0)
+			{
+				int id = atoi(val) - 1;
+				u->mines[cur_id].material_id = id;
+			}
+		}
 	}
 	fclose(f);
-
-	u->n_mines = 8;
-	u->mines[0] = (kindOf_mine_t){0, L"Herbs",            0, &u->materials[ 0]};
-	u->mines[1] = (kindOf_mine_t){1, L"Apple tree",       1, &u->materials[ 1]};
-	u->mines[2] = (kindOf_mine_t){2, L"Tree",             2, &u->materials[ 2]};
-	u->mines[3] = (kindOf_mine_t){3, L"Rocks",           12, &u->materials[12]};
-	u->mines[4] = (kindOf_mine_t){4, L"Iron vein",       14, &u->materials[14]};
-	u->mines[5] = (kindOf_mine_t){5, L"Crystals",        17, &u->materials[17]};
-	u->mines[6] = (kindOf_mine_t){6, L"Gold ore",        23, &u->materials[23]};
-	u->mines[7] = (kindOf_mine_t){7, L"Sulphur deposit", 25, &u->materials[25]};
 
 	u->n_items = 5;
 	u->items[0].name = L"Working clothes";

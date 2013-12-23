@@ -18,7 +18,7 @@ struct universe
 	kindOf_item_t items[5];
 
 	int n_mines;
-	kindOf_mine_t mines[8];
+	kindOf_mine_t* mines;
 
 	int n_buildings;
 	kindOf_building_t buildings[49];
