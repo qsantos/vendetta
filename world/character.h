@@ -4,6 +4,7 @@
 typedef struct character character_t;
 
 #include "object.h"
+#include "inventory.h"
 #include "building.h"
 #include "../universe/universe.h"
 
@@ -24,8 +25,7 @@ struct character
 	object_t*   go_o;
 	direction_t dir;
 
-	float* materials;
-
+	inventory_t inventory;
 	building_t* inBuilding;
 };
 

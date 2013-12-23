@@ -16,20 +16,19 @@ void character_init(character_t* c, universe_t* u)
 	c->o.y = 0;
 	c->o.w = 24;
 	c->o.h = 32;
+
 	c->go_x = 0;
 	c->go_y = 0;
 	c->go_o = NULL;
 	c->dir  = D_SOUTH;
 
-	c->materials = CALLOC(float, u->n_materials);
-	memset(c->materials, 0, sizeof(float)*u->n_materials);
-
+	inventory_init(&c->inventory, u);
 	c->inBuilding = NULL;
 }
 
 void character_deinit(character_t* c)
 {
-	free(c->materials);
+	inventory_exit(&c->inventory);
 }
 
 void character_workAt(character_t* c, object_t* o, float duration)
@@ -41,9 +40,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	{
 		mine_t* m = (mine_t*) o;
 		int mat_id = m->t->material_id;
-		c->materials[mat_id] += 1 * duration;
+		c->inventory.materials[mat_id] += 1 * duration;
 
-		printf("I now have %f of '%s'\n", c->materials[mat_id], m->t->material->name);
+		printf("I now have %f of '%s'\n", c->inventory.materials[mat_id], m->t->material->name);
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -51,9 +50,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		c->inBuilding = b;
 		kindOf_building_t* t = b->t;
 
-		float ratio = components_ratio(&t->make_req, c->materials, 1 * duration);
-		components_apply(&t->make_req, c->materials, -ratio);
-		components_apply(&t->make_res, c->materials, +ratio);
+		float ratio = components_ratio(&t->make_req, &c->inventory, 1 * duration);
+		components_apply(&t->make_req, &c->inventory, -ratio);
+		components_apply(&t->make_res, &c->inventory, +ratio);
 
 		printf("Working at %s\n", b->t->name);
 	}

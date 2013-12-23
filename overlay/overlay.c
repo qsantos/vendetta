@@ -31,7 +31,7 @@ void draw_buildPanel(game_t* g)
 	sfVector2f pos = {0, 0};
 	for (int i = 0; i < g->u->n_buildings; i++)
 	{
-		int ok = components_check(&g->u->buildings[i].build_req, g->player->materials);
+		int ok = components_check(&g->u->buildings[i].build_req, &g->player->inventory);
 
 		sfIntRect rect = {28*i, 28*ok, 28, 28};
 		sfSprite_setTextureRect(sprite, rect);
@@ -117,7 +117,7 @@ int overlay_catch(game_t* g, float x, float y)
 	int id = PANEL_N_COLS*i + j;
 	if (j < PANEL_N_COLS && id < g->u->n_buildings)
 	{
-		if (components_check(&g->u->buildings[i].build_req, g->player->materials))
+		if (components_check(&g->u->buildings[i].build_req, &g->player->inventory))
 			g->o->selectedBuilding = &g->u->buildings[id];
 		return 1;
 	}
@@ -125,10 +125,10 @@ int overlay_catch(game_t* g, float x, float y)
 	kindOf_building_t* b = g->o->selectedBuilding;
 	if (b != NULL)
 	{
-		if (!components_check(&b->build_req, g->player->materials))
+		if (!components_check(&b->build_req, &g->player->inventory))
 			return 1;
 
-		components_apply(&b->build_req, g->player->materials, -1);
+		components_apply(&b->build_req, &g->player->inventory, -1);
 
 		int id = b->sprite;
 		sfSprite* sprite = g->g->sprites[id];
