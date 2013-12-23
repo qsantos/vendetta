@@ -12,7 +12,7 @@ typedef struct universe universe_t;
 struct universe
 {
 	int n_materials;
-	kindOf_material_t materials[26];
+	kindOf_material_t* materials;
 
 	int n_items;
 	kindOf_item_t items[5];

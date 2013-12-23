@@ -1,38 +1,85 @@
 #include "universe.h"
 
+#include <string.h>
+
 #include "../util.h"
 
 universe_t* universe_init(graphics_t* g)
 {
 	universe_t* u = CALLOC(universe_t, 1);
 
-	u->n_materials = 26;
-	u->materials[ 0].name = L"Herbs";
-	u->materials[ 1].name = L"Apples";
-	u->materials[ 2].name = L"Wood";
-	u->materials[ 3].name = L"Planks";
-	u->materials[ 4].name = L"Wool";
-	u->materials[ 5].name = L"Cattle";
-	u->materials[ 6].name = L"Meat";
-	u->materials[ 7].name = L"Wheat";
-	u->materials[ 8].name = L"Bread";
-	u->materials[ 9].name = L"Barley";
-	u->materials[10].name = L"Beer";
-	u->materials[11].name = L"Leather";
-	u->materials[12].name = L"Stone";
-	u->materials[13].name = L"Bricks";
-	u->materials[14].name = L"Iron";
-	u->materials[15].name = L"Pig iron";
-	u->materials[16].name = L"Steel";
-	u->materials[17].name = L"Crystals";
-	u->materials[18].name = L"Health potions";
-	u->materials[19].name = L"Ether";
-	u->materials[20].name = L"Parchment";
-	u->materials[21].name = L"Paper";
-	u->materials[22].name = L"Cider";
-	u->materials[23].name = L"Gold";
-	u->materials[24].name = L"Ingot";
-	u->materials[25].name = L"Sulphur";
+	u->n_materials = 0;
+	u->materials = NULL;
+
+	const char* filename = "cfg/Parametres_Ressources.ini";
+	FILE* f = fopen(filename, "r");
+	if (f == NULL)
+	{
+		fprintf(stderr, "Could not open '%s'\n", filename);
+		exit(1);
+	}
+
+	char*  line  = NULL;
+	size_t nline = 0;
+	int cur_blck = 0; // 0 = none, 1 = material
+	int cur_id = 0;
+	while (1)
+	{
+		getline(&line, &nline, f);
+		if (feof(f))
+			break;
+
+		if (strncmp(line, "[Ressource_", 11) == 0)
+		{
+			cur_blck = 1;
+			cur_id = atoi(line+11);
+			if (cur_id > u->n_materials)
+			{
+				u->materials = CREALLOC(u->materials, kindOf_material_t, cur_id);
+				u->n_materials = cur_id;
+			}
+			cur_id--;
+			continue;
+		}
+		// probably another section
+		else if (strchr(" \t", line[0]) == NULL)
+		{
+			cur_blck = 0;
+			continue;
+		}
+
+		// check if it's an affectation
+		char* sep = strchr(line, '=');
+		if (sep == NULL)
+			continue;
+
+		// identify the variable name
+		char* var = line + strspn(line, " \t");
+		var[strcspn(var, " \t=")] = 0;
+
+		// identify the value
+		sep++;
+		char* val = sep + strspn(sep, " \t");
+		val[strcspn(val, "\r\n")] = 0;
+
+		if (cur_blck == 1 && strcmp(var, "Nom") == 0)
+		{
+			wchar_t buffer[1024];
+			swprintf(buffer, 1024, L"%s", val);
+			u->materials[cur_id].name = wcsdup(buffer);
+		}
+	}
+	fclose(f);
+
+	u->n_mines = 8;
+	u->mines[0] = (kindOf_mine_t){0, L"Herbs",            0, &u->materials[ 0]};
+	u->mines[1] = (kindOf_mine_t){1, L"Apple tree",       1, &u->materials[ 1]};
+	u->mines[2] = (kindOf_mine_t){2, L"Tree",             2, &u->materials[ 2]};
+	u->mines[3] = (kindOf_mine_t){3, L"Rocks",           12, &u->materials[12]};
+	u->mines[4] = (kindOf_mine_t){4, L"Iron vein",       14, &u->materials[14]};
+	u->mines[5] = (kindOf_mine_t){5, L"Crystals",        17, &u->materials[17]};
+	u->mines[6] = (kindOf_mine_t){6, L"Gold ore",        23, &u->materials[23]};
+	u->mines[7] = (kindOf_mine_t){7, L"Sulphur deposit", 25, &u->materials[25]};
 
 	u->n_items = 5;
 	u->items[0].name = L"Working clothes";
@@ -40,16 +87,6 @@ universe_t* universe_init(graphics_t* g)
 	u->items[2].name = L"Hat";
 	u->items[3].name = L"Axe";
 	u->items[4].name = L"Hammer";
-
-	u->n_mines = 8;
-	u->mines[0] = (kindOf_mine_t){0, L"Herbs",            0, &u->materials[ 0]};
-	u->mines[1] = (kindOf_mine_t){1, L"Apple tree",       1, &u->materials[ 1]};
-	u->mines[2] = (kindOf_mine_t){2, L"Tree",             2, &u->materials[ 2]};
-	u->mines[3] = (kindOf_mine_t){3, L"Rocks",           12 ,&u->materials[12]};
-	u->mines[4] = (kindOf_mine_t){4, L"Iron vein",       14, &u->materials[14]};
-	u->mines[5] = (kindOf_mine_t){5, L"Crystals",        17, &u->materials[17]};
-	u->mines[6] = (kindOf_mine_t){6, L"Gold ore",        23, &u->materials[23]};
-	u->mines[7] = (kindOf_mine_t){7, L"Sulphur deposit", 25, &u->materials[25]};
 
 	u->n_buildings = 49;
 	kindOf_building_init(&u->buildings[ 0], g, L"Wheat farm");
