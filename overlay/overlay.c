@@ -49,17 +49,32 @@ void draw_buildPanel(game_t* g)
 
 void draw_cursor(game_t* g)
 {
+	sfVector2i posi = sfMouse_getPositionRenderWindow(g->g->render);
+	sfIntRect rect = {0, 0, 24, 24};
+
+	if (g->o->selectedBuilding != NULL)
+	{
+		rect.left = 4 * 24;
+		char s[1024];
+		snprintf(s, 1024, "buildings/%s.png", g->o->selectedBuilding->name);
+		int id = graphics_spriteForImg(g->g, s);
+		sfSprite* sprite = g->g->sprites[id];
+
+		sfIntRect rect = sfSprite_getTextureRect(sprite);
+		sfVector2f posf = {posi.x - rect.width/2, posi.y - rect.height/2};
+		sfSprite_setPosition(sprite, posf);
+		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+	}
+
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 	{
 		int id = graphics_spriteForImg(g->g, "cursors.png");
 		sprite = g->g->sprites[id];
-
-		sfIntRect rect = {0, 0, 24, 24};
-		sfSprite_setTextureRect(sprite, rect);
 	}
 
-	sfVector2i posi = sfMouse_getPositionRenderWindow(g->g->render);
+	sfSprite_setTextureRect(sprite, rect);
+
 	sfVector2f posf = {posi.x, posi.y};
 	sfSprite_setPosition(sprite, posf);
 	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
