@@ -45,71 +45,63 @@ universe_t* universe_init(graphics_t* g)
 	u->mines[7] = (kindOf_mine_t){7, "Sulphur deposit", 25, &u->materials[25]};
 
 	u->n_buildings = 49;
-	u->buildings[ 0].name = "Wheat farm";
-	u->buildings[ 1].name = "Barley farm";
-	u->buildings[ 2].name = "Sawmill";
-	u->buildings[ 3].name = "Sheepfold";
-	u->buildings[ 4].name = "Cattle farm";
-	u->buildings[ 5].name = "Butchery";
-	u->buildings[ 6].name = "Bakery";
-	u->buildings[ 7].name = "Tavern";
-	u->buildings[ 8].name = "Clothing shop";
-	u->buildings[ 9].name = "Workshop";
-	u->buildings[10].name = "Store";
-	u->buildings[11].name = "Tannery";
-	u->buildings[12].name = "Shoe maker";
-	u->buildings[13].name = "Glove maker";
-	u->buildings[14].name = "Wheat barn";
-	u->buildings[15].name = "Barley barn";
-	u->buildings[16].name = "Stable";
-	u->buildings[17].name = "Quarry";
-	u->buildings[18].name = "Barracks";
-	u->buildings[19].name = "Foundry";
-	u->buildings[20].name = "Smithy";
-	u->buildings[21].name = "Archery";
-	u->buildings[22].name = "Armory";
-	u->buildings[23].name = "Steelworks";
-	u->buildings[24].name = "Parchmentery";
-	u->buildings[25].name = "Church";
-	u->buildings[26].name = "Laboratory";
-	u->buildings[27].name = "Ether lab";
-	u->buildings[28].name = "Magic guild";
-	u->buildings[29].name = "Pyromagic school";
-	u->buildings[30].name = "Necropolis";
-	u->buildings[31].name = "Aquavitae school";
-	u->buildings[32].name = "Stationer";
-	u->buildings[33].name = "Goldsmith";
-	u->buildings[34].name = "Cider-house";
-	u->buildings[35].name = "Jeweller";
-	u->buildings[36].name = "Arsenal";
-	u->buildings[37].name = "Tectonic workshop";
-	u->buildings[38].name = "Chaos guild";
-	u->buildings[39].name = "Order guild";
-	u->buildings[40].name = "Elixir lab";
-	u->buildings[41].name = "Imperial smith";
-	u->buildings[42].name = "Imperial armory";
-	u->buildings[43].name = "Headquarters";
-	u->buildings[44].name = "Dragon nest";
-	u->buildings[45].name = "Guard tower";
-	u->buildings[46].name = "Market";
-	u->buildings[47].name = "Palace";
-	u->buildings[48].name = "Cantonment";
-
-	for (int i = 0; i < u->n_buildings; i++)
-	{
-		char s[1024];
-		snprintf(s, 1024, "buildings/%s.png", u->buildings[i].name);
-		int id = graphics_spriteForImg(g, s);
-		sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
-		u->buildings[i].width  = rect.width;
-		u->buildings[i].height = rect.height;
-		u->buildings[i].sprite = id;
-	}
+	kindOf_building_init(&u->buildings[ 0], g, "Wheat farm");
+	kindOf_building_init(&u->buildings[ 1], g, "Barley farm");
+	kindOf_building_init(&u->buildings[ 2], g, "Sawmill");
+	kindOf_building_init(&u->buildings[ 3], g, "Sheepfold");
+	kindOf_building_init(&u->buildings[ 4], g, "Cattle farm");
+	kindOf_building_init(&u->buildings[ 5], g, "Butchery");
+	kindOf_building_init(&u->buildings[ 6], g, "Bakery");
+	kindOf_building_init(&u->buildings[ 7], g, "Tavern");
+	kindOf_building_init(&u->buildings[ 8], g, "Clothing shop");
+	kindOf_building_init(&u->buildings[ 9], g, "Workshop");
+	kindOf_building_init(&u->buildings[10], g, "Store");
+	kindOf_building_init(&u->buildings[11], g, "Tannery");
+	kindOf_building_init(&u->buildings[12], g, "Shoe maker");
+	kindOf_building_init(&u->buildings[13], g, "Glove maker");
+	kindOf_building_init(&u->buildings[14], g, "Wheat barn");
+	kindOf_building_init(&u->buildings[15], g, "Barley barn");
+	kindOf_building_init(&u->buildings[16], g, "Stable");
+	kindOf_building_init(&u->buildings[17], g, "Quarry");
+	kindOf_building_init(&u->buildings[18], g, "Barracks");
+	kindOf_building_init(&u->buildings[19], g, "Foundry");
+	kindOf_building_init(&u->buildings[20], g, "Smithy");
+	kindOf_building_init(&u->buildings[21], g, "Archery");
+	kindOf_building_init(&u->buildings[22], g, "Armory");
+	kindOf_building_init(&u->buildings[23], g, "Steelworks");
+	kindOf_building_init(&u->buildings[24], g, "Parchmentery");
+	kindOf_building_init(&u->buildings[25], g, "Church");
+	kindOf_building_init(&u->buildings[26], g, "Laboratory");
+	kindOf_building_init(&u->buildings[27], g, "Ether lab");
+	kindOf_building_init(&u->buildings[28], g, "Magic guild");
+	kindOf_building_init(&u->buildings[29], g, "Pyromagic school");
+	kindOf_building_init(&u->buildings[30], g, "Necropolis");
+	kindOf_building_init(&u->buildings[31], g, "Aquavitae school");
+	kindOf_building_init(&u->buildings[32], g, "Stationer");
+	kindOf_building_init(&u->buildings[33], g, "Goldsmith");
+	kindOf_building_init(&u->buildings[34], g, "Cider-house");
+	kindOf_building_init(&u->buildings[35], g, "Jeweller");
+	kindOf_building_init(&u->buildings[36], g, "Arsenal");
+	kindOf_building_init(&u->buildings[37], g, "Tectonic workshop");
+	kindOf_building_init(&u->buildings[38], g, "Chaos guild");
+	kindOf_building_init(&u->buildings[39], g, "Order guild");
+	kindOf_building_init(&u->buildings[40], g, "Elixir lab");
+	kindOf_building_init(&u->buildings[41], g, "Imperial smith");
+	kindOf_building_init(&u->buildings[42], g, "Imperial armory");
+	kindOf_building_init(&u->buildings[43], g, "Headquarters");
+	kindOf_building_init(&u->buildings[44], g, "Dragon nest");
+	kindOf_building_init(&u->buildings[45], g, "Guard tower");
+	kindOf_building_init(&u->buildings[46], g, "Market");
+	kindOf_building_init(&u->buildings[47], g, "Palace");
+	kindOf_building_init(&u->buildings[48], g, "Cantonment");
 
 	return u;
 }
 
 void universe_exit(universe_t* u)
 {
+	for (int i = 0; i < u->n_buildings; i++)
+		kindOf_building_exit(&u->buildings[i]);
+
 	free(u);
 }
