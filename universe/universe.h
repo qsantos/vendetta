@@ -15,7 +15,7 @@ struct universe
 	kindOf_material_t* materials;
 
 	int n_items;
-	kindOf_item_t items[5];
+	kindOf_item_t* items;
 
 	int n_mines;
 	kindOf_mine_t* mines;
@@ -26,5 +26,7 @@ struct universe
 
 universe_t* universe_init(graphics_t* g);
 void        universe_exit(universe_t* u);
+
+void universe_parse(universe_t* u, const char* filename);
 
 #endif
