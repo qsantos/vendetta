@@ -117,6 +117,13 @@ int overlay_catch(game_t* g, float x, float y)
 	kindOf_building_t* b = g->o->selectedBuilding;
 	if (b != NULL)
 	{
+		if (!build_ok(g, b))
+			return 1;
+
+		material_list_t* req = &b->req;
+		for (int i = 0; i < req->length; i++)
+			g->player->materials[req->mat_ids[i]] -= req->amounts[i];
+
 		int id = b->sprite;
 		sfSprite* sprite = g->g->sprites[id];
 
