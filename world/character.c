@@ -5,6 +5,7 @@
 
 #include "../util.h"
 #include "mine.h"
+#include "building.h"
 
 #define M_PI 3.14159265358979323846
 
@@ -29,6 +30,32 @@ void character_deinit(character_t* c)
 	free(c->materials);
 }
 
+void character_workAt(character_t* c, object_t* o, float duration)
+{
+	if (o == NULL)
+		return;
+
+	if (o->t == O_MINE)
+	{
+		mine_t* m = (mine_t*) o;
+		int mat_id = m->t->material_id;
+		c->materials[mat_id] += 1 * duration;
+
+		printf("I now have %f of '%s'\n", c->materials[mat_id], m->t->material->name);
+	}
+	else if (o->t == O_BUILDING)
+	{
+		building_t* b = (building_t*) o;
+		kindOf_building_t* t = b->t;
+
+		float ratio = material_list_ratio(&t->make_req, c->materials, 1 * duration);
+		material_list_apply(&t->make_req, c->materials, -ratio);
+		material_list_apply(&t->make_res, c->materials, +ratio);
+
+		printf("Working at %s\n", b->t->name);
+	}
+}
+
 void character_doRound(character_t* c, float duration)
 {
 	float dx;
@@ -49,18 +76,7 @@ void character_doRound(character_t* c, float duration)
 	if (remDistance == 0)
 	{
 		c->dir = D_SOUTH;
-
-		if (c->go_o == NULL)
-			return;
-
-		if (c->go_o->t != O_MINE)
-			return;
-
-		mine_t* m = (mine_t*) c->go_o;
-		int mat_id = m->t->material_id;
-		c->materials[mat_id] += 1 * duration;
-		printf("I now have %f of '%s'\n", c->materials[mat_id], m->t->material->name);
-		return;
+		character_workAt(c, c->go_o, duration);
 	}
 
 	float dir;

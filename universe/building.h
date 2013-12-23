@@ -14,7 +14,12 @@ struct kindOf_building
 	float height;
 	int   sprite;
 
-	material_list_t req;
+	// requisite materials
+	material_list_t build_req;
+
+	// available material
+	material_list_t make_res; // result
+	material_list_t make_req; // needed
 };
 
 void kindOf_building_init(kindOf_building_t* b, graphics_t* g, const char* name);
