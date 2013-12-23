@@ -24,7 +24,8 @@ struct components
 void components_init(components_t* l);
 void components_exit(components_t* l);
 
-void  components_push (components_t* l, int id, float a);
+void components_material(components_t* l, int id, float a);
+void components_item    (components_t* l, int id, int   a);
 
 int   components_check(components_t* l, struct inventory* inv);
 float components_ratio(components_t* l, struct inventory* inv, float max_ratio);

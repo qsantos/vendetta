@@ -16,10 +16,16 @@ void components_exit(components_t* l)
 	free(l->c);
 }
 
-void components_push(components_t* l, int id, float a)
+void components_material(components_t* l, int id, float a)
 {
 	l->c = CREALLOC(l->c, component_t, l->n+1);
 	l->c[l->n++] = (component_t){id, a, 0, 0};
+}
+
+void components_item(components_t* l, int id, int a)
+{
+	l->c = CREALLOC(l->c, component_t, l->n+1);
+	l->c[l->n++] = (component_t){id, a, 1, 0};
 }
 
 int components_check(components_t* l, inventory_t* inv)

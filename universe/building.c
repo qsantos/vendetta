@@ -1,6 +1,6 @@
 #include "building.h"
 
-#include <stdio.h>
+#include "../util.h"
 
 void kindOf_building_init(kindOf_building_t* b, graphics_t* g, const char* name)
 {
@@ -19,13 +19,33 @@ void kindOf_building_init(kindOf_building_t* b, graphics_t* g, const char* name)
 	components_init(&b->make_res);
 	components_init(&b->make_req);
 
+	b->item_n = 0;
+	b->item_req = NULL;
+	b->item_res = NULL;
+
 	// hard-coded test values
-	components_push(&b->build_req, 2, 5); // 5 Wood
-	components_push(&b->make_res, 3, 1); // 1 Planks
-	components_push(&b->make_req, 2, 1); // 1 Wood
+	components_material(&b->build_req, 2, 5); // 5 Wood
+	// 1x Wood -> 1x Planks
+	components_material(&b->make_req, 2, 1);
+	components_material(&b->make_res, 3, 1);
+	// 6x Wood -> Hammer
+	int n = kindOf_building_newItem(b);
+	components_material(&b->item_req[n], 2, 6);
+	components_item    (&b->item_res[n], 4, 1);
 }
 
 void kindOf_building_exit(kindOf_building_t* b)
 {
 	components_exit(&b->build_req);
+}
+
+int kindOf_building_newItem(kindOf_building_t* b)
+{
+	b->item_req = CREALLOC(b->item_req, components_t, b->item_n+1);
+	b->item_res = CREALLOC(b->item_res, components_t, b->item_n+1);
+
+	components_init(&b->item_req[b->item_n]);
+	components_init(&b->item_res[b->item_n]);
+
+	return b->item_n++;
 }
