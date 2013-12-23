@@ -16,7 +16,8 @@ vendetta: $(OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ)
+	@rm -f $(OBJ)
+	@echo rm -f [*.o]
 
 destroy: clean
 	rm -f $(TARGETS)
