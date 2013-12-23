@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-inline void* check_alloc(size_t n, const char* file, int line)
+inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
 {
-	void* ret = malloc(n);
+	void* ret = realloc(ptr, n);
 	if (ret == NULL)
 	{
 		fprintf(stderr, "Could not allocate memory at '%s' line %i\n", file, line);
@@ -15,6 +15,7 @@ inline void* check_alloc(size_t n, const char* file, int line)
 	return ret;
 }
 
-#define CALLOC(T,N) ( (T*) check_alloc(N*sizeof(T), __FILE__, __LINE__) )
+#define CALLOC(T,N)     ( (T*) check_alloc(N*sizeof(T), NULL, __FILE__, __LINE__) )
+#define CREALLOC(P,T,N) ( (T*) check_alloc(N*sizeof(T), P,    __FILE__, __LINE__) )
 
 #endif
