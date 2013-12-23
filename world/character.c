@@ -51,9 +51,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		c->inBuilding = b;
 		kindOf_building_t* t = b->t;
 
-		float ratio = material_list_ratio(&t->make_req, c->materials, 1 * duration);
-		material_list_apply(&t->make_req, c->materials, -ratio);
-		material_list_apply(&t->make_res, c->materials, +ratio);
+		float ratio = components_ratio(&t->make_req, c->materials, 1 * duration);
+		components_apply(&t->make_req, c->materials, -ratio);
+		components_apply(&t->make_res, c->materials, +ratio);
 
 		printf("Working at %s\n", b->t->name);
 	}

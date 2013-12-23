@@ -15,17 +15,17 @@ void kindOf_building_init(kindOf_building_t* b, graphics_t* g, const char* name)
 	b->width  = rect.width;
 	b->height = rect.height;
 
-	material_list_init(&b->build_req);
-	material_list_init(&b->make_res);
-	material_list_init(&b->make_req);
+	components_init(&b->build_req);
+	components_init(&b->make_res);
+	components_init(&b->make_req);
 
 	// hard-coded test values
-	material_list_push(&b->build_req, 2, 5); // 5 Wood
-	material_list_push(&b->make_res, 3, 1); // 1 Planks
-	material_list_push(&b->make_req, 2, 1); // 1 Wood
+	components_push(&b->build_req, 2, 5); // 5 Wood
+	components_push(&b->make_res, 3, 1); // 1 Planks
+	components_push(&b->make_req, 2, 1); // 1 Wood
 }
 
 void kindOf_building_exit(kindOf_building_t* b)
 {
-	material_list_exit(&b->build_req);
+	components_exit(&b->build_req);
 }
