@@ -48,6 +48,41 @@ void draw_buildPanel(game_t* g)
 	}
 }
 
+void draw_swSkills(game_t* g)
+{
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		sfColor color = {255, 255, 255, 255};
+
+		text = sfText_create();
+		sfText_setFont         (text, g->g->font);
+		sfText_setCharacterSize(text, 18);
+		sfText_setColor        (text, color);
+	}
+
+	sfVector2f pos = {PANEL_N_COLS * 28 + 10, 310};
+	wchar_t buffer[1024] = L"Skills";
+
+	sfText_setPosition(text, pos);
+	sfText_setUnicodeString(text, (sfUint32*) buffer);
+	sfRenderWindow_drawText(g->g->render, text, NULL);
+
+	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+	{
+		skill_t s = g->player->sskills[i];
+		if (s != 1)
+		{
+			pos.y += 20;
+			swprintf(buffer, 1024, L"%ls %i", g->u->sskills[i].name, (int)floor(s*100));
+
+			sfText_setPosition(text, pos);
+			sfText_setUnicodeString(text, (sfUint32*) buffer);
+			sfRenderWindow_drawText(g->g->render, text, NULL);
+		}
+	}
+}
+
 void draw_swInventory(game_t* g)
 {
 	sfText* text = NULL;
@@ -209,6 +244,7 @@ void draw_overlay(game_t* g)
 	draw_buildPanel(g);
 	draw_swInventory(g);
 	draw_swBuilding(g);
+	draw_swSkills(g);
 	draw_cursor(g);
 }
 
