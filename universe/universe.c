@@ -172,8 +172,8 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 
 		// identify the value
 		sep++;
-		char* val = sep + strspn(sep, " \t");
-		val[strcspn(val, "\r\n")] = 0;
+		char* val = sep + strspn(sep, " \t\"");
+		val[strcspn(val, "\r\n\"")] = 0;
 
 		if (cur_blck == 0) // global
 		{
