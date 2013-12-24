@@ -162,9 +162,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				wchar_t buffer[1024];
-				swprintf(buffer, 1024, L"%s", val);
-				u->materials[cur_id].name = wcsdup(buffer);
+				u->materials[cur_id].name = strdupwcs(val);
 			}
 			else if (strcmp(var, "VitesseExtraction") == 0)
 			{
@@ -175,18 +173,14 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				wchar_t buffer[1024];
-				swprintf(buffer, 1024, L"%s", val);
-				u->items[cur_id].name = wcsdup(buffer);
+				u->items[cur_id].name = strdupwcs(val);
 			}
 		}
 		else if (cur_blck == 3) // mine
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				wchar_t buffer[1024];
-				swprintf(buffer, 1024, L"%s", val);
-				kindOf_mine_init(&u->mines[cur_id], wcsdup(buffer));
+				kindOf_mine_init(&u->mines[cur_id], strdupwcs(val));
 			}
 			else if (strcmp(var, "TypeRessource") == 0)
 			{
@@ -198,9 +192,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				wchar_t buffer[1024];
-				swprintf(buffer, 1024, L"%s", val);
-				name = wcsdup(buffer);
+				name = strdupwcs(val);
 			}
 			else if (strcmp(var, "Image") == 0)
 			{
