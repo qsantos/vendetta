@@ -30,6 +30,7 @@ struct character
 	building_t* inBuilding;
 
 	skill_t sskills[N_SPECIAL_SKILLS];
+	skill_t* mskills;
 };
 
 void character_init(character_t* c, universe_t* u);

@@ -27,6 +27,9 @@ void character_init(character_t* c, universe_t* u)
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 		c->sskills[i] = 1;
+	c->mskills = CALLOC(skill_t, u->n_materials);
+	for (int i = 0; i < u->n_materials; i++)
+		c->mskills[i] = 1;
 }
 
 void character_exit(character_t* c)
@@ -42,7 +45,10 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	if (o->t == O_MINE)
 	{
 		mine_t* m = (mine_t*) o;
-		components_apply(&m->t->harvest, &c->inventory, 1 * duration);
+
+		float work = 1 * duration;
+		components_apply(&m->t->harvest, &c->inventory, work * c->mskills[m->t->id]);
+		c->mskills[m->t->id] += work / 100;
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -88,9 +94,17 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		{
 			c->inBuilding = b;
 
-			float ratio = components_ratio(&t->make_req, &c->inventory, 1 * duration);
+			if (t->make_req.n == 0 || t->make_req.c[0].is_item)
+				return;
+
+			int id = t->make_req.c[0].id;
+			float work = 1 * duration;
+
+			float ratio = components_ratio(&t->make_req, &c->inventory, work * c->mskills[id]);
 			if (ratio != 0)
 			{
+				c->mskills[id] += ratio/100;
+
 				components_apply(&t->make_req, &c->inventory, -ratio);
 				components_apply(&t->make_res, &c->inventory, +ratio);
 			}
