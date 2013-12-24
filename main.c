@@ -4,7 +4,8 @@
 
 int main(void)
 {
-	setlocale(LC_ALL&~LC_NUMERIC, "");
+	setlocale(LC_ALL, "");
+	setlocale(LC_NUMERIC, "C");
 
 	game_t game;
 	game_init(&game);
