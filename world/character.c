@@ -47,9 +47,14 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	{
 		mine_t* m = (mine_t*) o;
 
+		if (m->t->harvest.n == 0 || m->t->harvest.c[0].is_item)
+			return;
+
+		int id = m->t->harvest.c[0].id;
+
 		float work = 1 * duration;
-		components_apply(&m->t->harvest, &c->inventory, work * c->mskills[m->t->id]);
-		c->mskills[m->t->id] += work / 100;
+		components_apply(&m->t->harvest, &c->inventory, work * c->mskills[id]);
+		c->mskills[id] += work / 100;
 	}
 	else if (o->t == O_BUILDING)
 	{
