@@ -23,6 +23,7 @@ struct components
 
 void components_init(components_t* l);
 void components_exit(components_t* l);
+void components_copy(components_t* l, components_t* from);
 
 void components_material(components_t* l, int id, float a);
 void components_item    (components_t* l, int id, int   a);

@@ -1,6 +1,7 @@
 #include "component.h"
 
 #include <math.h>
+#include <string.h>
 
 #include "../util.h"
 #include "../world/inventory.h"
@@ -14,6 +15,13 @@ void components_init(components_t* l)
 void components_exit(components_t* l)
 {
 	free(l->c);
+}
+
+void components_copy(components_t* l, components_t* from)
+{
+	l->n = from->n;
+	l->c = CALLOC(component_t, l->n);
+	memcpy(l->c, from->c, l->n*sizeof(component_t));
 }
 
 void components_material(components_t* l, int id, float a)
