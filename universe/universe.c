@@ -83,8 +83,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 	int cur_blck = 0; // 0 = none, 1 = material, 2 = item, 3 = mine, 4 = building
 	int cur_id = 0;
 
-	char* file = NULL;
+	char* image_file = NULL;
 	int n_sprites = 0;
+	char* button_file = NULL;
+	int button_index = -1;
 
 	while (1)
 	{
@@ -151,10 +153,13 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			cur_id--;
 
-			free(file);
+			free(image_file);
+			free(button_file);
 
+			image_file = NULL;
 			n_sprites = 0;
-			file = NULL;
+			button_file = NULL;
+			button_index = -1;
 			continue;
 		}
 		// probably another section
@@ -245,7 +250,15 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			else if (strcmp(var, "Image") == 0)
 			{
-				file = strdup(val);
+				image_file = strdup(val);
+			}
+			else if (strcmp(var, "ImageBouton") == 0)
+			{
+				button_file = strdup(val);
+			}
+			else if (strcmp(var, "SpriteBoutonIndex") == 0)
+			{
+				button_index = atoi(val) - 1;
 			}
 			else if (strcmp(var, "MaxVie") == 0)
 			{
@@ -281,12 +294,19 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 				n_sprites = atoi(val);
 			}
 
-			if (file && n_sprites)
+			if (image_file && n_sprites)
 			{
-				kindOf_building_sprite(&u->buildings[cur_id], g, file, n_sprites+1);
+				kindOf_building_sprite(&u->buildings[cur_id], g, image_file, n_sprites+1);
 
-				file = NULL;
+				image_file = NULL;
 				n_sprites = 0;
+			}
+			if (button_file && button_index >= 0)
+			{
+				kindOf_building_button(&u->buildings[cur_id], g, button_file, button_index);
+
+				button_file = NULL;
+				button_index = 0;
 			}
 		}
 	}

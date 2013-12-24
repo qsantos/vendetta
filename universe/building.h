@@ -17,6 +17,9 @@ struct kindOf_building
 	int   sprite;
 	int   n_sprites;
 
+	int button_sprite;
+	int button_index;
+
 	float build_time;
 
 	// requisite materials
@@ -36,6 +39,7 @@ void kindOf_building_init(kindOf_building_t* b);
 void kindOf_building_exit(kindOf_building_t* b);
 
 void kindOf_building_sprite(kindOf_building_t* b, graphics_t* g, char* filename, int n_sprites);
+void kindOf_building_button(kindOf_building_t* b, graphics_t* g, char* filename, int idx);
 
 int kindOf_building_newItem(kindOf_building_t* b);
 

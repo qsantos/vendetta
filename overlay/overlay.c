@@ -20,19 +20,19 @@ void overlay_exit(overlay_t* o)
 
 void draw_buildPanel(game_t* g)
 {
-	static sfSprite* sprite = NULL;
-	if (sprite == NULL)
-	{
-		int id = graphics_spriteForImg(g->g, "buildings.png");
-		sprite = g->g->sprites[id];
-	}
-
 	sfVector2f pos = {0, 0};
 	for (int i = 0; i < g->u->n_buildings; i++)
 	{
-		int ok = components_check(&g->u->buildings[i].build_req, &g->player->inventory);
+		kindOf_building_t* b = &g->u->buildings[i];
 
-		sfIntRect rect = {28*i, 28*ok, 28, 28};
+		if (b->button_sprite < 0)
+			continue;
+
+		sfSprite* sprite = g->g->sprites[b->button_sprite];
+
+		int ok = components_check(&b->build_req, &g->player->inventory);
+
+		sfIntRect rect = {28*b->button_index, 28*ok, 28, 28};
 		sfSprite_setTextureRect(sprite, rect);
 
 		sfSprite_setPosition(sprite, pos);
@@ -308,14 +308,27 @@ int overlay_catch(game_t* g, float x, float y)
 		}
 	}
 
-	int i = y / 28;
-	int j = x / 28;
-	int id = PANEL_N_COLS*i + j;
-	if (j < PANEL_N_COLS && id < g->u->n_buildings)
+	sfFloatRect rect = {0, 0, 28, 28};
+	for (int i = 0; i < g->u->n_buildings; i++)
 	{
-		if (components_check(&g->u->buildings[id].build_req, &g->player->inventory))
-			g->o->selectedBuilding = &g->u->buildings[id];
-		return 1;
+		kindOf_building_t* b = &g->u->buildings[i];
+
+		if (b->button_sprite < 0)
+			continue;
+
+		if (sfFloatRect_contains(&rect, x, y))
+		{
+			if (components_check(&b->build_req, &g->player->inventory))
+				g->o->selectedBuilding = b;
+			return 1;
+		}
+
+		rect.left += 28;
+		if (rect.left >= 28*PANEL_N_COLS)
+		{
+			rect.left = 0;
+			rect.top += 28;
+		}
 	}
 
 	kindOf_building_t* b = g->o->selectedBuilding;
