@@ -94,10 +94,10 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		{
 			c->inBuilding = b;
 
-			if (t->make_req.n == 0 || t->make_req.c[0].is_item)
+			if (t->make_res.n == 0 || t->make_res.c[0].is_item)
 				return;
 
-			int id = t->make_req.c[0].id;
+			int id = t->make_res.c[0].id;
 			float work = 1 * duration;
 
 			float ratio = components_ratio(&t->make_req, &c->inventory, work * c->mskills[id]);
