@@ -2,19 +2,13 @@
 
 #include "../util.h"
 
-void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name, char* filename)
+void kindOf_building_init(kindOf_building_t* b)
 {
-	b->name = name;
-
-	char s[1024];
-	snprintf(s, 1024, "buildings/%s.png", filename);
-	free(filename);
-	int id = graphics_spriteForImg(g, s);
-	b->sprite = id;
-
-	sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
-	b->width  = rect.width;
-	b->height = rect.height;
+	b->name = NULL;
+	b->width = 0;
+	b->height = 0;
+	b->sprite = 0;
+	b->n_sprites = 0;
 
 	b->build_time = 0;
 
@@ -31,6 +25,21 @@ void kindOf_building_exit(kindOf_building_t* b)
 {
 	components_exit(&b->build_req);
 	free(b->name);
+}
+
+void kindOf_building_sprite(kindOf_building_t* b, graphics_t* g, char* filename, int n_sprites)
+{
+	char s[1024];
+	snprintf(s, 1024, "buildings/%s.png", filename);
+	free(filename);
+	int id = graphics_spriteForImg(g, s);
+
+	b->sprite = id;
+	b->n_sprites = n_sprites;
+
+	sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
+	b->width  = rect.width;
+	b->height = rect.height / n_sprites;
 }
 
 int kindOf_building_newItem(kindOf_building_t* b)

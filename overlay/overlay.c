@@ -183,6 +183,8 @@ void draw_cursor(game_t* g)
 		rect.left = 4 * 24;
 
 		sfSprite* sprite = g->g->sprites[b->sprite];
+		sfIntRect rect = {0, b->height*(b->n_sprites-1), b->width, b->height};
+		sfSprite_setTextureRect(sprite, rect);
 		sfVector2f posf = {posi.x - b->width/2, posi.y - b->height/2};
 		sfSprite_setPosition(sprite, posf);
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);

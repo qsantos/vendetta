@@ -76,8 +76,8 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 	int cur_blck = 0; // 0 = none, 1 = material, 2 = item, 3 = mine, 4 = building
 	int cur_id = 0;
 
-	wchar_t* name = NULL;
 	char* file = NULL;
+	int n_sprites = 0;
 
 	while (1)
 	{
@@ -136,16 +136,15 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			if (cur_id > u->n_buildings)
 			{
 				u->buildings = CREALLOC(u->buildings, kindOf_building_t, cur_id);
-				memset(u->buildings + u->n_buildings, 0, (cur_id-u->n_buildings)*sizeof(kindOf_building_t));
-				memset(u->buildings + u->n_buildings, 0, (cur_id-u->n_buildings)*sizeof(kindOf_building_t));
+				for (int i = u->n_buildings; i < cur_id; i++)
+					kindOf_building_init(&u->buildings[i]);
 				u->n_buildings = cur_id;
 			}
 			cur_id--;
 
-			free(name);
 			free(file);
 
-			name = NULL;
+			n_sprites = 0;
 			file = NULL;
 			continue;
 		}
@@ -221,7 +220,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				name = strdupwcs(val);
+				u->buildings[cur_id].name = strdupwcs(val);
 			}
 			else if (strcmp(var, "Image") == 0)
 			{
@@ -256,13 +255,17 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 				components_copy(&b->item_req[b->item_n-1], &u->item_req[id]);
 				components_item(&b->item_res[b->item_n-1], id, 1);
 			}
-
-			if (name && file)
+			else if (strcmp(var, "NombreEtapeFabrication") == 0)
 			{
-				kindOf_building_init(&u->buildings[cur_id], g, name, file);
+				n_sprites = atoi(val);
+			}
 
-				name = NULL;
+			if (file && n_sprites)
+			{
+				kindOf_building_sprite(&u->buildings[cur_id], g, file, n_sprites+1);
+
 				file = NULL;
+				n_sprites = 0;
 			}
 		}
 	}

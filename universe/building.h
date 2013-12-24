@@ -15,6 +15,7 @@ struct kindOf_building
 	float width;
 	float height;
 	int   sprite;
+	int   n_sprites;
 
 	float build_time;
 
@@ -31,8 +32,10 @@ struct kindOf_building
 	components_t* item_res;
 };
 
-void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name, char* filename);
+void kindOf_building_init(kindOf_building_t* b);
 void kindOf_building_exit(kindOf_building_t* b);
+
+void kindOf_building_sprite(kindOf_building_t* b, graphics_t* g, char* filename, int n_sprites);
 
 int kindOf_building_newItem(kindOf_building_t* b);
 
