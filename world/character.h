@@ -25,6 +25,7 @@ struct character
 	float       go_y;
 	object_t*   go_o;
 	direction_t dir;
+	float       step;
 
 	inventory_t inventory;
 	building_t* inBuilding;

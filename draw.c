@@ -22,7 +22,11 @@ void draw_character(graphics_t* g, character_t* c)
 		sprite = g->sprites[id];
 	}
 
-	sfIntRect rect = {24*1, 32*c->dir, 24, 32};
+	int step = floor(c->step);
+	if (step >= 3)
+		step = 1;
+
+	sfIntRect rect = {24*step, 32*c->dir, 24, 32};
 	sfSprite_setTextureRect(sprite, rect);
 	draw_object(g, &c->o, sprite);
 }

@@ -21,6 +21,7 @@ void character_init(character_t* c, universe_t* u)
 	c->go_y = c->o.y;
 	c->go_o = NULL;
 	c->dir  = D_SOUTH;
+	c->step = 5; // standing still
 
 	inventory_init(&c->inventory, u);
 	c->inBuilding = NULL;
@@ -132,7 +133,8 @@ void character_doRound(character_t* c, float duration)
 	float remDistance = sqrt(dx*dx + dy*dy);
 	if (remDistance == 0)
 	{
-		c->dir = D_SOUTH;
+		c->dir  = D_SOUTH;
+		c->step = 5;
 		character_workAt(c, c->go_o, duration);
 		return;
 	}
@@ -168,4 +170,10 @@ void character_doRound(character_t* c, float duration)
 
 	c->o.x += distance * cos(dir);
 	c->o.y += distance * sin(dir);
+
+	if (c->step == 5)
+		c->step = 0;
+	c->step += 8 * duration;
+	if (c->step >= 4)
+		c->step = 0;
 }
