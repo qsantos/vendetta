@@ -6,6 +6,7 @@ typedef struct character character_t;
 #include "object.h"
 #include "inventory.h"
 #include "building.h"
+#include "skill.h"
 #include "../universe/universe.h"
 
 typedef enum
@@ -27,6 +28,8 @@ struct character
 
 	inventory_t inventory;
 	building_t* inBuilding;
+
+	skill_t sskills[N_SPECIAL_SKILLS];
 };
 
 void character_init(character_t* c, universe_t* u);

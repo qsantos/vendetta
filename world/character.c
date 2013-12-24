@@ -24,6 +24,9 @@ void character_init(character_t* c, universe_t* u)
 
 	inventory_init(&c->inventory, u);
 	c->inBuilding = NULL;
+
+	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+		c->sskills[i] = 1;
 }
 
 void character_exit(character_t* c)
@@ -54,7 +57,10 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			}
 			else
 			{
-				b->build_progress += duration / t->build_time;
+				float work = 1 * duration;
+				b->build_progress += c->sskills[S_BUILD] * work / t->build_time;
+				c->sskills[S_BUILD] += work/100;
+
 				if (b->build_progress > 1)
 					b->build_progress = 1;
 			}
