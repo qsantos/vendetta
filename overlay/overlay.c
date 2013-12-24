@@ -238,6 +238,24 @@ void draw_cursor(game_t* g)
 		sfSprite_setPosition(sprite, posf);
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	}
+	else
+	{
+		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, posi, g->g->world_view);
+		object_t* o = world_objectAt(g->w, pos.x, pos.y);
+		if (o != NULL)
+		{
+			if (o->t == O_MINE)
+				rect.left = 1 * 24;
+			else if (o->t == O_BUILDING)
+			{
+				building_t* b = (building_t*) o;
+				if (b->build_progress == 1)
+					rect.left = 7 * 24;
+				else
+					rect.left = 4 * 24;
+			}
+		}
+	}
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
