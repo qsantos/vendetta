@@ -76,13 +76,9 @@ void draw_building(graphics_t* g, building_t* b)
 {
 	int id = b->t->sprite;
 	sfSprite* sprite = g->sprites[id];
+	draw_object(g, &b->o, sprite);
 
-	sfIntRect rect = sfSprite_getTextureRect(sprite);
-	sfVector2f pos = {b->o.x - rect.width/2, b->o.y - rect.height};
-	sfSprite_setPosition(sprite, pos);
-	sfRenderWindow_drawSprite(g->render, sprite, NULL);
-
-	draw_progressBar(g, b->o.x - rect.width/2, b->o.y+1, rect.width, 5, b->build_progress);
+	draw_progressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, b->build_progress);
 }
 
 void draw_world(graphics_t* g, world_t* w)
