@@ -198,6 +198,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			{
 				file = strdup(val);
 			}
+			else if (strcmp(var, "MaxVie") == 0)
+			{
+				u->buildings[cur_id].build_time = atof(val) / 100.;
+			}
 
 			if (name && file)
 			{

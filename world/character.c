@@ -44,11 +44,11 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	else if (o->t == O_BUILDING)
 	{
 		building_t* b = (building_t*) o;
+		kindOf_building_t* t = b->t;
 
 		if (b->buildProgress == 1)
 		{
 			c->inBuilding = b;
-			kindOf_building_t* t = b->t;
 
 			float ratio = components_ratio(&t->make_req, &c->inventory, 1 * duration);
 			if (ratio != 0)
@@ -57,9 +57,13 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				components_apply(&t->make_res, &c->inventory, +ratio);
 			}
 		}
+		else if (t->build_time == 0)
+		{
+			b->buildProgress = 1;
+		}
 		else
 		{
-			b->buildProgress += duration / 5.;
+			b->buildProgress += duration / t->build_time;
 			if (b->buildProgress > 1)
 				b->buildProgress = 1;
 		}

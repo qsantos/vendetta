@@ -16,6 +16,8 @@ struct kindOf_building
 	float height;
 	int   sprite;
 
+	float build_time;
+
 	// requisite materials
 	components_t build_req;
 

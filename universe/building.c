@@ -16,6 +16,8 @@ void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name, ch
 	b->width  = rect.width;
 	b->height = rect.height;
 
+	b->build_time = 0;
+
 	components_init(&b->build_req);
 	components_init(&b->make_res);
 	components_init(&b->make_req);
