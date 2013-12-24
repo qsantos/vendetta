@@ -17,8 +17,8 @@ void character_init(character_t* c, universe_t* u)
 	c->o.w = 24;
 	c->o.h = 32;
 
-	c->go_x = 0;
-	c->go_y = 0;
+	c->go_x = c->o.x;
+	c->go_y = c->o.y;
 	c->go_o = NULL;
 	c->dir  = D_SOUTH;
 
