@@ -87,11 +87,12 @@ void draw_building(graphics_t* g, building_t* b)
 
 void draw_world(graphics_t* g, world_t* w)
 {
-	for (size_t i = 0; i < w->n_buildings; i++)
+	for (int i = 0; i < w->n_buildings; i++)
 		draw_building(g, w->buildings[i]);
 
-	for (size_t i = 0; i < 10; i++)
+	for (int i = 0; i < w->n_mines; i++)
 		draw_mine(g, &w->mines[i]);
 
-	draw_character(g, &w->characters[0]);
+	for (int i = 0; i < w->n_characters; i++)
+		draw_character(g, &w->characters[i]);
 }

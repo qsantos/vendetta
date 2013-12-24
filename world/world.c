@@ -11,8 +11,12 @@ world_t* world_init(universe_t* u)
 	world_t* w = CALLOC(world_t, 1);
 
 	w->universe = u;
+
+	w->n_characters = 1;
 	character_init(&w->characters[0], u);
-	for (size_t i = 0; i < 10; i++)
+
+	w->n_mines = 10;
+	for (int i = 0; i < w->n_mines; i++)
 	{
 		mine_t* m = &w->mines[i];
 		int type = rand() % u->n_mines;
@@ -30,6 +34,18 @@ world_t* world_init(universe_t* u)
 
 void world_exit(world_t* w)
 {
+	for (int i = 0; i < w->n_characters; i++)
+		character_exit(&w->characters[i]);
+
+	for (int i = 0; i < w->n_mines; i++)
+		mine_exit(&w->mines[i]);
+
+	for (int i = 0; i < w->n_buildings; i++)
+	{
+		building_exit(w->buildings[i]);
+		free(w->buildings[i]);
+	}
+	free(w->buildings);
 	free(w);
 }
 
@@ -40,15 +56,15 @@ void world_doRound(world_t* w, float duration)
 
 object_t* world_objectAt(world_t* w, float x, float y)
 {
-	for (size_t i = 0; i < 1; i++)
+	for (int i = 0; i < w->n_characters; i++)
 		if (object_isAt((object_t*) &w->characters[i], x, y))
 			return (object_t*) &w->characters[i];
 
-	for (size_t i = 0; i < 10; i++)
+	for (int i = 0; i < w->n_mines; i++)
 		if (object_isAt((object_t*) &w->mines[i], x, y))
 			return (object_t*) &w->mines[i];
 
-	for (size_t i = 0; i < w->n_buildings; i++)
+	for (int i = 0; i < w->n_buildings; i++)
 		if (object_isAt((object_t*) w->buildings[i], x, y))
 			return (object_t*) w->buildings[i];
 

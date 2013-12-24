@@ -29,8 +29,9 @@ struct character
 	building_t* inBuilding;
 };
 
-void character_init   (character_t* c, universe_t* u);
-void character_deinit (character_t* c);
+void character_init(character_t* c, universe_t* u);
+void character_exit(character_t* c);
+
 void character_workAt (character_t* c, object_t* o, float duration);
 void character_doRound(character_t* c, float duration);
 

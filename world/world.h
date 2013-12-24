@@ -13,11 +13,14 @@ struct world
 {
 	universe_t* universe;
 
+	int n_characters;
 	character_t characters[1];
-	mine_t      mines[10];
 
-	size_t n_buildings;
-	size_t a_buildings;
+	int n_mines;
+	mine_t mines[10];
+
+	int n_buildings;
+	int a_buildings;
 	building_t** buildings;
 };
 

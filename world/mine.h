@@ -14,5 +14,6 @@ struct mine
 };
 
 void mine_init(mine_t* m, kindOf_mine_t* t);
+void mine_exit(mine_t* m);
 
 #endif

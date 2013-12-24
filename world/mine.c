@@ -9,3 +9,8 @@ void mine_init(mine_t* m, kindOf_mine_t* t)
 	m->o.h = 32;
 	m->t = t;
 }
+
+void mine_exit(mine_t* m)
+{
+	(void) m;
+}

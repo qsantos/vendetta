@@ -26,7 +26,7 @@ void character_init(character_t* c, universe_t* u)
 	c->inBuilding = NULL;
 }
 
-void character_deinit(character_t* c)
+void character_exit(character_t* c)
 {
 	inventory_exit(&c->inventory);
 }

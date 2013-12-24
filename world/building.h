@@ -16,5 +16,6 @@ struct building
 };
 
 void building_init(building_t* b, kindOf_building_t* t, float x, float y);
+void building_exit(building_t* b);
 
 #endif
