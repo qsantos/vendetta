@@ -11,6 +11,8 @@ struct building
 	object_t o;
 
 	kindOf_building_t* t;
+
+	float buildProgress;
 };
 
 void building_init(building_t* b, kindOf_building_t* t, float x, float y);
