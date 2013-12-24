@@ -39,8 +39,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	if (o->t == O_MINE)
 	{
 		mine_t* m = (mine_t*) o;
-		int mat_id = m->t->material_id;
-		c->inventory.materials[mat_id] += 1 * duration;
+		components_apply(&m->t->harvest, &c->inventory, 1 * duration);
 	}
 	else if (o->t == O_BUILDING)
 	{
