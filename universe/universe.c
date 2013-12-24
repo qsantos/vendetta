@@ -20,6 +20,9 @@ universe_t* universe_init(graphics_t* g)
 	u->n_buildings = 0;
 	u->buildings = NULL;
 
+	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+		kindOf_skill_init(&u->sskills[i]);
+
 	// parse configuration files
 	u->harvestRates = NULL;
 	u->rawMaterials = NULL;
@@ -29,6 +32,7 @@ universe_t* universe_init(graphics_t* g)
 	universe_parse(u, g, "cfg/Parametres_Ressources.ini");
 	universe_parse(u, g, "cfg/Parametres_Objets.ini");
 	universe_parse(u, g, "cfg/Parametres_Batiments.ini");
+	universe_parse(u, g, "cfg/Competences_Speciales.ini");
 
 	for (int i = 0; i < u->n_items; i++)
 		components_exit(&u->item_req[i]);
@@ -42,6 +46,9 @@ universe_t* universe_init(graphics_t* g)
 
 void universe_exit(universe_t* u)
 {
+	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+		kindOf_skill_exit(&u->sskills[i]);
+
 	for (int i = 0; i < u->n_buildings; i++)
 		kindOf_building_exit(&u->buildings[i]);
 	free(u->buildings);
@@ -152,11 +159,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		else if (strchr(" \t", line[0]) == NULL)
 		{
 			cur_blck = 0;
-			continue;
 		}
-
-		if (cur_id < 0)
-			continue;
 
 		// check if it's an affectation
 		char* sep = strchr(line, '=');
@@ -171,6 +174,18 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		sep++;
 		char* val = sep + strspn(sep, " \t");
 		val[strcspn(val, "\r\n")] = 0;
+
+		if (cur_blck == 0) // global
+		{
+			if (strncmp(var, "CompetencesSpeciales", 20) == 0)
+			{
+				int id = atoi(var+20) - 1;
+				u->sskills[id].name = strdupwcs(val);
+			}
+		}
+
+		if (cur_id < 0)
+			continue;
 
 		if (cur_blck == 1) // material
 		{

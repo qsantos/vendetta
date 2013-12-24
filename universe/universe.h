@@ -7,6 +7,7 @@ typedef struct universe universe_t;
 #include "item.h"
 #include "mine.h"
 #include "building.h"
+#include "skill.h"
 #include "../graphics.h"
 
 struct universe
@@ -22,6 +23,8 @@ struct universe
 
 	int n_buildings;
 	kindOf_building_t* buildings;
+
+	kindOf_skill_t sskills[N_SPECIAL_SKILLS];
 
 	// temporarily stores the harvest, transformation
 	// and fabrication information
