@@ -13,8 +13,8 @@ inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
 	}
 	return ret;
 }
-#define CALLOC(T,N)     ( (T*) check_alloc(N*sizeof(T), NULL, __FILE__, __LINE__) )
-#define CREALLOC(P,T,N) ( (T*) check_alloc(N*sizeof(T), P,    __FILE__, __LINE__) )
+#define CALLOC(T,N)     ( (T*) check_alloc((N)*sizeof(T), NULL, __FILE__, __LINE__) )
+#define CREALLOC(P,T,N) ( (T*) check_alloc((N)*sizeof(T), P,    __FILE__, __LINE__) )
 
 #include <wchar.h>
 inline wchar_t* strdupwcs(const char* str)
