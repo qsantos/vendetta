@@ -46,7 +46,39 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		building_t* b = (building_t*) o;
 		kindOf_building_t* t = b->t;
 
-		if (b->buildProgress == 1)
+		if (b->build_progress != 1)
+		{
+			if (t->build_time == 0)
+			{
+				b->build_progress = 1;
+			}
+			else
+			{
+				b->build_progress += duration / t->build_time;
+				if (b->build_progress > 1)
+					b->build_progress = 1;
+			}
+		}
+		else if (b->item_current >= 0)
+		{
+			c->inBuilding = b;
+
+			float ratio_max = 1 * duration;
+			float ratio_rem = 1 - b->item_progress;
+			if (ratio_max > ratio_rem)
+				ratio_max = ratio_rem;
+
+			int i = b->item_current;
+			float ratio = components_ratio(&t->item_req[i], &c->inventory, ratio_max);
+			components_apply(&t->item_req[i], &c->inventory, -ratio);
+			b->item_progress += ratio;
+			if (b->item_progress >= 1)
+			{
+				components_apply(&t->item_res[i], &c->inventory, +1);
+				b->item_current = -1;
+			}
+		}
+		else
 		{
 			c->inBuilding = b;
 
@@ -56,16 +88,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				components_apply(&t->make_req, &c->inventory, -ratio);
 				components_apply(&t->make_res, &c->inventory, +ratio);
 			}
-		}
-		else if (t->build_time == 0)
-		{
-			b->buildProgress = 1;
-		}
-		else
-		{
-			b->buildProgress += duration / t->build_time;
-			if (b->buildProgress > 1)
-				b->buildProgress = 1;
 		}
 	}
 }

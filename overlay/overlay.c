@@ -158,8 +158,14 @@ void draw_swBuilding(game_t* g)
 			exit(1);
 
 		wchar_t* name = g->u->items[c->id].name;
+		wchar_t buffer[1024];
+		if (i == b->item_current)
+			swprintf(buffer, 1024, L"%ls (%i %%)", name, (int) floor(100*b->item_progress));
+		else
+			swprintf(buffer, 1024, L"%ls", name);
+
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) name);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -212,7 +218,8 @@ int overlay_catch(game_t* g, float x, float y)
 {
 	if (g->player->inBuilding != NULL)
 	{
-		kindOf_building_t* t = g->player->inBuilding->t;
+		building_t* b = g->player->inBuilding;
+		kindOf_building_t* t = b->t;
 
 		sfText* text = NULL;
 		if (text == NULL)
@@ -245,8 +252,8 @@ int overlay_catch(game_t* g, float x, float y)
 
 			if (components_check(&t->item_req[i], &g->player->inventory))
 			{
-				components_apply(&t->item_req[i], &g->player->inventory, -1);
-				components_apply(&t->item_res[i], &g->player->inventory, +1);
+				b->item_current = i;
+				b->item_progress = 0;
 			}
 
 			return 1;

@@ -82,7 +82,7 @@ void draw_building(graphics_t* g, building_t* b)
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 
-	draw_progressBar(g, b->o.x - rect.width/2, b->o.y+1, rect.width, 5, b->buildProgress);
+	draw_progressBar(g, b->o.x - rect.width/2, b->o.y+1, rect.width, 5, b->build_progress);
 }
 
 void draw_world(graphics_t* g, world_t* w)
