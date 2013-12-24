@@ -44,6 +44,7 @@ void universe_exit(universe_t* u)
 	for (int i = 0; i < u->n_materials; i++)
 		kindOf_material_exit(&u->materials[i]);
 	free(u->materials);
+
 	free(u);
 }
 
@@ -201,6 +202,12 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			else if (strcmp(var, "MaxVie") == 0)
 			{
 				u->buildings[cur_id].build_time = atof(val) / 100.;
+			}
+			else if (strncmp(var, "PrixRessources(", 15) == 0)
+			{
+				int mat_id = atoi(var + 15) - 1;
+				float amount = atof(val);
+				components_material(&u->buildings[cur_id].build_req, mat_id, amount);
 			}
 
 			if (name && file)

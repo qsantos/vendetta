@@ -27,7 +27,6 @@ void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name, ch
 	b->item_res = NULL;
 
 	// hard-coded test values
-	components_material(&b->build_req, 2, 5); // 5 Wood
 	// 1x Wood -> 1x Planks
 	components_material(&b->make_req, 2, 1);
 	components_material(&b->make_res, 3, 1);
