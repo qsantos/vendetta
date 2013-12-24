@@ -102,6 +102,8 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 				u->harvestRates = CREALLOC(u->harvestRates, float, cur_id);
 				u->rawMaterials = CREALLOC(u->rawMaterials, int,   cur_id);
 				u->rawAmounts   = CREALLOC(u->rawAmounts,   float, cur_id);
+				for (int i = u->n_materials; i < cur_id; i++)
+					kindOf_material_init(&u->materials[i]);
 				u->n_materials = cur_id;
 			}
 			cur_id--;
@@ -204,6 +206,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			else if (strcmp(var, "QuantiteMatierePremiere") == 0)
 			{
 				u->rawAmounts[cur_id] = atof(val);
+			}
+			else if (strcmp(var, "NomCompetence") == 0)
+			{
+				u->materials[cur_id].skill.name = strdupwcs(val);
 			}
 		}
 		else if (cur_blck == 2) // item

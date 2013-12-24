@@ -81,6 +81,20 @@ void draw_swSkills(game_t* g)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 		}
 	}
+
+	for (int i = 0; i < g->u->n_materials; i++)
+	{
+		skill_t s = g->player->mskills[i];
+		if (s != 1)
+		{
+			pos.y += 20;
+			swprintf(buffer, 1024, L"%ls %i", g->u->materials[i].skill.name, (int)floor(s*100));
+
+			sfText_setPosition(text, pos);
+			sfText_setUnicodeString(text, (sfUint32*) buffer);
+			sfRenderWindow_drawText(g->g->render, text, NULL);
+		}
+	}
 }
 
 void draw_swInventory(game_t* g)
