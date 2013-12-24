@@ -20,9 +20,18 @@ universe_t* universe_init(graphics_t* g)
 	u->n_buildings = 0;
 	u->buildings = NULL;
 
+	// parse configuration files
+	u->harvestRates = NULL;
+	u->rawMaterials = NULL;
+	u->rawAmounts   = NULL;
+
 	universe_parse(u, g, "cfg/Parametres_Ressources.ini");
 	universe_parse(u, g, "cfg/Parametres_Objets.ini");
 	universe_parse(u, g, "cfg/Parametres_Batiments.ini");
+
+	free(u->rawAmounts);
+	free(u->rawMaterials);
+	free(u->harvestRates);
 
 	return u;
 }
@@ -66,10 +75,6 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 	wchar_t* name = NULL;
 	char* file = NULL;
 
-	// temporarily stores the harvest speed of materials
-	// it is actually needed by mines and buildings
-	float* harvestRates = NULL;
-
 	while (1)
 	{
 		getline(&line, &nline, f);
@@ -83,8 +88,9 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			if (cur_id > u->n_materials)
 			{
 				u->materials = CREALLOC(u->materials, kindOf_material_t, cur_id);
-				harvestRates = CREALLOC(harvestRates, float, cur_id);
-				memset(harvestRates + u->n_materials, 0, (cur_id-u->n_materials)*sizeof(float));
+				u->harvestRates = CREALLOC(u->harvestRates, float, cur_id);
+				u->rawMaterials = CREALLOC(u->rawMaterials, int,   cur_id);
+				u->rawAmounts   = CREALLOC(u->rawAmounts,   float, cur_id);
 				u->n_materials = cur_id;
 			}
 			cur_id--;
@@ -123,6 +129,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			if (cur_id > u->n_buildings)
 			{
 				u->buildings = CREALLOC(u->buildings, kindOf_building_t, cur_id);
+				memset(u->buildings + u->n_buildings, 0, (cur_id-u->n_buildings)*sizeof(kindOf_building_t));
 				memset(u->buildings + u->n_buildings, 0, (cur_id-u->n_buildings)*sizeof(kindOf_building_t));
 				u->n_buildings = cur_id;
 			}
@@ -167,7 +174,15 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			else if (strcmp(var, "VitesseExtraction") == 0)
 			{
-				harvestRates[cur_id] = atof(val);
+				u->harvestRates[cur_id] = atof(val);
+			}
+			else if (strcmp(var, "TypeMatierePremiere") == 0)
+			{
+				u->rawMaterials[cur_id] = atoi(val) - 1;
+			}
+			else if (strcmp(var, "QuantiteMatierePremiere") == 0)
+			{
+				u->rawAmounts[cur_id] = atof(val);
 			}
 		}
 		else if (cur_blck == 2) // item
@@ -186,7 +201,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			else if (strcmp(var, "TypeRessource") == 0)
 			{
 				int id = atoi(val) - 1;
-				components_material(&u->mines[cur_id].harvest, id, harvestRates[id]);
+				components_material(&u->mines[cur_id].harvest, id, u->harvestRates[id]);
 			}
 		}
 		else if (cur_blck == 4) // building
@@ -209,6 +224,16 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 				float amount = atof(val);
 				components_material(&u->buildings[cur_id].build_req, mat_id, amount);
 			}
+			else if (strcmp(var, "RessourceFabrique") == 0)
+			{
+				int id = atoi(val) - 1;
+				if (id >= 0)
+				{
+					if (u->rawMaterials[id] >= 0)
+						components_material(&u->buildings[cur_id].make_req, u->rawMaterials[id], u->rawAmounts[id]);
+					components_material(&u->buildings[cur_id].make_res, id, 1);
+				}
+			}
 
 			if (name && file)
 			{
@@ -220,6 +245,5 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		}
 	}
 
-	free(harvestRates);
 	fclose(f);
 }
