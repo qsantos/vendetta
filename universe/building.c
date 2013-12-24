@@ -25,12 +25,6 @@ void kindOf_building_init(kindOf_building_t* b, graphics_t* g, wchar_t* name, ch
 	b->item_n = 0;
 	b->item_req = NULL;
 	b->item_res = NULL;
-
-	// hard-coded test values
-	// 6x Wood -> Hammer
-	int n = kindOf_building_newItem(b);
-	components_material(&b->item_req[n], 2, 6);
-	components_item    (&b->item_res[n], 4, 1);
 }
 
 void kindOf_building_exit(kindOf_building_t* b)

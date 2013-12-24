@@ -23,11 +23,12 @@ struct universe
 	int n_buildings;
 	kindOf_building_t* buildings;
 
-	// temporarily stores the harvest speed and raw materials
-	// it is actually needed by mines and buildings
+	// temporarily stores the harvest, transformation
+	// and fabrication information
 	float* harvestRates;
 	int*   rawMaterials;
 	float* rawAmounts;
+	components_t* item_req;
 
 };
 

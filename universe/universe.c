@@ -24,11 +24,15 @@ universe_t* universe_init(graphics_t* g)
 	u->harvestRates = NULL;
 	u->rawMaterials = NULL;
 	u->rawAmounts   = NULL;
+	u->item_req     = NULL;
 
 	universe_parse(u, g, "cfg/Parametres_Ressources.ini");
 	universe_parse(u, g, "cfg/Parametres_Objets.ini");
 	universe_parse(u, g, "cfg/Parametres_Batiments.ini");
 
+	for (int i = 0; i < u->n_items; i++)
+		components_exit(&u->item_req[i]);
+	free(u->item_req);
 	free(u->rawAmounts);
 	free(u->rawMaterials);
 	free(u->harvestRates);
@@ -102,7 +106,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			cur_id = atoi(line + 7);
 			if (cur_id > u->n_items)
 			{
-				u->items = CREALLOC(u->items, kindOf_item_t, cur_id);
+				u->items    = CREALLOC(u->items,    kindOf_item_t, cur_id);
+				u->item_req = CREALLOC(u->item_req, components_t,  cur_id);
+				for (int i = u->n_items; i < cur_id; i++)
+					components_init(&u->item_req[i]);
 				u->n_items = cur_id;
 			}
 			cur_id--;
@@ -187,9 +194,15 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		}
 		else if (cur_blck == 2) // item
 		{
-			if (strcmp(var, "Nom") == 0)
+			if (strcmp(var, "Nom") == 0 || strcmp(var, "NomFR") == 0)
 			{
 				u->items[cur_id].name = strdupwcs(val);
+			}
+			else if (strncmp(var, "PrixRessources(", 15) == 0)
+			{
+				int mat_id = atoi(var + 15) - 1;
+				float amount = atof(val);
+				components_material(&u->item_req[cur_id], mat_id, amount);
 			}
 		}
 		else if (cur_blck == 3) // mine
@@ -233,6 +246,15 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 						components_material(&u->buildings[cur_id].make_req, u->rawMaterials[id], u->rawAmounts[id]);
 					components_material(&u->buildings[cur_id].make_res, id, 1);
 				}
+			}
+			else if (strncmp(var, "ObjetsFabriques(", 16) == 0)
+			{
+				int id = atoi(val) - 1;
+
+				kindOf_building_t* b = &u->buildings[cur_id];
+				kindOf_building_newItem(b);
+				components_copy(&b->item_req[b->item_n-1], &u->item_req[id]);
+				components_item(&b->item_res[b->item_n-1], id, 1);
 			}
 
 			if (name && file)
