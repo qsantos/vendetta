@@ -18,7 +18,7 @@ struct world
 
 	size_t n_buildings;
 	size_t a_buildings;
-	building_t* buildings;
+	building_t** buildings;
 };
 
 world_t* world_init(universe_t* u);

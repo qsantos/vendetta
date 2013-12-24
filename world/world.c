@@ -49,19 +49,21 @@ object_t* world_objectAt(world_t* w, float x, float y)
 			return (object_t*) &w->mines[i];
 
 	for (size_t i = 0; i < w->n_buildings; i++)
-		if (object_isAt((object_t*) &w->buildings[i], x, y))
-			return (object_t*) &w->buildings[i];
+		if (object_isAt((object_t*) w->buildings[i], x, y))
+			return (object_t*) w->buildings[i];
 
 	return NULL;
 }
 
-void world_addBuilding(world_t* w, kindOf_building_t* b, float x, float y)
+void world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y)
 {
 	if (w->n_buildings == w->a_buildings)
 	{
 		w->a_buildings = w->a_buildings ? 2*w->a_buildings : 1;
-		w->buildings = CREALLOC(w->buildings, building_t, w->a_buildings);
+		w->buildings = CREALLOC(w->buildings, building_t*, w->a_buildings);
 	}
 
-	building_init(&w->buildings[w->n_buildings++], b, x, y);
+	building_t* b = CALLOC(building_t, 1);
+	w->buildings[w->n_buildings++] = b;
+	building_init(b, t, x, y);
 }
