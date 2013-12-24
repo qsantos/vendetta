@@ -258,7 +258,7 @@ int overlay_catch(game_t* g, float x, float y)
 	int id = PANEL_N_COLS*i + j;
 	if (j < PANEL_N_COLS && id < g->u->n_buildings)
 	{
-		if (components_check(&g->u->buildings[i].build_req, &g->player->inventory))
+		if (components_check(&g->u->buildings[id].build_req, &g->player->inventory))
 			g->o->selectedBuilding = &g->u->buildings[id];
 		return 1;
 	}
