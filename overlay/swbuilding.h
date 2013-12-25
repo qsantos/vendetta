@@ -4,10 +4,13 @@
 typedef struct swbuilding swbuilding_t;
 
 #include "subwindow.h"
+#include "../game.h"
 
 struct swbuilding
 {
 	subwindow_t w;
 };
+
+void swbuilding_draw(game_t* g);
 
 #endif
