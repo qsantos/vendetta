@@ -79,20 +79,23 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		else if (b->item_current >= 0)
 		{
 			c->inBuilding = b;
-
-			float ratio_max = 1 * duration;
-			float ratio_rem = 1 - b->item_progress;
-			if (ratio_max > ratio_rem)
-				ratio_max = ratio_rem;
-
 			int i = b->item_current;
-			float ratio = components_ratio(&t->item_req[i], &c->inventory, ratio_max);
-			components_apply(&t->item_req[i], &c->inventory, -ratio);
-			b->item_progress += ratio;
-			if (b->item_progress >= 1)
+
+			float work = duration * t->item_req[i].rate;
+			float rem  = 1 - b->item_progress;
+			if (work > rem)
+				work = rem;
+
+			float ratio = components_ratio(&t->item_req[i], &c->inventory, work);
+			if (ratio != 0)
 			{
-				components_apply(&t->item_res[i], &c->inventory, +1);
-				b->item_current = -1;
+				components_apply(&t->item_req[i], &c->inventory, -ratio);
+				b->item_progress += ratio;
+				if (b->item_progress >= 1)
+				{
+					components_apply(&t->item_res[i], &c->inventory, +1);
+					b->item_current = -1;
+				}
 			}
 		}
 		else

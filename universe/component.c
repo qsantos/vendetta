@@ -22,6 +22,7 @@ void components_copy(components_t* l, components_t* from)
 {
 	l->n = from->n;
 	l->c = CALLOC(component_t, l->n);
+	l->rate = from->rate;
 	memcpy(l->c, from->c, l->n*sizeof(component_t));
 }
 

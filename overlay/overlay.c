@@ -209,7 +209,7 @@ void draw_swBuilding(game_t* g)
 		wchar_t* name = g->u->items[c->id].name;
 		wchar_t buffer[1024];
 		if (i == b->item_current)
-			swprintf(buffer, 1024, L"%ls (%i %%)", name, (int) floor(100*b->item_progress));
+			swprintf(buffer, 1024, L"%ls (%i%%)", name, (int) floor(100*b->item_progress));
 		else
 			swprintf(buffer, 1024, L"%ls", name);
 

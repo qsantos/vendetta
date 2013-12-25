@@ -229,6 +229,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 				float amount = atof(val);
 				components_material(&u->item_req[cur_id], mat_id, amount);
 			}
+			else if (strcmp(var, "DureeFabrication") == 0)
+			{
+				u->item_req[cur_id].rate = 100.f / atoi(val);
+			}
 		}
 		else if (cur_blck == 3) // mine
 		{
