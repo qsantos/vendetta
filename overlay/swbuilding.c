@@ -7,7 +7,7 @@
 
 void swbuilding_init(swbuilding_t* w)
 {
-	subwindow_init(&w->w);
+	subwindow_init(&w->w, L"Building", 1024-SW_WIDTH*3, 0);
 }
 
 void swbuilding_exit(swbuilding_t* w)
@@ -17,7 +17,7 @@ void swbuilding_exit(swbuilding_t* w)
 
 void swbuilding_draw(swbuilding_t* w, game_t* g)
 {
-	(void) w;
+	subwindow_draw(&w->w, g->g);
 
 	building_t* b = g->player->inBuilding;
 	if (b == NULL)

@@ -6,7 +6,7 @@
 
 void swskills_init(swskills_t* w)
 {
-	subwindow_init(&w->w);
+	subwindow_init(&w->w, L"Skills", 1024-SW_WIDTH*1, 0);
 }
 
 void swskills_exit(swskills_t* w)
@@ -16,7 +16,7 @@ void swskills_exit(swskills_t* w)
 
 void swskills_draw(swskills_t* w, game_t* g)
 {
-	(void) w;
+	subwindow_draw(&w->w, g->g);
 
 	sfText* text = NULL;
 	if (text == NULL)
@@ -30,11 +30,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 	}
 
 	sfVector2f pos = {PANEL_N_COLS * 28 + 10, 310};
-	wchar_t buffer[1024] = L"Skills";
-
-	sfText_setPosition(text, pos);
-	sfText_setUnicodeString(text, (sfUint32*) buffer);
-	sfRenderWindow_drawText(g->g->render, text, NULL);
+	wchar_t buffer[1024];
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 	{

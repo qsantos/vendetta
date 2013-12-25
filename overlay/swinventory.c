@@ -6,7 +6,7 @@
 
 void swinventory_init(swinventory_t* w)
 {
-	subwindow_init(&w->w);
+	subwindow_init(&w->w, L"Inventory", 1024-SW_WIDTH*2, 0);
 }
 
 void swinventory_exit(swinventory_t* w)
@@ -16,7 +16,7 @@ void swinventory_exit(swinventory_t* w)
 
 void swinventory_draw(swinventory_t* w, game_t* g)
 {
-	(void) w;
+	subwindow_draw(&w->w, g->g);
 
 	sfText* text = NULL;
 	if (text == NULL)

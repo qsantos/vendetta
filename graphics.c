@@ -12,7 +12,7 @@ graphics_t* graphics_init(void)
 {
 	graphics_t* g = CALLOC(graphics_t, 1);
 
-	sfVideoMode mode = {800, 600, 32};
+	sfVideoMode mode = {1024, 768, 32};
 	g->render = sfRenderWindow_create(mode, "Vendetta 0.2", sfResize | sfClose, NULL);
 	if (g->render == NULL)
 		exit(1);
