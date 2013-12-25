@@ -73,10 +73,52 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 char swinventory_catch(swinventory_t* w, game_t* g, float x, float y, int t)
 {
-	(void) w;
-	(void) g;
-	(void) x;
-	(void) y;
-	(void) t;
+	if (!w->w.visible)
+		return 0;
+
+	if (t != sfMouseLeft)
+		return 0;
+
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, g->g->font);
+		sfText_setCharacterSize(text, 18);
+	}
+
+	sfVector2f pos = {w->w.x + 20, w->w.y + 30};
+
+	for (int i = 0; i < g->u->n_materials; i++)
+	{
+		const wchar_t* name = g->u->materials[i].name;
+		int amount = floor(g->player->inventory.materials[i]);
+
+		if (amount == 0)
+			continue;
+
+		pos.y += 20;
+
+		wchar_t buffer[1024];
+		swprintf(buffer, 1024, L"%ls: %i", name, amount);
+
+		sfText_setPosition(text, pos);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (!sfFloatRect_contains(&rect, x, y))
+			continue;
+
+		kindOf_material_t* t = &g->u->materials[i];
+		if (t->edible)
+		{
+			g->player->inventory.materials[i]--;
+			for (int i = 0; i < N_STATUSES; i++)
+				g->player->statuses[i] += t->eatBonus[i];
+		}
+
+		return 1;
+	}
+
 	return 0;
 }

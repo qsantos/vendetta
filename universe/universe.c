@@ -244,6 +244,26 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			{
 				u->materials[cur_id].skill.name = strdupwcs(val);
 			}
+			else if (strcmp(var, "Mangeable") == 0)
+			{
+				u->materials[cur_id].edible = atoi(val);
+			}
+			else if (strcmp(var, "GainVie") == 0)
+			{
+				u->materials[cur_id].eatBonus[ST_HEALTH] = atof(val);
+			}
+			else if (strcmp(var, "GainEnergie") == 0)
+			{
+				u->materials[cur_id].eatBonus[ST_STAMINA] = atof(val);
+			}
+			else if (strcmp(var, "GainMoral") == 0)
+			{
+				u->materials[cur_id].eatBonus[ST_MORAL] = atof(val);
+			}
+			else if (strcmp(var, "GainMagie") == 0)
+			{
+				u->materials[cur_id].eatBonus[ST_MANA] = atof(val);
+			}
 		}
 		else if (cur_blck == 2) // item
 		{
