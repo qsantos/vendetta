@@ -3,7 +3,7 @@
 #include <SFML/Graphics.h>
 
 #include "util.h"
-#include "draw.h"
+#include "world/draw.h"
 #include "overlay/overlay.h"
 
 void game_init(game_t* g)
