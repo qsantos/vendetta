@@ -137,7 +137,7 @@ void draw_overlay(game_t* g)
 	float x = w;
 	for (int i = 0; i < N_STATUSES; i++)
 	{
-		float p = g->player->statuses[i] / 100;
+		float p = g->player->statuses[i] / 20;
 		graphics_drawProgressBar(g->g, x, size.y - 40, 2*w, 20, p);
 		x += 3*w;
 	}

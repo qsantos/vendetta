@@ -39,7 +39,7 @@ void character_init(character_t* c, universe_t* u)
 		c->iskills[i] = 1;
 
 	for (int i = 0; i < N_STATUSES; i++)
-		c->statuses[i] = 100;
+		c->statuses[i] = 20;
 
 	// just for convenience
 	c->inventory.materials[2] = 1000; // wood
@@ -59,11 +59,11 @@ void character_workAt(character_t* c, object_t* o, float duration)
 {
 	if (o == NULL)
 	{
-		c->statuses[ST_STAMINA] -= 0.1 * duration;
+		c->statuses[ST_STAMINA] -= 0.01 * duration;
 		return;
 	}
 
-	c->statuses[ST_STAMINA] -= 2 * duration;
+	c->statuses[ST_STAMINA] -= 0.1 * duration;
 
 	if (o->t == O_MINE)
 	{
@@ -175,7 +175,7 @@ void character_doRound(character_t* c, float duration)
 	}
 	c->inBuilding = NULL;
 
-	c->statuses[ST_STAMINA] -= 1*duration;
+	c->statuses[ST_STAMINA] -= 0.02*duration;
 
 	float dir;
 	if (dx > 0)
