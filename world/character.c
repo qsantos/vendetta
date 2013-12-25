@@ -37,6 +37,9 @@ void character_init(character_t* c, universe_t* u)
 	c->iskills = CALLOC(skill_t, u->n_iskills);
 	for (int i = 0; i < u->n_iskills; i++)
 		c->iskills[i] = 1;
+
+	for (int i = 0; i < N_STATUSES; i++)
+		c->statuses[i] = 100;
 }
 
 void character_exit(character_t* c)
@@ -76,9 +79,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			}
 			else
 			{
-				float work = duration * c->sskills[S_BUILD] / t->build_time;
+				float work = duration * c->sskills[SK_BUILD] / t->build_time;
 				b->build_progress += work;
-				c->sskills[S_BUILD] += work/100;
+				c->sskills[SK_BUILD] += work/100;
 
 				if (b->build_progress > 1)
 					b->build_progress = 1;

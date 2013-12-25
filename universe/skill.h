@@ -7,10 +7,10 @@ typedef struct kindOf_skill kindOf_skill_t;
 
 typedef enum
 {
-	S_BUILD,
-	S_DESTROY,
-	S_CRITICAL,
-	S_TRADE,
+	SK_BUILD,
+	SK_DESTROY,
+	SK_CRITICAL,
+	SK_TRADE,
 	N_SPECIAL_SKILLS,
 } specialSkill_t;
 
