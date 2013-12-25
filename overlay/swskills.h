@@ -11,6 +11,7 @@ struct swskills
 	subwindow_t w;
 };
 
-void swskills_draw(game_t* g);
+void swskills_draw (game_t* g);
+char swskills_catch(game_t* g, float x, float y);
 
 #endif

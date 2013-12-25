@@ -74,3 +74,52 @@ void swbuilding_draw(game_t* g)
 
 //	sfText_destroy(text); // TODO
 }
+
+char swbuilding_catch(game_t* g, float x, float y)
+{
+	if (g->player->inBuilding == NULL)
+		return 0;
+
+	building_t* b = g->player->inBuilding;
+	kindOf_building_t* t = b->t;
+
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, g->g->font);
+		sfText_setCharacterSize(text, 18);
+	}
+
+	sfVector2f pos = {PANEL_N_COLS * 28 + 10, 50};
+	for (int i = 0; i < t->item_n; i++)
+	{
+		pos.y += 20;
+
+		components_t* l = &t->item_res[i];
+		if (l->n == 0)
+			continue;
+
+		component_t* c = &l->c[0];
+		if (!c->is_item)
+			exit(1);
+
+		wchar_t* name = g->u->items[c->id].name;
+		sfText_setPosition(text, pos);
+		sfText_setUnicodeString(text, (sfUint32*) name);
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (!sfFloatRect_contains(&rect, x, y))
+			continue;
+
+		if (components_check(&t->item_req[i], &g->player->inventory))
+		{
+			b->item_current = i;
+			b->item_progress = 0;
+		}
+
+		return 1;
+	}
+
+	return 0;
+}

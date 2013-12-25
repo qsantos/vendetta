@@ -66,3 +66,11 @@ void swskills_draw(game_t* g)
 		}
 	}
 }
+
+char swskills_catch(game_t* g, float x, float y)
+{
+	(void) g;
+	(void) x;
+	(void) y;
+	return 0;
+}

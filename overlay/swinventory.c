@@ -57,3 +57,11 @@ void swinventory_draw(game_t* g)
 		pos.y += 20;
 	}
 }
+
+char swinventory_catch(game_t* g, float x, float y)
+{
+	(void) g;
+	(void) x;
+	(void) y;
+	return 0;
+}

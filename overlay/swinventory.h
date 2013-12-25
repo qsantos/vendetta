@@ -11,6 +11,7 @@ struct swinventory
 	subwindow_t w;
 };
 
-void swinventory_draw(game_t* g);
+void swinventory_draw (game_t* g);
+char swinventory_catch(game_t* g, float x, float y);
 
 #endif
