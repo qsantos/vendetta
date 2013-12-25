@@ -5,6 +5,7 @@ void subwindow_init(subwindow_t* w, const wchar_t* name, float x, float y)
 	w->name = name;
 	w->x = x;
 	w->y = y;
+	w->visible = 1;
 }
 
 void subwindow_exit(subwindow_t* w)
@@ -12,8 +13,11 @@ void subwindow_exit(subwindow_t* w)
 	(void) w;
 }
 
-void subwindow_draw(subwindow_t* w, graphics_t* g)
+char subwindow_draw(subwindow_t* w, graphics_t* g)
 {
+	if (!w->visible)
+		return 0;
+
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 	{
@@ -41,4 +45,6 @@ void subwindow_draw(subwindow_t* w, graphics_t* g)
 	sfText_setPosition(text, pos);
 
 	sfRenderWindow_drawText(g->render, text, NULL);
+
+	return 1;
 }

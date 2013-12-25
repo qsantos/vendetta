@@ -63,6 +63,18 @@ void game_loop(game_t* g)
 					g->player->go_x = g->player->o.x;
 					g->player->go_y = g->player->o.y;
 				}
+				else if (k == sfKeyB)
+				{
+					g->o->swbuilding.w.visible ^= 1;
+				}
+				else if (k == sfKeyI)
+				{
+					g->o->swinventory.w.visible ^= 1;
+				}
+				else if (k == sfKeyS)
+				{
+					g->o->swskills.w.visible ^= 1;
+				}
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{

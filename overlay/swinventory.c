@@ -16,7 +16,8 @@ void swinventory_exit(swinventory_t* w)
 
 void swinventory_draw(swinventory_t* w, game_t* g)
 {
-	subwindow_draw(&w->w, g->g);
+	if (!subwindow_draw(&w->w, g->g))
+		return;
 
 	sfText* text = NULL;
 	if (text == NULL)

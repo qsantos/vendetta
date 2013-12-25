@@ -16,7 +16,8 @@ void swskills_exit(swskills_t* w)
 
 void swskills_draw(swskills_t* w, game_t* g)
 {
-	subwindow_draw(&w->w, g->g);
+	if (!subwindow_draw(&w->w, g->g))
+		return;
 
 	sfText* text = NULL;
 	if (text == NULL)

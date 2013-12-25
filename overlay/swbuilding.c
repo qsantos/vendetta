@@ -17,7 +17,8 @@ void swbuilding_exit(swbuilding_t* w)
 
 void swbuilding_draw(swbuilding_t* w, game_t* g)
 {
-	subwindow_draw(&w->w, g->g);
+	if (!subwindow_draw(&w->w, g->g))
+		return;
 
 	building_t* b = g->player->inBuilding;
 	if (b == NULL)
@@ -88,7 +89,8 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y)
 {
-	(void) w;
+	if (!w->w.visible)
+		return 0;
 
 	if (g->player->inBuilding == NULL)
 		return 0;
