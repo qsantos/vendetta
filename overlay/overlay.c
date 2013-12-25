@@ -171,7 +171,14 @@ int overlay_catch(game_t* g, float x, float y, int t)
 	}
 
 	kindOf_building_t* b = g->o->selectedBuilding;
-	if (b != NULL)
+	if (b == NULL)
+		return 0;
+
+	if (t == sfMouseRight)
+	{
+		g->o->selectedBuilding = NULL;
+	}
+	else
 	{
 		sfVector2i cursor = {x, y};
 		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, cursor, g->g->world_view);
