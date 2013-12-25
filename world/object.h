@@ -21,5 +21,6 @@ struct object
 };
 
 int object_isAt(object_t* o, float x, float y);
+int object_rect(object_t* o, float x, float y, float w, float h);
 
 #endif

@@ -71,6 +71,25 @@ object_t* world_objectAt(world_t* w, float x, float y)
 	return NULL;
 }
 
+char world_canBeBuilt(world_t* w, float x, float y, float wi, float he)
+{
+	for (int i = 0; i < w->n_mines; i++)
+		if (object_rect((object_t*) &w->mines[i], x, y, wi, he))
+			return 0;
+
+	for (int i = 0; i < w->n_buildings; i++)
+		if (object_rect((object_t*) w->buildings[i], x, y, wi, he))
+			return 0;
+
+	return 1;
+}
+
+char world_canBuild(world_t* w, character_t* c, kindOf_building_t* b, float x, float y)
+{
+	return components_check(&b->build_req, &c->inventory) &&
+	       world_canBeBuilt(w, x, y, b->width, b->height);
+}
+
 void world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y)
 {
 	if (w->n_buildings == w->a_buildings)

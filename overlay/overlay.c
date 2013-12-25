@@ -352,19 +352,15 @@ int overlay_catch(game_t* g, float x, float y)
 	kindOf_building_t* b = g->o->selectedBuilding;
 	if (b != NULL)
 	{
-		if (!components_check(&b->build_req, &g->player->inventory))
+		sfVector2i cursor = {x, y};
+		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, cursor, g->g->world_view);
+		pos.y += b->height / 2;
+
+		if (!world_canBuild(g->w, g->player, b, pos.x, pos.y))
 			return 1;
 
 		components_apply(&b->build_req, &g->player->inventory, -1);
-
-		int id = b->sprite;
-		sfSprite* sprite = g->g->sprites[id];
-
-		sfVector2i pix = {x, y};
-		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
-
-		sfIntRect rect = sfSprite_getTextureRect(sprite);
-		world_addBuilding(g->w, b, pos.x, pos.y + rect.height/2);
+		world_addBuilding(g->w, b, pos.x, pos.y);
 
 		g->o->selectedBuilding = NULL;
 		return 1;
