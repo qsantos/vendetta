@@ -1,5 +1,5 @@
-#ifndef OVERLAY_H
-#define OVERLAY_H
+#ifndef O_OVERLAY_H
+#define O_OVERLAY_H
 
 typedef struct overlay overlay_t;
 
