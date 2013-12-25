@@ -25,11 +25,11 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 		text = sfText_create();
 		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
+		sfText_setCharacterSize(text, 15);
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {PANEL_N_COLS * 28 + 310, 10};
+	sfVector2f pos = {w->w.x + 20, w->w.y + 50};
 
 	for (int i = 0; i < g->u->n_materials; i++)
 	{

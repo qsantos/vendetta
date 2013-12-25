@@ -25,11 +25,11 @@ void swskills_draw(swskills_t* w, game_t* g)
 
 		text = sfText_create();
 		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
+		sfText_setCharacterSize(text, 15);
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {PANEL_N_COLS * 28 + 10, 310};
+	sfVector2f pos = {w->w.x + 20, w->w.y + 50};
 	wchar_t buffer[1024];
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
@@ -37,12 +37,13 @@ void swskills_draw(swskills_t* w, game_t* g)
 		skill_t s = g->player->sskills[i];
 		if (s != 1)
 		{
-			pos.y += 20;
 			swprintf(buffer, 1024, L"%ls %i", g->u->sskills[i].name, (int)floor(s*100));
 
 			sfText_setPosition(text, pos);
 			sfText_setUnicodeString(text, (sfUint32*) buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
+
+			pos.y += 20;
 		}
 	}
 
@@ -51,12 +52,13 @@ void swskills_draw(swskills_t* w, game_t* g)
 		skill_t s = g->player->mskills[i];
 		if (s != 1)
 		{
-			pos.y += 20;
 			swprintf(buffer, 1024, L"%ls %i", g->u->materials[i].skill.name, (int)floor(s*100));
 
 			sfText_setPosition(text, pos);
 			sfText_setUnicodeString(text, (sfUint32*) buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
+
+			pos.y += 20;
 		}
 	}
 
@@ -65,12 +67,13 @@ void swskills_draw(swskills_t* w, game_t* g)
 		skill_t s = g->player->iskills[i];
 		if (s != 1)
 		{
-			pos.y += 20;
 			swprintf(buffer, 1024, L"%ls %i", g->u->iskills[i].name, (int)floor(s*100));
 
 			sfText_setPosition(text, pos);
 			sfText_setUnicodeString(text, (sfUint32*) buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
+
+			pos.y += 20;
 		}
 	}
 }

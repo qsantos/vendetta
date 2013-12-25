@@ -30,11 +30,11 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 		text = sfText_create();
 		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
+		sfText_setCharacterSize(text, 15);
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {PANEL_N_COLS * 28 + 10, 10};
+	sfVector2f pos = {w->w.x + 20, w->w.y + 50};
 
 	sfText_setPosition(text, pos);
 	sfText_setUnicodeString(text, (sfUint32*) b->t->name);
@@ -42,7 +42,6 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 	kindOf_building_t* t = b->t;
 
-	pos.y += 20;
 	if (t->make_res.n != 0)
 	{
 		component_t* c = &t->make_res.c[0];
@@ -105,7 +104,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y)
 		sfText_setCharacterSize(text, 18);
 	}
 
-	sfVector2f pos = {PANEL_N_COLS * 28 + 10, 50};
+	sfVector2f pos = {w->w.x + 20, w->w.y + 70};
 	for (int i = 0; i < t->item_n; i++)
 	{
 		pos.y += 20;
