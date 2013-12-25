@@ -132,9 +132,20 @@ void draw_overlay(game_t* g)
 {
 	draw_buildPanel(g);
 
+	sfVector2u size = sfRenderWindow_getSize(g->g->render);
+	float w = size.x / (3*N_STATUSES+1);
+	float x = w;
+	for (int i = 0; i < N_STATUSES; i++)
+	{
+		float p = g->player->statuses[i] / 100;
+		graphics_drawProgressBar(g->g, x, size.y - 40, 2*w, 20, p);
+		x += 3*w;
+	}
+
 	swbuilding_draw (&g->o->swbuilding,  g);
 	swinventory_draw(&g->o->swinventory, g);
 	swskills_draw   (&g->o->swskills,    g);
+
 
 	draw_cursor(g);
 }

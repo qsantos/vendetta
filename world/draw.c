@@ -46,37 +46,6 @@ void draw_mine(graphics_t* g, mine_t* m)
 	draw_object(g, &m->o, sprite);
 }
 
-#define BORDER_SIZE 1
-static void draw_progressBar(graphics_t* g, float x, float y, float w, float h, float p)
-{
-	static sfRectangleShape* frame    = NULL;
-	static sfRectangleShape* progress = NULL;
-	if (frame == NULL)
-	{
-		frame = sfRectangleShape_create();
-		sfColor fill = {0, 0, 0, 0};
-		sfRectangleShape_setFillColor(frame, fill);
-		sfColor outline = {255, 255, 255, 255};
-		sfRectangleShape_setOutlineThickness(frame, BORDER_SIZE);
-		sfRectangleShape_setOutlineColor(frame, outline);
-
-		progress = sfRectangleShape_create();
-		sfColor inner = {0, 255, 0, 255};
-		sfRectangleShape_setFillColor(progress, inner);
-	}
-	sfVector2f pos = {x+BORDER_SIZE,y+BORDER_SIZE};
-	sfRectangleShape_setPosition(frame, pos);
-	sfRectangleShape_setPosition(progress, pos);
-
-	sfVector2f size = {w-2*BORDER_SIZE, h-2*BORDER_SIZE};
-	sfRectangleShape_setSize(frame, size);
-	size.x *= p;
-	sfRectangleShape_setSize(progress, size);
-
-	sfRenderWindow_drawRectangleShape(g->render, progress, NULL);
-	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
-}
-
 void draw_building(graphics_t* g, building_t* b)
 {
 	int step;
@@ -93,7 +62,7 @@ void draw_building(graphics_t* g, building_t* b)
 	sfSprite_setTextureRect(sprite, rect);
 	draw_object(g, &b->o, sprite);
 
-	draw_progressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, b->build_progress);
+	graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, b->build_progress);
 }
 
 void draw_world(graphics_t* g, world_t* w)

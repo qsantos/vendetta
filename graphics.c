@@ -94,3 +94,34 @@ static unsigned int find(graphics_t* g, const char* str)
 			return id;
 	return id;
 }
+
+#define BORDER_SIZE 1
+void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h, float p)
+{
+	static sfRectangleShape* frame    = NULL;
+	static sfRectangleShape* progress = NULL;
+	if (frame == NULL)
+	{
+		frame = sfRectangleShape_create();
+		sfColor fill = {0, 0, 0, 0};
+		sfRectangleShape_setFillColor(frame, fill);
+		sfColor outline = {255, 255, 255, 255};
+		sfRectangleShape_setOutlineThickness(frame, BORDER_SIZE);
+		sfRectangleShape_setOutlineColor(frame, outline);
+
+		progress = sfRectangleShape_create();
+		sfColor inner = {0, 255, 0, 255};
+		sfRectangleShape_setFillColor(progress, inner);
+	}
+	sfVector2f pos = {x+BORDER_SIZE,y+BORDER_SIZE};
+	sfRectangleShape_setPosition(frame, pos);
+	sfRectangleShape_setPosition(progress, pos);
+
+	sfVector2f size = {w-2*BORDER_SIZE, h-2*BORDER_SIZE};
+	sfRectangleShape_setSize(frame, size);
+	size.x *= p;
+	sfRectangleShape_setSize(progress, size);
+
+	sfRenderWindow_drawRectangleShape(g->render, progress, NULL);
+	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
+}
