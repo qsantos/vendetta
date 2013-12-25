@@ -23,6 +23,9 @@ universe_t* universe_init(graphics_t* g)
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 		kindOf_skill_init(&u->sskills[i]);
 
+	u->n_iskills = 0;
+	u->iskills = NULL;
+
 	// parse configuration files
 	u->harvestRates = NULL;
 	u->rawMaterials = NULL;
@@ -30,6 +33,7 @@ universe_t* universe_init(graphics_t* g)
 	u->item_req     = NULL;
 
 	universe_parse(u, g, "cfg/Parametres_Ressources.ini");
+	universe_parse(u, g, "cfg/Parametres_CompetencesObjets.ini");
 	universe_parse(u, g, "cfg/Parametres_Objets.ini");
 	universe_parse(u, g, "cfg/Parametres_Batiments.ini");
 	universe_parse(u, g, "cfg/Competences_Speciales.ini");
@@ -46,6 +50,10 @@ universe_t* universe_init(graphics_t* g)
 
 void universe_exit(universe_t* u)
 {
+	for (int i = 0; i < u->n_iskills; i++)
+		kindOf_skill_exit(&u->iskills[i]);
+	free(u->iskills);
+
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 		kindOf_skill_exit(&u->sskills[i]);
 
@@ -80,7 +88,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 	char*  line  = NULL;
 	size_t nline = 0;
 
-	int cur_blck = 0; // 0 = none, 1 = material, 2 = item, 3 = mine, 4 = building
+	// 0 = none, 1 = material, 2 = item, 3 = mine,
+	// 4 = building, 5 = item skill
+	int cur_blck = 0;
+
 	int cur_id = 0;
 
 	char* image_file = NULL;
@@ -120,7 +131,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 				u->items    = CREALLOC(u->items,    kindOf_item_t, cur_id);
 				u->item_req = CREALLOC(u->item_req, components_t,  cur_id);
 				for (int i = u->n_items; i < cur_id; i++)
+				{
+					kindOf_item_init(&u->items[i]);
 					components_init(&u->item_req[i]);
+				}
 				u->n_items = cur_id;
 			}
 			cur_id--;
@@ -162,8 +176,22 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			button_index = -1;
 			continue;
 		}
+		else if (strncmp(line, "[CompetenceObjet_", 17) == 0) // item skill
+		{
+			cur_blck = 5;
+			cur_id = atoi(line+17);
+			if (cur_id > u->n_iskills)
+			{
+				u->iskills = CREALLOC(u->iskills, kindOf_skill_t, cur_id);
+				for (int i = u->n_iskills; i < cur_id; i++)
+					kindOf_skill_init(&u->iskills[i]);
+				u->n_iskills = cur_id;
+			}
+			cur_id--;
+			continue;
+		}
 		// probably another section
-		else if (strchr(" \t", line[0]) == NULL)
+		else if (line[0] == '[')
 		{
 			cur_blck = 0;
 		}
@@ -222,6 +250,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			if (strcmp(var, "Nom") == 0 || strcmp(var, "NomFR") == 0)
 			{
 				u->items[cur_id].name = strdupwcs(val);
+			}
+			else if (strcmp(var, "Competence") == 0)
+			{
+				u->items[cur_id].skill = atoi(val) - 1;
 			}
 			else if (strncmp(var, "PrixRessources(", 15) == 0)
 			{
@@ -312,6 +344,13 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 
 				button_file = NULL;
 				button_index = 0;
+			}
+		}
+		else if (cur_blck == 5) // item skill
+		{
+			if (strcmp(var, "NomFR") == 0)
+			{
+				u->iskills[cur_id].name = strdupwcs(val);
 			}
 		}
 	}
