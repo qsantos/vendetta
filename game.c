@@ -79,10 +79,10 @@ void game_loop(game_t* g)
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				sfMouseButtonEvent* e = &event.mouseButton;
-				if (e->button != sfMouseLeft)
+				if (overlay_catch(g, e->x, e->y, e->button))
 					continue;
 
-				if (overlay_catch(g, e->x, e->y))
+				if (e->button != sfMouseLeft)
 					continue;
 
 				sfVector2i pix = {e->x, e->y};

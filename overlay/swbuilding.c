@@ -87,7 +87,7 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 //	sfText_destroy(text); // TODO
 }
 
-char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y)
+char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 {
 	if (!w->w.visible)
 		return 0;
@@ -95,8 +95,10 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y)
 	if (g->player->inBuilding == NULL)
 		return 0;
 
+	if (t != sfMouseLeft)
+		return 0;
+
 	building_t* b = g->player->inBuilding;
-	kindOf_building_t* t = b->t;
 
 	sfText* text = NULL;
 	if (text == NULL)
@@ -107,11 +109,11 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y)
 	}
 
 	sfVector2f pos = {w->w.x + 20, w->w.y + 70};
-	for (int i = 0; i < t->item_n; i++)
+	for (int i = 0; i < b->t->item_n; i++)
 	{
 		pos.y += 20;
 
-		components_t* l = &t->item_res[i];
+		components_t* l = &b->t->item_res[i];
 		if (l->n == 0)
 			continue;
 
@@ -127,7 +129,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y)
 		if (!sfFloatRect_contains(&rect, x, y))
 			continue;
 
-		if (components_check(&t->item_req[i], &g->player->inventory))
+		if (components_check(&b->t->item_req[i], &g->player->inventory))
 		{
 			b->item_current = i;
 			b->item_progress = 0;

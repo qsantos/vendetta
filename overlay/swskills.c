@@ -79,11 +79,12 @@ void swskills_draw(swskills_t* w, game_t* g)
 	}
 }
 
-char swskills_catch(swskills_t* w, game_t* g, float x, float y)
+char swskills_catch(swskills_t* w, game_t* g, float x, float y, int t)
 {
 	(void) w;
 	(void) g;
 	(void) x;
 	(void) y;
+	(void) t;
 	return 0;
 }

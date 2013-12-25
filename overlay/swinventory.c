@@ -71,11 +71,12 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 	}
 }
 
-char swinventory_catch(swinventory_t* w, game_t* g, float x, float y)
+char swinventory_catch(swinventory_t* w, game_t* g, float x, float y, int t)
 {
 	(void) w;
 	(void) g;
 	(void) x;
 	(void) y;
+	(void) t;
 	return 0;
 }

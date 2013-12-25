@@ -139,11 +139,11 @@ void draw_overlay(game_t* g)
 	draw_cursor(g);
 }
 
-int overlay_catch(game_t* g, float x, float y)
+int overlay_catch(game_t* g, float x, float y, int t)
 {
-	if (swbuilding_catch (&g->o->swbuilding,  g, x, y) ||
-	    swinventory_catch(&g->o->swinventory, g, x, y) ||
-	    swskills_catch   (&g->o->swskills,    g, x, y)
+	if (swbuilding_catch (&g->o->swbuilding,  g, x, y, t) ||
+	    swinventory_catch(&g->o->swinventory, g, x, y, t) ||
+	    swskills_catch   (&g->o->swskills,    g, x, y, t)
 	)
 		return 1;
 

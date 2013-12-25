@@ -16,6 +16,6 @@ void swskills_init(swskills_t* w);
 void swskills_exit(swskills_t* w);
 
 void swskills_draw (swskills_t* w, game_t* g);
-char swskills_catch(swskills_t* w, game_t* g, float x, float y);
+char swskills_catch(swskills_t* w, game_t* g, float x, float y, int t);
 
 #endif

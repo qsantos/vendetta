@@ -24,6 +24,6 @@ void draw_buildPanel(game_t* g);
 void draw_cursor    (game_t* g);
 void draw_overlay   (game_t* g);
 
-int overlay_catch(game_t* g, float x, float y);
+int overlay_catch(game_t* g, float x, float y, int t);
 
 #endif
