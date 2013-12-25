@@ -52,7 +52,12 @@ void character_exit(character_t* c)
 void character_workAt(character_t* c, object_t* o, float duration)
 {
 	if (o == NULL)
+	{
+		c->statuses[ST_STAMINA] -= 0.1 * duration;
 		return;
+	}
+
+	c->statuses[ST_STAMINA] -= 2 * duration;
 
 	if (o->t == O_MINE)
 	{
@@ -163,6 +168,8 @@ void character_doRound(character_t* c, float duration)
 		return;
 	}
 	c->inBuilding = NULL;
+
+	c->statuses[ST_STAMINA] -= 1*duration;
 
 	float dir;
 	if (dx > 0)
