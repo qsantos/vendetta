@@ -4,8 +4,20 @@
 
 #define PANEL_N_COLS 3
 
-void swskills_draw(game_t* g)
+void swskills_init(swskills_t* w)
 {
+	subwindow_init(&w->w);
+}
+
+void swskills_exit(swskills_t* w)
+{
+	subwindow_exit(&w->w);
+}
+
+void swskills_draw(swskills_t* w, game_t* g)
+{
+	(void) w;
+
 	sfText* text = NULL;
 	if (text == NULL)
 	{
@@ -67,8 +79,9 @@ void swskills_draw(game_t* g)
 	}
 }
 
-char swskills_catch(game_t* g, float x, float y)
+char swskills_catch(swskills_t* w, game_t* g, float x, float y)
 {
+	(void) w;
 	(void) g;
 	(void) x;
 	(void) y;

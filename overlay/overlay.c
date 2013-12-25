@@ -1,9 +1,6 @@
 #include "overlay.h"
 
 #include "../util.h"
-#include "swbuilding.h"
-#include "swinventory.h"
-#include "swskills.h"
 
 #define PANEL_N_COLS 3
 
@@ -11,11 +8,20 @@ overlay_t* overlay_init(void)
 {
 	overlay_t* o = CALLOC(overlay_t, 1);
 	o->selectedBuilding = NULL;
+
+	swbuilding_init (&o->swbuilding);
+	swinventory_init(&o->swinventory);
+	swskills_init   (&o->swskills);
+
 	return o;
 }
 
 void overlay_exit(overlay_t* o)
 {
+	swskills_exit   (&o->swskills);
+	swinventory_exit(&o->swinventory);
+	swbuilding_exit (&o->swbuilding);
+
 	free(o);
 }
 
@@ -126,18 +132,18 @@ void draw_overlay(game_t* g)
 {
 	draw_buildPanel(g);
 
-	swinventory_draw(g);
-	swbuilding_draw(g);
-	swskills_draw(g);
+	swbuilding_draw (&g->o->swbuilding,  g);
+	swinventory_draw(&g->o->swinventory, g);
+	swskills_draw   (&g->o->swskills,    g);
 
 	draw_cursor(g);
 }
 
 int overlay_catch(game_t* g, float x, float y)
 {
-	if (swbuilding_catch (g, x, y) ||
-	    swinventory_catch(g, x, y) ||
-	    swskills_catch   (g, x, y)
+	if (swbuilding_catch (&g->o->swbuilding,  g, x, y) ||
+	    swinventory_catch(&g->o->swinventory, g, x, y) ||
+	    swskills_catch   (&g->o->swskills,    g, x, y)
 	)
 		return 1;
 

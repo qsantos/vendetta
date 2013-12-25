@@ -4,14 +4,18 @@
 typedef struct swinventory swinventory_t;
 
 #include "subwindow.h"
-#include "../game.h"
 
 struct swinventory
 {
 	subwindow_t w;
 };
 
-void swinventory_draw (game_t* g);
-char swinventory_catch(game_t* g, float x, float y);
+#include "../game.h"
+
+void swinventory_init(swinventory_t* w);
+void swinventory_exit(swinventory_t* w);
+
+void swinventory_draw (swinventory_t* w, game_t* g);
+char swinventory_catch(swinventory_t* w, game_t* g, float x, float y);
 
 #endif

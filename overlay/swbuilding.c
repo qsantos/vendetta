@@ -5,8 +5,20 @@
 
 #define PANEL_N_COLS 3
 
-void swbuilding_draw(game_t* g)
+void swbuilding_init(swbuilding_t* w)
 {
+	subwindow_init(&w->w);
+}
+
+void swbuilding_exit(swbuilding_t* w)
+{
+	subwindow_exit(&w->w);
+}
+
+void swbuilding_draw(swbuilding_t* w, game_t* g)
+{
+	(void) w;
+
 	building_t* b = g->player->inBuilding;
 	if (b == NULL)
 		return;
@@ -75,8 +87,10 @@ void swbuilding_draw(game_t* g)
 //	sfText_destroy(text); // TODO
 }
 
-char swbuilding_catch(game_t* g, float x, float y)
+char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y)
 {
+	(void) w;
+
 	if (g->player->inBuilding == NULL)
 		return 0;
 

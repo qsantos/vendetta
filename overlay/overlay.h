@@ -4,10 +4,17 @@
 typedef struct overlay overlay_t;
 
 #include "../game.h"
+#include "swbuilding.h"
+#include "swinventory.h"
+#include "swskills.h"
 
 struct overlay
 {
 	kindOf_building_t* selectedBuilding;
+
+	swbuilding_t  swbuilding;
+	swinventory_t swinventory;
+	swskills_t    swskills;
 };
 
 overlay_t* overlay_init(void);

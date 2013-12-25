@@ -4,8 +4,20 @@
 
 #define PANEL_N_COLS 3
 
-void swinventory_draw(game_t* g)
+void swinventory_init(swinventory_t* w)
 {
+	subwindow_init(&w->w);
+}
+
+void swinventory_exit(swinventory_t* w)
+{
+	subwindow_exit(&w->w);
+}
+
+void swinventory_draw(swinventory_t* w, game_t* g)
+{
+	(void) w;
+
 	sfText* text = NULL;
 	if (text == NULL)
 	{
@@ -58,8 +70,9 @@ void swinventory_draw(game_t* g)
 	}
 }
 
-char swinventory_catch(game_t* g, float x, float y)
+char swinventory_catch(swinventory_t* w, game_t* g, float x, float y)
 {
+	(void) w;
 	(void) g;
 	(void) x;
 	(void) y;
