@@ -10,6 +10,7 @@ void components_init(components_t* l)
 {
 	l->n = 0;
 	l->c = 0;
+	l->rate = 1;
 }
 
 void components_exit(components_t* l)

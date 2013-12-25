@@ -239,7 +239,8 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			else if (strcmp(var, "TypeRessource") == 0)
 			{
 				int id = atoi(val) - 1;
-				components_material(&u->mines[cur_id].harvest, id, u->harvestRates[id]);
+				u->mines[cur_id].harvest.rate = u->harvestRates[id];
+				components_material(&u->mines[cur_id].harvest, id, 1);
 			}
 		}
 		else if (cur_blck == 4) // building

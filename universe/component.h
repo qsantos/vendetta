@@ -19,6 +19,7 @@ struct components
 {
 	int n;
 	component_t* c;
+	float rate;
 };
 
 void components_init(components_t* l);

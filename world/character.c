@@ -51,10 +51,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			return;
 
 		int id = m->t->harvest.c[0].id;
-
-		float work = 1 * duration;
-		components_apply(&m->t->harvest, &c->inventory, work * c->mskills[id]);
-		c->mskills[id] += work / 100;
+		float work = duration * m->t->harvest.rate * c->mskills[id];
+		components_apply(&m->t->harvest, &c->inventory, work);
+		c->mskills[id] += work/100;
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -69,8 +68,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			}
 			else
 			{
-				float work = 1 * duration;
-				b->build_progress += c->sskills[S_BUILD] * work / t->build_time;
+				float work = duration * c->sskills[S_BUILD] / t->build_time;
+				b->build_progress += work;
 				c->sskills[S_BUILD] += work/100;
 
 				if (b->build_progress > 1)
@@ -104,9 +103,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				return;
 
 			int id = t->make_res.c[0].id;
-			float work = 1 * duration;
-
-			float ratio = components_ratio(&t->make_req, &c->inventory, work * c->mskills[id]);
+			float work = duration * t->make_res.rate * c->mskills[id];
+			float ratio = components_ratio(&t->make_req, &c->inventory, work);
 			if (ratio != 0)
 			{
 				c->mskills[id] += ratio/100;
