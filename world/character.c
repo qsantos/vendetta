@@ -23,18 +23,26 @@ void character_init(character_t* c, universe_t* u)
 	c->dir  = D_SOUTH;
 	c->step = 5; // standing still
 
+	c->universe = u;
 	inventory_init(&c->inventory, u);
 	c->inBuilding = NULL;
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 		c->sskills[i] = 1;
+
 	c->mskills = CALLOC(skill_t, u->n_materials);
 	for (int i = 0; i < u->n_materials; i++)
 		c->mskills[i] = 1;
+
+	c->iskills = CALLOC(skill_t, u->n_iskills);
+	for (int i = 0; i < u->n_iskills; i++)
+		c->iskills[i] = 1;
 }
 
 void character_exit(character_t* c)
 {
+	free(c->iskills);
+	free(c->mskills);
 	inventory_exit(&c->inventory);
 }
 
@@ -81,7 +89,12 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			c->inBuilding = b;
 			int i = b->item_current;
 
-			float work = duration * t->item_req[i].rate;
+			if (t->item_res[i].n == 0 || !t->item_res[i].c[0].is_item)
+				return;
+
+			universe_t* u = c->universe;
+			int id = u->items[t->item_res[i].c[0].id].skill;
+			float work = duration * t->item_res[i].rate * c->iskills[id];
 			float rem  = 1 - b->item_progress;
 			if (work > rem)
 				work = rem;
@@ -89,6 +102,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			float ratio = components_ratio(&t->item_req[i], &c->inventory, work);
 			if (ratio != 0)
 			{
+				c->iskills[id] += ratio/100;
+
 				components_apply(&t->item_req[i], &c->inventory, -ratio);
 				b->item_progress += ratio;
 				if (b->item_progress >= 1)

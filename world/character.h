@@ -27,11 +27,13 @@ struct character
 	direction_t dir;
 	float       step;
 
+	universe_t* universe;
 	inventory_t inventory;
 	building_t* inBuilding;
 
-	skill_t sskills[N_SPECIAL_SKILLS];
+	skill_t  sskills[N_SPECIAL_SKILLS];
 	skill_t* mskills;
+	skill_t* iskills;
 };
 
 void character_init(character_t* c, universe_t* u);
