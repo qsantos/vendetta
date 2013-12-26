@@ -63,10 +63,8 @@ universe_t* universe_init(graphics_t* g)
 	u->slots[10] = (kindOf_slot_t){L"Monture",          10};
 
 	// parse configuration files
-	u->harvestRates = NULL;
-	u->rawMaterials = NULL;
-	u->rawAmounts   = NULL;
-	u->item_req     = NULL;
+	u->tmp_materials = NULL;
+	u->tmp_items = NULL;
 
 	universe_parse(u, g, "cfg/Parametres_Ressources.ini");
 	universe_parse(u, g, "cfg/Parametres_CompetencesObjets.ini");
@@ -75,11 +73,12 @@ universe_t* universe_init(graphics_t* g)
 	universe_parse(u, g, "cfg/Competences_Speciales.ini");
 
 	for (int i = 0; i < u->n_items; i++)
-		components_exit(&u->item_req[i]);
-	free(u->item_req);
-	free(u->rawAmounts);
-	free(u->rawMaterials);
-	free(u->harvestRates);
+		transform_exit(&u->tmp_items[i]);
+	free(u->tmp_items);
+
+	for (int i = 0; i < u->n_materials; i++)
+		transform_exit(&u->tmp_materials[i]);
+	free(u->tmp_materials);
 
 	return u;
 }
@@ -165,11 +164,14 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			if (cur_id > u->n_materials)
 			{
 				u->materials = CREALLOC(u->materials, kindOf_material_t, cur_id);
-				u->harvestRates = CREALLOC(u->harvestRates, float, cur_id);
-				u->rawMaterials = CREALLOC(u->rawMaterials, int,   cur_id);
-				u->rawAmounts   = CREALLOC(u->rawAmounts,   float, cur_id);
+				u->tmp_materials = CREALLOC(u->tmp_materials, transform_t, cur_id);
 				for (int i = u->n_materials; i < cur_id; i++)
+				{
 					kindOf_material_init(&u->materials[i]);
+					transform_init(&u->tmp_materials[i]);
+					transform_res(&u->tmp_materials[i], i, 1, 0);
+					transform_req(&u->tmp_materials[i], 0, 0, 0);
+				}
 				u->n_materials = cur_id;
 			}
 			cur_id--;
@@ -181,12 +183,13 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			cur_id = atoi(line + 7);
 			if (cur_id > u->n_items)
 			{
-				u->items    = CREALLOC(u->items,    kindOf_item_t, cur_id);
-				u->item_req = CREALLOC(u->item_req, components_t,  cur_id);
+				u->items = CREALLOC(u->items, kindOf_item_t, cur_id);
+				u->tmp_items = CREALLOC(u->tmp_items, transform_t,  cur_id);
 				for (int i = u->n_items; i < cur_id; i++)
 				{
 					kindOf_item_init(&u->items[i]);
-					components_init(&u->item_req[i]);
+					transform_init(&u->tmp_items[i]);
+					transform_res(&u->tmp_items[i], i, 1, 1);
 				}
 				u->n_items = cur_id;
 			}
@@ -201,7 +204,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			{
 				u->mines = CREALLOC(u->mines, kindOf_mine_t, cur_id);
 				for (int i = u->n_mines; i < cur_id; i++)
+				{
+					kindOf_mine_init(&u->mines[i]);
 					u->mines[i].id = i;
+				}
 				u->n_mines = cur_id;
 			}
 			cur_id--;
@@ -283,15 +289,15 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			else if (strcmp(var, "VitesseExtraction") == 0)
 			{
-				u->harvestRates[cur_id] = atof(val);
+				u->tmp_materials[cur_id].rate = atof(val);
 			}
 			else if (strcmp(var, "TypeMatierePremiere") == 0)
 			{
-				u->rawMaterials[cur_id] = atoi(val) - 1;
+				u->tmp_materials[cur_id].req[0].id = atoi(val) - 1;
 			}
 			else if (strcmp(var, "QuantiteMatierePremiere") == 0)
 			{
-				u->rawAmounts[cur_id] = atof(val);
+				u->tmp_materials[cur_id].req[0].amount = atof(val);
 			}
 			else if (strcmp(var, "NomCompetence") == 0)
 			{
@@ -336,24 +342,35 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			{
 				int mat_id = atoi(var + 15) - 1;
 				float amount = atof(val);
-				components_material(&u->item_req[cur_id], mat_id, amount);
+				transform_req(&u->tmp_items[cur_id], mat_id, amount, 0);
 			}
 			else if (strcmp(var, "DureeFabrication") == 0)
 			{
-				u->item_req[cur_id].rate = 100.f / atoi(val);
+				u->tmp_items[cur_id].rate = 100.f / atoi(val);
+			}
+			else if (strncmp(var, "BonusCompetencesSpeciales(", 26) == 0)
+			{
+				// TODO
+			}
+			else if (strncmp(var, "BonusCompetencesRessources(", 27) == 0)
+			{
+				// TODO
+			}
+			else if (strncmp(var, "BonusCompetencesObjets(", 23) == 0)
+			{
+				// TODO
 			}
 		}
 		else if (cur_blck == 3) // mine
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				kindOf_mine_init(&u->mines[cur_id], strdupwcs(val));
+				u->mines[cur_id].name = strdupwcs(val);
 			}
 			else if (strcmp(var, "TypeRessource") == 0)
 			{
 				int id = atoi(val) - 1;
-				u->mines[cur_id].harvest.rate = u->harvestRates[id];
-				components_material(&u->mines[cur_id].harvest, id, 1);
+				transform_copy(&u->mines[cur_id].harvest, &u->tmp_materials[id]);
 			}
 		}
 		else if (cur_blck == 4) // building
@@ -376,32 +393,26 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			else if (strcmp(var, "MaxVie") == 0)
 			{
-				u->buildings[cur_id].build_time = atof(val) / 100.;
+				u->buildings[cur_id].build.rate = 100. / atof(val);
 			}
 			else if (strncmp(var, "PrixRessources(", 15) == 0)
 			{
 				int mat_id = atoi(var + 15) - 1;
 				float amount = atof(val);
-				components_material(&u->buildings[cur_id].build_req, mat_id, amount);
+				transform_req(&u->buildings[cur_id].build, mat_id, amount, 0);
 			}
 			else if (strcmp(var, "RessourceFabrique") == 0)
 			{
 				int id = atoi(val) - 1;
-				if (id >= 0)
-				{
-					if (u->rawMaterials[id] >= 0)
-						components_material(&u->buildings[cur_id].make_req, u->rawMaterials[id], u->rawAmounts[id]);
-					components_material(&u->buildings[cur_id].make_res, id, 1);
-				}
+				transform_copy(&u->buildings[cur_id].make, &u->tmp_materials[id]);
 			}
 			else if (strncmp(var, "ObjetsFabriques(", 16) == 0)
 			{
 				int id = atoi(val) - 1;
 
 				kindOf_building_t* b = &u->buildings[cur_id];
-				kindOf_building_newItem(b);
-				components_copy(&b->item_req[b->item_n-1], &u->item_req[id]);
-				components_item(&b->item_res[b->item_n-1], id, 1);
+				int i = kindOf_building_newItem(b);
+				transform_copy(&b->items[i], &u->tmp_items[id]);;
 			}
 			else if (strcmp(var, "NombreEtapeFabrication") == 0)
 			{

@@ -13,20 +13,20 @@ void kindOf_building_init(kindOf_building_t* b)
 	b->button_sprite = -1;
 	b->button_index = -1;
 
-	b->build_time = 0;
+	transform_init(&b->build);
+	transform_init(&b->make);
 
-	components_init(&b->build_req);
-	components_init(&b->make_res);
-	components_init(&b->make_req);
-
-	b->item_n = 0;
-	b->item_req = NULL;
-	b->item_res = NULL;
+	b->n_items = 0;
+	b->items = NULL;
 }
 
 void kindOf_building_exit(kindOf_building_t* b)
 {
-	components_exit(&b->build_req);
+	for (int i = 0; i < b->n_items; i++)
+		transform_exit(&b->items[i]);
+	free(b->items);
+	transform_exit(&b->make);
+	transform_exit(&b->build);
 	free(b->name);
 }
 
@@ -56,11 +56,7 @@ void kindOf_building_button(kindOf_building_t* b, graphics_t* g, char* filename,
 
 int kindOf_building_newItem(kindOf_building_t* b)
 {
-	b->item_req = CREALLOC(b->item_req, components_t, b->item_n+1);
-	b->item_res = CREALLOC(b->item_res, components_t, b->item_n+1);
-
-	components_init(&b->item_req[b->item_n]);
-	components_init(&b->item_res[b->item_n]);
-
-	return b->item_n++;
+	b->items = CREALLOC(b->items, transform_t, b->n_items+1);
+	transform_init(&b->items[b->n_items]);
+	return b->n_items++;
 }

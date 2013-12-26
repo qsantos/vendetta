@@ -3,8 +3,8 @@
 
 struct inventory;
 
-typedef struct component  component_t;
-typedef struct components components_t;
+typedef struct component component_t;
+typedef struct transform transform_t;
 
 struct component
 {
@@ -15,22 +15,26 @@ struct component
 	char kept;
 };
 
-struct components
+struct transform
 {
-	int n;
-	component_t* c;
+	int n_req;
+	component_t* req;
+
+	int n_res;
+	component_t* res;
+
 	float rate;
 };
 
-void components_init(components_t* l);
-void components_exit(components_t* l);
-void components_copy(components_t* l, components_t* from);
+void transform_init(transform_t* t);
+void transform_exit(transform_t* t);
+void transform_copy(transform_t* t, transform_t* from);
 
-void components_material(components_t* l, int id, float a);
-void components_item    (components_t* l, int id, int   a);
+void transform_req(transform_t* t, int id, float a, char is_item);
+void transform_res(transform_t* t, int id, float a, char is_item);
 
-int   components_check(components_t* l, struct inventory* inv);
-float components_ratio(components_t* l, struct inventory* inv, float max_ratio);
-void  components_apply(components_t* l, struct inventory* inv, float ratio);
+int   transform_check(transform_t* t, struct inventory* inv);
+float transform_ratio(transform_t* t, struct inventory* inv, float max_ratio);
+void  transform_apply(transform_t* t, struct inventory* inv, float ratio);
 
 #endif

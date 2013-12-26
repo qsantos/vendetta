@@ -1,4 +1,4 @@
-#include "component.h"
+#include "transform.h"
 
 #include <math.h>
 #include <string.h>
@@ -6,43 +6,53 @@
 #include "../util.h"
 #include "../world/inventory.h"
 
-void components_init(components_t* l)
+void transform_init(transform_t* t)
 {
-	l->n = 0;
-	l->c = 0;
-	l->rate = 1;
+	t->n_req = 0;
+	t->req = NULL;
+
+	t->n_res = 0;
+	t->res = NULL;
+
+	t->rate = 1;
 }
 
-void components_exit(components_t* l)
+void transform_exit(transform_t* t)
 {
-	free(l->c);
+	free(t->res);
+	free(t->req);
 }
 
-void components_copy(components_t* l, components_t* from)
+void transform_copy(transform_t* t, transform_t* from)
 {
-	l->n = from->n;
-	l->c = CALLOC(component_t, l->n);
-	l->rate = from->rate;
-	memcpy(l->c, from->c, l->n*sizeof(component_t));
+	t->n_req = from->n_req;
+	t->req = CALLOC(component_t, t->n_req);
+	memcpy(t->req, from->req, sizeof(component_t)*t->n_req);
+
+	t->n_res = from->n_res;
+	t->res = CALLOC(component_t, t->n_res);
+	memcpy(t->res, from->res, sizeof(component_t)*t->n_res);
+
+	t->rate = from->rate;
 }
 
-void components_material(components_t* l, int id, float a)
+void transform_req(transform_t* t, int id, float a, char is_item)
 {
-	l->c = CREALLOC(l->c, component_t, l->n+1);
-	l->c[l->n++] = (component_t){id, a, 0, 0};
+	t->req = CREALLOC(t->req, component_t, t->n_req+1);
+	t->req[t->n_req++] = (component_t){id, a, is_item, 0};
 }
 
-void components_item(components_t* l, int id, int a)
+void transform_res(transform_t* t, int id, float a, char is_item)
 {
-	l->c = CREALLOC(l->c, component_t, l->n+1);
-	l->c[l->n++] = (component_t){id, a, 1, 0};
+	t->res = CREALLOC(t->res, component_t, t->n_res+1);
+	t->res[t->n_res++] = (component_t){id, a, is_item, 0};
 }
 
-int components_check(components_t* l, inventory_t* inv)
+int transform_check(transform_t* t, inventory_t* inv)
 {
-	for (int i = 0; i < l->n; i++)
+	for (int i = 0; i < t->n_req; i++)
 	{
-		component_t* c = &l->c[i];
+		component_t* c = &t->req[i];
 
 		float got;
 		if (c->is_item)
@@ -56,12 +66,12 @@ int components_check(components_t* l, inventory_t* inv)
 	return 1;
 }
 
-float components_ratio(components_t* l, inventory_t* inv, float max_ratio)
+float transform_ratio(transform_t* t, inventory_t* inv, float max_ratio)
 {
 	float ret = max_ratio;
-	for (int i = 0; i < l->n; i++)
+	for (int i = 0; i < t->n_req; i++)
 	{
-		component_t* c = &l->c[i];
+		component_t* c = &t->req[i];
 
 		float r;
 		if (c->is_item)
@@ -75,12 +85,12 @@ float components_ratio(components_t* l, inventory_t* inv, float max_ratio)
 	return ret;
 }
 
-void components_apply(components_t* l, inventory_t* inv, float ratio)
+void transform_apply(transform_t* t, inventory_t* inv, float ratio)
 {
-	for (int i = 0; i < l->n; i++)
+	for (int i = 0; i < t->n_res; i++)
 	{
-		component_t* c = &l->c[i];
-		if (l->c[i].kept)
+		component_t* c = &t->res[i];
+		if (c->kept)
 			continue;
 
 		if (c->is_item)

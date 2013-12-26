@@ -41,10 +41,8 @@ struct universe
 
 	// temporarily stores the harvest, transformation
 	// and fabrication information
-	float* harvestRates;
-	int*   rawMaterials;
-	float* rawAmounts;
-	components_t* item_req;
+	transform_t* tmp_materials;
+	transform_t* tmp_items;
 
 };
 

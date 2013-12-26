@@ -84,17 +84,18 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	if (o->t == O_MINE)
 	{
 		mine_t* m = (mine_t*) o;
+		transform_t* tr = &m->t->harvest;
 
-		if (m->t->harvest.n == 0 || m->t->harvest.c[0].is_item)
+		if (tr->n_res == 0 || tr->res[0].is_item)
 			return;
 
-		int id = m->t->harvest.c[0].id;
+		int id = tr->res[0].id;
 
-		float work = duration * m->t->harvest.rate;
+		float work = duration * tr->rate;
 		work *= c->mskills[id];
 		work *= character_vitality(c);
 
-		components_apply(&m->t->harvest, &c->inventory, work);
+		transform_apply(&m->t->harvest, &c->inventory, work);
 
 		c->mskills[id] += duration/100;
 		character_weary(c, 0.1 * duration);
@@ -106,82 +107,79 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		if (b->build_progress != 1)
 		{
-			if (t->build_time == 0)
-			{
-				b->build_progress = 1;
-			}
-			else
-			{
-				float work = 1 * duration;
-				work *= c->sskills[SK_BUILD];
-				work *= character_vitality(c);
+			transform_t* tr = &t->build;
 
-				float rem = (1 - b->build_progress)*b->t->build_time;
-				if (work > rem)
-					work = rem;
+			float work = duration * tr->rate;
+			work *= c->sskills[SK_BUILD];
+			work *= character_vitality(c);
 
-				b->build_progress += work / b->t->build_time;
+			float rem = 1 - b->build_progress;
+			if (work > rem)
+				work = rem;
 
-				c->sskills[SK_BUILD] += duration/100;
-				character_weary(c, 0.3 * duration);
-			}
+			b->build_progress += work;
+
+			c->sskills[SK_BUILD] += duration/100;
+			character_weary(c, 0.3 * duration);
 		}
 		else if (b->item_current >= 0)
 		{
 			c->inBuilding = b;
 			int i = b->item_current;
+			transform_t* tr = &t->items[i];
 
-			if (t->item_res[i].n == 0 || !t->item_res[i].c[0].is_item)
+			if (tr->n_res == 0 || !tr->res[0].is_item)
 				return;
 
 			universe_t* u = c->universe;
-			int id = u->items[t->item_res[i].c[0].id].skill;
+			int id = u->items[tr->res[0].id].skill;
 
-			float work = 1 * duration;
+			float work = duration * tr->rate;
 			work *= c->iskills[id];
 			work *= character_vitality(c);
 
-			float rem  = (1 - b->item_progress)/t->item_req[i].rate;
+			float rem  = 1 - b->item_progress;
 			if (work > rem)
 				work = rem;
 
-			float ratio = components_ratio(&t->item_req[i], &c->inventory, work * t->item_req[i].rate);
-			if (ratio != 0)
-			{
-				components_apply(&t->item_req[i], &c->inventory, -ratio);
-				b->item_progress += ratio;
-				if (b->item_progress >= 1)
-				{
-					components_apply(&t->item_res[i], &c->inventory, +1);
-					b->item_current = -1;
-				}
+			float ratio = transform_ratio(tr, &c->inventory, work);
+			if (ratio == 0)
+				return;
 
-				c->iskills[id] += duration/100;
-				character_weary(c, 0.1 * duration);
+			transform_apply(tr, &c->inventory, -ratio);
+			b->item_progress += ratio;
+			if (b->item_progress >= 1)
+			{
+				transform_apply(tr, &c->inventory, +1);
+				b->item_current = -1;
 			}
+
+			c->iskills[id] += duration/100;
+			character_weary(c, 0.1 * duration);
 		}
 		else
 		{
 			c->inBuilding = b;
+			transform_t* tr = &t->make;
 
-			if (t->make_res.n == 0 || t->make_res.c[0].is_item)
+			if (tr->n_res == 0 || tr->res[0].is_item)
 				return;
 
-			int id = t->make_res.c[0].id;
+			int id = tr->res[0].id;
 
-			float work = 1 * duration;
+			float work = duration * tr->rate;
 			work *= c->mskills[id];
 			work *= character_vitality(c);
 
-			float ratio = components_ratio(&t->make_req, &c->inventory, work * t->make_res.rate);
-			if (ratio != 0)
-			{
-				components_apply(&t->make_req, &c->inventory, -ratio);
-				components_apply(&t->make_res, &c->inventory, +ratio);
+			float ratio = transform_ratio(tr, &c->inventory, work);
+			if (ratio == 0)
+				return;
 
-				c->mskills[id] += duration/100;
-				character_weary(c, 0.1 * duration);
-			}
+			transform_apply(tr, &c->inventory, -ratio);
+			transform_apply(tr, &c->inventory, +ratio);
+
+			c->mskills[id] += duration/100;
+			character_weary(c, 0.1 * duration);
 		}
 	}
 }

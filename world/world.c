@@ -106,7 +106,7 @@ char world_canBeBuilt(world_t* w, float x, float y, float wi, float he)
 
 char world_canBuild(world_t* w, character_t* c, kindOf_building_t* b, float x, float y)
 {
-	return components_check(&b->build_req, &c->inventory) &&
+	return transform_check(&b->build, &c->inventory) &&
 	       world_canBeBuilt(w, x, y, b->width, b->height);
 }
 

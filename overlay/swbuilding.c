@@ -44,13 +44,13 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 	kindOf_building_t* t = b->t;
 
-	if (t->make_res.n != 0)
+	if (t->make.n_res != 0)
 	{
-		component_t* c = &t->make_res.c[0];
+		component_t* c = &t->make.res[0];
 		if (c->is_item)
 			exit(1);
 
-		const wchar_t* action = t->make_req.n == 0 ? L"Harvest" : L"Transform to";
+		const wchar_t* action = t->make.n_req == 0 ? L"Harvest" : L"Transform to";
 		const wchar_t* name   = g->u->materials[c->id].name;
 		wchar_t buffer[1024];
 		swprintf(buffer, 1024, L"%ls %ls", action, name);
@@ -61,15 +61,15 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 	}
 
 	pos.y += 20;
-	for (int i = 0; i < t->item_n; i++)
+	for (int i = 0; i < t->n_items; i++)
 	{
 		pos.y += 20;
 
-		components_t* l = &t->item_res[i];
-		if (l->n == 0)
+		transform_t* tr = &t->items[i];
+		if (tr->n_res == 0)
 			continue;
 
-		component_t* c = &l->c[0];
+		component_t* c = &tr->res[0];
 		if (!c->is_item)
 			exit(1);
 
@@ -93,13 +93,12 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 	if (!w->w.visible)
 		return 0;
 
-	if (g->player->inBuilding == NULL)
+	building_t* b = g->player->inBuilding;
+	if (b == NULL)
 		return 0;
 
 	if (t != sfMouseLeft)
 		return 0;
-
-	building_t* b = g->player->inBuilding;
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -110,15 +109,15 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 	}
 
 	sfVector2f pos = {w->w.x + 20, w->w.y + 90};
-	for (int i = 0; i < b->t->item_n; i++)
+	for (int i = 0; i < b->t->n_items; i++)
 	{
 		pos.y += 20;
 
-		components_t* l = &b->t->item_res[i];
-		if (l->n == 0)
+		transform_t* tr = &b->t->items[i];
+		if (tr->n_res == 0)
 			continue;
 
-		component_t* c = &l->c[0];
+		component_t* c = &tr->res[0];
 		if (!c->is_item)
 			exit(1);
 
@@ -130,7 +129,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 		if (!sfFloatRect_contains(&rect, x, y))
 			continue;
 
-		if (components_check(&b->t->item_req[i], &g->player->inventory))
+		if (transform_check(tr, &g->player->inventory))
 		{
 			b->item_current = i;
 			b->item_progress = 0;

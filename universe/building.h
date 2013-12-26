@@ -6,7 +6,7 @@ typedef struct kindOf_building kindOf_building_t;
 #include <wchar.h>
 
 #include "../graphics.h"
-#include "component.h"
+#include "transform.h"
 
 struct kindOf_building
 {
@@ -20,19 +20,15 @@ struct kindOf_building
 	int button_sprite;
 	int button_index;
 
-	float build_time;
-
 	// requisite materials
-	components_t build_req;
+	transform_t build;
 
 	// available material
-	components_t make_req; // needed
-	components_t make_res; // result
+	transform_t make;
 
 	// available items
-	int item_n;
-	components_t* item_req;
-	components_t* item_res;
+	int n_items;
+	transform_t* items;
 };
 
 void kindOf_building_init(kindOf_building_t* b);

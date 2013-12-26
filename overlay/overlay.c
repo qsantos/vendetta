@@ -41,7 +41,7 @@ void draw_buildPanel(game_t* g)
 
 		sfSprite* sprite = g->g->sprites[b->button_sprite];
 
-		int ok = components_check(&b->build_req, &g->player->inventory);
+		int ok = transform_check(&b->build, &g->player->inventory);
 
 		sfIntRect rect = {28*b->button_index, 28*ok, 28, 28};
 		sfSprite_setTextureRect(sprite, rect);
@@ -197,7 +197,7 @@ int overlay_catch(game_t* g, float x, float y, int t)
 
 		if (sfFloatRect_contains(&rect, x, y))
 		{
-			if (components_check(&b->build_req, &g->player->inventory))
+			if (transform_check(&b->build, &g->player->inventory))
 				g->o->selectedBuilding = b;
 			return 1;
 		}
@@ -227,7 +227,7 @@ int overlay_catch(game_t* g, float x, float y, int t)
 		if (!world_canBuild(g->w, g->player, b, pos.x, pos.y))
 			return 1;
 
-		components_apply(&b->build_req, &g->player->inventory, -1);
+		transform_apply(&b->build, &g->player->inventory, -1);
 		world_addBuilding(g->w, b, pos.x, pos.y);
 
 		g->o->selectedBuilding = NULL;
