@@ -24,7 +24,7 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 	if (b == NULL)
 		return;
 
-	sfText* text = NULL;
+	static sfText* text = NULL;
 	if (text == NULL)
 	{
 		sfColor color = {255, 255, 255, 255};
@@ -101,7 +101,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 
 	building_t* b = g->player->inBuilding;
 
-	sfText* text = NULL;
+	static sfText* text = NULL;
 	if (text == NULL)
 	{
 		text = sfText_create();

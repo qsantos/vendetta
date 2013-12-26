@@ -19,7 +19,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 	if (!subwindow_draw(&w->w, g->g))
 		return;
 
-	sfText* text = NULL;
+	static sfText* text = NULL;
 	if (text == NULL)
 	{
 		sfColor color = {255, 255, 255, 255};

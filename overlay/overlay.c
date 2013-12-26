@@ -134,7 +134,7 @@ void draw_overlay(game_t* g)
 {
 	draw_buildPanel(g);
 
-	sfText* text = NULL;
+	static sfText* text = NULL;
 	if (text == NULL)
 	{
 		text = sfText_create();

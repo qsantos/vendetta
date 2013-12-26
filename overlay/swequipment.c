@@ -15,7 +15,7 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 	if (!subwindow_draw(&w->w, g->g))
 		return;
 
-	sfText* text = NULL;
+	static sfText* text = NULL;
 	if (text == NULL)
 	{
 		sfColor color = {255, 255, 255, 255};
@@ -53,7 +53,7 @@ char swequipment_catch(swequipment_t* w, game_t* g, float x, float y, int t)
 	if (t != sfMouseLeft)
 		return 0;
 
-	sfText* text = NULL;
+	static sfText* text = NULL;
 	if (text == NULL)
 	{
 		text = sfText_create();
