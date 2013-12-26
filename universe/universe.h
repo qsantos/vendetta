@@ -29,6 +29,8 @@ struct universe
 	int n_iskills;
 	kindOf_skill_t* iskills;
 
+	kindOf_status_t statuses[N_STATUSES];
+
 	// temporarily stores the harvest, transformation
 	// and fabrication information
 	float* harvestRates;

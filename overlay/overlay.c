@@ -132,14 +132,38 @@ void draw_overlay(game_t* g)
 {
 	draw_buildPanel(g);
 
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfColor col = {255, 255, 255, 255};
+		sfText_setColor(text, col);
+		sfText_setFont(text, g->g->font);
+		sfText_setCharacterSize(text, 15);
+	}
+
 	sfVector2u size = sfRenderWindow_getSize(g->g->render);
-	float w = size.x / (3*N_STATUSES+1);
-	float x = w;
+	float x = 10;
+	float y = size.y - 10 - 30 * N_STATUSES;;
 	for (int i = 0; i < N_STATUSES; i++)
 	{
 		float p = g->player->statuses[i] / 20;
-		graphics_drawProgressBar(g->g, x, size.y - 40, 2*w, 20, p);
-		x += 3*w;
+		graphics_drawProgressBar(g->g, x, y, 150, 20, p);
+
+		sfText_setUnicodeString(text, (sfUint32*) g->u->statuses[i].name);
+		sfVector2f pos = {x+5, y};
+		sfText_setPosition(text, pos);
+		sfRenderWindow_drawText(g->g->render, text, NULL);
+
+		wchar_t buffer[1024];
+		swprintf(buffer, 1024, L"%.0f/%.0f", g->player->statuses[i], 20.);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfFloatRect rect = sfText_getLocalBounds(text);
+		pos.x = x + 140 - rect.width;
+		sfText_setPosition(text, pos);
+		sfRenderWindow_drawText(g->g->render, text, NULL);
+
+		y += 30;
 	}
 
 	swbuilding_draw (&g->o->swbuilding,  g);

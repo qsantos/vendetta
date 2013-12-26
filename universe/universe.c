@@ -26,6 +26,14 @@ universe_t* universe_init(graphics_t* g)
 	u->n_iskills = 0;
 	u->iskills = NULL;
 
+	for (int i = 0; i < N_STATUSES; i++)
+		kindOf_status_init(&u->statuses[i]);
+
+	u->statuses[ST_HEALTH] .name = L"Santé";
+	u->statuses[ST_STAMINA].name = L"Énergie";
+	u->statuses[ST_MORAL]  .name = L"Moral";
+	u->statuses[ST_MANA]   .name = L"Magie";
+
 	// parse configuration files
 	u->harvestRates = NULL;
 	u->rawMaterials = NULL;
@@ -50,6 +58,11 @@ universe_t* universe_init(graphics_t* g)
 
 void universe_exit(universe_t* u)
 {
+	/* TODO
+	for (int i = 0; i < N_STATUSES; i++)
+		kindOf_status_exit(&u->statuses[i]);
+	*/
+
 	for (int i = 0; i < u->n_iskills; i++)
 		kindOf_skill_exit(&u->iskills[i]);
 	free(u->iskills);
