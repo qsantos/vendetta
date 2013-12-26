@@ -62,7 +62,7 @@ char swequipment_catch(swequipment_t* w, game_t* g, float x, float y, int t)
 	}
 
 	sfVector2f pos = {w->w.x + 20 + 150, w->w.y + 30};
-	for (int i = 0; i < g->u->n_materials; i++)
+	for (int i = 0; i < g->u->n_slots; i++)
 	{
 		pos.y += 20;
 
