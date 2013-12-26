@@ -1,5 +1,7 @@
 #include "overlay.h"
 
+#include <math.h>
+
 #include "../util.h"
 
 #define PANEL_N_COLS 3
@@ -158,7 +160,7 @@ void draw_overlay(game_t* g)
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%.0f/%.0f", g->player->statuses[i], 20.);
+		swprintf(buffer, 1024, L"%.0f/%.0f", floor(g->player->statuses[i]), floor(20.));
 		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfFloatRect rect = sfText_getLocalBounds(text);
 		pos.x = x + 140 - rect.width;
