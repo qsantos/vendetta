@@ -120,5 +120,41 @@ char swinventory_catch(swinventory_t* w, game_t* g, float x, float y, int t)
 		return 1;
 	}
 
+	pos.y += 20;
+
+	for (int i = 0; i < g->u->n_items; i++)
+	{
+		wchar_t* name = g->u->items[i].name;
+		int amount = g->player->inventory.items[i];
+
+		if (amount == 0)
+			continue;
+
+		pos.y += 20;
+
+		wchar_t buffer[1024];
+		swprintf(buffer, 1024, L"%ls: %i", name, amount);
+
+		sfText_setPosition(text, pos);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (!sfFloatRect_contains(&rect, x, y))
+			continue;
+
+		int cat = g->u->items[i].category;
+		for (int j = 0; j < g->u->n_slots; j++)
+		{
+			if (g->u->slots[j].category == cat && g->player->equipment[j] < 0)
+			{
+				g->player->equipment[j] = i;
+				g->player->inventory.items[i]--;
+				break;
+			}
+		}
+
+		return 1;
+	}
+
 	return 0;
 }
