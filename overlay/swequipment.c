@@ -47,10 +47,42 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 
 char swequipment_catch(swequipment_t* w, game_t* g, float x, float y, int t)
 {
-	(void) w;
-	(void) g;
-	(void) x;
-	(void) y;
-	(void) t;
+	if (!w->w.visible)
+		return 0;
+
+	if (t != sfMouseLeft)
+		return 0;
+
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, g->g->font);
+		sfText_setCharacterSize(text, 18);
+	}
+
+	sfVector2f pos = {w->w.x + 20 + 150, w->w.y + 30};
+	for (int i = 0; i < g->u->n_materials; i++)
+	{
+		pos.y += 20;
+
+		int id = g->player->equipment[i];
+		sfUint32* txt = (sfUint32*) (id >= 0 ? g->u->items[id].name : L"-");
+		sfText_setPosition(text, pos);
+		sfText_setUnicodeString(text, txt);
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (!sfFloatRect_contains(&rect, x, y))
+			continue;
+
+		int j = g->player->equipment[i];
+		if (j >= 0)
+		{
+			g->player->equipment[i] = -1;
+			g->player->inventory.items[j]++;
+		}
+		return 1;
+	}
+
 	return 0;
 }
