@@ -10,6 +10,7 @@ struct kindOf_item
 	wchar_t* name;
 
 	int skill;
+	int category;
 };
 
 void kindOf_item_init(kindOf_item_t* i);

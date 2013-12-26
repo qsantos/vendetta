@@ -34,6 +34,20 @@ universe_t* universe_init(graphics_t* g)
 	u->statuses[ST_MORAL]  .name = L"Moral";
 	u->statuses[ST_MANA]   .name = L"Magie";
 
+	u->n_categories = 11;
+	u->categories = CALLOC(kindOf_category_t, u->n_categories);
+	u->categories[ 0].name = L"Arme à une main";
+	u->categories[ 1].name = L"Arme à deux mains";
+	u->categories[ 2].name = L"Armure";
+	u->categories[ 3].name = L"Casque";
+	u->categories[ 4].name = L"Chaussures";
+	u->categories[ 5].name = L"Dos";
+	u->categories[ 6].name = L"Anneau à une main";
+	u->categories[ 7].name = L"Anneau à 2 mains";
+	u->categories[ 8].name = L"Bras";
+	u->categories[ 9].name = L"Colliers";
+	u->categories[10].name = L"Monture";
+
 	// parse configuration files
 	u->harvestRates = NULL;
 	u->rawMaterials = NULL;
@@ -58,6 +72,12 @@ universe_t* universe_init(graphics_t* g)
 
 void universe_exit(universe_t* u)
 {
+	/*
+	for (int i = 0; i < u->n_categories; i++)
+		kindOf_status_exit(&u->categories[i]);
+	*/
+	free(u->categories);
+
 	/* TODO
 	for (int i = 0; i < N_STATUSES; i++)
 		kindOf_status_exit(&u->statuses[i]);
@@ -283,6 +303,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			if (strcmp(var, "Nom") == 0 || strcmp(var, "NomFR") == 0)
 			{
 				u->items[cur_id].name = strdupwcs(val);
+			}
+			else if (strcmp(var, "Categorie") == 0)
+			{
+				u->items[cur_id].category = atoi(val);
 			}
 			else if (strcmp(var, "Competence") == 0)
 			{
