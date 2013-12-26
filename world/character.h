@@ -44,7 +44,10 @@ struct character
 void character_init(character_t* c, universe_t* u);
 void character_exit(character_t* c);
 
-void character_workAt (character_t* c, object_t* o, float duration);
-void character_doRound(character_t* c, float duration);
+float character_vitality(character_t* c);
+void  character_weary   (character_t* c, float f);
+
+void character_workAt  (character_t* c, object_t* o, float duration);
+void character_doRound (character_t* c, float duration);
 
 #endif

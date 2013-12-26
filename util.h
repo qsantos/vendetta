@@ -1,6 +1,11 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+static inline float max(float a, float b)
+{
+	return a > b ? a : b;
+}
+
 #include <stdlib.h>
 #include <stdio.h>
 inline void* check_alloc(size_t n, void* ptr, const char* file, int line)

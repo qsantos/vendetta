@@ -58,15 +58,28 @@ void character_exit(character_t* c)
 	inventory_exit(&c->inventory);
 }
 
+float character_vitality(character_t* c)
+{
+	float ret = 1;
+	ret *= sqrt(c->statuses[ST_HEALTH] / 20.);
+	ret *= sqrt(c->statuses[ST_STAMINA] / 20.);
+	ret *= sqrt(c->statuses[ST_MORAL] / 20.);
+	return max(ret, 0.3);
+}
+
+void character_weary(character_t* c, float f)
+{
+	c->statuses[ST_STAMINA] = max(c->statuses[ST_STAMINA] - f,   0);
+	c->statuses[ST_MORAL]   = max(c->statuses[ST_MORAL]   - f/3, 0);
+}
+
 void character_workAt(character_t* c, object_t* o, float duration)
 {
 	if (o == NULL)
 	{
-		c->statuses[ST_STAMINA] -= 0.01 * duration;
+		character_weary(c, 0.01 * duration);
 		return;
 	}
-
-	c->statuses[ST_STAMINA] -= 0.1 * duration;
 
 	if (o->t == O_MINE)
 	{
@@ -76,9 +89,15 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			return;
 
 		int id = m->t->harvest.c[0].id;
-		float work = duration * m->t->harvest.rate * c->mskills[id];
+
+		float work = duration * m->t->harvest.rate;
+		work *= c->mskills[id];
+		work *= character_vitality(c);
+
 		components_apply(&m->t->harvest, &c->inventory, work);
+
 		c->mskills[id] += work/100;
+		character_weary(c, 0.1 * work);
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -93,12 +112,17 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			}
 			else
 			{
-				float work = duration * c->sskills[SK_BUILD] / t->build_time;
-				b->build_progress += work;
+				float work = 1 * duration;
+				work *= c->sskills[SK_BUILD];
+				work *= character_vitality(c);
 				c->sskills[SK_BUILD] += work/100;
 
-				if (b->build_progress > 1)
-					b->build_progress = 1;
+				float rem = (1 - b->build_progress)*b->t->build_time;
+				if (work > rem)
+					work = rem;
+
+				b->build_progress += work / b->t->build_time;
+				character_weary(c, 0.3 * work);
 			}
 		}
 		else if (b->item_current >= 0)
@@ -111,16 +135,18 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			universe_t* u = c->universe;
 			int id = u->items[t->item_res[i].c[0].id].skill;
-			float work = duration * t->item_res[i].rate * c->iskills[id];
-			float rem  = 1 - b->item_progress;
+
+			float work = 1 * duration;
+			work *= c->iskills[id];
+			work *= character_vitality(c);
+
+			float rem  = (1 - b->item_progress)/t->item_req[i].rate;
 			if (work > rem)
 				work = rem;
 
-			float ratio = components_ratio(&t->item_req[i], &c->inventory, work);
+			float ratio = components_ratio(&t->item_req[i], &c->inventory, work * t->item_req[i].rate);
 			if (ratio != 0)
 			{
-				c->iskills[id] += ratio/100;
-
 				components_apply(&t->item_req[i], &c->inventory, -ratio);
 				b->item_progress += ratio;
 				if (b->item_progress >= 1)
@@ -128,6 +154,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 					components_apply(&t->item_res[i], &c->inventory, +1);
 					b->item_current = -1;
 				}
+
+				c->iskills[id] += work/100;
+				character_weary(c, 0.1 * work);
 			}
 		}
 		else
@@ -138,14 +167,19 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				return;
 
 			int id = t->make_res.c[0].id;
-			float work = duration * t->make_res.rate * c->mskills[id];
-			float ratio = components_ratio(&t->make_req, &c->inventory, work);
+
+			float work = 1 * duration;
+			work *= c->mskills[id];
+			work *= character_vitality(c);
+
+			float ratio = components_ratio(&t->make_req, &c->inventory, work * t->make_res.rate);
 			if (ratio != 0)
 			{
-				c->mskills[id] += ratio/100;
-
 				components_apply(&t->make_req, &c->inventory, -ratio);
 				components_apply(&t->make_res, &c->inventory, +ratio);
+
+				c->mskills[id] += ratio/100;
+				character_weary(c, 0.1 * work);
 			}
 		}
 	}
@@ -178,8 +212,6 @@ void character_doRound(character_t* c, float duration)
 	}
 	c->inBuilding = NULL;
 
-	c->statuses[ST_STAMINA] -= 0.02*duration;
-
 	float dir;
 	if (dx > 0)
 	{
@@ -205,6 +237,7 @@ void character_doRound(character_t* c, float duration)
 		                     D_EAST;
 
 	float distance = 100 * duration;
+	distance *= character_vitality(c);
 	if (distance > remDistance)
 		distance = remDistance;
 
@@ -213,7 +246,9 @@ void character_doRound(character_t* c, float duration)
 
 	if (c->step == 5)
 		c->step = 0;
-	c->step += 8 * duration;
+	c->step += 0.1 * distance;
 	if (c->step >= 4)
 		c->step = 0;
+
+	character_weary(c, 0.001*distance);
 }
