@@ -12,12 +12,14 @@ overlay_t* overlay_init(void)
 	swbuilding_init (&o->swbuilding);
 	swinventory_init(&o->swinventory);
 	swskills_init   (&o->swskills);
+	swequipment_init(&o->swequipment);
 
 	return o;
 }
 
 void overlay_exit(overlay_t* o)
 {
+	swequipment_exit(&o->swequipment);
 	swskills_exit   (&o->swskills);
 	swinventory_exit(&o->swinventory);
 	swbuilding_exit (&o->swbuilding);
@@ -169,7 +171,7 @@ void draw_overlay(game_t* g)
 	swbuilding_draw (&g->o->swbuilding,  g);
 	swinventory_draw(&g->o->swinventory, g);
 	swskills_draw   (&g->o->swskills,    g);
-
+	swequipment_draw(&g->o->swequipment, g);
 
 	draw_cursor(g);
 }
@@ -178,7 +180,8 @@ int overlay_catch(game_t* g, float x, float y, int t)
 {
 	if (swbuilding_catch (&g->o->swbuilding,  g, x, y, t) ||
 	    swinventory_catch(&g->o->swinventory, g, x, y, t) ||
-	    swskills_catch   (&g->o->swskills,    g, x, y, t)
+	    swskills_catch   (&g->o->swskills,    g, x, y, t) ||
+	    swequipment_catch(&g->o->swequipment, g, x, y, t)
 	)
 		return 1;
 

@@ -7,6 +7,7 @@ typedef struct overlay overlay_t;
 #include "swbuilding.h"
 #include "swinventory.h"
 #include "swskills.h"
+#include "swequipment.h"
 
 struct overlay
 {
@@ -15,6 +16,7 @@ struct overlay
 	swbuilding_t  swbuilding;
 	swinventory_t swinventory;
 	swskills_t    swskills;
+	swequipment_t swequipment;
 };
 
 overlay_t* overlay_init(void);

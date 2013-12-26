@@ -82,6 +82,10 @@ void game_loop(game_t* g)
 				{
 					g->o->swskills.w.visible ^= 1;
 				}
+				else if (k == sfKeyE)
+				{
+					g->o->swequipment.w.visible ^= 1;
+				}
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
