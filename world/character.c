@@ -42,10 +42,8 @@ void character_init(character_t* c, universe_t* u)
 		c->statuses[i] = 20;
 
 	// just for convenience
-	c->inventory.materials[2] = 1000; // wood
-	c->inventory.materials[3] = 1000; // planks
-	c->inventory.materials[12] = 1000; // stone
-	c->inventory.materials[13] = 1000; // bricks
+	for (int i = 0; i < u->n_materials; i++)
+		c->inventory.materials[i] = 1000;
 }
 
 void character_exit(character_t* c)
