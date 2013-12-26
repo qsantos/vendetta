@@ -37,6 +37,8 @@ struct character
 	skill_t* iskills;
 
 	status_t statuses[N_STATUSES];
+
+	int* equipment;
 };
 
 void character_init(character_t* c, universe_t* u);
