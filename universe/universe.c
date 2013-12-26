@@ -48,6 +48,20 @@ universe_t* universe_init(graphics_t* g)
 	u->categories[ 9].name = L"Colliers";
 	u->categories[10].name = L"Monture";
 
+	u->n_slots = 11;
+	u->slots = CALLOC(kindOf_slot_t, u->n_slots);
+	u->slots[ 0] = (kindOf_slot_t){L"Main droite",       0};
+	u->slots[ 1] = (kindOf_slot_t){L"Main gauche",       0};
+	u->slots[ 2] = (kindOf_slot_t){L"Torse",             2};
+	u->slots[ 3] = (kindOf_slot_t){L"Tête",              3};
+	u->slots[ 4] = (kindOf_slot_t){L"Pieds",             4};
+	u->slots[ 5] = (kindOf_slot_t){L"Dos",               5};
+	u->slots[ 6] = (kindOf_slot_t){L"Annulaire droit",   6};
+	u->slots[ 7] = (kindOf_slot_t){L"Annulaire gauche",  6};
+	u->slots[ 8] = (kindOf_slot_t){L"Main",              8};
+	u->slots[ 9] = (kindOf_slot_t){L"Cou",               9};
+	u->slots[10] = (kindOf_slot_t){L"Monture",          10};
+
 	// parse configuration files
 	u->harvestRates = NULL;
 	u->rawMaterials = NULL;
@@ -72,7 +86,13 @@ universe_t* universe_init(graphics_t* g)
 
 void universe_exit(universe_t* u)
 {
-	/*
+	/* TODO
+	for (int i = 0; i < u->n_slots; i++)
+		kindOf_slots_exit(&u->slots[i]);
+	*/
+	free(u->slots);
+
+	/* TODO
 	for (int i = 0; i < u->n_categories; i++)
 		kindOf_status_exit(&u->categories[i]);
 	*/
