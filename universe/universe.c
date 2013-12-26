@@ -187,7 +187,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 				u->tmp_items = CREALLOC(u->tmp_items, transform_t,  cur_id);
 				for (int i = u->n_items; i < cur_id; i++)
 				{
-					kindOf_item_init(&u->items[i]);
+					kindOf_item_init(&u->items[i], u);
 					transform_init(&u->tmp_items[i]);
 					transform_res(&u->tmp_items[i], i, 1, 1);
 				}
@@ -350,15 +350,21 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			else if (strncmp(var, "BonusCompetencesSpeciales(", 26) == 0)
 			{
-				// TODO
+				int id = atoi(var + 26) - 1;
+				float amount = atof(val);
+				u->items[cur_id].bonus_special[id] = amount;
 			}
 			else if (strncmp(var, "BonusCompetencesRessources(", 27) == 0)
 			{
-				// TODO
+				int id = atoi(var + 27) - 1;
+				float amount = atof(val);
+				u->items[cur_id].bonus_material[id] = amount;
 			}
 			else if (strncmp(var, "BonusCompetencesObjets(", 23) == 0)
 			{
-				// TODO
+				int id = atoi(var + 23) - 1;
+				float amount = atof(val);
+				u->items[cur_id].bonus_item[id] = amount;
 			}
 		}
 		else if (cur_blck == 3) // mine
