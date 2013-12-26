@@ -71,6 +71,26 @@ object_t* world_objectAt(world_t* w, float x, float y)
 	return NULL;
 }
 
+mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
+{
+	mine_t* ret = NULL;
+	float min_d = -1;
+	for (int i = 0; i < w->n_mines; i++)
+	{
+		mine_t* m = &w->mines[i];
+		if (t == NULL || m->t == t)
+		{
+			float d = object_distance((object_t*) m, x, y);
+			if (min_d < 0 || d < min_d)
+			{
+				ret = m;
+				min_d = d;
+			}
+		}
+	}
+	return ret;
+}
+
 char world_canBeBuilt(world_t* w, float x, float y, float wi, float he)
 {
 	for (int i = 0; i < w->n_mines; i++)

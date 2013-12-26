@@ -86,6 +86,17 @@ void game_loop(game_t* g)
 				{
 					g->o->swequipment.w.visible ^= 1;
 				}
+				else if (sfKeyF1 <= k && k <= sfKeyF12)
+				{
+					int id = k - sfKeyF1;
+					if (id < g->u->n_mines)
+					{
+						kindOf_mine_t* t = &g->u->mines[id];
+						mine_t* m = world_findMine(g->w, g->player->o.x, g->player->o.y, t);
+						if (m != NULL)
+							g->player->go_o = (object_t*) m;
+					}
+				}
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{

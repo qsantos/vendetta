@@ -18,3 +18,10 @@ int object_rect(object_t* o, float x, float y, float w, float h)
 	float vert = -o->h <= y && y < h;
 	return hori && vert;
 }
+
+float object_distance(object_t* o, float x, float y)
+{
+	float dx = x - o->x;
+	float dy = y - o->y;
+	return sqrt(dx*dx + dy*dy);
+}
