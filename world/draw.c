@@ -67,6 +67,40 @@ void draw_building(graphics_t* g, building_t* b)
 
 void draw_world(graphics_t* g, world_t* w)
 {
+	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
+	static sfVertexArray* array = NULL;
+	if (array == NULL)
+	{
+		sfTexture* texture = sfTexture_createFromFile("lands.png", NULL);
+
+		array = sfVertexArray_create();
+		sfVertexArray_setPrimitiveType(array, sfQuads);
+		sfVertexArray_resize(array, 100*100*4);
+
+		for (int i = 0; i < 100; i++)
+			for (int j = 0; j < 100; j++)
+			{
+				sfVertex* v = sfVertexArray_getVertex(array, (i*100+j)*4);
+
+				v[0].position = (sfVector2f){(i-50+0)*32, (j-50+0)*32};
+				v[1].position = (sfVector2f){(i-50+1)*32, (j-50+0)*32};
+				v[2].position = (sfVector2f){(i-50+1)*32, (j-50+1)*32};
+				v[3].position = (sfVector2f){(i-50+0)*32, (j-50+1)*32};
+
+				for (int k = 0; k < 4; k++)
+					v[k].color = sfWhite;
+
+				v[0].texCoords = (sfVector2f){0*16, 0*16};
+				v[1].texCoords = (sfVector2f){1*16, 0*16};
+				v[2].texCoords = (sfVector2f){1*16, 1*16};
+				v[3].texCoords = (sfVector2f){0*16, 1*16};
+			}
+
+		states.texture = texture;
+	}
+
+	sfRenderWindow_drawVertexArray(g->render, array, &states);
+
 	for (int i = 0; i < w->n_buildings; i++)
 		draw_building(g, w->buildings[i]);
 

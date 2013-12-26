@@ -117,7 +117,7 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 	else if (p <= 0.25) inner = (sfColor){255,  0,  0,255};
 	else if (p <= 0.50) inner = (sfColor){247,173,  0,255};
 	else if (p <= 0.75) inner = (sfColor){170,170, 68,255};
-	else if (p <= 1.00) inner = (sfColor){ 68,170, 68,255};
+	else if (p <= 1.00) inner = (sfColor){ 68,255, 68,255};
 	else                {inner = sfBlue;p=1;}
 
 	sfRectangleShape_setFillColor(progress, inner);
