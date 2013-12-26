@@ -96,8 +96,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		components_apply(&m->t->harvest, &c->inventory, work);
 
-		c->mskills[id] += work/100;
-		character_weary(c, 0.1 * work);
+		c->mskills[id] += duration/100;
+		character_weary(c, 0.1 * duration);
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -115,14 +115,15 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				float work = 1 * duration;
 				work *= c->sskills[SK_BUILD];
 				work *= character_vitality(c);
-				c->sskills[SK_BUILD] += work/100;
 
 				float rem = (1 - b->build_progress)*b->t->build_time;
 				if (work > rem)
 					work = rem;
 
 				b->build_progress += work / b->t->build_time;
-				character_weary(c, 0.3 * work);
+
+				c->sskills[SK_BUILD] += duration/100;
+				character_weary(c, 0.3 * duration);
 			}
 		}
 		else if (b->item_current >= 0)
@@ -155,8 +156,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 					b->item_current = -1;
 				}
 
-				c->iskills[id] += work/100;
-				character_weary(c, 0.1 * work);
+				c->iskills[id] += duration/100;
+				character_weary(c, 0.1 * duration);
 			}
 		}
 		else
@@ -178,8 +179,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				components_apply(&t->make_req, &c->inventory, -ratio);
 				components_apply(&t->make_res, &c->inventory, +ratio);
 
-				c->mskills[id] += ratio/100;
-				character_weary(c, 0.1 * work);
+				c->mskills[id] += duration/100;
+				character_weary(c, 0.1 * duration);
 			}
 		}
 	}
@@ -250,5 +251,5 @@ void character_doRound(character_t* c, float duration)
 	if (c->step >= 4)
 		c->step = 0;
 
-	character_weary(c, 0.001*distance);
+	character_weary(c, 0.02*duration);
 }
