@@ -15,42 +15,27 @@ void swbuilding_exit(swbuilding_t* w)
 	subwindow_exit(&w->w);
 }
 
-void swbuilding_materialTooltip(wchar_t* buffer, size_t n, game_t* g, transform_t* tr)
+size_t component_tooltip(wchar_t* buffer, size_t n, universe_t* u, component_t* c)
 {
-	int id = tr->res[0].id;
-	kindOf_material_t* m = &g->u->materials[id];
-
-	size_t cur = 0;
-	cur += swprintf(buffer+cur, n-cur, L"%ls", m->name);
-
-	// required materials
-	if (tr->n_req != 0)
-		cur += swprintf(buffer+cur, n-cur, L"\n\nneed:");
-	for (int i = 0; i < tr->n_req; i++)
-	{
-		component_t* c = &tr->req[i];
-		kindOf_material_t* m = &g->u->materials[c->id];
-		cur += swprintf(buffer+cur, n-cur, L"\n- %.0f of %ls", c->amount, m->name);
-	}
+	wchar_t* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
+	return swprintf(buffer, n, L"\n%.0f %ls", c->amount, name);
 }
-
-void swbuilding_itemTooltip(wchar_t* buffer, size_t n, game_t* g, transform_t* tr)
+size_t swbuilding_tooltip(wchar_t* buffer, size_t n, universe_t* u, transform_t* tr)
 {
-	int id = tr->res[0].id;
-	kindOf_item_t* it = &g->u->items[id];
-
 	size_t cur = 0;
-	cur += swprintf(buffer+cur, n-cur, L"%ls", it->name);
 
-	// required materials
+	// result components
+	cur += swprintf(buffer+cur, n-cur, L"make:");
+	for (int i = 0; i < tr->n_res; i++)
+		cur += component_tooltip(buffer+cur, n-cur, u, &tr->res[i]);
+
+	// required components
 	if (tr->n_req != 0)
 		cur += swprintf(buffer+cur, n-cur, L"\n\nneed:");
 	for (int i = 0; i < tr->n_req; i++)
-	{
-		component_t* c = &tr->req[i];
-		kindOf_material_t* m = &g->u->materials[c->id];
-		cur += swprintf(buffer+cur, n-cur, L"\n- %.0f of %ls", c->amount, m->name);
-	}
+		cur += component_tooltip(buffer+cur, n-cur, u, &tr->req[i]);
+
+	return cur;
 }
 
 char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
@@ -91,7 +76,7 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 		if (sfFloatRect_contains(&rect, x, y))
 		{
 			wchar_t buffer[1024];
-			swbuilding_materialTooltip(buffer, 1024, g, &t->make);
+			swbuilding_tooltip(buffer, 1024, g->u, &t->make);
 			graphics_drawTooltip(g->g, x, y, buffer);
 			return 1;
 		}
@@ -119,7 +104,7 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 			continue;
 
 		wchar_t buffer[1024];
-		swbuilding_itemTooltip(buffer, 1024, g, tr);
+		swbuilding_tooltip(buffer, 1024, g->u, tr);
 		graphics_drawTooltip(g->g, x, y, buffer);
 		return 1;
 	}
