@@ -78,7 +78,7 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 
 char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 {
-	if (!subwindow_cursor(&w->w, g->g, _x, _y))
+	if (!subwindow_cursor(&w->w, _x, _y))
 		return 0;
 
 	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
@@ -209,7 +209,7 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 {
-	if (!subwindow_cursor(&w->w, g->g, _x, _y))
+	if (!subwindow_cursor(&w->w, _x, _y))
 		return 0;
 
 	if (t != sfMouseLeft)
@@ -294,5 +294,5 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 		return 1;
 	}
 
-	return subwindow_catch(&w->w, g->g, x, y, t);
+	return subwindow_catch(&w->w, x, y, t);
 }

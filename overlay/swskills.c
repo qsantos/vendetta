@@ -92,5 +92,6 @@ void swskills_draw(swskills_t* w, game_t* g)
 
 char swskills_catch(swskills_t* w, game_t* g, int x, int y, int t)
 {
-	return subwindow_catch(&w->w, g->g, x, y, t);
+	(void) g;
+	return subwindow_catch(&w->w, x, y, t);
 }

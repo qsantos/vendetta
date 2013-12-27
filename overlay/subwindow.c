@@ -15,10 +15,8 @@ void subwindow_exit(subwindow_t* w)
 	(void) w;
 }
 
-char subwindow_cursor(subwindow_t* w, graphics_t* g, int x, int y)
+char subwindow_cursor(subwindow_t* w, int x, int y)
 {
-	(void) g;
-
 	if (!w->visible)
 		return 0;
 
@@ -67,9 +65,8 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 	return 1;
 }
 
-char subwindow_catch(subwindow_t* w, graphics_t* g, int x, int y, int t)
+char subwindow_catch(subwindow_t* w, int x, int y, int t)
 {
-	(void) g;
 	(void) t;
 
 	if (!w->visible)

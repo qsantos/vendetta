@@ -197,7 +197,7 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
 {
-	if (!subwindow_cursor(&w->w, g->g, _x, _y))
+	if (!subwindow_cursor(&w->w, _x, _y))
 		return 0;
 
 	building_t* b = g->player->inBuilding;
@@ -252,5 +252,5 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
 		return 1;
 	}
 
-	return subwindow_catch(&w->w, g->g, x, y, t);
+	return subwindow_catch(&w->w, x, y, t);
 }
