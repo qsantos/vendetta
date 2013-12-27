@@ -14,12 +14,70 @@ void swinventory_exit(swinventory_t* w)
 	subwindow_exit(&w->w);
 }
 
+size_t swinventory_materialTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_material_t* m)
+{
+	size_t cur = 0;
+
+	cur += swprintf(buffer+cur, n-cur, L"%ls", m->name);
+
+	if (m->edible)
+	{
+		cur += swprintf(buffer+cur, n-cur, L"\nedible:");
+		for (int i = 0; i < N_STATUSES; i++)
+		{
+			float b = m->eatBonus[i];
+			if (b == 0)
+				continue;
+
+			wchar_t* name = u->statuses[i].name;
+			cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
+		}
+	}
+
+	return cur;
+}
+
 char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
 {
-	(void) w;
-	(void) g;
-	(void) x;
-	(void) y;
+	if (!w->w.visible)
+		return 0;
+
+	static sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, g->g->font);
+		sfText_setCharacterSize(text, 18);
+	}
+
+	sfVector2f pos = {w->w.x + 20, w->w.y + 30};
+
+	for (int i = 0; i < g->u->n_materials; i++)
+	{
+		const wchar_t* name = g->u->materials[i].name;
+		int amount = floor(g->player->inventory.materials[i]);
+
+		if (amount == 0)
+			continue;
+
+		pos.y += 20;
+
+		wchar_t buffer[1024];
+		swprintf(buffer, 1024, L"%ls: %i", name, amount);
+
+		sfText_setPosition(text, pos);
+		sfText_setUnicodeString(text, (sfUint32*) buffer);
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (!sfFloatRect_contains(&rect, x, y))
+			continue;
+
+		swinventory_materialTooltip(buffer, 1024, g->u, &g->u->materials[i]);
+		graphics_drawTooltip(g->g, x, y, buffer);
+
+		return 1;
+	}
+
 	return 0;
 }
 
