@@ -15,8 +15,8 @@ void kindOf_item_init(kindOf_item_t* i, universe_t* u)
 	for (int k = 0; k < u->n_materials; k++)
 		i->bonus_material[k] = 0;
 
-	i->bonus_item = CALLOC(float, u->n_items);
-	for (int k = 0; k < u->n_items; k++)
+	i->bonus_item = CALLOC(float, u->n_iskills);
+	for (int k = 0; k < u->n_iskills; k++)
 		i->bonus_item[k] = 0;
 }
 
