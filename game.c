@@ -120,9 +120,12 @@ void game_loop(game_t* g)
 			}
 			else if (event.type == sfEvtMouseWheelMoved)
 			{
-				float dzoom = pow(1.1, -event.mouseWheel.delta);
-				sfView_zoom(g->g->world_view, dzoom);
-				zoom *= dzoom;
+				if (sfKeyboard_isKeyPressed(sfKeyLControl))
+				{
+					float dzoom = pow(1.1, -event.mouseWheel.delta);
+					sfView_zoom(g->g->world_view, dzoom);
+					zoom *= dzoom;
+				}
 			}
 		}
 
