@@ -14,6 +14,15 @@ void swskills_exit(swskills_t* w)
 	subwindow_exit(&w->w);
 }
 
+char swskills_cursor(swskills_t* w, game_t* g, float x, float y)
+{
+	(void) w;
+	(void) g;
+	(void) x;
+	(void) y;
+	return 0;
+}
+
 void swskills_draw(swskills_t* w, game_t* g)
 {
 	if (!subwindow_draw(&w->w, g->g))

@@ -15,7 +15,8 @@ struct swinventory
 void swinventory_init(swinventory_t* w);
 void swinventory_exit(swinventory_t* w);
 
-void swinventory_draw (swinventory_t* w, game_t* g);
-char swinventory_catch(swinventory_t* w, game_t* g, float x, float y, int t);
+char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y);
+void swinventory_draw  (swinventory_t* w, game_t* g);
+char swinventory_catch (swinventory_t* w, game_t* g, float x, float y, int t);
 
 #endif

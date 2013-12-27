@@ -14,7 +14,8 @@ struct swequipment
 void swequipment_init(swequipment_t* w);
 void swequipment_exit(swequipment_t* w);
 
-void swequipment_draw (swequipment_t* w, game_t* g);
-char swequipment_catch(swequipment_t* w, game_t* g, float x, float y, int t);
+char swequipment_cursor(swequipment_t* w, game_t* g, float x, float y);
+void swequipment_draw  (swequipment_t* w, game_t* g);
+char swequipment_catch (swequipment_t* w, game_t* g, float x, float y, int t);
 
 #endif

@@ -15,7 +15,8 @@ struct swbuilding
 void swbuilding_init(swbuilding_t* w);
 void swbuilding_exit(swbuilding_t* w);
 
-void swbuilding_draw (swbuilding_t* w, game_t* g);
-char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t);
+char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y);
+void swbuilding_draw  (swbuilding_t* w, game_t* g);
+char swbuilding_catch (swbuilding_t* w, game_t* g, float x, float y, int t);
 
 #endif

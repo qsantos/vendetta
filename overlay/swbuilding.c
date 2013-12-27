@@ -15,6 +15,15 @@ void swbuilding_exit(swbuilding_t* w)
 	subwindow_exit(&w->w);
 }
 
+char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
+{
+	(void) w;
+	(void) g;
+	(void) x;
+	(void) y;
+	return 0;
+}
+
 void swbuilding_draw(swbuilding_t* w, game_t* g)
 {
 	if (!subwindow_draw(&w->w, g->g))

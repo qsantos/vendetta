@@ -10,6 +10,15 @@ void swequipment_exit(swequipment_t* w)
 	subwindow_exit(&w->w);
 }
 
+char swequipment_cursor(swequipment_t* w, game_t* g, float x, float y)
+{
+	(void) w;
+	(void) g;
+	(void) x;
+	(void) y;
+	return 0;
+}
+
 void swequipment_draw(swequipment_t* w, game_t* g)
 {
 	if (!subwindow_draw(&w->w, g->g))

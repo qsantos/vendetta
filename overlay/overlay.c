@@ -39,6 +39,10 @@ void overlay_cursor(overlay_t* o, game_t* g)
 	{
 		rect.left = 4 * 24;
 	}
+	else if (swbuilding_cursor (&o->swbuilding,  g, cursor.x, cursor.y));
+	else if (swinventory_cursor(&o->swinventory, g, cursor.x, cursor.y));
+	else if (swskills_cursor   (&o->swskills,    g, cursor.x, cursor.y));
+	else if (swequipment_cursor(&o->swequipment, g, cursor.x, cursor.y));
 	else
 	{
 		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, cursor, g->g->world_view);

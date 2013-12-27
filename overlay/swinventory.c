@@ -14,6 +14,15 @@ void swinventory_exit(swinventory_t* w)
 	subwindow_exit(&w->w);
 }
 
+char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
+{
+	(void) w;
+	(void) g;
+	(void) x;
+	(void) y;
+	return 0;
+}
+
 void swinventory_draw(swinventory_t* w, game_t* g)
 {
 	if (!subwindow_draw(&w->w, g->g))
