@@ -252,5 +252,5 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
 		return 1;
 	}
 
-	return subwindow_catch(&w->w, x, y, t);
+	return subwindow_catch(&w->w, _x, _y, t);
 }
