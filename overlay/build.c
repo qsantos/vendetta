@@ -16,9 +16,9 @@ void ov_build_init(ov_build_t* o)
 	o->radius = 50;
 	o->count = 8;
 	o->list = CALLOC(int, o->count);
-	o->list[0] =  2;
-	o->list[1] =  6;
-	o->list[2] =  7;
+	o->list[0] =  0;
+	o->list[1] =  2;
+	o->list[2] =  6;
 	o->list[3] =  9;
 	o->list[4] = 17;
 	o->list[5] = 20;
