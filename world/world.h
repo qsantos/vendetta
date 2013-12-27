@@ -21,7 +21,7 @@ struct world
 	character_t characters[1];
 
 	int n_mines;
-	mine_t mines[10];
+	mine_t* mines;
 
 	int n_buildings;
 	int a_buildings;

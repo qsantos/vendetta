@@ -26,7 +26,8 @@ world_t* world_init(universe_t* u)
 	w->n_characters = 1;
 	character_init(&w->characters[0], u);
 
-	w->n_mines = 10;
+	w->n_mines = w->tilesx*w->tilesy / 100;
+	w->mines = CALLOC(mine_t, w->n_mines);
 	for (int i = 0; i < w->n_mines; i++)
 	{
 		mine_t* m = &w->mines[i];
@@ -52,11 +53,11 @@ void world_exit(world_t* w)
 	}
 	free(w->buildings);
 
-	for (int i = 0; i < w->n_characters; i++)
-		character_exit(&w->characters[i]);
-
 	for (int i = 0; i < w->n_mines; i++)
 		mine_exit(&w->mines[i]);
+
+	for (int i = 0; i < w->n_characters; i++)
+		character_exit(&w->characters[i]);
 
 	free(w->terrain);
 	free(w);
