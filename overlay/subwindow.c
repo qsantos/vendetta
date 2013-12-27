@@ -48,3 +48,15 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 
 	return 1;
 }
+
+char subwindow_catch(subwindow_t* w, graphics_t* g, float x, float y, int t)
+{
+	(void) g;
+	(void) t;
+
+	if (!w->visible)
+		return 0;
+
+	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
+	return sfFloatRect_contains(&rect, x, y);
+}

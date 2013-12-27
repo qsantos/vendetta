@@ -90,15 +90,15 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 {
-	if (!w->w.visible)
+	if (!subwindow_catch(&w->w, g->g, x, y, t))
 		return 0;
 
 	building_t* b = g->player->inBuilding;
 	if (b == NULL)
-		return 0;
+		return 1;
 
 	if (t != sfMouseLeft)
-		return 0;
+		return 1;
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -138,5 +138,5 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 		return 1;
 	}
 
-	return 0;
+	return 1;
 }

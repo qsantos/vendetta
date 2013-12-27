@@ -84,5 +84,5 @@ char swequipment_catch(swequipment_t* w, game_t* g, float x, float y, int t)
 		return 1;
 	}
 
-	return 0;
+	return subwindow_catch(&w->w, g->g, x, y, t);
 }

@@ -19,6 +19,7 @@ struct subwindow
 void subwindow_init(subwindow_t* w, const wchar_t* name, float x, float y);
 void subwindow_exit(subwindow_t* w);
 
-char subwindow_draw(subwindow_t* w, graphics_t* g);
+char subwindow_draw (subwindow_t* w, graphics_t* g);
+char subwindow_catch(subwindow_t* w, graphics_t* g, float x, float y, int t);
 
 #endif
