@@ -122,9 +122,11 @@ void overlay_draw(overlay_t* o, game_t* g)
 
 int overlay_catch(overlay_t* o, game_t* g, float x, float y, int t)
 {
-	return swbuilding_catch (&o->swbuilding,  g, x, y, t) ||
-	       swinventory_catch(&o->swinventory, g, x, y, t) ||
-	       swskills_catch   (&o->swskills,    g, x, y, t) ||
-	       swequipment_catch(&o->swequipment, g, x, y, t) ||
-	       ov_build_catch   (&o->build,       g, x, y, t);
+	return
+	ov_build_catch   (&o->build,       g, x, y, t) ||
+	swbuilding_catch (&o->swbuilding,  g, x, y, t) ||
+	swinventory_catch(&o->swinventory, g, x, y, t) ||
+	swskills_catch   (&o->swskills,    g, x, y, t) ||
+	swequipment_catch(&o->swequipment, g, x, y, t) ||
+	0;
 }

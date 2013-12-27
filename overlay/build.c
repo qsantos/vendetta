@@ -230,6 +230,41 @@ void ov_build_draw(ov_build_t* o, game_t* g)
 
 char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 {
+	if (o->active)
+	{
+		if (t == sfMouseRight)
+		{
+			o->active = 0;
+			return 1;
+		}
+
+		sfFloatRect rect = {0, 0, 28, 28};
+
+		float radius = o->radius;
+		int n = o->count;
+		float a = 2*M_PI/n;
+		float cur = 0;
+		for (int i = 0; i < n; i++)
+		{
+			rect.left = o->x + radius * cos(cur) - 14;
+			rect.top  = o->y + radius * sin(cur) - 14;
+
+			if (sfFloatRect_contains(&rect, x, y))
+			{
+				int id = o->list[i];
+				kindOf_building_t* b = &g->u->buildings[id];
+				if (transform_check(&b->build, &g->player->inventory))
+					o->selected = b;
+				break;
+			}
+
+			cur += a;
+		}
+
+		o->active = 0;
+		return 1;
+	}
+
 	if (t == sfMouseLeft)
 	{
 		sfFloatRect rect = {0, 0, 28, 28};
@@ -255,33 +290,6 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 			}
 		}
 
-		if (o->active)
-		{
-			sfFloatRect rect = {0, 0, 28, 28};
-
-			float radius = o->radius;
-			int n = o->count;
-			float a = 2*M_PI/n;
-			float cur = 0;
-			for (int i = 0; i < n; i++)
-			{
-				rect.left = o->x + radius * cos(cur) - 14;
-				rect.top  = o->y + radius * sin(cur) - 14;
-
-				if (sfFloatRect_contains(&rect, x, y))
-				{
-					int id = o->list[i];
-					kindOf_building_t* b = &g->u->buildings[id];
-					if (transform_check(&b->build, &g->player->inventory))
-						o->selected = b;
-					break;
-				}
-
-				cur += a;
-			}
-			o->active = 0;
-			return 1;
-		}
 	}
 
 	kindOf_building_t* b = o->selected;
@@ -296,7 +304,7 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 		{
 			o->x = x;
 			o->y = y;
-			o->active ^= 1;
+			o->active = 1;
 			return 1;
 		}
 	}
