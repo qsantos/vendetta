@@ -15,12 +15,69 @@ void swbuilding_exit(swbuilding_t* w)
 	subwindow_exit(&w->w);
 }
 
+void swbuilding_itemTooltip(wchar_t* buffer, size_t n, game_t* g, transform_t* tr)
+{
+	int id = tr->res[0].id;
+	kindOf_item_t* it = &g->u->items[id];
+
+	size_t cur = 0;
+	cur += swprintf(buffer+cur, n-cur, L"%ls", it->name);
+
+	// required materials
+	if (tr->n_req != 0)
+		cur += swprintf(buffer+cur, n-cur, L"\n\nneed:");
+	for (int i = 0; i < tr->n_req; i++)
+	{
+		component_t* c = &tr->req[i];
+		kindOf_material_t* m = &g->u->materials[c->id];
+		cur += swprintf(buffer+cur, n-cur, L"\n- %.0f of %ls", c->amount, m->name);
+	}
+}
+
 char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 {
-	(void) w;
-	(void) g;
-	(void) x;
-	(void) y;
+	if (!w->w.visible)
+		return 0;
+
+	building_t* b = g->player->inBuilding;
+	if (b == NULL)
+		return 0;
+
+	static sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, g->g->font);
+		sfText_setCharacterSize(text, 18);
+	}
+
+	sfVector2f pos = {w->w.x + 20, w->w.y + 90};
+	for (int i = 0; i < b->t->n_items; i++)
+	{
+		pos.y += 20;
+
+		transform_t* tr = &b->t->items[i];
+		if (tr->n_res == 0)
+			continue;
+
+		component_t* c = &tr->res[0];
+		if (!c->is_item)
+			exit(1);
+
+		wchar_t* name = g->u->items[c->id].name;
+		sfText_setPosition(text, pos);
+		sfText_setUnicodeString(text, (sfUint32*) name);
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (!sfFloatRect_contains(&rect, x, y))
+			continue;
+
+		wchar_t buffer[1024];
+		swbuilding_itemTooltip(buffer, 1024, g, tr);
+		graphics_drawTooltip(g->g, x, y, buffer);
+		return 1;
+	}
+
 	return 0;
 }
 
