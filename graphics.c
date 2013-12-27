@@ -135,3 +135,36 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 		sfRenderWindow_drawRectangleShape(g->render, progress, NULL);
 	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
 }
+
+void graphics_drawTooltip(graphics_t* g, float x, float y, const wchar_t* txt)
+{
+	static sfText* text = NULL;
+	static sfRectangleShape* frame = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, g->font);
+		sfText_setCharacterSize(text, 15);
+		sfText_setColor        (text, sfBlack);
+
+		frame = sfRectangleShape_create();
+		sfRectangleShape_setFillColor(frame, sfWhite);
+		sfRectangleShape_setOutlineColor(frame, sfBlack);
+		sfRectangleShape_setOutlineThickness(frame, 1);
+	}
+
+	sfVector2f pos = {x + 24, y + 24};
+	sfText_setPosition(text, pos);
+	sfText_setUnicodeString(text, (sfUint32*) txt);
+	sfFloatRect rect = sfText_getGlobalBounds(text);
+
+	rect.top    -= 3;
+	rect.left   -= 3;
+	rect.width  += 8;
+	rect.height += 8;
+	sfRectangleShape_setPosition(frame, (sfVector2f){rect.left,rect.top});
+	sfRectangleShape_setSize    (frame, (sfVector2f){rect.width,rect.height});
+	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
+
+	sfRenderWindow_drawText(g->render, text, NULL);
+}
