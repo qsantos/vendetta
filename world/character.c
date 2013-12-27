@@ -92,6 +92,16 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		int id = tr->res[0].id;
 
 		float skill = c->mskills[id];
+		universe_t* u = c->universe;
+		for (int i = 0; i < u->n_slots; i++)
+		{
+			int item = c->equipment[i];
+			if (item < 0)
+				continue;
+			kindOf_item_t* t = &u->items[item];
+			skill += t->bonus_material[id];
+		}
+
 		float work = duration * tr->rate;
 		work *= skill;
 		work *= character_vitality(c);
@@ -111,6 +121,16 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			transform_t* tr = &t->build;
 
 			float skill = c->sskills[SK_BUILD];
+			universe_t* u = c->universe;
+			for (int i = 0; i < u->n_slots; i++)
+			{
+				int item = c->equipment[i];
+				if (item < 0)
+					continue;
+				kindOf_item_t* t = &u->items[item];
+				skill += t->bonus_special[SK_BUILD];
+			}
+
 			float work = duration * tr->rate;
 			work *= skill;
 			work *= character_vitality(c);
@@ -136,6 +156,16 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			int id = c->universe->items[tr->res[0].id].skill;
 
 			float skill = c->iskills[id];
+			universe_t* u = c->universe;
+			for (int i = 0; i < u->n_slots; i++)
+			{
+				int item = c->equipment[i];
+				if (item < 0)
+					continue;
+				kindOf_item_t* t = &u->items[item];
+				skill += t->bonus_item[id];
+			}
+
 			float work = duration * tr->rate;
 			work *= skill;
 			work *= character_vitality(c);
@@ -165,6 +195,16 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			int id = tr->res[0].id;
 
 			float skill = c->mskills[id];
+			universe_t* u = c->universe;
+			for (int i = 0; i < u->n_slots; i++)
+			{
+				int item = c->equipment[i];
+				if (item < 0)
+					continue;
+				kindOf_item_t* t = &u->items[item];
+				skill += t->bonus_material[id];
+			}
+
 			float work = duration * tr->rate;
 			work *= skill;
 			work *= character_vitality(c);
