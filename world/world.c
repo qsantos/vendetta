@@ -6,11 +6,22 @@
 
 #include "../util.h"
 
+#define TILE_SIZE 32
+
 world_t* world_init(universe_t* u)
 {
 	world_t* w = CALLOC(world_t, 1);
-
 	w->universe = u;
+
+	w->tilesx = 100;
+	w->tilesy = 100;
+	w->terrain = CALLOC(char, w->tilesx*w->tilesy);
+	for (int i = 0; i < w->tilesx; i++)
+		for (int j = 0; j < w->tilesy; j++)
+			w->terrain[i*w->tilesx + j] = rand() % 17;
+
+	float width  = w->tilesx * TILE_SIZE;
+	float height = w->tilesy * TILE_SIZE;
 
 	w->n_characters = 1;
 	character_init(&w->characters[0], u);
@@ -21,8 +32,8 @@ world_t* world_init(universe_t* u)
 		mine_t* m = &w->mines[i];
 		int type = rand() % u->n_mines;
 		mine_init(m, &u->mines[type]);
-		m->o.x = (1 - 2*((float) rand()/INT_MAX)) * 500;
-		m->o.y = (1 - 2*((float) rand()/INT_MAX)) * 500;
+		m->o.x = (0.5 - ((float) rand()/INT_MAX)) * width;
+		m->o.y = (0.5 - ((float) rand()/INT_MAX)) * height;
 	}
 
 	w->n_buildings = 0;
@@ -34,18 +45,20 @@ world_t* world_init(universe_t* u)
 
 void world_exit(world_t* w)
 {
-	for (int i = 0; i < w->n_characters; i++)
-		character_exit(&w->characters[i]);
-
-	for (int i = 0; i < w->n_mines; i++)
-		mine_exit(&w->mines[i]);
-
 	for (int i = 0; i < w->n_buildings; i++)
 	{
 		building_exit(w->buildings[i]);
 		free(w->buildings[i]);
 	}
 	free(w->buildings);
+
+	for (int i = 0; i < w->n_characters; i++)
+		character_exit(&w->characters[i]);
+
+	for (int i = 0; i < w->n_mines; i++)
+		mine_exit(&w->mines[i]);
+
+	free(w->terrain);
 	free(w);
 }
 

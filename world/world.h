@@ -13,6 +13,10 @@ struct world
 {
 	universe_t* universe;
 
+	int tilesx;
+	int tilesy;
+	char* terrain;
+
 	int n_characters;
 	character_t characters[1];
 

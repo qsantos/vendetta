@@ -73,27 +73,34 @@ void draw_world(graphics_t* g, world_t* w)
 	{
 		sfTexture* texture = sfTexture_createFromFile("lands.png", NULL);
 
+		int x = w->tilesx;
+		int y = w->tilesy;
 		array = sfVertexArray_create();
 		sfVertexArray_setPrimitiveType(array, sfQuads);
-		sfVertexArray_resize(array, 100*100*4);
+		sfVertexArray_resize(array, x*y*4);
 
-		for (int i = 0; i < 100; i++)
-			for (int j = 0; j < 100; j++)
+		for (int i = 0; i < x; i++)
+			for (int j = 0; j < y; j++)
 			{
-				sfVertex* v = sfVertexArray_getVertex(array, (i*100+j)*4);
+				sfVertex* v = sfVertexArray_getVertex(array, (i*x+j)*4);
 
-				v[0].position = (sfVector2f){(i-50+0)*32, (j-50+0)*32};
-				v[1].position = (sfVector2f){(i-50+1)*32, (j-50+0)*32};
-				v[2].position = (sfVector2f){(i-50+1)*32, (j-50+1)*32};
-				v[3].position = (sfVector2f){(i-50+0)*32, (j-50+1)*32};
+				float a = (i-x/2)*32;
+				float b = (j-y/2)*32;
+				v[0].position = (sfVector2f){a+ 0,b+ 0};
+				v[1].position = (sfVector2f){a+32,b+ 0};
+				v[2].position = (sfVector2f){a+32,b+32};
+				v[3].position = (sfVector2f){a+ 0,b+32};
 
 				for (int k = 0; k < 4; k++)
 					v[k].color = sfWhite;
 
-				v[0].texCoords = (sfVector2f){0*16, 0*16};
-				v[1].texCoords = (sfVector2f){1*16, 0*16};
-				v[2].texCoords = (sfVector2f){1*16, 1*16};
-				v[3].texCoords = (sfVector2f){0*16, 1*16};
+				int t = w->terrain[i*x+j];
+				a = 16*(t%16);
+				b = 16*(t/16);
+				v[0].texCoords = (sfVector2f){a+ 0,b+ 0};
+				v[1].texCoords = (sfVector2f){a+16,b+ 0};
+				v[2].texCoords = (sfVector2f){a+16,b+16};
+				v[3].texCoords = (sfVector2f){a+ 0,b+16};
 			}
 
 		states.texture = texture;
