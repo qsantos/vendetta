@@ -1,8 +1,8 @@
 #include "swequipment.h"
 
-void swequipment_init(swequipment_t* w)
+void swequipment_init(swequipment_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, L"Equipment", 1024-SW_WIDTH*3, SW_HEIGHT);
+	subwindow_init(&w->w, g, L"Equipment", 1024-SW_WIDTH*3, SW_HEIGHT);
 }
 
 void swequipment_exit(swequipment_t* w)
@@ -10,7 +10,7 @@ void swequipment_exit(swequipment_t* w)
 	subwindow_exit(&w->w);
 }
 
-char swequipment_cursor(swequipment_t* w, game_t* g, float x, float y)
+char swequipment_cursor(swequipment_t* w, game_t* g, int x, int y)
 {
 	(void) w;
 	(void) g;
@@ -35,7 +35,8 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 50};
+	sfVector2f pos = {0, 0};
+
 	for (int i = 0; i < g->u->n_slots; i++)
 	{
 		sfText_setPosition(text, pos);
@@ -52,15 +53,21 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 
 		pos.y += 20;
 	}
+
+	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 }
 
-char swequipment_catch(swequipment_t* w, game_t* g, float x, float y, int t)
+char swequipment_catch(swequipment_t* w, game_t* g, int _x, int _y, int t)
 {
-	if (!w->w.visible)
+	if (!subwindow_cursor(&w->w, g->g, _x, _y))
 		return 0;
 
 	if (t != sfMouseLeft)
 		return 0;
+
+	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
+	float x = cursor.x;
+	float y = cursor.y;
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -70,15 +77,19 @@ char swequipment_catch(swequipment_t* w, game_t* g, float x, float y, int t)
 		sfText_setCharacterSize(text, 18);
 	}
 
-	sfVector2f pos = {w->w.x + 20 + 150, w->w.y + 30};
+	sfVector2f pos = {0, 0};
+
+	pos.y -= 20;
 	for (int i = 0; i < g->u->n_slots; i++)
 	{
 		pos.y += 20;
 
 		int id = g->player->equipment[i];
 		sfUint32* txt = (sfUint32*) (id >= 0 ? g->u->items[id].name : L"-");
+		pos.x += 150;
 		sfText_setPosition(text, pos);
 		sfText_setUnicodeString(text, txt);
+		pos.x -= 150;
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))

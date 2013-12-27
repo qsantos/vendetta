@@ -10,7 +10,7 @@
 void game_init(game_t* g)
 {
 	g->g = graphics_init();
-	g->o =  overlay_init();
+	g->o =  overlay_init(g->g);
 	g->u = universe_init(g->g);
 	g->w =    world_init(g->u);
 }

@@ -4,9 +4,9 @@
 
 #define PANEL_N_COLS 3
 
-void swinventory_init(swinventory_t* w)
+void swinventory_init(swinventory_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, L"Inventory", 1024-SW_WIDTH*2, 0);
+	subwindow_init(&w->w, g, L"Inventory", 1024-SW_WIDTH*2, 0);
 }
 
 void swinventory_exit(swinventory_t* w)
@@ -20,18 +20,18 @@ size_t swinventory_materialTooltip(wchar_t* buffer, size_t n, universe_t* u, kin
 
 	cur += swprintf(buffer+cur, n-cur, L"%ls", m->name);
 
-	if (m->edible)
-	{
-		cur += swprintf(buffer+cur, n-cur, L"\nedible:");
-		for (int i = 0; i < N_STATUSES; i++)
-		{
-			float b = m->eatBonus[i];
-			if (b == 0)
-				continue;
+	if (!m->edible)
+		return cur;
 
-			wchar_t* name = u->statuses[i].name;
-			cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
-		}
+	cur += swprintf(buffer+cur, n-cur, L"\nedible:");
+	for (int i = 0; i < N_STATUSES; i++)
+	{
+		float b = m->eatBonus[i];
+		if (b == 0)
+			continue;
+
+		wchar_t* name = u->statuses[i].name;
+		cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
 	}
 
 	return cur;
@@ -60,7 +60,7 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 			continue;
 
 		wchar_t* name = u->materials[i].skill.name;
-		cur += swprintf(buffer+cur, n-cur, L"\n%+f %ls", b, name);
+		cur += swprintf(buffer+cur, n-cur, L"\n%+.0f %ls", b, name);
 	}
 
 	for (int i = 0; i < u->n_iskills; i++)
@@ -70,16 +70,20 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 			continue;
 
 		wchar_t* name = u->iskills[i].name;
-		cur += swprintf(buffer+cur, n-cur, L"\n%+f %ls", b, name);
+		cur += swprintf(buffer+cur, n-cur, L"\n%+.0f %ls", b, name);
 	}
 
 	return cur;
 }
 
-char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
+char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 {
-	if (!w->w.visible)
+	if (!subwindow_cursor(&w->w, g->g, _x, _y))
 		return 0;
+
+	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
+	float x = cursor.x;
+	float y = cursor.y;
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -89,12 +93,12 @@ char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
 		sfText_setCharacterSize(text, 18);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 30};
+	sfVector2f pos = {0, 0};
 
 	for (int i = 0; i < g->u->n_materials; i++)
 	{
 		const wchar_t* name = g->u->materials[i].name;
-		int amount = floor(g->player->inventory.materials[i]);
+		float amount = g->player->inventory.materials[i];
 
 		if (amount == 0)
 			continue;
@@ -102,7 +106,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
 		pos.y += 20;
 
 		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %i", name, amount);
+		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
 		sfText_setUnicodeString(text, (sfUint32*) buffer);
@@ -112,17 +116,15 @@ char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
 			continue;
 
 		swinventory_materialTooltip(buffer, 1024, g->u, &g->u->materials[i]);
-		graphics_drawTooltip(g->g, x, y, buffer);
+		graphics_drawTooltip(g->g, _x, _y, buffer);
 
 		return 1;
 	}
 
-	pos.y += 20;
-
 	for (int i = 0; i < g->u->n_items; i++)
 	{
 		wchar_t* name = g->u->items[i].name;
-		int amount = g->player->inventory.items[i];
+		float amount = g->player->inventory.items[i];
 
 		if (amount == 0)
 			continue;
@@ -130,7 +132,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
 		pos.y += 20;
 
 		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %i", name, amount);
+		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
 		sfText_setUnicodeString(text, (sfUint32*) buffer);
@@ -140,7 +142,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, float x, float y)
 			continue;
 
 		swinventory_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
-		graphics_drawTooltip(g->g, x, y, buffer);
+		graphics_drawTooltip(g->g, _x, _y, buffer);
 
 		return 1;
 	}
@@ -164,54 +166,58 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 50};
+	sfVector2f pos = {0, 0};
 
 	for (int i = 0; i < g->u->n_materials; i++)
 	{
 		const wchar_t* name = g->u->materials[i].name;
-		int amount = floor(g->player->inventory.materials[i]);
+		float amount = g->player->inventory.materials[i];
 
 		if (amount == 0)
 			continue;
 
+		pos.y += 20;
+
 		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %i", name, amount);
+		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
 		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
-
-		pos.y += 20;
 	}
-
-	pos.y += 20;
 
 	for (int i = 0; i < g->u->n_items; i++)
 	{
 		wchar_t* name = g->u->items[i].name;
-		int amount = g->player->inventory.items[i];
+		float amount = g->player->inventory.items[i];
 
 		if (amount == 0)
 			continue;
 
+		pos.y += 20;
+
 		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %i", name, amount);
+		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
 		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
-
-		pos.y += 20;
 	}
+
+	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 }
 
-char swinventory_catch(swinventory_t* w, game_t* g, float x, float y, int t)
+char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 {
-	if (!w->w.visible)
+	if (!subwindow_cursor(&w->w, g->g, _x, _y))
 		return 0;
 
 	if (t != sfMouseLeft)
 		return 0;
+
+	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
+	float x = cursor.x;
+	float y = cursor.y;
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -221,7 +227,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, float x, float y, int t)
 		sfText_setCharacterSize(text, 18);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 30};
+	sfVector2f pos = {0, 0};
 
 	for (int i = 0; i < g->u->n_materials; i++)
 	{
@@ -253,8 +259,6 @@ char swinventory_catch(swinventory_t* w, game_t* g, float x, float y, int t)
 
 		return 1;
 	}
-
-	pos.y += 20;
 
 	for (int i = 0; i < g->u->n_items; i++)
 	{

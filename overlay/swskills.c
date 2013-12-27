@@ -4,9 +4,9 @@
 
 #define PANEL_N_COLS 3
 
-void swskills_init(swskills_t* w)
+void swskills_init(swskills_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, L"Skills", 1024-SW_WIDTH*1, 0);
+	subwindow_init(&w->w, g, L"Skills", 1024-SW_WIDTH*1, 0);
 }
 
 void swskills_exit(swskills_t* w)
@@ -14,7 +14,7 @@ void swskills_exit(swskills_t* w)
 	subwindow_exit(&w->w);
 }
 
-char swskills_cursor(swskills_t* w, game_t* g, float x, float y)
+char swskills_cursor(swskills_t* w, game_t* g, int x, int y)
 {
 	(void) w;
 	(void) g;
@@ -39,7 +39,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 50};
+	sfVector2f pos = {0, 0};
 	wchar_t buffer[1024];
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
@@ -86,9 +86,11 @@ void swskills_draw(swskills_t* w, game_t* g)
 			pos.y += 20;
 		}
 	}
+
+	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 }
 
-char swskills_catch(swskills_t* w, game_t* g, float x, float y, int t)
+char swskills_catch(swskills_t* w, game_t* g, int x, int y, int t)
 {
 	return subwindow_catch(&w->w, g->g, x, y, t);
 }

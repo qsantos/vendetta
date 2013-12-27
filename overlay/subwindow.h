@@ -11,15 +11,18 @@ struct subwindow
 	float x;
 	float y;
 	const wchar_t* name;
+
+	sfView* view;
 };
 
-#define SW_WIDTH  307
-#define SW_HEIGHT 356
+#define SW_WIDTH  307.f
+#define SW_HEIGHT 356.f
 
-void subwindow_init(subwindow_t* w, const wchar_t* name, float x, float y);
+void subwindow_init(subwindow_t* w, graphics_t* g, const wchar_t* name, float x, float y);
 void subwindow_exit(subwindow_t* w);
 
-char subwindow_draw (subwindow_t* w, graphics_t* g);
-char subwindow_catch(subwindow_t* w, graphics_t* g, float x, float y, int t);
+char subwindow_cursor(subwindow_t* w, graphics_t* g, int x, int y);
+char subwindow_draw  (subwindow_t* w, graphics_t* g);
+char subwindow_catch (subwindow_t* w, graphics_t* g, int x, int y, int t);
 
 #endif

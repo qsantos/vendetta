@@ -4,14 +4,14 @@
 
 #include "../util.h"
 
-overlay_t* overlay_init(void)
+overlay_t* overlay_init(graphics_t* g)
 {
 	overlay_t* o = CALLOC(overlay_t, 1);
 
-	swbuilding_init (&o->swbuilding);
-	swinventory_init(&o->swinventory);
-	swskills_init   (&o->swskills);
-	swequipment_init(&o->swequipment);
+	swbuilding_init (&o->swbuilding,  g);
+	swinventory_init(&o->swinventory, g);
+	swskills_init   (&o->swskills,    g);
+	swequipment_init(&o->swequipment, g);
 
 	ov_build_init(&o->build);
 
@@ -115,12 +115,13 @@ void overlay_draw(overlay_t* o, game_t* g)
 	swinventory_draw(&o->swinventory, g);
 	swskills_draw   (&o->swskills,    g);
 	swequipment_draw(&o->swequipment, g);
-	ov_build_draw   (&o->build,       g);
+
+	ov_build_draw(&o->build, g);
 
 	overlay_cursor(g->o, g);
 }
 
-int overlay_catch(overlay_t* o, game_t* g, float x, float y, int t)
+int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 {
 	return
 	ov_build_catch   (&o->build,       g, x, y, t) ||

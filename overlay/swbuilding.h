@@ -12,11 +12,11 @@ struct swbuilding
 
 #include "../game.h"
 
-void swbuilding_init(swbuilding_t* w);
+void swbuilding_init(swbuilding_t* w, graphics_t* g);
 void swbuilding_exit(swbuilding_t* w);
 
-char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y);
+char swbuilding_cursor(swbuilding_t* w, game_t* g, int x, int y);
 void swbuilding_draw  (swbuilding_t* w, game_t* g);
-char swbuilding_catch (swbuilding_t* w, game_t* g, float x, float y, int t);
+char swbuilding_catch (swbuilding_t* w, game_t* g, int x, int y, int t);
 
 #endif

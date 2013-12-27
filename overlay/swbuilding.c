@@ -5,9 +5,9 @@
 
 #define PANEL_N_COLS 3
 
-void swbuilding_init(swbuilding_t* w)
+void swbuilding_init(swbuilding_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, L"Building", 1024-SW_WIDTH*3, 0);
+	subwindow_init(&w->w, g, L"Building", 1024-SW_WIDTH*3, 0);
 }
 
 void swbuilding_exit(swbuilding_t* w)
@@ -38,7 +38,7 @@ size_t swbuilding_tooltip(wchar_t* buffer, size_t n, universe_t* u, transform_t*
 	return cur;
 }
 
-char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
+char swbuilding_cursor(swbuilding_t* w, game_t* g, int _x, int _y)
 {
 	if (!w->w.visible)
 		return 0;
@@ -46,6 +46,10 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 	building_t* b = g->player->inBuilding;
 	if (b == NULL)
 		return 0;
+
+	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
+	float x = cursor.x;
+	float y = cursor.y;
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -55,7 +59,8 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 		sfText_setCharacterSize(text, 18);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 70};
+	sfVector2f pos = {0, 0};
+	pos.y += 20; // material
 
 	kindOf_building_t* t = b->t;
 	if (t->make.n_res != 0)
@@ -77,7 +82,7 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 		{
 			wchar_t buffer[1024];
 			swbuilding_tooltip(buffer, 1024, g->u, &t->make);
-			graphics_drawTooltip(g->g, x, y, buffer);
+			graphics_drawTooltip(g->g, _x, _y, buffer);
 			return 1;
 		}
 	}
@@ -85,8 +90,6 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 
 	for (int i = 0; i < t->n_items; i++)
 	{
-		pos.y += 20;
-
 		transform_t* tr = &t->items[i];
 		if (tr->n_res == 0)
 			continue;
@@ -94,6 +97,8 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 		component_t* c = &tr->res[0];
 		if (!c->is_item)
 			exit(1);
+
+		pos.y += 20;
 
 		wchar_t* name = g->u->items[c->id].name;
 		sfText_setPosition(text, pos);
@@ -105,7 +110,7 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, float x, float y)
 
 		wchar_t buffer[1024];
 		swbuilding_tooltip(buffer, 1024, g->u, tr);
-		graphics_drawTooltip(g->g, x, y, buffer);
+		graphics_drawTooltip(g->g, _x, _y, buffer);
 		return 1;
 	}
 
@@ -119,7 +124,10 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 	building_t* b = g->player->inBuilding;
 	if (b == NULL)
+	{
+		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 		return;
+	}
 
 	kindOf_building_t* t = b->t;
 
@@ -134,7 +142,7 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 50};
+	sfVector2f pos = {0, 0};
 
 	sfText_setPosition(text, pos);
 	sfText_setUnicodeString(text, (sfUint32*) t->name);
@@ -156,12 +164,10 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 		sfText_setUnicodeString(text, (sfUint32*) buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
-
 	pos.y += 20;
+
 	for (int i = 0; i < t->n_items; i++)
 	{
-		pos.y += 20;
-
 		transform_t* tr = &t->items[i];
 		if (tr->n_res == 0)
 			continue;
@@ -169,6 +175,8 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 		component_t* c = &tr->res[0];
 		if (!c->is_item)
 			exit(1);
+
+		pos.y += 20;
 
 		wchar_t* name = g->u->items[c->id].name;
 		wchar_t buffer[1024];
@@ -183,11 +191,13 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 	}
 
 //	sfText_destroy(text); // TODO
+
+	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 }
 
-char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
+char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
 {
-	if (!subwindow_catch(&w->w, g->g, x, y, t))
+	if (!subwindow_cursor(&w->w, g->g, _x, _y))
 		return 0;
 
 	building_t* b = g->player->inBuilding;
@@ -197,6 +207,10 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 	if (t != sfMouseLeft)
 		return 1;
 
+	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
+	float x = cursor.x;
+	float y = cursor.y;
+
 	static sfText* text = NULL;
 	if (text == NULL)
 	{
@@ -205,11 +219,12 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 		sfText_setCharacterSize(text, 18);
 	}
 
-	sfVector2f pos = {w->w.x + 20, w->w.y + 90};
+	sfVector2f pos = {0, 0};
+	pos.y += 20; // building name
+	pos.y += 20; // material
+
 	for (int i = 0; i < b->t->n_items; i++)
 	{
-		pos.y += 20;
-
 		transform_t* tr = &b->t->items[i];
 		if (tr->n_res == 0)
 			continue;
@@ -217,6 +232,8 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 		component_t* c = &tr->res[0];
 		if (!c->is_item)
 			exit(1);
+
+		pos.y += 20;
 
 		wchar_t* name = g->u->items[c->id].name;
 		sfText_setPosition(text, pos);
@@ -235,5 +252,5 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, float x, float y, int t)
 		return 1;
 	}
 
-	return 1;
+	return subwindow_catch(&w->w, g->g, x, y, t);
 }
