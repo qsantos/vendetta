@@ -12,6 +12,7 @@ struct graphics
 	sfFont*         font;
 
 	sfView* world_view;
+	sfView* overlay_view;
 
 	char**      filenames;
 	sfTexture** textures;

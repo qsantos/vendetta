@@ -27,7 +27,7 @@ void game_loop(game_t* g)
 	g->player = &g->w->characters[0];
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
-	sfView* overlay_view = sfView_copy(default_view);
+	g->g->overlay_view = sfView_copy(default_view);
 	g->g->world_view = sfView_copy(default_view);
 
 	sfClock* clock = sfClock_create();
@@ -54,7 +54,7 @@ void game_loop(game_t* g)
 			else if (event.type == sfEvtResized)
 			{
 				sfFloatRect rect = {0,0,event.size.width,event.size.height};
-				sfView_reset(overlay_view, rect);
+				sfView_reset(g->g->overlay_view, rect);
 				sfView_reset(g->g->world_view, rect);
 			}
 			else if (event.type == sfEvtKeyPressed)
@@ -142,7 +142,7 @@ void game_loop(game_t* g)
 
 		draw_world(g->g, g->w);
 
-		sfRenderWindow_setView(g->g->render, overlay_view);
+		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g->o, g);
 

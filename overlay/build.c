@@ -157,16 +157,18 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 	if (b == NULL)
 		return 0;
 
+	sfRenderWindow_setView(g->g->render, g->g->world_view);
+
 	sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){x,y}, g->g->world_view);
-	pos.y += b->height/2;
-	int ok = world_canBuild(g->w, g->player, b, pos.x, pos.y);
+
+	int ok = world_canBuild(g->w, g->player, b, pos.x, pos.y + b->height/2);
 
 	sfSprite* sprite = g->g->sprites[b->sprite];
 	sfIntRect rect2 = {0, b->height*(b->n_sprites-1), b->width, b->height};
 	sfSprite_setTextureRect(sprite, rect2);
 
-	pos.x = x - b->width/2;
-	pos.y = y - b->height/2;
+	pos.x -= b->width/2;
+	pos.y -= b->height/2;
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 
@@ -186,6 +188,7 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 	sfRectangleShape_setPosition(shape, pos);
 	sfRenderWindow_drawRectangleShape(g->g->render, shape, NULL);
 
+	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 	return 1;
 }
 
