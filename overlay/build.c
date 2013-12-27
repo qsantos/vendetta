@@ -78,7 +78,7 @@ void ov_build_tooltip(wchar_t* buffer, size_t n, game_t* g, kindOf_building_t* b
 	{
 		component_t* c = &b->build.req[i];
 		kindOf_material_t* m = &g->u->materials[c->id];
-		cur += swprintf(buffer+cur, n-cur, L"\n- %.0f of %ls", c->amount, m->name);
+		cur += swprintf(buffer+cur, n-cur, L"\n- %.1f of %ls", c->amount, m->name);
 	}
 
 	// available material

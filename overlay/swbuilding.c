@@ -18,7 +18,7 @@ void swbuilding_exit(swbuilding_t* w)
 size_t component_tooltip(wchar_t* buffer, size_t n, universe_t* u, component_t* c)
 {
 	wchar_t* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
-	return swprintf(buffer, n, L"\n%.0f %ls", c->amount, name);
+	return swprintf(buffer, n, L"\n%.1f %ls", floor(c->amount), name);
 }
 size_t swbuilding_tooltip(wchar_t* buffer, size_t n, universe_t* u, transform_t* tr)
 {
