@@ -30,12 +30,12 @@ void overlay_exit(overlay_t* o)
 	free(o);
 }
 
-void draw_cursor(game_t* g)
+void overlay_cursor(overlay_t* o, game_t* g)
 {
 	sfVector2i cursor = sfMouse_getPositionRenderWindow(g->g->render);
 	sfIntRect rect = {0, 0, 24, 24};
 
-	if (ov_build_cursor(&g->o->build, g, cursor.x, cursor.y))
+	if (ov_build_cursor(&o->build, g, cursor.x, cursor.y))
 	{
 		rect.left = 4 * 24;
 	}
@@ -71,7 +71,7 @@ void draw_cursor(game_t* g)
 	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 }
 
-void draw_overlay(game_t* g)
+void overlay_draw(overlay_t* o, game_t* g)
 {
 	// statuses
 	static sfText* text = NULL;
@@ -107,20 +107,20 @@ void draw_overlay(game_t* g)
 		y += 30;
 	}
 
-	swbuilding_draw (&g->o->swbuilding,  g);
-	swinventory_draw(&g->o->swinventory, g);
-	swskills_draw   (&g->o->swskills,    g);
-	swequipment_draw(&g->o->swequipment, g);
-	ov_build_draw   (&g->o->build,       g);
+	swbuilding_draw (&o->swbuilding,  g);
+	swinventory_draw(&o->swinventory, g);
+	swskills_draw   (&o->swskills,    g);
+	swequipment_draw(&o->swequipment, g);
+	ov_build_draw   (&o->build,       g);
 
-	draw_cursor(g);
+	overlay_cursor(g->o, g);
 }
 
-int overlay_catch(game_t* g, float x, float y, int t)
+int overlay_catch(overlay_t* o, game_t* g, float x, float y, int t)
 {
-	return swbuilding_catch (&g->o->swbuilding,  g, x, y, t) ||
-	       swinventory_catch(&g->o->swinventory, g, x, y, t) ||
-	       swskills_catch   (&g->o->swskills,    g, x, y, t) ||
-	       swequipment_catch(&g->o->swequipment, g, x, y, t) ||
-	       ov_build_catch   (&g->o->build,       g, x, y, t);
+	return swbuilding_catch (&o->swbuilding,  g, x, y, t) ||
+	       swinventory_catch(&o->swinventory, g, x, y, t) ||
+	       swskills_catch   (&o->swskills,    g, x, y, t) ||
+	       swequipment_catch(&o->swequipment, g, x, y, t) ||
+	       ov_build_catch   (&o->build,       g, x, y, t);
 }

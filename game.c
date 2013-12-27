@@ -101,7 +101,7 @@ void game_loop(game_t* g)
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				sfMouseButtonEvent* e = &event.mouseButton;
-				if (overlay_catch(g, e->x, e->y, e->button))
+				if (overlay_catch(g->o, g, e->x, e->y, e->button))
 					continue;
 
 				if (e->button != sfMouseLeft)
@@ -144,7 +144,7 @@ void game_loop(game_t* g)
 
 		sfRenderWindow_setView(g->g->render, overlay_view);
 
-		draw_overlay(g);
+		overlay_draw(g->o, g);
 
 		sfRenderWindow_display(g->g->render);
 	}

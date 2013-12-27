@@ -3,7 +3,6 @@
 
 typedef struct overlay overlay_t;
 
-#include "../game.h"
 #include "swbuilding.h"
 #include "swinventory.h"
 #include "swskills.h"
@@ -16,16 +15,16 @@ struct overlay
 	swinventory_t swinventory;
 	swskills_t    swskills;
 	swequipment_t swequipment;
-
-	ov_build_t build;
+	ov_build_t    build;
 };
+
+#include "../game.h"
 
 overlay_t* overlay_init(void);
 void       overlay_exit(overlay_t* o);
 
-void draw_cursor (game_t* g);
-void draw_overlay(game_t* g);
-
-int overlay_catch(game_t* g, float x, float y, int t);
+void overlay_cursor(overlay_t* o, game_t* g);
+void overlay_draw  (overlay_t* o, game_t* g);
+int  overlay_catch (overlay_t* o, game_t* g, float x, float y, int t);
 
 #endif

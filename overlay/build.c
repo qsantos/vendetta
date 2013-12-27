@@ -66,6 +66,44 @@ void draw_buildPanel(game_t* g)
 	}
 }
 
+char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
+{
+	kindOf_building_t* b = o->selected;
+	if (b == NULL)
+		return 0;
+
+	sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){x,y}, g->g->world_view);
+	pos.y += b->height/2;
+	int ok = world_canBuild(g->w, g->player, b, pos.x, pos.y);
+
+	sfSprite* sprite = g->g->sprites[b->sprite];
+	sfIntRect rect = {0, b->height*(b->n_sprites-1), b->width, b->height};
+	sfSprite_setTextureRect(sprite, rect);
+
+	pos.x = x - b->width/2;
+	pos.y = y - b->height/2;
+	sfSprite_setPosition(sprite, pos);
+	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+
+	sfRectangleShape* shape = NULL;
+	if (shape == NULL)
+	{
+		shape = sfRectangleShape_create();
+		sfColor fill = {0, 0, 0, 0};
+		sfRectangleShape_setFillColor(shape, fill);
+		sfColor outline = {255*(1-ok), 255*ok, 0, 255};
+		sfRectangleShape_setOutlineColor(shape, outline);
+		sfRectangleShape_setOutlineThickness(shape, 1);
+	}
+
+	sfVector2f size = {b->width, b->height};
+	sfRectangleShape_setSize(shape, size);
+	sfRectangleShape_setPosition(shape, pos);
+	sfRenderWindow_drawRectangleShape(g->g->render, shape, NULL);
+
+	return 1;
+}
+
 void ov_build_draw(ov_build_t* o, game_t* g)
 {
 	draw_buildPanel(g);
@@ -103,44 +141,6 @@ void ov_build_draw(ov_build_t* o, game_t* g)
 
 		cur += a;
 	}
-}
-
-char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
-{
-	kindOf_building_t* b = o->selected;
-	if (b == NULL)
-		return 0;
-
-	sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){x,y}, g->g->world_view);
-	pos.y += b->height/2;
-	int ok = world_canBuild(g->w, g->player, b, pos.x, pos.y);
-
-	sfSprite* sprite = g->g->sprites[b->sprite];
-	sfIntRect rect = {0, b->height*(b->n_sprites-1), b->width, b->height};
-	sfSprite_setTextureRect(sprite, rect);
-
-	pos.x = x - b->width/2;
-	pos.y = y - b->height/2;
-	sfSprite_setPosition(sprite, pos);
-	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
-
-	sfRectangleShape* shape = NULL;
-	if (shape == NULL)
-	{
-		shape = sfRectangleShape_create();
-		sfColor fill = {0, 0, 0, 0};
-		sfRectangleShape_setFillColor(shape, fill);
-		sfColor outline = {255*(1-ok), 255*ok, 0, 255};
-		sfRectangleShape_setOutlineColor(shape, outline);
-		sfRectangleShape_setOutlineThickness(shape, 1);
-	}
-
-	sfVector2f size = {b->width, b->height};
-	sfRectangleShape_setSize(shape, size);
-	sfRectangleShape_setPosition(shape, pos);
-	sfRenderWindow_drawRectangleShape(g->g->render, shape, NULL);
-
-	return 1;
 }
 
 char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
