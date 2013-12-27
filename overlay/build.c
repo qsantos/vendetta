@@ -66,8 +66,93 @@ void draw_buildPanel(game_t* g)
 	}
 }
 
+void ov_build_tooltip(wchar_t* buffer, size_t n, game_t* g, kindOf_building_t* b)
+{
+	size_t cur = 0;
+	cur += swprintf(buffer+cur, n-cur, L"%ls", b->name);
+
+	// required materials
+	if (b->build.n_req != 0)
+		cur += swprintf(buffer+cur, n-cur, L"\n\nneed:");
+	for (int i = 0; i < b->build.n_req; i++)
+	{
+		component_t* c = &b->build.req[i];
+		kindOf_material_t* m = &g->u->materials[c->id];
+		cur += swprintf(buffer+cur, n-cur, L"\n- %.0f of %ls", c->amount, m->name);
+	}
+
+	// available material
+	if (b->make.n_res != 0)
+	{
+		int id = b->make.res[0].id;
+		kindOf_material_t* m = &g->u->materials[id];
+		cur += swprintf(buffer+cur, n-cur, L"\n\ntransform to %ls", m->name);
+	}
+
+	// list items
+	if (b->n_items != 0)
+		cur += swprintf(buffer+cur, n-cur, L"\n\nmake:");
+	for (int i = 0; i < b->n_items; i++)
+	{
+		int id = b->items[i].res[0].id;
+		kindOf_item_t* it = &g->u->items[id];
+		cur += swprintf(buffer+cur, n-cur, L"\n- %ls", it->name);
+	}
+}
+
 char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 {
+	sfFloatRect rect = {0, 0, 28, 28};
+	for (int i = 0; i < g->u->n_buildings; i++)
+	{
+		kindOf_building_t* b = &g->u->buildings[i];
+
+		if (b->button_sprite < 0)
+			continue;
+
+		if (sfFloatRect_contains(&rect, x, y))
+		{
+			wchar_t buffer[1024];
+			ov_build_tooltip(buffer, 1024, g, b);
+			graphics_drawTooltip(g->g, x, y, buffer);
+			break;
+		}
+
+		rect.left += 28;
+		if (rect.left >= 28*PANEL_N_COLS)
+		{
+			rect.left = 0;
+			rect.top += 28;
+		}
+	}
+
+	if (o->active)
+	{
+		sfFloatRect rect = {0, 0, 28, 28};
+
+		float radius = o->radius;
+		int n = o->count;
+		float a = 2*M_PI/n;
+		float cur = 0;
+		for (int i = 0; i < n; i++)
+		{
+			rect.left = o->x + radius * cos(cur) - 14;
+			rect.top  = o->y + radius * sin(cur) - 14;
+
+			if (sfFloatRect_contains(&rect, x, y))
+			{
+				int id = o->list[i];
+				kindOf_building_t* b = &g->u->buildings[id];
+				wchar_t buffer[1024];
+				ov_build_tooltip(buffer, 1024, g, b);
+				graphics_drawTooltip(g->g, x, y, buffer);
+				break;
+			}
+
+			cur += a;
+		}
+	}
+
 	kindOf_building_t* b = o->selected;
 	if (b == NULL)
 		return 0;
@@ -77,8 +162,8 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 	int ok = world_canBuild(g->w, g->player, b, pos.x, pos.y);
 
 	sfSprite* sprite = g->g->sprites[b->sprite];
-	sfIntRect rect = {0, b->height*(b->n_sprites-1), b->width, b->height};
-	sfSprite_setTextureRect(sprite, rect);
+	sfIntRect rect2 = {0, b->height*(b->n_sprites-1), b->width, b->height};
+	sfSprite_setTextureRect(sprite, rect2);
 
 	pos.x = x - b->width/2;
 	pos.y = y - b->height/2;
