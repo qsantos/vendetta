@@ -292,11 +292,14 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			else if (strcmp(var, "TypeMatierePremiere") == 0)
 			{
-				transform_req(&u->tmp_materials[cur_id], atoi(val)-1, 0, 0);
+				int id = atoi(val) - 1;
+				if (id >= 0)
+					transform_req(&u->tmp_materials[cur_id], id, 0, 0);
 			}
 			else if (strcmp(var, "QuantiteMatierePremiere") == 0)
 			{
-				u->tmp_materials[cur_id].req[0].amount = atof(val);
+				if (u->tmp_materials[cur_id].n_req > 0)
+					u->tmp_materials[cur_id].req[0].amount = atof(val);
 			}
 			else if (strcmp(var, "NomCompetence") == 0)
 			{
