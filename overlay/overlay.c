@@ -131,3 +131,13 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 	swequipment_catch(&o->swequipment, g, x, y, t) ||
 	0;
 }
+
+int overlay_wheel(overlay_t* o, int x, int y, int d)
+{
+	return
+	subwindow_wheel(&o->swbuilding.w,  x, y, d) ||
+	subwindow_wheel(&o->swinventory.w, x, y, d) ||
+	subwindow_wheel(&o->swskills.w,    x, y, d) ||
+	subwindow_wheel(&o->swequipment.w, x, y, d) ||
+	0;
+}

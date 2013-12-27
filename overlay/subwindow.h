@@ -24,5 +24,6 @@ void subwindow_exit(subwindow_t* w);
 char subwindow_cursor(subwindow_t* w, graphics_t* g, int x, int y);
 char subwindow_draw  (subwindow_t* w, graphics_t* g);
 char subwindow_catch (subwindow_t* w, graphics_t* g, int x, int y, int t);
+char subwindow_wheel (subwindow_t* w, int x, int y, int delta);
 
 #endif

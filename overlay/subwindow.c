@@ -78,3 +78,13 @@ char subwindow_catch(subwindow_t* w, graphics_t* g, int x, int y, int t)
 	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
 	return sfFloatRect_contains(&rect, x, y);
 }
+
+char subwindow_wheel(subwindow_t* w, int x, int y, int delta)
+{
+	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
+	if (!sfFloatRect_contains(&rect, x, y))
+		return 0;
+
+	sfView_move(w->view, (sfVector2f){0,-10*delta});
+	return 1;
+}
