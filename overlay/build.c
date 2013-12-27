@@ -257,8 +257,11 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 				int id = o->list[i];
 				kindOf_building_t* b = &g->u->buildings[id];
 				if (transform_check(&b->build, &g->player->inventory))
+				{
 					o->selected = b;
-				break;
+					o->active = 0;
+				}
+				return 1;
 			}
 
 			cur += a;
