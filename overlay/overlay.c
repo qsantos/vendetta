@@ -16,11 +16,28 @@ overlay_t* overlay_init(void)
 	swskills_init   (&o->swskills);
 	swequipment_init(&o->swequipment);
 
+	o->quick_active = 0;
+	o->quick_x = 0;
+	o->quick_y = 0;
+	o->quick_radius = 50;
+	o->quick_count = 8;
+	o->quick_list = CALLOC(int, o->quick_count);
+	o->quick_list[0] =  2;
+	o->quick_list[1] =  6;
+	o->quick_list[2] =  7;
+	o->quick_list[3] =  9;
+	o->quick_list[4] = 17;
+	o->quick_list[5] = 20;
+	o->quick_list[6] = 21;
+	o->quick_list[7] = 22;
+
 	return o;
 }
 
 void overlay_exit(overlay_t* o)
 {
+	free(o->quick_list);
+
 	swequipment_exit(&o->swequipment);
 	swskills_exit   (&o->swskills);
 	swinventory_exit(&o->swinventory);
@@ -29,33 +46,37 @@ void overlay_exit(overlay_t* o)
 	free(o);
 }
 
+void draw_buildButton(game_t* g, kindOf_building_t* b, float x, float y)
+{
+	sfSprite* sprite = g->g->sprites[b->button_sprite];
+
+	int ok = transform_check(&b->build, &g->player->inventory);
+	sfIntRect rect = {28*b->button_index, 28*ok, 28, 28};
+	sfSprite_setTextureRect(sprite, rect);
+
+	sfSprite_setPosition(sprite, (sfVector2f){x,y});
+
+	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+}
+
 void draw_buildPanel(game_t* g)
 {
-	sfVector2f pos = {0, 0};
+	float x = 0;
+	float y = 0;
 	for (int i = 0; i < g->u->n_buildings; i++)
 	{
 		kindOf_building_t* b = &g->u->buildings[i];
-
 		if (b->button_sprite < 0)
 			continue;
 
-		sfSprite* sprite = g->g->sprites[b->button_sprite];
+		draw_buildButton(g, b, x, y);
 
-		int ok = transform_check(&b->build, &g->player->inventory);
-
-		sfIntRect rect = {28*b->button_index, 28*ok, 28, 28};
-		sfSprite_setTextureRect(sprite, rect);
-
-		sfSprite_setPosition(sprite, pos);
-
-		pos.x += 28;
-		if (pos.x >= 28*PANEL_N_COLS)
+		x += 28;
+		if (x >= 28*PANEL_N_COLS)
 		{
-			pos.x = 0;
-			pos.y += 28;
+			x = 0;
+			y += 28;
 		}
-
-		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	}
 }
 
@@ -175,6 +196,40 @@ void draw_overlay(game_t* g)
 	swskills_draw   (&g->o->swskills,    g);
 	swequipment_draw(&g->o->swequipment, g);
 
+	if (g->o->quick_active)
+	{
+		float radius = g->o->quick_radius;
+		static sfCircleShape* shape = NULL;
+		if (shape == NULL)
+		{
+			shape = sfCircleShape_create();
+			sfCircleShape_setFillColor   (shape, (sfColor){0,0,0,0});
+			sfCircleShape_setOutlineThickness(shape, 5);
+			sfCircleShape_setOutlineColor(shape, (sfColor){255,255,255,127});
+			sfCircleShape_setRadius(shape, radius);
+			sfCircleShape_setPointCount(shape, 100);
+		}
+
+		sfVector2f pos = {g->o->quick_x - radius, g->o->quick_y - radius};
+		sfCircleShape_setPosition(shape, pos);
+		sfRenderWindow_drawCircleShape(g->g->render, shape, NULL);
+
+		int n = g->o->quick_count;
+		float a = 2*M_PI/n;
+		float cur = 0;
+		for (int i = 0; i < n; i++)
+		{
+			float x = g->o->quick_x + radius * cos(cur) - 14;
+			float y = g->o->quick_y + radius * sin(cur) - 14;
+
+			int id = g->o->quick_list[i];
+			kindOf_building_t* b = &g->u->buildings[id];
+			draw_buildButton(g, b, x, y);
+
+			cur += a;
+		}
+	}
+
 	draw_cursor(g);
 }
 
@@ -187,38 +242,76 @@ int overlay_catch(game_t* g, float x, float y, int t)
 	)
 		return 1;
 
-	sfFloatRect rect = {0, 0, 28, 28};
-	for (int i = 0; i < g->u->n_buildings; i++)
+	if (t == sfMouseLeft)
 	{
-		kindOf_building_t* b = &g->u->buildings[i];
-
-		if (b->button_sprite < 0)
-			continue;
-
-		if (sfFloatRect_contains(&rect, x, y))
+		sfFloatRect rect = {0, 0, 28, 28};
+		for (int i = 0; i < g->u->n_buildings; i++)
 		{
-			if (transform_check(&b->build, &g->player->inventory))
-				g->o->selectedBuilding = b;
-			return 1;
+			kindOf_building_t* b = &g->u->buildings[i];
+
+			if (b->button_sprite < 0)
+				continue;
+
+			if (sfFloatRect_contains(&rect, x, y))
+			{
+				if (transform_check(&b->build, &g->player->inventory))
+					g->o->selectedBuilding = b;
+				return 1;
+			}
+
+			rect.left += 28;
+			if (rect.left >= 28*PANEL_N_COLS)
+			{
+				rect.left = 0;
+				rect.top += 28;
+			}
 		}
 
-		rect.left += 28;
-		if (rect.left >= 28*PANEL_N_COLS)
+		if (g->o->quick_active)
 		{
-			rect.left = 0;
-			rect.top += 28;
+			sfFloatRect rect = {0, 0, 28, 28};
+
+			float radius = g->o->quick_radius;
+			int n = g->o->quick_count;
+			float a = 2*M_PI/n;
+			float cur = 0;
+			for (int i = 0; i < n; i++)
+			{
+				rect.left = g->o->quick_x + radius * cos(cur) - 14;
+				rect.top  = g->o->quick_y + radius * sin(cur) - 14;
+
+				if (sfFloatRect_contains(&rect, x, y))
+				{
+					int id = g->o->quick_list[i];
+					kindOf_building_t* b = &g->u->buildings[id];
+					if (transform_check(&b->build, &g->player->inventory))
+						g->o->selectedBuilding = b;
+					break;
+				}
+
+				cur += a;
+			}
+			g->o->quick_active = 0;
+			return 1;
 		}
 	}
 
 	kindOf_building_t* b = g->o->selectedBuilding;
-	if (b == NULL)
-		return 0;
-
 	if (t == sfMouseRight)
 	{
-		g->o->selectedBuilding = NULL;
+		if (b != NULL)
+		{
+			g->o->selectedBuilding = NULL;
+			return 1;
+		}
+		else
+		{
+			g->o->quick_x = x;
+			g->o->quick_y = y;
+			g->o->quick_active ^= 1;
+		}
 	}
-	else
+	else if (b != NULL)
 	{
 		sfVector2i cursor = {x, y};
 		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, cursor, g->g->world_view);

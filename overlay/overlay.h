@@ -17,6 +17,13 @@ struct overlay
 	swinventory_t swinventory;
 	swskills_t    swskills;
 	swequipment_t swequipment;
+
+	char  quick_active;
+	float quick_x;
+	float quick_y;
+	float quick_radius;
+	int   quick_count;
+	int*  quick_list;
 };
 
 overlay_t* overlay_init(void);
