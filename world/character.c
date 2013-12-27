@@ -91,8 +91,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		int id = tr->res[0].id;
 
+		float skill = c->mskills[id];
 		float work = duration * tr->rate;
-		work *= c->mskills[id];
+		work *= skill;
 		work *= character_vitality(c);
 
 		transform_apply(&m->t->harvest, &c->inventory, work);
@@ -109,8 +110,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		{
 			transform_t* tr = &t->build;
 
+			float skill = c->sskills[SK_BUILD];
 			float work = duration * tr->rate;
-			work *= c->sskills[SK_BUILD];
+			work *= skill;
 			work *= character_vitality(c);
 
 			float rem = 1 - b->build_progress;
@@ -131,23 +133,18 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			if (tr->n_res == 0 || !tr->res[0].is_item)
 				return;
 
-			universe_t* u = c->universe;
-			int id = u->items[tr->res[0].id].skill;
+			int id = c->universe->items[tr->res[0].id].skill;
 
+			float skill = c->iskills[id];
 			float work = duration * tr->rate;
-			work *= c->iskills[id];
+			work *= skill;
 			work *= character_vitality(c);
 
 			float rem  = 1 - b->item_progress;
 			if (work > rem)
 				work = rem;
 
-			float ratio = transform_ratio(tr, &c->inventory, work);
-			if (ratio == 0)
-				return;
-
-			transform_apply(tr, &c->inventory, -ratio);
-			b->item_progress += ratio;
+			b->item_progress += transform_apply(tr, &c->inventory, work);
 			if (b->item_progress >= 1)
 			{
 				transform_apply(tr, &c->inventory, +1);
@@ -167,16 +164,12 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			int id = tr->res[0].id;
 
+			float skill = c->mskills[id];
 			float work = duration * tr->rate;
-			work *= c->mskills[id];
+			work *= skill;
 			work *= character_vitality(c);
 
-			float ratio = transform_ratio(tr, &c->inventory, work);
-			if (ratio == 0)
-				return;
-
-			transform_apply(tr, &c->inventory, -ratio);
-			transform_apply(tr, &c->inventory, +ratio);
+			transform_apply(tr, &c->inventory, work);
 
 			c->mskills[id] += duration/100;
 			character_weary(c, 0.1 * duration);

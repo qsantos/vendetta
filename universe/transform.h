@@ -35,6 +35,6 @@ void transform_res(transform_t* t, int id, float a, char is_item);
 
 int   transform_check(transform_t* t, struct inventory* inv);
 float transform_ratio(transform_t* t, struct inventory* inv, float max_ratio);
-void  transform_apply(transform_t* t, struct inventory* inv, float ratio);
+float transform_apply(transform_t* t, struct inventory* inv, float ratio);
 
 #endif

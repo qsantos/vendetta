@@ -227,7 +227,7 @@ int overlay_catch(game_t* g, float x, float y, int t)
 		if (!world_canBuild(g->w, g->player, b, pos.x, pos.y))
 			return 1;
 
-		transform_apply(&b->build, &g->player->inventory, -1);
+		transform_apply(&b->build, &g->player->inventory, 1);
 		world_addBuilding(g->w, b, pos.x, pos.y);
 
 		g->o->selectedBuilding = NULL;

@@ -85,17 +85,27 @@ float transform_ratio(transform_t* t, inventory_t* inv, float max_ratio)
 	return ret;
 }
 
-void transform_apply(transform_t* t, inventory_t* inv, float ratio)
+float transform_apply(transform_t* t, inventory_t* inv, float ratio)
 {
-	for (int i = 0; i < t->n_res; i++)
+	ratio = transform_ratio(t, inv, ratio);
+	for (int i = 0; i < t->n_req; i++)
 	{
-		component_t* c = &t->res[i];
+		component_t* c = &t->req[i];
 		if (c->kept)
 			continue;
 
+		if (c->is_item)
+			inv->items[c->id] -= ratio * c->amount;
+		else
+			inv->materials[c->id] -= ratio * c->amount;
+	}
+	for (int i = 0; i < t->n_res; i++)
+	{
+		component_t* c = &t->res[i];
 		if (c->is_item)
 			inv->items[c->id] += ratio * c->amount;
 		else
 			inv->materials[c->id] += ratio * c->amount;
 	}
+	return ratio;
 }
