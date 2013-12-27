@@ -7,10 +7,10 @@
 void inventory_init(inventory_t* i, universe_t* u)
 {
 	i->materials = CALLOC(float, u->n_materials);
-	i->items     = CALLOC(int,   u->n_items);
+	i->items     = CALLOC(float, u->n_items);
 
 	memset(i->materials, 0, sizeof(float)*u->n_materials);
-	memset(i->items,     0, sizeof(int)  *u->n_items);
+	memset(i->items,     0, sizeof(float)*u->n_items);
 }
 
 void inventory_exit(inventory_t* i)

@@ -176,10 +176,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			b->item_progress += transform_apply(tr, &c->inventory, work);
 			if (b->item_progress >= 1)
-			{
-				transform_apply(tr, &c->inventory, +1);
 				b->item_current = -1;
-			}
 
 			c->iskills[id] += duration/100;
 			character_weary(c, 0.1 * duration);

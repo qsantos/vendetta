@@ -8,7 +8,7 @@ typedef struct inventory inventory_t;
 struct inventory
 {
 	float* materials;
-	int*   items;
+	float* items;
 };
 
 void inventory_init(inventory_t* i, universe_t* u);
