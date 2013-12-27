@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include <SFML/Graphics.h>
+#include <math.h>
 
 #include "util.h"
 #include "world/draw.h"
@@ -29,6 +30,7 @@ void game_loop(game_t* g)
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	g->g->overlay_view = sfView_copy(default_view);
 	g->g->world_view = sfView_copy(default_view);
+	float zoom = 1;
 
 	sfClock* clock = sfClock_create();
 	while (sfRenderWindow_isOpen(g->g->render))
@@ -56,6 +58,7 @@ void game_loop(game_t* g)
 				sfFloatRect rect = {0,0,event.size.width,event.size.height};
 				sfView_reset(g->g->overlay_view, rect);
 				sfView_reset(g->g->world_view, rect);
+				sfView_zoom(g->g->world_view, zoom);
 			}
 			else if (event.type == sfEvtKeyPressed)
 			{
@@ -114,6 +117,12 @@ void game_loop(game_t* g)
 				g->player->go_x = pos.x;
 				g->player->go_y = pos.y;
 				g->player->go_o = o;
+			}
+			else if (event.type == sfEvtMouseWheelMoved)
+			{
+				float dzoom = pow(1.1, -event.mouseWheel.delta);
+				sfView_zoom(g->g->world_view, dzoom);
+				zoom *= dzoom;
 			}
 		}
 
