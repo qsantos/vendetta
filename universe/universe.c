@@ -153,8 +153,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 
 	while (1)
 	{
-		getline(&line, &nline, f);
-		if (feof(f))
+		if (getline(&line, &nline, f) <= 0)
 			break;
 
 		if (strncmp(line, "[Ressource_", 11) == 0) // material
