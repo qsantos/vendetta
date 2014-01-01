@@ -28,5 +28,6 @@ void kindOf_mine_init(kindOf_mine_t* m)
 
 void kindOf_mine_exit(kindOf_mine_t* m)
 {
+	transform_exit(&m->harvest);
 	free(m->name);
 }
