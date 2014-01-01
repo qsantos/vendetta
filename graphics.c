@@ -46,6 +46,7 @@ graphics_t* graphics_init(void)
 	memset(g->filenames, 0, sizeof(char*) * HT_MAX_TEXTURES);
 
 	g->textures = CALLOC(sfTexture*, HT_MAX_TEXTURES);
+	memset(g->textures, 0, sizeof(sfTexture*) * HT_MAX_TEXTURES);
 
 	g->n_sprites = 0;
 	g->a_sprites = 0,
