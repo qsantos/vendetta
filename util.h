@@ -8,7 +8,7 @@ static inline float max(float a, float b)
 
 #include <stdlib.h>
 #include <stdio.h>
-inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
+static inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
 {
 	void* ret = realloc(ptr, n);
 	if (ret == NULL)
@@ -22,7 +22,7 @@ inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
 #define CREALLOC(P,T,N) ( (T*) check_alloc((N)*sizeof(T), P,    __FILE__, __LINE__) )
 
 #include <wchar.h>
-inline wchar_t* strdupwcs(const char* str)
+static inline wchar_t* strdupwcs(const char* str)
 {
 	wchar_t buffer[1024];
 	swprintf(buffer, 1024, L"%s", str);
