@@ -1,3 +1,24 @@
+#!/bin/bash
+for i in $(find -name "*.[hc]")
+do
+	exec > tmp
+
+	# new header (end of this script)
+	tail -n17 $0
+	echo ""
+
+	# length of the old header
+	line=`grep -Enm1 '^\\\\\*/$' $i`
+	line=${line%%:\\*/}
+	line=${line:--1}
+	line=$(($line+2))
+
+	# skip the old header
+	tail $i -n+$line
+
+	mv tmp $i
+done
+exit 0
 /*\
  *  Role playing, management and strategy game
  *  Copyright (C) 2013-2014 Quentin SANTOS
@@ -15,22 +36,3 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
-
-#include "material.h"
-
-#include <stdlib.h>
-
-void kindOf_material_init(kindOf_material_t* m)
-{
-	m->name = NULL;
-	kindOf_skill_init(&m->skill);
-	m->edible = 0;
-	for (int i = 0; i < N_STATUSES; i++)
-		m->eatBonus[i] = 0;
-}
-
-void kindOf_material_exit(kindOf_material_t* m)
-{
-	kindOf_skill_exit(&m->skill);
-	free(m->name);
-}
