@@ -21,8 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <math.h>
 
 #include "../util.h"
+#include "../voronoi/lloyd.h"
 
 #define TILE_SIZE 32
 
@@ -31,12 +33,90 @@ world_t* world_init(universe_t* u)
 	world_t* w = CALLOC(world_t, 1);
 	w->universe = u;
 
+	// BEGIN map generation
 	w->tilesx = 100;
 	w->tilesy = 100;
 	w->terrain = CALLOC(char, w->tilesx*w->tilesy);
+	/*
 	for (int i = 0; i < w->tilesx; i++)
 		for (int j = 0; j < w->tilesy; j++)
 			w->terrain[i*w->tilesx + j] = rand() % 17;
+	*/
+
+	// generate Voronoi diagram
+	vr_diagram_t v;
+	vr_diagram_init(&v, w->tilesx, w->tilesy);
+	for (size_t i = 0; i < 1000; i++)
+	{
+		double x = ( (double) rand() / INT_MAX ) * w->tilesx;
+		double y = ( (double) rand() / INT_MAX ) * w->tilesy;
+		vr_diagram_point(&v, (point_t){x,y});
+	}
+	vr_lloyd_relaxation(&v);
+	vr_lloyd_relaxation(&v);
+	vr_diagram_end(&v);
+
+	// assign land types to Voronoi regions
+	char region_types[v.n_regions];
+	for (size_t i = 0; i < v.n_regions; i++)
+		region_types[i] = rand() % 17;
+
+	// rasterise map
+	// TODO: clean that thing
+	// yes, I know, this is the single most ugly and horrible
+	// batch of code of this project; however, getting pixels
+	// from a polygon is not totally trivial; to be cleaned later
+	for (size_t i = 0; i < v.n_regions; i++)
+	{
+		char t = region_types[i];
+
+		// set tiles in the i-th Voronoi region to proper type
+
+		// first, get vertical bounds on the region
+		vr_region_t* r = v.regions[i];
+		int miny = w->tilesy;
+		int maxy = 0;
+		for (size_t j = 0; j < r->n_edges; j++)
+		{
+			segment_t* s = &r->edges[j]->s;
+			if (s->a->y < miny) miny = floor(s->a->y);
+			if (s->a->y > maxy) maxy = floor(s->a->y);
+			if (s->b->y < miny) miny = floor(s->b->y);
+			if (s->b->y > maxy) maxy = floor(s->b->y);
+		}
+		if (maxy >= w->tilesy)
+			maxy = w->tilesy - 1;
+
+		// then, consider each so-selected slide row
+		for (int y = miny; y <= maxy; y++)
+		{
+			// find the portion of the row in the region
+			int rowmin = w->tilesx;
+			int rowmax = 0;
+			point_t a = {rowmin, y};
+			point_t b = {rowmax, y};
+			segment_t s = {&a, &b};
+			for (size_t j = 0; j < r->n_edges; j++)
+			{
+				point_t p;
+				if (!segment_intersect(&p, &s, &r->edges[j]->s))
+					continue;
+				if (p.x < rowmin)
+					rowmin = floor(p.x);
+				if (p.x > rowmax)
+					rowmax = floor(p.x);
+			}
+			if (rowmax >= w->tilesx)
+				rowmax = w->tilesx - 1;
+
+			// set this portion to proper type
+			for (int x = rowmin; x <= rowmax; x++)
+				w->terrain[y*w->tilesx + x] = t;
+		}
+	}
+
+	vr_diagram_exit(&v);
+	// END map generation
 
 	float width  = w->tilesx * TILE_SIZE;
 	float height = w->tilesy * TILE_SIZE;
