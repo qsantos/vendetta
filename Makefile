@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99 -D_XOPEN_SOURCE=700
+CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99 -D_GNU_SOURCE
 LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
 TARGETS = vendetta
 
