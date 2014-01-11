@@ -53,6 +53,7 @@ graphics_t* graphics_init(void)
 	g->sprites = NULL;
 
 	g->step = 0;
+	g->fps  = 0;
 
 	return g;
 }

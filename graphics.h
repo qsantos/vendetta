@@ -40,6 +40,7 @@ struct graphics
 	sfSprite** sprites;
 
 	float step;
+	float fps;
 };
 
 graphics_t* graphics_init(void);

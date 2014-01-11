@@ -51,11 +51,12 @@ void game_loop(game_t* g)
 	float zoom = 1;
 
 	sfClock* clock = sfClock_create();
-	while (sfRenderWindow_isOpen(g->g->render))
+	float fpssum = 0;
+	int fpscount = 0;
+	float fpslast = 0;
+	do
 	{
-		float duration = sfTime_asSeconds(sfClock_getElapsedTime(clock));
-		sfClock_restart(clock);
-
+		// handle user input
 		sfEvent event;
 		while (sfRenderWindow_pollEvent(g->g->render, &event))
 		{
@@ -172,23 +173,39 @@ void game_loop(game_t* g)
 			}
 		}
 
-		world_doRound(g->w, duration);
-
+		// update display
 		sfRenderWindow_clear(g->g->render, sfBlack);
-		g->g->step += duration;
 
 		sfVector2f pos = {g->player->o.x, g->player->o.y};
 		sfView_setCenter(g->g->world_view, pos);
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
-
 		draw_world(g->g, g->w);
-
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g->o, g);
-
 		sfRenderWindow_display(g->g->render);
+
+		// check frame duration
+		float duration = sfTime_asSeconds(sfClock_getElapsedTime(clock));
+		g->g->step += duration;
+
+		// measure FPS
+		sfClock_restart(clock);
+		fpssum += 1. / duration;
+		fpscount++;
+		fpslast += duration;
+		if (fpslast >= 1.)
+		{
+			g->g->fps = fpssum / fpscount;
+			fpssum = 0;
+			fpscount = 0;
+			fpslast = 0;
+		}
+
+		// do round
+		world_doRound(g->w, duration);
 	}
+	while (sfRenderWindow_isOpen(g->g->render));
 
 	sfClock_destroy(clock);
 }

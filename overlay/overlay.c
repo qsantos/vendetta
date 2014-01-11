@@ -137,6 +137,13 @@ void overlay_draw(overlay_t* o, game_t* g)
 	ov_build_draw(&o->build, g);
 
 	overlay_cursor(g->o, g);
+
+	wchar_t buffer[1024];
+	swprintf(buffer, 1024, L"FPS: %.0f", floor(g->g->fps));
+	sfText_setUnicodeString(text, (sfUint32*) buffer);
+	sfVector2f pos = {size.x - 80, size.y - 30};
+	sfText_setPosition(text, pos);
+	sfRenderWindow_drawText(g->g->render, text, NULL);
 }
 
 int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
