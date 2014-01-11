@@ -107,6 +107,13 @@ void game_loop(game_t* g)
 				{
 					g->o->swequipment.w.visible ^= 1;
 				}
+				else if (k == sfKeySpace)
+				{
+					g->o->swbuilding.w.visible  ^= 1;
+					g->o->swinventory.w.visible ^= 1;
+					g->o->swskills.w.visible    ^= 1;
+					g->o->swequipment.w.visible ^= 1;
+				}
 				else if (sfKeyF1 <= k && k <= sfKeyF12)
 				{
 					int id = k - sfKeyF1;
