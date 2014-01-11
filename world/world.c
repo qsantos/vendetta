@@ -59,7 +59,7 @@ world_t* world_init(universe_t* u)
 	// assign land types to Voronoi regions
 	char region_types[v.n_regions];
 	for (size_t i = 0; i < v.n_regions; i++)
-		region_types[i] = rand() % 17;
+		region_types[i] = 16 * (rand() % 6);
 
 	// rasterise map
 	// TODO: clean that thing
@@ -117,6 +117,27 @@ world_t* world_init(universe_t* u)
 
 	vr_diagram_exit(&v);
 	// END map generation
+
+	// BEGIN land type borders
+#define LAND_TYPE(I,J) (w->terrain[(I)*w->tilesx + (J)] / 16)
+#define LAND_SAME(I,J) ( \
+	((I) < 0 || (I) >= w->tilesx || (J) < 0 || (J) >= w->tilesy) ? \
+	1 : \
+	t == LAND_TYPE(I,J) \
+)
+	static const char type2tile[16] = {0,5,2,13,4,7,12,8,3,15,6,11,14,9,10,1};
+	for (int i = 0; i < w->tilesx; i++)
+	for (int j = 0; j < w->tilesy; j++)
+	{
+		int t = LAND_TYPE(i,j);
+		char top    = LAND_SAME(i,j-1);
+		char right  = LAND_SAME(i+1,j);
+		char bottom = LAND_SAME(i,j+1);
+		char left   = LAND_SAME(i-1,j);
+		int neighbor = (top<<3) | (right<<2) | (bottom<<1) | (left<<0);
+		w->terrain[i*w->tilesx + j] += type2tile[neighbor];
+	}
+	// END land type borders
 
 	float width  = w->tilesx * TILE_SIZE;
 	float height = w->tilesy * TILE_SIZE;
