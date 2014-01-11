@@ -122,7 +122,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		float work = duration * tr->rate;
 		work *= skill;
-		work *= character_vitality(c);
 
 		transform_apply(&m->t->harvest, &c->inventory, work);
 
@@ -151,7 +150,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = duration * tr->rate;
 			work *= skill;
-			work *= character_vitality(c);
 
 			float rem = 1 - b->build_progress;
 			if (work > rem)
@@ -186,7 +184,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = duration * tr->rate;
 			work *= skill;
-			work *= character_vitality(c);
 
 			float rem  = 1 - b->work_progress;
 			if (work > rem)
@@ -225,7 +222,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = duration * tr->rate;
 			work *= skill;
-			work *= character_vitality(c);
 
 			transform_apply(tr, &c->inventory, work);
 
@@ -237,6 +233,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 void character_doRound(character_t* c, float duration)
 {
+	duration *= character_vitality(c);
+
 	float dx;
 	float dy;
 	if (c->go_o != NULL)
@@ -287,7 +285,6 @@ void character_doRound(character_t* c, float duration)
 		                     D_EAST;
 
 	float distance = 100 * duration;
-	distance *= character_vitality(c);
 	if (distance > remDistance)
 		distance = remDistance;
 
