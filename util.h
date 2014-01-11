@@ -47,4 +47,17 @@ static inline wchar_t* strdupwcs(const char* str)
 	return wcsdup(buffer);
 }
 
+#include <limits.h>
+static inline int rnd_pick(float* probas)
+{
+	float selected = (float) rand() / INT_MAX;
+	int i = 0;
+	while (selected > probas[i])
+	{
+		selected -= probas[i];
+		i++;
+	}
+	return i;
+}
+
 #endif

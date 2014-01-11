@@ -57,9 +57,10 @@ world_t* world_init(universe_t* u)
 	vr_diagram_end(&v);
 
 	// assign land types to Voronoi regions
+	float probas[] = {0.8, 0.1, 0.05, 0.04, 0.01};
 	char region_types[v.n_regions];
 	for (size_t i = 0; i < v.n_regions; i++)
-		region_types[i] = 16 * (rand() % 6);
+		region_types[i] = 16 * rnd_pick(probas);
 
 	// rasterise map
 	// TODO: clean that thing
@@ -130,6 +131,8 @@ world_t* world_init(universe_t* u)
 	for (int j = 0; j < w->tilesy; j++)
 	{
 		int t = LAND_TYPE(i,j);
+		if (t == 0)
+			continue;
 		char top    = LAND_SAME(i,j-1);
 		char right  = LAND_SAME(i+1,j);
 		char bottom = LAND_SAME(i,j+1);
