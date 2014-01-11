@@ -68,4 +68,6 @@ void  character_weary   (character_t* c, float f);
 void character_workAt  (character_t* c, object_t* o, float duration);
 void character_doRound (character_t* c, float duration);
 
+void character_setPosition(character_t* c, float x, float y);
+
 #endif

@@ -140,8 +140,18 @@ world_t* world_init(universe_t* u)
 	float width  = w->tilesx * TILE_SIZE;
 	float height = w->tilesy * TILE_SIZE;
 
-	w->n_characters = 1;
-	character_init(&w->characters[0], u);
+	// BEGIN character generation
+	w->n_characters = 5;
+	w->characters = CALLOC(character_t, w->n_characters);
+	for (int i = 0; i < w->n_characters; i++)
+	{
+		character_t* c = &w->characters[i];
+		character_init(c, u);
+		float x = (0.5 - ((float) rand()/INT_MAX)) * width;
+		float y = (0.5 - ((float) rand()/INT_MAX)) * height;
+		character_setPosition(c, x, y);
+	}
+	// END character generation
 
 	// BEGIN mine generation
 	w->n_mines = w->tilesx*w->tilesy / 400;
@@ -185,9 +195,11 @@ void world_exit(world_t* w)
 
 	for (int i = 0; i < w->n_mines; i++)
 		mine_exit(&w->mines[i]);
+	free(w->mines);
 
 	for (int i = 0; i < w->n_characters; i++)
 		character_exit(&w->characters[i]);
+	free(w->characters);
 
 	free(w->terrain);
 	free(w);
@@ -195,7 +207,8 @@ void world_exit(world_t* w)
 
 void world_doRound(world_t* w, float duration)
 {
-	character_doRound(&w->characters[0], duration);
+	for (int i = 0; i < w->n_characters; i++)
+		character_doRound(&w->characters[i], duration);
 }
 
 object_t* world_objectAt(world_t* w, float x, float y)

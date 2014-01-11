@@ -43,7 +43,7 @@ void game_exit(game_t* g)
 
 void game_loop(game_t* g)
 {
-	g->player = &g->w->characters[0];
+	g->player = &g->w->characters[g->w->n_characters-1];
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	g->g->overlay_view = sfView_copy(default_view);

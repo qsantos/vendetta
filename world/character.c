@@ -30,13 +30,11 @@
 void character_init(character_t* c, universe_t* u)
 {
 	c->o.t = O_CHARACTER;
-	c->o.x = 0;
-	c->o.y = 0;
 	c->o.w = 24;
 	c->o.h = 32;
 
-	c->go_x = c->o.x;
-	c->go_y = c->o.y;
+	character_setPosition(c, 0, 0);
+
 	c->go_o = NULL;
 	c->dir  = D_SOUTH;
 	c->step = 5; // standing still
@@ -298,4 +296,12 @@ void character_doRound(character_t* c, float duration)
 		c->step = 0;
 
 	character_weary(c, 0.02*duration);
+}
+
+void character_setPosition(character_t* c, float x, float y)
+{
+	c->o.x = x;
+	c->o.y = y;
+	c->go_x = x;
+	c->go_y = y;
 }

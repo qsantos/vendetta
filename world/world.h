@@ -36,7 +36,7 @@ struct world
 	short* terrain;
 
 	int n_characters;
-	character_t characters[1];
+	character_t* characters;
 
 	int n_mines;
 	mine_t* mines;
