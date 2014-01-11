@@ -48,7 +48,7 @@ static inline wchar_t* strdupwcs(const char* str)
 }
 
 #include <limits.h>
-static inline int rnd_pick(float* probas)
+static inline int rnd_pick(const float* probas)
 {
 	float selected = (float) rand() / INT_MAX;
 	int i = 0;

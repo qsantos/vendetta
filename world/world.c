@@ -52,10 +52,10 @@ world_t* world_init(universe_t* u)
 	vr_diagram_end(&v);
 
 	// assign land types to Voronoi regions
-	float probas[] = {0.8, 0.05, 0.05, 0.04, 0.01, 0,0,0,0,0,0.05};
+	static const float land_probas[] = {0.8, 0.05, 0.05, 0.04, 0.01, 0,0,0,0,0,0.05};
 	short region_types[v.n_regions];
 	for (size_t i = 0; i < v.n_regions; i++)
-		region_types[i] = 16 * rnd_pick(probas);
+		region_types[i] = 16 * rnd_pick(land_probas);
 
 	// rasterise map
 	// TODO: clean that thing
@@ -143,16 +143,29 @@ world_t* world_init(universe_t* u)
 	w->n_characters = 1;
 	character_init(&w->characters[0], u);
 
+	// BEGIN mine generation
 	w->n_mines = w->tilesx*w->tilesy / 400;
+	if (w->n_mines < u->n_mines)
+		w->n_mines = u->n_mines;
 	w->mines = CALLOC(mine_t, w->n_mines);
-	for (int i = 0; i < w->n_mines; i++)
+	static const float mine_probas[] = {0.22,0.22,0.20,0.10,0.08,0.06,0.06,0.06};
+	for (int i = 0; i < u->n_mines; i++) // ensure there is at least one of each
 	{
 		mine_t* m = &w->mines[i];
-		int type = rand() % u->n_mines;
+		int type = i;
 		mine_init(m, &u->mines[type]);
 		m->o.x = (0.5 - ((float) rand()/INT_MAX)) * width;
 		m->o.y = (0.5 - ((float) rand()/INT_MAX)) * height;
 	}
+	for (int i = u->n_mines; i < w->n_mines; i++)
+	{
+		mine_t* m = &w->mines[i];
+		int type = rnd_pick(mine_probas);
+		mine_init(m, &u->mines[type]);
+		m->o.x = (0.5 - ((float) rand()/INT_MAX)) * width;
+		m->o.y = (0.5 - ((float) rand()/INT_MAX)) * height;
+	}
+	// END mine generation
 
 	w->n_buildings = 0;
 	w->a_buildings = 0;
