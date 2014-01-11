@@ -102,12 +102,12 @@ void draw_world(graphics_t* g, world_t* w)
 			{
 				sfVertex* v = sfVertexArray_getVertex(array, (i*x+j)*4);
 
-				float a = (i-x/2)*32;
-				float b = (j-y/2)*32;
+				float a = (i-x/2)*16;
+				float b = (j-y/2)*16;
 				v[0].position = (sfVector2f){a+ 0,b+ 0};
-				v[1].position = (sfVector2f){a+32,b+ 0};
-				v[2].position = (sfVector2f){a+32,b+32};
-				v[3].position = (sfVector2f){a+ 0,b+32};
+				v[1].position = (sfVector2f){a+16,b+ 0};
+				v[2].position = (sfVector2f){a+16,b+16};
+				v[3].position = (sfVector2f){a+ 0,b+16};
 
 				for (int k = 0; k < 4; k++)
 					v[k].color = sfWhite;

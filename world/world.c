@@ -26,7 +26,7 @@
 #include "../util.h"
 #include "../voronoi/lloyd.h"
 
-#define TILE_SIZE 32
+#define TILE_SIZE 16
 
 world_t* world_init(universe_t* u)
 {
@@ -148,7 +148,7 @@ world_t* world_init(universe_t* u)
 	w->n_characters = 1;
 	character_init(&w->characters[0], u);
 
-	w->n_mines = w->tilesx*w->tilesy / 100;
+	w->n_mines = w->tilesx*w->tilesy / 400;
 	w->mines = CALLOC(mine_t, w->n_mines);
 	for (int i = 0; i < w->n_mines; i++)
 	{
