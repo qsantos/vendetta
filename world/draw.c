@@ -123,6 +123,30 @@ void draw_world(graphics_t* g, world_t* w)
 
 		states.texture = texture;
 	}
+	static int water_step = 0;
+	int cur_step = (int)g->step % 4;
+	if (cur_step != water_step)
+	{
+		water_step = cur_step;
+
+		int x = w->tilesx;
+		int y = w->tilesy;
+		for (int i = 0; i < x; i++)
+		for (int j = 0; j < y; j++)
+		{
+			int t = w->terrain[i*x+j];
+			if (!(160 <= t && t < 176))
+				continue;
+			t += 16*(water_step == 3 ? 1 : water_step);
+			float a = 16*(t%16);
+			float b = 16*(t/16);
+			sfVertex* v = sfVertexArray_getVertex(array, (i*x+j)*4);
+			v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
+			v[1].texCoords = (sfVector2f){a+15.99,b+ 0.01};
+			v[2].texCoords = (sfVector2f){a+15.99,b+15.99};
+			v[3].texCoords = (sfVector2f){a+ 0.01,b+15.99};
+		}
+	}
 
 	sfRenderWindow_drawVertexArray(g->render, array, &states);
 

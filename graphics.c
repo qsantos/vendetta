@@ -52,6 +52,8 @@ graphics_t* graphics_init(void)
 	g->a_sprites = 0,
 	g->sprites = NULL;
 
+	g->step = 0;
+
 	return g;
 }
 

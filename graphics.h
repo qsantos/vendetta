@@ -38,6 +38,8 @@ struct graphics
 	size_t     n_sprites;
 	size_t     a_sprites;
 	sfSprite** sprites;
+
+	float step;
 };
 
 graphics_t* graphics_init(void);

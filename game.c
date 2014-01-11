@@ -175,6 +175,7 @@ void game_loop(game_t* g)
 		world_doRound(g->w, duration);
 
 		sfRenderWindow_clear(g->g->render, sfBlack);
+		g->g->step += duration;
 
 		sfVector2f pos = {g->player->o.x, g->player->o.y};
 		sfView_setCenter(g->g->world_view, pos);
