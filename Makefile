@@ -12,12 +12,15 @@ vendetta: $(OBJ)
 	@echo $(CC) [...] $(LDFLAGS) -o $@
 	@$(CC) $^ $(LDFLAGS) -o $@
 
+-include $(OBJ:.o=.d)
+
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $*.c -o $*.o
+	@$(CC) -MM $(CFLAGS) $*.c > $*.d
 
 clean:
-	@echo rm -f [*.o]
-	@rm -f $(OBJ)
+	@echo rm -f [*.o] [*.d]
+	@rm -f $(OBJ) $(OBJ:.o=.d)
 
 destroy: clean
 	rm -f $(TARGETS)
