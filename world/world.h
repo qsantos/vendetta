@@ -33,7 +33,7 @@ struct world
 
 	int tilesx;
 	int tilesy;
-	char* terrain;
+	short* terrain;
 
 	int n_characters;
 	character_t characters[1];

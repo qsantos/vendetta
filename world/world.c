@@ -36,12 +36,7 @@ world_t* world_init(universe_t* u)
 	// BEGIN map generation
 	w->tilesx = 100;
 	w->tilesy = 100;
-	w->terrain = CALLOC(char, w->tilesx*w->tilesy);
-	/*
-	for (int i = 0; i < w->tilesx; i++)
-		for (int j = 0; j < w->tilesy; j++)
-			w->terrain[i*w->tilesx + j] = rand() % 17;
-	*/
+	w->terrain = CALLOC(short, w->tilesx*w->tilesy);
 
 	// generate Voronoi diagram
 	vr_diagram_t v;
@@ -57,8 +52,8 @@ world_t* world_init(universe_t* u)
 	vr_diagram_end(&v);
 
 	// assign land types to Voronoi regions
-	float probas[] = {0.8, 0.1, 0.05, 0.04, 0.01};
-	char region_types[v.n_regions];
+	float probas[] = {0.8, 0.05, 0.05, 0.04, 0.01, 0,0,0,0,0,0.05};
+	short region_types[v.n_regions];
 	for (size_t i = 0; i < v.n_regions; i++)
 		region_types[i] = 16 * rnd_pick(probas);
 
@@ -69,7 +64,7 @@ world_t* world_init(universe_t* u)
 	// from a polygon is not totally trivial; to be cleaned later
 	for (size_t i = 0; i < v.n_regions; i++)
 	{
-		char t = region_types[i];
+		short t = region_types[i];
 
 		// set tiles in the i-th Voronoi region to proper type
 
