@@ -162,11 +162,11 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			c->sskills[SK_BUILD] += duration/100;
 			character_weary(c, 0.3 * duration);
 		}
-		else if (b->item_current >= 0)
+		else if (b->work_n > 0)
 		{
 			c->inBuilding = b;
-			int i = b->item_current;
-			transform_t* tr = &t->items[i];
+
+			transform_t* tr = &t->items[b->work_list[0]];
 
 			if (tr->n_res == 0 || !tr->res[0].is_item)
 				return;
@@ -188,13 +188,16 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			work *= skill;
 			work *= character_vitality(c);
 
-			float rem  = 1 - b->item_progress;
+			float rem  = 1 - b->work_progress;
 			if (work > rem)
 				work = rem;
 
-			b->item_progress += transform_apply(tr, &c->inventory, work);
-			if (b->item_progress >= 1)
-				b->item_current = -1;
+			b->work_progress += transform_apply(tr, &c->inventory, work);
+			if (b->work_progress >= 1)
+			{
+				b->work_progress = 0;
+				building_work_dequeue(b, 0);
+			}
 
 			c->iskills[id] += duration/100;
 			character_weary(c, 0.1 * duration);

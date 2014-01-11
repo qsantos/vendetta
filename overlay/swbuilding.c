@@ -186,6 +186,7 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 	}
 	pos.y += 20;
 
+	int cur_work = b->work_n == 0 ? -1 : b->work_list[0];
 	for (int i = 0; i < t->n_items; i++)
 	{
 		transform_t* tr = &t->items[i];
@@ -200,8 +201,8 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 		wchar_t* name = g->u->items[c->id].name;
 		wchar_t buffer[1024];
-		if (i == b->item_current)
-			swprintf(buffer, 1024, L"%ls (%i%%)", name, (int) floor(100*b->item_progress));
+		if (i == cur_work)
+			swprintf(buffer, 1024, L"%ls (%i%%)", name, (int) floor(100*b->work_progress));
 		else
 			swprintf(buffer, 1024, L"%ls", name);
 
@@ -264,10 +265,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
 			continue;
 
 		if (transform_check(tr, &g->player->inventory))
-		{
-			b->item_current = i;
-			b->item_progress = 0;
-		}
+			building_work_enqueue(b, i);
 
 		return 1;
 	}

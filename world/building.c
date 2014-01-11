@@ -18,6 +18,8 @@
 
 #include "building.h"
 
+#include <string.h>
+
 #include "../util.h"
 
 void building_init(building_t* b, kindOf_building_t* t, float x, float y)
@@ -31,11 +33,28 @@ void building_init(building_t* b, kindOf_building_t* t, float x, float y)
 
 	b->build_progress = 0;
 
-	b->item_current = -1;
-	b->item_progress = 0;
+	b->work_n = 0;
+	b->work_list = 0;
+	b->work_progress = 0;
 }
 
 void building_exit(building_t* b)
 {
-	(void) b;
+	free(b->work_list);
+}
+
+void building_work_enqueue(building_t* b, int c)
+{
+	int i = b->work_n++;
+	b->work_list = CREALLOC(b->work_list, int, b->work_n);
+	b->work_list[i] = c;
+}
+
+void building_work_dequeue(building_t* b, size_t n)
+{
+	if (n < b->work_n)
+	{
+		memmove(b->work_list + n, b->work_list + n + 1, sizeof(int) * (b->work_n - n -1));
+		b->work_n--;
+	}
 }
