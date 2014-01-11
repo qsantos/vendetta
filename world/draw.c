@@ -115,10 +115,10 @@ void draw_world(graphics_t* g, world_t* w)
 				int t = w->terrain[i*x+j];
 				a = 16*(t%16);
 				b = 16*(t/16);
-				v[0].texCoords = (sfVector2f){a+ 0,b+ 0};
-				v[1].texCoords = (sfVector2f){a+16,b+ 0};
-				v[2].texCoords = (sfVector2f){a+16,b+16};
-				v[3].texCoords = (sfVector2f){a+ 0,b+16};
+				v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
+				v[1].texCoords = (sfVector2f){a+15.99,b+ 0.01};
+				v[2].texCoords = (sfVector2f){a+15.99,b+15.99};
+				v[3].texCoords = (sfVector2f){a+ 0.01,b+15.99};
 			}
 
 		states.texture = texture;

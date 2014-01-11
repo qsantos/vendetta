@@ -169,7 +169,7 @@ void game_loop(game_t* g)
 
 		sfRenderWindow_clear(g->g->render, sfBlack);
 
-		sfVector2f pos = {g->player->o.x+0.375, g->player->o.y+0.375};
+		sfVector2f pos = {g->player->o.x, g->player->o.y};
 		sfView_setCenter(g->g->world_view, pos);
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
 
