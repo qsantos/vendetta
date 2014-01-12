@@ -60,10 +60,6 @@ void character_init(character_t* c, universe_t* u)
 	c->equipment = CALLOC(int, u->n_slots);
 	for (int i = 0; i < u->n_slots; i++)
 		c->equipment[i] = -1;
-
-	// just for convenience
-	for (int i = 0; i < u->n_materials; i++)
-		c->inventory.materials[i] = 1000;
 }
 
 void character_exit(character_t* c)

@@ -31,6 +31,12 @@ void game_init(game_t* g)
 	g->o =  overlay_init(g->g);
 	g->u = universe_init(g->g);
 	g->w =    world_init(g->u);
+
+	g->player = &g->w->characters[g->w->n_characters-1];
+
+	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
+	g->g->overlay_view = sfView_copy(default_view);
+	g->g->world_view = sfView_copy(default_view);
 }
 
 void game_exit(game_t* g)
@@ -43,13 +49,7 @@ void game_exit(game_t* g)
 
 void game_loop(game_t* g)
 {
-	g->player = &g->w->characters[g->w->n_characters-1];
-
-	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
-	g->g->overlay_view = sfView_copy(default_view);
-	g->g->world_view = sfView_copy(default_view);
 	float zoom = 1;
-
 	sfClock* clock = sfClock_create();
 	float fpssum = 0;
 	int fpscount = 0;
