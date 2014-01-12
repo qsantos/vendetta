@@ -1,3 +1,4 @@
+
 /*\
  *  Role playing, management and strategy game
  *  Copyright (C) 2013-2014 Quentin SANTOS
@@ -19,6 +20,8 @@
 #include "swskills.h"
 
 #include <math.h>
+
+#include "../util.h"
 
 #define PANEL_N_COLS 3
 

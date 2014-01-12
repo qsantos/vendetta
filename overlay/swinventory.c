@@ -20,6 +20,8 @@
 
 #include <math.h>
 
+#include "../util.h"
+
 #define PANEL_N_COLS 3
 
 void swinventory_init(swinventory_t* w, graphics_t* g)

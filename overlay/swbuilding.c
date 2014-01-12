@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "../util.h"
+
 #define PANEL_N_COLS 3
 
 void swbuilding_init(swbuilding_t* w, graphics_t* g)
