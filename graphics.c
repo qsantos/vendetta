@@ -82,10 +82,13 @@ int graphics_spriteForImg(graphics_t* g, const char* filename)
 		g->filenames[id] = strdup(filename);
 
 		sfTexture* texture = sfTexture_createFromFile(filename, NULL);
-		g->textures[id] = texture;
-
 		if (texture == NULL)
+		{
+			fprintf(stderr, "Failed to load texture '%s'\n", filename);
 			exit(1);
+		}
+
+		g->textures[id] = texture;
 	}
 
 	sfSprite* sprite = sfSprite_create();
