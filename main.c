@@ -23,6 +23,20 @@
 
 #include "game.h"
 
+static void usage(const char* name)
+{
+	fprintf(stderr,
+		"Usage: %s [options]\n"
+		"\n"
+		"options:\n"
+		"  --help        print this help\n"
+		"  --version     print version information\n"
+		"  --quickstart  give player 1000 of each material\n"
+		"  --godmode     give player god-like skills\n"
+		, name
+	);
+	exit(1);
+}
 int main(int argc, char** argv)
 {
 	setlocale(LC_ALL, "");
@@ -35,7 +49,17 @@ int main(int argc, char** argv)
 	while (curarg < argc)
 	{
 		const char* option = argv[curarg++];
-		if (strcmp(option, "--quickstart") == 0)
+		if (strcmp(option, "--help") == 0)
+		{
+			usage(argv[0]);
+		}
+		else if (strcmp(option, "--version") == 0)
+		{
+			fprintf(stderr, "Vendetta version 0.2\n");
+			fprintf(stderr, "Compiled on %s at %s\n", __DATE__, __TIME__);
+			exit(1);
+		}
+		else if (strcmp(option, "--quickstart") == 0)
 		{
 			quick_start = 1;
 		}
@@ -46,7 +70,7 @@ int main(int argc, char** argv)
 		else
 		{
 			fprintf(stderr, "Unknown option '%s'\n", option);
-			exit(1);
+			usage(argv[0]);
 		}
 	}
 
