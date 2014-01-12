@@ -29,10 +29,10 @@ static void usage(const char* name)
 		"Usage: %s [options]\n"
 		"\n"
 		"options:\n"
-		"  --help        print this help\n"
-		"  --version     print version information\n"
-		"  --quickstart  give player 1000 of each material\n"
-		"  --godmode     give player god-like skills\n"
+		"  -h, --help        print this help\n"
+		"  -V, --version     print version information\n"
+		"  -q, --quickstart  give player 1000 of each material\n"
+		"  -g, --godmode     give player god-like skills\n"
 		, name
 	);
 	exit(1);
@@ -49,21 +49,21 @@ int main(int argc, char** argv)
 	while (curarg < argc)
 	{
 		const char* option = argv[curarg++];
-		if (strcmp(option, "--help") == 0)
+		if (strcmp(option, "--help") == 0 || strcmp(option, "-h") == 0)
 		{
 			usage(argv[0]);
 		}
-		else if (strcmp(option, "--version") == 0)
+		else if (strcmp(option, "--version") == 0 || strcmp(option, "-V") == 0)
 		{
 			fprintf(stderr, "Vendetta version 0.2\n");
 			fprintf(stderr, "Compiled on %s at %s\n", __DATE__, __TIME__);
 			exit(1);
 		}
-		else if (strcmp(option, "--quickstart") == 0)
+		else if (strcmp(option, "--quickstart") == 0 || strcmp(option, "-q") == 0)
 		{
 			quick_start = 1;
 		}
-		else if (strcmp(option, "--godmode") == 0)
+		else if (strcmp(option, "--godmode") == 0 || strcmp(option, "-g") == 0)
 		{
 			god_mode = 1;
 		}
