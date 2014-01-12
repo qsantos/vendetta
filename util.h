@@ -19,6 +19,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+# define M_PI		3.14159265358979323846	/* pi */
+
 static inline float max(float a, float b)
 {
 	return a > b ? a : b;
@@ -39,13 +41,15 @@ static inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
 #define CALLOC(T,N)     ( (T*) check_alloc((N)*sizeof(T), NULL, __FILE__, __LINE__) )
 #define CREALLOC(P,T,N) ( (T*) check_alloc((N)*sizeof(T), P,    __FILE__, __LINE__) )
 
+
 #include <wchar.h>
-static inline wchar_t* strdupwcs(const char* str)
-{
-	wchar_t buffer[1024];
-	swprintf(buffer, 1024, L"%s", str);
-	return wcsdup(buffer);
-}
+#include <sys/types.h>
+
+char*    strdup   (const char*    s);
+wchar_t* wcsdup   (const wchar_t* s);
+wchar_t* strdupwcs(const char*    s);
+
+ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 
 #include <limits.h>
 static inline int rnd_pick(const float* probas)
