@@ -129,7 +129,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
@@ -155,7 +155,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
@@ -202,7 +202,7 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -220,7 +220,7 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -263,7 +263,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
@@ -294,7 +294,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))

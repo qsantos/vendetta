@@ -113,14 +113,14 @@ void overlay_draw(overlay_t* o, game_t* g)
 		float p = g->player->statuses[i] / 20;
 		graphics_drawProgressBar(g->g, x, y, 150, 20, p);
 
-		sfText_setUnicodeString(text, (sfUint32*) g->u->statuses[i].name);
+		sfText_setWString(text, g->u->statuses[i].name); // TODO
 		sfVector2f pos = {x+5, y};
 		sfText_setPosition(text, pos);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		wchar_t buffer[1024];
 		swprintf(buffer, 1024, L"%.0f/%.0f", floor(g->player->statuses[i]), floor(20.));
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 		sfFloatRect rect = sfText_getLocalBounds(text);
 		pos.x = x + 140 - rect.width;
 		sfText_setPosition(text, pos);
@@ -140,7 +140,7 @@ void overlay_draw(overlay_t* o, game_t* g)
 
 	wchar_t buffer[1024];
 	swprintf(buffer, 1024, L"FPS: %.0f", floor(g->g->fps));
-	sfText_setUnicodeString(text, (sfUint32*) buffer);
+	sfText_setWString(text, buffer);
 	sfVector2f pos = {size.x - 80, size.y - 30};
 	sfText_setPosition(text, pos);
 	sfRenderWindow_drawText(g->g->render, text, NULL);

@@ -180,7 +180,7 @@ void graphics_drawTooltip(graphics_t* g, float x, float y, const wchar_t* txt)
 
 	sfVector2f pos = {x + 24, y + 24};
 	sfText_setPosition(text, pos);
-	sfText_setUnicodeString(text, (sfUint32*) txt);
+	sfText_setWString(text, txt);
 	sfFloatRect rect = sfText_getGlobalBounds(text);
 
 	rect.top    -= 3;
@@ -192,4 +192,20 @@ void graphics_drawTooltip(graphics_t* g, float x, float y, const wchar_t* txt)
 	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
 
 	sfRenderWindow_drawText(g->render, text, NULL);
+}
+
+void sfText_setWString(sfText* text, const wchar_t* string)
+{
+	if (sizeof(wchar_t) == 4)
+	{
+		sfText_setUnicodeString(text, (const sfUint32*) string);
+	}
+	else
+	{
+		size_t n = wcslen(string)+1;
+		sfUint32 buffer[n];
+		for (size_t i = 0; i < n; i++)
+			buffer[i] = string[i];
+		sfText_setUnicodeString(text, buffer);
+	}
 }

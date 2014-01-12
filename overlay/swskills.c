@@ -73,7 +73,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 			swprintf(buffer, 1024, L"%ls %.0f (%.0f%%)", g->u->sskills[i].name, level, progress);
 
 			sfText_setPosition(text, pos);
-			sfText_setUnicodeString(text, (sfUint32*) buffer);
+			sfText_setWString(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 			pos.y += 20;
@@ -90,7 +90,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 			swprintf(buffer, 1024, L"%ls %.0f (%.0f%%)", g->u->materials[i].skill.name, level, progress);
 
 			sfText_setPosition(text, pos);
-			sfText_setUnicodeString(text, (sfUint32*) buffer);
+			sfText_setWString(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 			pos.y += 20;
@@ -105,7 +105,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 			swprintf(buffer, 1024, L"%ls %i", g->u->iskills[i].name, (int)floor(s*100));
 
 			sfText_setPosition(text, pos);
-			sfText_setUnicodeString(text, (sfUint32*) buffer);
+			sfText_setWString(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 			pos.y += 20;

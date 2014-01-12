@@ -58,14 +58,14 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 	for (int i = 0; i < g->u->n_slots; i++)
 	{
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) g->u->slots[i].name);
+		sfText_setWString(text, g->u->slots[i].name); // TODO
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		int id = g->player->equipment[i];
-		sfUint32* txt = (sfUint32*) (id >= 0 ? g->u->items[id].name : L"-");
+		wchar_t* txt = id >= 0 ? g->u->items[id].name : L"-";
 		pos.x += 150;
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, txt);
+		sfText_setWString(text, txt); // TODO
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 		pos.x -= 150;
 
@@ -103,10 +103,10 @@ char swequipment_catch(swequipment_t* w, game_t* g, int _x, int _y, int t)
 		pos.y += 20;
 
 		int id = g->player->equipment[i];
-		sfUint32* txt = (sfUint32*) (id >= 0 ? g->u->items[id].name : L"-");
+		wchar_t* txt = id >= 0 ? g->u->items[id].name : L"-";
 		pos.x += 150;
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, txt);
+		sfText_setWString(text, txt);
 		pos.x -= 150;
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);

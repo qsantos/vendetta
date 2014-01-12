@@ -51,4 +51,6 @@ int  graphics_spriteForImg(graphics_t* g, const char* filename);
 void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h, float p);
 void graphics_drawTooltip    (graphics_t* g, float x, float y, const wchar_t* txt);
 
+void sfText_setWString(sfText* text, const wchar_t* string);
+
 #endif

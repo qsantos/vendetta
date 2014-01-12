@@ -67,7 +67,7 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 		sfText_setFont         (text, g->font);
 		sfText_setCharacterSize(text, 18);
 	}
-	sfText_setUnicodeString(text, (sfUint32*) w->name);
+	sfText_setWString(text, w->name);
 	sfFloatRect rect = sfText_getLocalBounds(text);
 	pos.x += (SW_WIDTH-rect.width)/2;
 	pos.y += + 20;

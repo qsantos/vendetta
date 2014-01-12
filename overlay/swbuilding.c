@@ -97,7 +97,7 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, int _x, int _y)
 		swprintf(buffer, 1024, L"%ls %ls", action, name);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (sfFloatRect_contains(&rect, x, y))
@@ -124,7 +124,7 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, int _x, int _y)
 
 		wchar_t* name = g->u->items[c->id].name;
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) name);
+		sfText_setWString(text, name);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
@@ -166,8 +166,11 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 	sfVector2f pos = {0, 0};
 
+	wchar_t buffer[1024];
+	swprintf(buffer, 1024, L"%ls", t->name);
+
 	sfText_setPosition(text, pos);
-	sfText_setUnicodeString(text, (sfUint32*) t->name);
+	sfText_setWString(text, buffer);
 	sfRenderWindow_drawText(g->g->render, text, NULL);
 	pos.y += 20;
 
@@ -183,7 +186,7 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 		swprintf(buffer, 1024, L"%ls %ls", action, name);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 	pos.y += 20;
@@ -209,7 +212,7 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 			swprintf(buffer, 1024, L"%ls", name);
 
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) buffer);
+		sfText_setWString(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -260,7 +263,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
 
 		wchar_t* name = g->u->items[c->id].name;
 		sfText_setPosition(text, pos);
-		sfText_setUnicodeString(text, (sfUint32*) name);
+		sfText_setWString(text, name);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
