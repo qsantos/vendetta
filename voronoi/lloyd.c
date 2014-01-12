@@ -21,6 +21,10 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "qsort_r.h"
+
+# define M_PI		3.14159265358979323846	/* pi */
+
 static double heading(point_t p)
 {
 	double dir;
