@@ -16,7 +16,7 @@ vendetta: $(OBJ)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $*.c -o $*.o
-	@$(CC) -MM $(CFLAGS) $*.c > $*.d
+	@$(CC) -MM -MT $@ $(CFLAGS) $*.c > $*.d
 
 clean:
 	@echo rm -f [*.o] [*.d]
