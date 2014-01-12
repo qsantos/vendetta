@@ -70,9 +70,17 @@ wchar_t* strdupwcs(const char*    s);
 ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 
 #include <limits.h>
+static inline float frnd(float min, float max)
+{
+	return min + ((float) rand() / RAND_MAX) * (max-min);
+}
+static inline float cfrnd(float max)
+{
+	return frnd(-max/2, max/2);
+}
 static inline int rnd_pick(const float* probas)
 {
-	float selected = (float) rand() / INT_MAX;
+	float selected = frnd(0, 1);
 	int i = 0;
 	while (selected > probas[i])
 	{

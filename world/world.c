@@ -43,8 +43,8 @@ world_t* world_init(universe_t* u)
 	vr_diagram_init(&v, w->tilesx, w->tilesy);
 	for (size_t i = 0; i < 1000; i++)
 	{
-		double x = ( (double) rand() / INT_MAX ) * w->tilesx;
-		double y = ( (double) rand() / INT_MAX ) * w->tilesy;
+		double x = frnd(0, w->tilesx);
+		double y = frnd(0, w->tilesy);
 		vr_diagram_point(&v, (point_t){x,y});
 	}
 	vr_lloyd_relaxation(&v);
@@ -147,9 +147,7 @@ world_t* world_init(universe_t* u)
 	{
 		character_t* c = &w->characters[i];
 		character_init(c, u);
-		float x = (0.5 - ((float) rand()/INT_MAX)) * width;
-		float y = (0.5 - ((float) rand()/INT_MAX)) * height;
-		character_setPosition(c, x, y);
+		character_setPosition(c, cfrnd(width), cfrnd(height));
 	}
 	// END character generation
 
@@ -164,16 +162,16 @@ world_t* world_init(universe_t* u)
 		mine_t* m = &w->mines[i];
 		int type = i;
 		mine_init(m, &u->mines[type]);
-		m->o.x = (0.5 - ((float) rand()/INT_MAX)) * width;
-		m->o.y = (0.5 - ((float) rand()/INT_MAX)) * height;
+		m->o.x = cfrnd(width);
+		m->o.y = cfrnd(height);
 	}
 	for (int i = u->n_mines; i < w->n_mines; i++)
 	{
 		mine_t* m = &w->mines[i];
 		int type = rnd_pick(mine_probas);
 		mine_init(m, &u->mines[type]);
-		m->o.x = (0.5 - ((float) rand()/INT_MAX)) * width;
-		m->o.y = (0.5 - ((float) rand()/INT_MAX)) * height;
+		m->o.x = cfrnd(width);
+		m->o.y = cfrnd(height);
 	}
 	// END mine generation
 
