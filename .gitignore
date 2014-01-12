@@ -1,4 +1,8 @@
 *.o
 *.d
+*.gch
 *.swp
+*.so
+*.dll
 vendetta
+vendetta.exe
