@@ -36,12 +36,23 @@ wchar_t* wcsdup(const wchar_t* s)
 	return ret;
 }
 
+#ifdef __WIN32__
+#include <windows.h>
+#include <Winnls.h>
 wchar_t* strdupwcs(const char* s)
 {
 	wchar_t buffer[1024];
-	swprintf(buffer, 1024, L"%s", s);
+	MultiByteToWideChar(CP_UTF8, 0, s, -1, buffer, 1024);
 	return wcsdup(buffer);
 }
+#else
+wchar_t* strdupwcs(const char* s)
+{
+	wchar_t buffer[1024];
+	mbstowcs(buffer, s, 1024);
+	return wcsdup(buffer);
+}
+#endif
 
 ssize_t getline(char** lineptr, size_t* n, FILE* stream)
 {
