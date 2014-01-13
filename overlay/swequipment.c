@@ -51,15 +51,18 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {0, 0};
+	float x = 0;
+	float y = 0;
+	char caught = 0;
 
 	// keep track of two-handed weapons (take two slots)
 	char twohanded = 0;
+
 	for (size_t i = 0; i < g->u->n_slots; i++)
 	{
 		kindOf_slot_t* s = &g->u->slots[i];
 
-		sfText_setPosition(text, pos);
+		sfText_setPosition(text, (sfVector2f){x,y});
 		sfText_setUTF8(text, s->name); // TODO
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
@@ -78,19 +81,16 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 			txt = "-";
 		}
 
-		pos.x += 150;
-		sfText_setPosition(text, pos);
-		pos.x -= 150;
-		pos.y += 20;
+		sfText_setPosition(text, (sfVector2f){x+150,y});
 		sfText_setUTF8(text, txt); // TODO
 		if (do_draw)
-		{
 			sfRenderWindow_drawText(g->g->render, text, NULL);
-			continue;
-		}
+		else
+			caught |= sfText_contains(text, cursor);
 
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+		y += 20;
+
+		if (caught)
 			return i;
 	}
 

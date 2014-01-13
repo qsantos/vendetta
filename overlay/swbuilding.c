@@ -94,16 +94,18 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {0, 0};
+	float x = 0;
+	float y = 0;
+	char caught = 0;
 
 	char buffer[1024];
 	snprintf(buffer, 1024, "%s", t->name);
-	sfText_setPosition(text, pos);
+	sfText_setPosition(text, (sfVector2f){x,y});
 	sfText_setUTF8(text, buffer);
 	if (do_draw)
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
-	pos.y += 20;
+	y += 20;
 
 	if (t->make.n_res != 0)
 	{
@@ -116,12 +118,13 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		char buffer[1024];
 		snprintf(buffer, 1024, "%s %s", action, name);
 
-		sfText_setPosition(text, pos);
+		sfText_setPosition(text, (sfVector2f){x,y});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
+
+		y += 20;
 	}
-	pos.y += 20;
 
 	int cur_work = b->work_n == 0 ? -1 : b->work_list[0];
 	for (size_t i = 0; i < t->n_items; i++)
@@ -134,8 +137,6 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		if (!c->is_item)
 			exit(1);
 
-		pos.y += 20;
-
 		char* name = g->u->items[c->id].name;
 		char buffer[1024];
 		if ((int) i == cur_work)
@@ -143,16 +144,16 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		else
 			snprintf(buffer, 1024, "%s", name);
 
-		sfText_setPosition(text, pos);
+		sfText_setPosition(text, (sfVector2f){x,y});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
-		{
 			sfRenderWindow_drawText(g->g->render, text, NULL);
-			continue;
-		}
+		else
+			caught |= sfText_contains(text, cursor);
 
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+		y += 20;
+
+		if (caught)
 			return i;
 	}
 
