@@ -134,7 +134,7 @@ void overlay_draw(overlay_t* o, game_t* g)
 	swskills_draw   (&o->swskills,    g, 1);
 	swequipment_draw(&o->swequipment, g, 1);
 
-	ov_build_draw(&o->build, g);
+	ov_build_draw(&o->build, g, 1);
 
 	overlay_cursor(g->o, g);
 
@@ -165,4 +165,10 @@ int overlay_wheel(overlay_t* o, int x, int y, int d)
 	subwindow_wheel(&o->swskills.w,    x, y, d) ||
 	subwindow_wheel(&o->swequipment.w, x, y, d) ||
 	0;
+}
+
+sfVector2f overlay_mouse(graphics_t* g)
+{
+	sfVector2i mouse = sfMouse_getPosition((sfWindow*) g->render);
+	return sfRenderWindow_mapPixelToCoords(g->render, mouse, g->overlay_view);
 }

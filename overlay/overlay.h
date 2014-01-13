@@ -46,4 +46,6 @@ void overlay_draw  (overlay_t* o, game_t* g);
 int  overlay_catch (overlay_t* o, game_t* g, int x, int y, int t);
 int  overlay_wheel (overlay_t* o, int x, int y, int d);
 
+sfVector2f overlay_mouse(graphics_t* g);
+
 #endif
