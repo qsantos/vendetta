@@ -26,7 +26,7 @@
 
 void swinventory_init(swinventory_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, L"Inventory", 1024-SW_WIDTH*2, 0);
+	subwindow_init(&w->w, g, "Inventory", 1024-SW_WIDTH*2, 0);
 }
 
 void swinventory_exit(swinventory_t* w)
@@ -34,34 +34,34 @@ void swinventory_exit(swinventory_t* w)
 	subwindow_exit(&w->w);
 }
 
-size_t swinventory_materialTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_material_t* m)
+size_t swinventory_materialTooltip(char* buffer, size_t n, universe_t* u, kindOf_material_t* m)
 {
 	size_t cur = 0;
 
-	cur += swprintf(buffer+cur, n-cur, L"%ls", m->name);
+	cur += snprintf(buffer+cur, n-cur, "%s", m->name);
 
 	if (!m->edible)
 		return cur;
 
-	cur += swprintf(buffer+cur, n-cur, L"\nedible:");
+	cur += snprintf(buffer+cur, n-cur, "\nedible:");
 	for (int i = 0; i < N_STATUSES; i++)
 	{
 		float b = m->eatBonus[i];
 		if (b == 0)
 			continue;
 
-		wchar_t* name = u->statuses[i].name;
-		cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
+		char* name = u->statuses[i].name;
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
 	}
 
 	return cur;
 }
 
-size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_item_t* it)
+size_t swinventory_itemTooltip(char* buffer, size_t n, universe_t* u, kindOf_item_t* it)
 {
 	size_t cur = 0;
 
-	cur += swprintf(buffer+cur, n-cur, L"%ls", it->name);
+	cur += snprintf(buffer+cur, n-cur, "%s", it->name);
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 	{
@@ -69,8 +69,8 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 		if (b == 0)
 			continue;
 
-		wchar_t* name = u->sskills[i].name;
-		cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
+		char* name = u->sskills[i].name;
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
 	}
 
 	for (size_t i = 0; i < u->n_materials; i++)
@@ -79,8 +79,8 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 		if (b == 0)
 			continue;
 
-		wchar_t* name = u->materials[i].skill.name;
-		cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
+		char* name = u->materials[i].skill.name;
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
 	}
 
 	for (size_t i = 0; i < u->n_iskills; i++)
@@ -89,8 +89,8 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 		if (b == 0)
 			continue;
 
-		wchar_t* name = u->iskills[i].name;
-		cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
+		char* name = u->iskills[i].name;
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
 	}
 
 	return cur;
@@ -117,7 +117,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 
 	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
-		const wchar_t* name = g->u->materials[i].name;
+		const char* name = g->u->materials[i].name;
 		float amount = floor(g->player->inventory.materials[i]);
 
 		if (amount == 0)
@@ -125,11 +125,11 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 
 		pos.y += 20;
 
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
@@ -143,7 +143,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 
 	for (size_t i = 0; i < g->u->n_items; i++)
 	{
-		wchar_t* name = g->u->items[i].name;
+		char* name = g->u->items[i].name;
 		float amount = floor(g->player->inventory.items[i]);
 
 		if (amount == 0)
@@ -151,11 +151,11 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 
 		pos.y += 20;
 
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
@@ -190,7 +190,7 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
-		const wchar_t* name = g->u->materials[i].name;
+		const char* name = g->u->materials[i].name;
 		float amount = floor(g->player->inventory.materials[i]);
 
 		if (amount == 0)
@@ -198,17 +198,17 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 		pos.y += 20;
 
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
 	for (size_t i = 0; i < g->u->n_items; i++)
 	{
-		wchar_t* name = g->u->items[i].name;
+		char* name = g->u->items[i].name;
 		float amount = floor(g->player->inventory.items[i]);
 
 		if (amount == 0)
@@ -216,11 +216,11 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 		pos.y += 20;
 
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -251,7 +251,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 
 	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
-		const wchar_t* name = g->u->materials[i].name;
+		const char* name = g->u->materials[i].name;
 		float amount = floor(g->player->inventory.materials[i]);
 
 		if (amount == 0)
@@ -259,11 +259,11 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 
 		pos.y += 20;
 
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
@@ -282,7 +282,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 
 	for (size_t i = 0; i < g->u->n_items; i++)
 	{
-		wchar_t* name = g->u->items[i].name;
+		char* name = g->u->items[i].name;
 		float amount = floor(g->player->inventory.items[i]);
 
 		if (amount == 0)
@@ -290,11 +290,11 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 
 		pos.y += 20;
 
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls: %.0f", name, amount);
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %.0f", name, amount);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))

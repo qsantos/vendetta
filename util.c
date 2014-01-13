@@ -28,32 +28,6 @@ char* strdup(const char* s)
 	return ret;
 }
 
-wchar_t* wcsdup(const wchar_t* s)
-{
-	size_t n = sizeof(wchar_t)*(wcslen(s)+1);
-	wchar_t* ret = malloc(n);
-	memcpy(ret, s, n);
-	return ret;
-}
-
-#ifdef __WIN32__
-#include <windows.h>
-#include <Winnls.h>
-wchar_t* strdupwcs(const char* s)
-{
-	wchar_t buffer[1024];
-	MultiByteToWideChar(CP_UTF8, 0, s, -1, buffer, 1024);
-	return wcsdup(buffer);
-}
-#else
-wchar_t* strdupwcs(const char* s)
-{
-	wchar_t buffer[1024];
-	mbstowcs(buffer, s, 1024);
-	return wcsdup(buffer);
-}
-#endif
-
 ssize_t getline(char** lineptr, size_t* n, FILE* stream)
 {
 	size_t i = 0;

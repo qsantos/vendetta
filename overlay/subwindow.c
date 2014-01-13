@@ -18,9 +18,11 @@
 
 #include "subwindow.h"
 
-void subwindow_init(subwindow_t* w, graphics_t* g, const wchar_t* name, float x, float y)
+#include "../util.h"
+
+void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, float y)
 {
-	w->name = name;
+	w->name = strdup(name);
 	w->x = x;
 	w->y = y;
 	w->visible = 1;
@@ -30,7 +32,7 @@ void subwindow_init(subwindow_t* w, graphics_t* g, const wchar_t* name, float x,
 
 void subwindow_exit(subwindow_t* w)
 {
-	(void) w;
+	free(w->name);
 }
 
 char subwindow_cursor(subwindow_t* w, int x, int y)
@@ -67,7 +69,7 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 		sfText_setFont         (text, g->font);
 		sfText_setCharacterSize(text, 18);
 	}
-	sfText_setWString(text, w->name);
+	sfText_setUTF8(text, w->name);
 	sfFloatRect rect = sfText_getLocalBounds(text);
 	pos.x += (SW_WIDTH-rect.width)/2;
 	pos.y += + 20;

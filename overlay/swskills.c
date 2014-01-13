@@ -27,7 +27,7 @@
 
 void swskills_init(swskills_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, L"Skills", 1024-SW_WIDTH*1, 0);
+	subwindow_init(&w->w, g, "Skills", 1024-SW_WIDTH*1, 0);
 }
 
 void swskills_exit(swskills_t* w)
@@ -61,7 +61,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 	}
 
 	sfVector2f pos = {0, 0};
-	wchar_t buffer[1024];
+	char buffer[1024];
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 	{
@@ -70,10 +70,10 @@ void swskills_draw(swskills_t* w, game_t* g)
 		{
 			float level;
 			float progress = 100 * modff(s, &level);
-			swprintf(buffer, 1024, L"%ls %.0f (%.0f%%)", g->u->sskills[i].name, level, progress);
+			snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->sskills[i].name, level, progress);
 
 			sfText_setPosition(text, pos);
-			sfText_setWString(text, buffer);
+			sfText_setUTF8(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 			pos.y += 20;
@@ -87,10 +87,10 @@ void swskills_draw(swskills_t* w, game_t* g)
 		{
 			float level;
 			float progress = 100 * modff(s, &level);
-			swprintf(buffer, 1024, L"%ls %.0f (%.0f%%)", g->u->materials[i].skill.name, level, progress);
+			snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->materials[i].skill.name, level, progress);
 
 			sfText_setPosition(text, pos);
-			sfText_setWString(text, buffer);
+			sfText_setUTF8(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 			pos.y += 20;
@@ -102,10 +102,10 @@ void swskills_draw(swskills_t* w, game_t* g)
 		skill_t s = g->player->iskills[i];
 		if (s != 1)
 		{
-			swprintf(buffer, 1024, L"%ls %i", g->u->iskills[i].name, (int)floor(s*100));
+			snprintf(buffer, 1024, "%s %i", g->u->iskills[i].name, (int)floor(s*100));
 
 			sfText_setPosition(text, pos);
-			sfText_setWString(text, buffer);
+			sfText_setUTF8(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 			pos.y += 20;

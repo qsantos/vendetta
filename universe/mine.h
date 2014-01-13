@@ -21,14 +21,12 @@
 
 typedef struct kindOf_mine kindOf_mine_t;
 
-#include <wchar.h>
-
 #include "transform.h"
 
 struct kindOf_mine
 {
 	int id;
-	wchar_t* name;
+	char* name;
 
 	transform_t harvest;
 };

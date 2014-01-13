@@ -21,8 +21,6 @@
 
 typedef struct kindOf_skill kindOf_skill_t;
 
-#include <wchar.h>
-
 typedef enum
 {
 	SK_BUILD,
@@ -34,7 +32,7 @@ typedef enum
 
 struct kindOf_skill
 {
-	wchar_t* name;
+	char* name;
 };
 
 void kindOf_skill_init(kindOf_skill_t* s);

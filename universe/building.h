@@ -21,14 +21,12 @@
 
 typedef struct kindOf_building kindOf_building_t;
 
-#include <wchar.h>
-
 #include "../graphics.h"
 #include "transform.h"
 
 struct kindOf_building
 {
-	wchar_t* name;
+	char* name;
 
 	float width;
 	float height;

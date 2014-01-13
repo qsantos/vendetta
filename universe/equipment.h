@@ -21,11 +21,9 @@
 
 typedef struct kindOf_slot kindOf_slot_t;
 
-#include <wchar.h>
-
 struct kindOf_slot
 {
-	wchar_t* name;
+	char* name;
 
 	int category;
 };

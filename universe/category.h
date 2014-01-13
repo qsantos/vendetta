@@ -21,11 +21,9 @@
 
 typedef struct kindOf_category kindOf_category_t;
 
-#include <wchar.h>
-
 struct kindOf_category
 {
-	wchar_t* name;
+	char* name;
 };
 
 void kindOf_category_init(kindOf_category_t* c);

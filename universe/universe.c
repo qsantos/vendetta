@@ -47,38 +47,38 @@ universe_t* universe_init(graphics_t* g)
 	for (size_t i = 0; i < N_STATUSES; i++)
 		kindOf_status_init(&u->statuses[i]);
 
-	u->statuses[ST_HEALTH] .name = L"Santé";
-	u->statuses[ST_STAMINA].name = L"Énergie";
-	u->statuses[ST_MORAL]  .name = L"Moral";
-	u->statuses[ST_MANA]   .name = L"Magie";
+	u->statuses[ST_HEALTH] .name = "Santé";
+	u->statuses[ST_STAMINA].name = "Énergie";
+	u->statuses[ST_MORAL]  .name = "Moral";
+	u->statuses[ST_MANA]   .name = "Magie";
 
 	u->n_categories = 11;
 	u->categories = CALLOC(kindOf_category_t, u->n_categories);
-	u->categories[ 0].name = L"Arme à une main";
-	u->categories[ 1].name = L"Arme à deux mains";
-	u->categories[ 2].name = L"Armure";
-	u->categories[ 3].name = L"Casque";
-	u->categories[ 4].name = L"Chaussures";
-	u->categories[ 5].name = L"Dos";
-	u->categories[ 6].name = L"Anneau à une main";
-	u->categories[ 7].name = L"Anneau à 2 mains";
-	u->categories[ 8].name = L"Bras";
-	u->categories[ 9].name = L"Colliers";
-	u->categories[10].name = L"Monture";
+	u->categories[ 0].name = "Arme à une main";
+	u->categories[ 1].name = "Arme à deux mains";
+	u->categories[ 2].name = "Armure";
+	u->categories[ 3].name = "Casque";
+	u->categories[ 4].name = "Chaussures";
+	u->categories[ 5].name = "Dos";
+	u->categories[ 6].name = "Anneau à une main";
+	u->categories[ 7].name = "Anneau à 2 mains";
+	u->categories[ 8].name = "Bras";
+	u->categories[ 9].name = "Colliers";
+	u->categories[10].name = "Monture";
 
 	u->n_slots = 11;
 	u->slots = CALLOC(kindOf_slot_t, u->n_slots);
-	u->slots[ 0] = (kindOf_slot_t){L"Main droite",       0};
-	u->slots[ 1] = (kindOf_slot_t){L"Main gauche",       0};
-	u->slots[ 2] = (kindOf_slot_t){L"Torse",             2};
-	u->slots[ 3] = (kindOf_slot_t){L"Tête",              3};
-	u->slots[ 4] = (kindOf_slot_t){L"Pieds",             4};
-	u->slots[ 5] = (kindOf_slot_t){L"Dos",               5};
-	u->slots[ 6] = (kindOf_slot_t){L"Annulaire droit",   6};
-	u->slots[ 7] = (kindOf_slot_t){L"Annulaire gauche",  6};
-	u->slots[ 8] = (kindOf_slot_t){L"Main",              8};
-	u->slots[ 9] = (kindOf_slot_t){L"Cou",               9};
-	u->slots[10] = (kindOf_slot_t){L"Monture",          10};
+	u->slots[ 0] = (kindOf_slot_t){"Main droite",       0};
+	u->slots[ 1] = (kindOf_slot_t){"Main gauche",       0};
+	u->slots[ 2] = (kindOf_slot_t){"Torse",             2};
+	u->slots[ 3] = (kindOf_slot_t){"Tête",              3};
+	u->slots[ 4] = (kindOf_slot_t){"Pieds",             4};
+	u->slots[ 5] = (kindOf_slot_t){"Dos",               5};
+	u->slots[ 6] = (kindOf_slot_t){"Annulaire droit",   6};
+	u->slots[ 7] = (kindOf_slot_t){"Annulaire gauche",  6};
+	u->slots[ 8] = (kindOf_slot_t){"Main",              8};
+	u->slots[ 9] = (kindOf_slot_t){"Cou",               9};
+	u->slots[10] = (kindOf_slot_t){"Monture",          10};
 
 	// parse configuration files
 	u->tmp_materials = NULL;
@@ -290,7 +290,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			if (strncmp(var, "CompetencesSpeciales", 20) == 0)
 			{
 				int id = atoi(var+20) - 1;
-				u->sskills[id].name = strdupwcs(val);
+				u->sskills[id].name = strdup(val);
 			}
 		}
 
@@ -301,7 +301,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				u->materials[cur_id].name = strdupwcs(val);
+				u->materials[cur_id].name = strdup(val);
 			}
 			else if (strcmp(var, "VitesseExtraction") == 0)
 			{
@@ -320,7 +320,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			}
 			else if (strcmp(var, "NomCompetence") == 0)
 			{
-				u->materials[cur_id].skill.name = strdupwcs(val);
+				u->materials[cur_id].skill.name = strdup(val);
 			}
 			else if (strcmp(var, "Mangeable") == 0)
 			{
@@ -347,7 +347,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0 || strcmp(var, "NomFR") == 0)
 			{
-				u->items[cur_id].name = strdupwcs(val);
+				u->items[cur_id].name = strdup(val);
 			}
 			else if (strcmp(var, "Categorie") == 0)
 			{
@@ -390,7 +390,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				u->mines[cur_id].name = strdupwcs(val);
+				u->mines[cur_id].name = strdup(val);
 			}
 			else if (strcmp(var, "TypeRessource") == 0)
 			{
@@ -402,7 +402,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "Nom") == 0)
 			{
-				u->buildings[cur_id].name = strdupwcs(val);
+				u->buildings[cur_id].name = strdup(val);
 			}
 			else if (strcmp(var, "Image") == 0)
 			{
@@ -463,7 +463,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			if (strcmp(var, "NomFR") == 0)
 			{
-				u->iskills[cur_id].name = strdupwcs(val);
+				u->iskills[cur_id].name = strdup(val);
 			}
 		}
 	}

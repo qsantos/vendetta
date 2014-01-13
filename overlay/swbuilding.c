@@ -27,7 +27,7 @@
 
 void swbuilding_init(swbuilding_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, L"Building", 1024-SW_WIDTH*3, 0);
+	subwindow_init(&w->w, g, "Building", 1024-SW_WIDTH*3, 0);
 }
 
 void swbuilding_exit(swbuilding_t* w)
@@ -35,25 +35,25 @@ void swbuilding_exit(swbuilding_t* w)
 	subwindow_exit(&w->w);
 }
 
-size_t component_tooltip(wchar_t* buffer, size_t n, universe_t* u, component_t* c)
+size_t component_tooltip(char* buffer, size_t n, universe_t* u, component_t* c)
 {
 	if (c->amount == 0)
 		return 0;
-	wchar_t* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
-	return swprintf(buffer, n, L"\n%.1f %ls", floor(c->amount), name);
+	char* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
+	return snprintf(buffer, n, "\n%.1f %s", floor(c->amount), name);
 }
-size_t swbuilding_tooltip(wchar_t* buffer, size_t n, universe_t* u, transform_t* tr)
+size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr)
 {
 	size_t cur = 0;
 
 	// result components
-	cur += swprintf(buffer+cur, n-cur, L"make:");
+	cur += snprintf(buffer+cur, n-cur, "make:");
 	for (int i = 0; i < tr->n_res; i++)
 		cur += component_tooltip(buffer+cur, n-cur, u, &tr->res[i]);
 
 	// required components
 	if (tr->n_req != 0)
-		cur += swprintf(buffer+cur, n-cur, L"\n\nneed:");
+		cur += snprintf(buffer+cur, n-cur, "\n\nneed:");
 	for (int i = 0; i < tr->n_req; i++)
 		cur += component_tooltip(buffer+cur, n-cur, u, &tr->req[i]);
 
@@ -91,18 +91,18 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, int _x, int _y)
 		if (c->is_item)
 			exit(1);
 
-		const wchar_t* action = t->make.n_req == 0 ? L"Harvest" : L"Transform to";
-		const wchar_t* name   = g->u->materials[c->id].name;
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls %ls", action, name);
+		const char* action = t->make.n_req == 0 ? "Harvest" : "Transform to";
+		const char* name   = g->u->materials[c->id].name;
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s %s", action, name);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (sfFloatRect_contains(&rect, x, y))
 		{
-			wchar_t buffer[1024];
+			char buffer[1024];
 			swbuilding_tooltip(buffer, 1024, g->u, &t->make);
 			graphics_drawTooltip(g->g, _x, _y, buffer);
 			return 1;
@@ -122,15 +122,15 @@ char swbuilding_cursor(swbuilding_t* w, game_t* g, int _x, int _y)
 
 		pos.y += 20;
 
-		wchar_t* name = g->u->items[c->id].name;
+		char* name = g->u->items[c->id].name;
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, name);
+		sfText_setUTF8(text, name);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))
 			continue;
 
-		wchar_t buffer[1024];
+		char buffer[1024];
 		swbuilding_tooltip(buffer, 1024, g->u, tr);
 		graphics_drawTooltip(g->g, _x, _y, buffer);
 		return 1;
@@ -166,11 +166,11 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 	sfVector2f pos = {0, 0};
 
-	wchar_t buffer[1024];
-	swprintf(buffer, 1024, L"%ls", t->name);
+	char buffer[1024];
+	snprintf(buffer, 1024, "%s", t->name);
 
 	sfText_setPosition(text, pos);
-	sfText_setWString(text, buffer);
+	sfText_setUTF8(text, buffer);
 	sfRenderWindow_drawText(g->g->render, text, NULL);
 	pos.y += 20;
 
@@ -180,13 +180,13 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 		if (c->is_item)
 			exit(1);
 
-		const wchar_t* action = t->make.n_req == 0 ? L"Harvest" : L"Transform to";
-		const wchar_t* name   = g->u->materials[c->id].name;
-		wchar_t buffer[1024];
-		swprintf(buffer, 1024, L"%ls %ls", action, name);
+		const char* action = t->make.n_req == 0 ? "Harvest" : "Transform to";
+		const char* name   = g->u->materials[c->id].name;
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s %s", action, name);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 	pos.y += 20;
@@ -204,15 +204,15 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 		pos.y += 20;
 
-		wchar_t* name = g->u->items[c->id].name;
-		wchar_t buffer[1024];
+		char* name = g->u->items[c->id].name;
+		char buffer[1024];
 		if ((int) i == cur_work)
-			swprintf(buffer, 1024, L"%ls (%i%%)", name, (int) floor(100*b->work_progress));
+			snprintf(buffer, 1024, "%s (%i%%)", name, (int) floor(100*b->work_progress));
 		else
-			swprintf(buffer, 1024, L"%ls", name);
+			snprintf(buffer, 1024, "%s", name);
 
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, buffer);
+		sfText_setUTF8(text, buffer);
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
@@ -261,9 +261,9 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
 
 		pos.y += 20;
 
-		wchar_t* name = g->u->items[c->id].name;
+		char* name = g->u->items[c->id].name;
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, name);
+		sfText_setUTF8(text, name);
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
 		if (!sfFloatRect_contains(&rect, x, y))

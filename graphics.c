@@ -161,7 +161,7 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
 }
 
-void graphics_drawTooltip(graphics_t* g, float x, float y, const wchar_t* txt)
+void graphics_drawTooltip(graphics_t* g, float x, float y, const char* txt)
 {
 	static sfText* text = NULL;
 	static sfRectangleShape* frame = NULL;
@@ -180,7 +180,7 @@ void graphics_drawTooltip(graphics_t* g, float x, float y, const wchar_t* txt)
 
 	sfVector2f pos = {x + 24, y + 24};
 	sfText_setPosition(text, pos);
-	sfText_setWString(text, txt);
+	sfText_setUTF8(text, txt);
 	sfFloatRect rect = sfText_getGlobalBounds(text);
 
 	rect.top    -= 3;
@@ -194,18 +194,21 @@ void graphics_drawTooltip(graphics_t* g, float x, float y, const wchar_t* txt)
 	sfRenderWindow_drawText(g->render, text, NULL);
 }
 
-void sfText_setWString(sfText* text, const wchar_t* string)
+#ifdef __WIN32__
+#include <windows.h>
+#include <Winnls.h>
+#endif
+void sfText_setUTF8(sfText* text, const char* string)
 {
-	if (sizeof(wchar_t) == 4)
-	{
-		sfText_setUnicodeString(text, (const sfUint32*) string);
-	}
-	else
-	{
-		size_t n = wcslen(string)+1;
-		sfUint32 buffer[n];
-		for (size_t i = 0; i < n; i++)
-			buffer[i] = string[i];
-		sfText_setUnicodeString(text, buffer);
-	}
+	sfUint32 buf32[1024];
+#ifdef __WIN32__
+	wchar_t buf16[1024];
+	MultiByteToWideChar(CP_UTF8, 0, string, -1, buf16, 1024);
+	size_t n = wcslen(buf16)+1;
+	for (size_t i = 0; i < n; i++)
+		buf32[i] = buf16[i];
+#else
+	mbstowcs((wchar_t*) buf32, string, 1024);
+#endif
+	sfText_setUnicodeString(text, buf32);
 }

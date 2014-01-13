@@ -20,7 +20,7 @@
 
 void swequipment_init(swequipment_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, L"Equipment", 1024-SW_WIDTH*3, SW_HEIGHT);
+	subwindow_init(&w->w, g, "Equipment", 1024-SW_WIDTH*3, SW_HEIGHT);
 }
 
 void swequipment_exit(swequipment_t* w)
@@ -58,14 +58,14 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 	for (size_t i = 0; i < g->u->n_slots; i++)
 	{
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, g->u->slots[i].name); // TODO
+		sfText_setUTF8(text, g->u->slots[i].name); // TODO
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		int id = g->player->equipment[i];
-		wchar_t* txt = id >= 0 ? g->u->items[id].name : L"-";
+		char* txt = id >= 0 ? g->u->items[id].name : "-";
 		pos.x += 150;
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, txt); // TODO
+		sfText_setUTF8(text, txt); // TODO
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 		pos.x -= 150;
 
@@ -103,10 +103,10 @@ char swequipment_catch(swequipment_t* w, game_t* g, int _x, int _y, int t)
 		pos.y += 20;
 
 		int id = g->player->equipment[i];
-		wchar_t* txt = id >= 0 ? g->u->items[id].name : L"-";
+		char* txt = id >= 0 ? g->u->items[id].name : "-";
 		pos.x += 150;
 		sfText_setPosition(text, pos);
-		sfText_setWString(text, txt);
+		sfText_setUTF8(text, txt);
 		pos.x -= 150;
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);

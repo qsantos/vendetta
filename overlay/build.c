@@ -84,21 +84,21 @@ void draw_buildPanel(game_t* g)
 	}
 }
 
-void ov_build_tooltip(wchar_t* buffer, size_t n, game_t* g, kindOf_building_t* b)
+void ov_build_tooltip(char* buffer, size_t n, game_t* g, kindOf_building_t* b)
 {
 	size_t cur = 0;
-	cur += swprintf(buffer+cur, n-cur, L"%ls", b->name);
+	cur += snprintf(buffer+cur, n-cur, "%s", b->name);
 
 	// required materials
 	if (b->build.n_req != 0)
-		cur += swprintf(buffer+cur, n-cur, L"\n\nneed:");
+		cur += snprintf(buffer+cur, n-cur, "\n\nneed:");
 	for (int i = 0; i < b->build.n_req; i++)
 	{
 		component_t* c = &b->build.req[i];
 		if (c->amount == 0)
 			continue;
 		kindOf_material_t* m = &g->u->materials[c->id];
-		cur += swprintf(buffer+cur, n-cur, L"\n- %.1f of %ls", c->amount, m->name);
+		cur += snprintf(buffer+cur, n-cur, "\n- %.1f of %s", c->amount, m->name);
 	}
 
 	// available material
@@ -106,17 +106,17 @@ void ov_build_tooltip(wchar_t* buffer, size_t n, game_t* g, kindOf_building_t* b
 	{
 		int id = b->make.res[0].id;
 		kindOf_material_t* m = &g->u->materials[id];
-		cur += swprintf(buffer+cur, n-cur, L"\n\ntransform to %ls", m->name);
+		cur += snprintf(buffer+cur, n-cur, "\n\ntransform to %s", m->name);
 	}
 
 	// list items
 	if (b->n_items != 0)
-		cur += swprintf(buffer+cur, n-cur, L"\n\nmake:");
+		cur += snprintf(buffer+cur, n-cur, "\n\nmake:");
 	for (size_t i = 0; i < b->n_items; i++)
 	{
 		int id = b->items[i].res[0].id;
 		kindOf_item_t* it = &g->u->items[id];
-		cur += swprintf(buffer+cur, n-cur, L"\n- %ls", it->name);
+		cur += snprintf(buffer+cur, n-cur, "\n- %s", it->name);
 	}
 }
 
@@ -132,7 +132,7 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 
 		if (sfFloatRect_contains(&rect, x, y))
 		{
-			wchar_t buffer[1024];
+			char buffer[1024];
 			ov_build_tooltip(buffer, 1024, g, b);
 			graphics_drawTooltip(g->g, x, y, buffer);
 			break;
@@ -163,7 +163,7 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 			{
 				int id = o->list[i];
 				kindOf_building_t* b = &g->u->buildings[id];
-				wchar_t buffer[1024];
+				char buffer[1024];
 				ov_build_tooltip(buffer, 1024, g, b);
 				graphics_drawTooltip(g->g, x, y, buffer);
 				break;

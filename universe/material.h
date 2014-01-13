@@ -21,14 +21,12 @@
 
 typedef struct kindOf_material kindOf_material_t;
 
-#include <wchar.h>
-
 #include "skill.h"
 #include "status.h"
 
 struct kindOf_material
 {
-	wchar_t* name;
+	char* name;
 
 	kindOf_skill_t skill;
 

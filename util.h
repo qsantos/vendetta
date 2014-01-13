@@ -42,32 +42,11 @@ static inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
 #define CREALLOC(P,T,N) ( (T*) check_alloc((N)*sizeof(T), P,    __FILE__, __LINE__) )
 
 
-#include <wchar.h>
-
-#ifdef __WIN32__
-#include <stdarg.h>
-extern _CRTIMP int __cdecl __MINGW_NOTHROW	vswprintf (wchar_t*, const wchar_t*, __VALIST);
-static inline int win_swprintf(wchar_t *wcs, size_t maxlen, const wchar_t *format, ...)
-{
-	(void) maxlen;
-
-	va_list args;
-	va_start(args, format);
-	int ret = vswprintf(wcs, format, args);
-	va_end(args);
-	return ret;
-}
-#define swprintf win_swprintf
-#endif
-
-#include <wchar.h>
 #include <sys/types.h>
 
-char*    strdup   (const char*    s);
-wchar_t* wcsdup   (const wchar_t* s);
-wchar_t* strdupwcs(const char*    s);
-
+char*   strdup (const char* s);
 ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+
 
 #include <limits.h>
 static inline float frnd(float min, float max)

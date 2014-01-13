@@ -21,14 +21,12 @@
 
 typedef struct kindOf_item kindOf_item_t;
 
-#include <wchar.h>
-
 #include "universe.h"
 #include "skill.h"
 
 struct kindOf_item
 {
-	wchar_t* name;
+	char* name;
 
 	int skill;
 	int category;

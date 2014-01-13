@@ -21,8 +21,6 @@
 
 typedef struct kindOf_status kindOf_status_t;
 
-#include <wchar.h>
-
 typedef enum
 {
 	ST_HEALTH,
@@ -34,7 +32,7 @@ typedef enum
 
 struct kindOf_status
 {
-	wchar_t* name;
+	char* name;
 };
 
 void kindOf_status_init(kindOf_status_t* s);
