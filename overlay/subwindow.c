@@ -102,7 +102,7 @@ char subwindow_wheel(subwindow_t* w, int x, int y, int delta)
 	if (!sfFloatRect_contains(&rect, x, y))
 		return 0;
 
-	sfView_move(w->view, (sfVector2f){0,-10*delta});
+	sfView_move(w->view, (sfVector2f){0,-20*delta});
 	return 1;
 }
 
