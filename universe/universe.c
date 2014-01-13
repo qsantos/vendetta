@@ -18,10 +18,31 @@
 
 #include "universe.h"
 
+
+#ifdef __WIN32__
+#define off64_t long long
+#else
+enum
+{
+	DT_UNKNOWN = 0,
+	DT_FIFO = 1,
+	DT_CHR = 2,
+	DT_DIR = 4,
+	DT_BLK = 6,
+	DT_REG = 8,
+	DT_LNK = 10,
+	DT_SOCK = 12,
+	DT_WHT = 14
+};
+#endif
+
 #include <string.h>
+#include <dirent.h>
 
 #include "../util.h"
 #include "ini.h"
+
+#define DIR_CONFIG "cfg/"
 
 void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
@@ -305,11 +326,22 @@ universe_t* universe_init(graphics_t* g)
 	// parse configuration files
 	cfg_ini_t ini;
 	cfg_ini_init(&ini);
-	cfg_ini_parse(&ini, "cfg/Parametres_Ressources.ini");
-	cfg_ini_parse(&ini, "cfg/Parametres_CompetencesObjets.ini");
-	cfg_ini_parse(&ini, "cfg/Parametres_Objets.ini");
-	cfg_ini_parse(&ini, "cfg/Parametres_Batiments.ini");
-	cfg_ini_parse(&ini, "cfg/Competences_Speciales.ini");
+	DIR *dir = opendir("cfg");
+	if (dir == NULL)
+	{
+		fprintf(stderr, "Cannot read 'cfg' folder\n");
+		exit(1);
+	}
+	struct dirent *ent;
+	char path[1024] = DIR_CONFIG;
+	while ((ent = readdir(dir)) != NULL)
+	{
+		if (ent->d_type == DT_DIR)
+			continue;
+		strncpy(path+strlen(DIR_CONFIG), ent->d_name, 1024-strlen(DIR_CONFIG));
+		cfg_ini_parse(&ini, path);
+	}
+	closedir(dir);
 
 	// apply configuration
 	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
