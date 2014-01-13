@@ -55,14 +55,31 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 
 	sfVector2f pos = {0, 0};
 
+	// keep track of two-handed weapons (take two slots)
+	char twohanded = 0;
 	for (size_t i = 0; i < g->u->n_slots; i++)
 	{
+		kindOf_slot_t* s = &g->u->slots[i];
+
 		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, g->u->slots[i].name); // TODO
+		sfText_setUTF8(text, s->name); // TODO
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		int id = g->player->equipment[i];
-		char* txt = id >= 0 ? g->u->items[id].name : "-";
+		char* txt = "";
+		if (id >= 0)
+		{
+			kindOf_item_t* it = &g->u->items[id];
+			if (it->category == 1)
+				twohanded = 1;
+			txt = it->name;
+		}
+		else if (s->category == 0 && twohanded)
+		{
+			twohanded = 0;
+			txt = "-";
+		}
+
 		pos.x += 150;
 		sfText_setPosition(text, pos);
 		sfText_setUTF8(text, txt); // TODO
