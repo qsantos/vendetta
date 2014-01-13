@@ -66,6 +66,8 @@ void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
 		if (icon_file != NULL && icon_index >= 0)
 			kindOf_material_icon(m, g, icon_file, icon_index);
+		else
+			fprintf(stderr, "Missing icon for '%s_%s'\n", gr->name, s->name);
 		free(icon_file);
 	}
 }
@@ -237,12 +239,16 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		int   n_sprites  = cfg_getInt(s, "NombreEtapeFabrication") + 1;
 		if (image_file != NULL && n_sprites > 0)
 			kindOf_building_sprite(b, g, image_file, n_sprites);
+		else
+			fprintf(stderr, "Missing image for '%s_%s'\n", gr->name, s->name);
 		free(image_file);
 
 		char* button_file  = cfg_getString(s, "ImageBouton");
 		int   button_index = cfg_getInt   (s, "SpriteBoutonIndex") - 1;
 		if (button_file != NULL && button_index >= 0)
 			kindOf_building_button(b, g, button_file, button_index);
+		else
+			fprintf(stderr, "Missing button for '%s_%s'\n", gr->name, s->name);
 		free(button_file);
 
 		cfg_array_t* cost = cfg_getArray(s, "PrixRessources");
