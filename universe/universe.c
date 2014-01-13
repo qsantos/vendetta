@@ -21,28 +21,299 @@
 #include <string.h>
 
 #include "../util.h"
+#include "ini.h"
+
+void universe_init_materials(universe_t* u, cfg_group_t* gr)
+{
+	if (gr == NULL)
+		return;
+
+	u->n_materials   = gr->n_sections;
+	u->materials     = CALLOC(kindOf_material_t, u->n_materials);
+	u->tmp_materials = CALLOC(transform_t,       u->n_materials);
+	for (size_t i = 0; i < u->n_materials; i++)
+	{
+		cfg_section_t*     s = &gr->sections[i];
+		kindOf_material_t* m = &u->materials[i];
+		transform_t*       t = &u->tmp_materials[i];
+
+		kindOf_material_init(m);
+		transform_init(t);
+		transform_res(t, i, 1, 0);
+
+		m->name = cfg_getString(s, "Nom");
+		t->rate = cfg_getFloat(s, "VitesseExtraction");
+
+		int   id = cfg_getInt(s, "TypeMatierePremiere");
+		float a  = cfg_getFloat(s, "QuantiteMatierePremiere");
+		if (id < 0 || (size_t) id >= u->n_materials)
+		{
+			fprintf(stderr, "Invalid requisite material id '%i' at '%s_%s'\n",
+				id, gr->name, s->name);
+			exit(1);
+		}
+		transform_req(t, id, a, 0);
+
+		m->skill.name = cfg_getString(s, "NomCompetence");
+		m->edible     = cfg_getInt(s, "Mangeable");
+		m->eatBonus[ST_HEALTH]  = cfg_getFloat(s, "GainVie");
+		m->eatBonus[ST_STAMINA] = cfg_getFloat(s, "GainEnergie");
+		m->eatBonus[ST_MORAL]   = cfg_getFloat(s, "GainMoral");
+		m->eatBonus[ST_MANA]    = cfg_getFloat(s, "GainMagie");
+	}
+}
+
+void universe_init_mines(universe_t* u, cfg_group_t* gr)
+{
+	if (gr == NULL)
+		return;
+
+	u->n_mines = gr->n_sections;
+	u->mines   = CALLOC(kindOf_mine_t, u->n_mines);
+	for (size_t i = 0; i < u->n_mines; i++)
+	{
+		cfg_section_t* s = &gr->sections[i];
+		kindOf_mine_t* m = &u->mines[i];
+		kindOf_mine_init(m);
+
+		m->name = cfg_getString(s, "Nom");
+		int id = cfg_getInt(s, "TypeRessource") - 1;
+		if (id < 0 || (size_t) id >= u->n_materials)
+		{
+			fprintf(stderr, "Invalid requisite material id '%i' at '%s_%s'\n",
+				id, gr->name, s->name);
+			exit(1);
+		}
+		transform_copy(&m->harvest, &u->tmp_materials[id]);
+	}
+}
+
+void universe_init_iskills(universe_t* u, cfg_group_t* gr)
+{
+	if (gr == NULL)
+		return;
+
+	u->n_iskills = gr->n_sections;
+	u->iskills   = CALLOC(kindOf_skill_t, u->n_iskills);
+	for (size_t i = 0; i < u->n_iskills; i++)
+	{
+		cfg_section_t*  s = &gr->sections[i];
+		kindOf_skill_t* k = &u->iskills[i];
+
+		k->name = cfg_getString(s, "NomFR");
+	}
+}
+
+void universe_init_items(universe_t* u, cfg_group_t* gr)
+{
+	if (gr == NULL)
+		return;
+
+	u->n_items   = gr->n_sections;
+	u->items     = CALLOC(kindOf_item_t, u->n_items);
+	u->tmp_items = CALLOC(transform_t,   u->n_items);
+	for (size_t i = 0; i < u->n_items; i++)
+	{
+		cfg_section_t* s = &gr->sections[i];
+		kindOf_item_t* it = &u->items[i];
+		transform_t*   t  = &u->tmp_items[i];
+
+		kindOf_item_init(it, u);
+		it->name = cfg_getString(s, "Nom");
+		if (it->name == NULL)
+			it->name = cfg_getString(s, "NomFR");
+		it->category = cfg_getInt(s, "Categorie");
+		it->skill    = cfg_getInt(s, "Competence") - 1;
+
+		transform_init(t);
+		transform_res(t, i, 1, 1);
+		t->rate = 100. / cfg_getInt(s, "DureeFabrication");
+
+		cfg_array_t* cost = cfg_getArray(s, "PrixRessources");
+		if (cost != NULL)
+		for (size_t i = 0; i < cost->n; i++)
+		{
+			char* v = cost->v[i];
+			if (v == NULL)
+				continue;
+			if (i >= u->n_materials)
+			{
+				fprintf(stderr, "Invalid requisite material id '%zu' at '%s_%s'\n",
+					i, gr->name, s->name);
+				exit(1);
+			}
+			transform_req(t, i, atof(v), 0);
+		}
+
+		cfg_array_t* sboni = cfg_getArray(s, "BonusCompetencesSpeciales");
+		if (sboni != NULL)
+		for (size_t i = 0; i < sboni->n; i++)
+		{
+			char* v = sboni->v[i];
+			if (v == NULL)
+				continue;
+			if (i >= N_SPECIAL_SKILLS)
+			{
+				fprintf(stderr, "Invalid special skill id '%zu' at '%s_%s'\n",
+					i, gr->name, s->name);
+				exit(1);
+			}
+			it->bonus_special[i] = atof(v);
+		}
+
+		cfg_array_t* mboni = cfg_getArray(s, "BonusCompetencesRessources");
+		if (mboni != NULL)
+		for (size_t i = 0; i < mboni->n; i++)
+		{
+			char* v = mboni->v[i];
+			if (v == NULL)
+				continue;
+			if (i >= u->n_materials)
+			{
+				fprintf(stderr, "Invalid material skill id '%zu' at '%s_%s'\n",
+					i, gr->name, s->name);
+				exit(1);
+			}
+			it->bonus_material[i] = atof(v);
+		}
+
+		cfg_array_t* iboni = cfg_getArray(s, "BonusCompetencesObjets");
+		if (iboni != NULL)
+		for (size_t i = 0; i < iboni->n; i++)
+		{
+			char* v = iboni->v[i];
+			if (v == NULL)
+				continue;
+			if (i >= u->n_iskills)
+			{
+				fprintf(stderr, "Invalid item skill id '%zu' at '%s_%s'\n",
+					i, gr->name, s->name);
+				exit(1);
+			}
+			it->bonus_item[i] = atof(v);
+		}
+	}
+}
+
+void universe_init_buildings(universe_t* u, cfg_group_t* gr, graphics_t* g)
+{
+	if (gr == NULL)
+		return;
+
+	u->n_buildings = gr->n_sections;
+	u->buildings   = CALLOC(kindOf_building_t, u->n_buildings);
+	for (size_t i = 0; i < u->n_buildings; i++)
+	{
+		cfg_section_t*     s = &gr->sections[i];
+		kindOf_building_t* b = &u->buildings[i];
+		kindOf_building_init(b);
+
+		b->name = cfg_getString(s, "Nom");
+		b->build.rate = 100. / cfg_getFloat(s, "MaxVie");
+
+		int id = cfg_getInt(s, "RessourceFabrique");
+		if (id < 0 || (size_t) id >= u->n_materials)
+		{
+			fprintf(stderr, "Invalid result material id '%i' at '%s_%s'\n",
+				id, gr->name, s->name);
+			exit(1);
+		}
+		transform_copy(&b->make, &u->tmp_materials[id]);
+
+		char* image_file = cfg_getString(s, "Image");
+		int   n_sprites  = cfg_getInt(s, "NombreEtapeFabrication") + 1;
+		if (image_file != NULL && n_sprites > 0)
+			kindOf_building_sprite(b, g, image_file, n_sprites);
+		free(image_file);
+
+		char* button_file  = cfg_getString(s, "ImageBouton");
+		int   button_index = cfg_getInt   (s, "SpriteBoutonIndex") - 1;
+		if (button_file != NULL && button_index >= 0)
+			kindOf_building_button(b, g, button_file, button_index);
+		free(button_file);
+
+		cfg_array_t* cost = cfg_getArray(s, "PrixRessources");
+		if (cost != NULL)
+		for (size_t i = 0; i < cost->n; i++)
+		{
+			char* v = cost->v[i];
+			if (v == NULL)
+				continue;
+			if (i >= u->n_materials)
+			{
+				fprintf(stderr, "Invalid requisite material id '%zu' at '%s_%s'\n",
+					i, gr->name, s->name);
+				exit(1);
+			}
+			transform_req(&b->build, i, atof(v), 0);
+		}
+
+		cfg_array_t* items = cfg_getArray(s, "ObjetsFabriques");
+		if (items != NULL)
+		for (size_t i = 0; i < items->n; i++)
+		{
+			char* v = items->v[i];
+			if (v == NULL)
+				continue;
+
+			int i = kindOf_building_newItem(b);
+			int id = atoi(v) - 1;
+			if (id < 0 || (size_t) id >= u->n_items)
+			{
+				fprintf(stderr, "Invalid avalaible item id '%i' at '%s_%s'\n",
+					id, gr->name, s->name);
+				exit(1);
+			}
+			transform_copy(&b->items[i], &u->tmp_items[id]);
+		}
+	}
+}
 
 universe_t* universe_init(graphics_t* g)
 {
 	universe_t* u = CALLOC(universe_t, 1);
 
-	u->n_materials = 0;
-	u->materials = NULL;
+	u->tmp_materials = NULL;
+	u->tmp_items = NULL;
 
-	u->n_items = 0;
-	u->items = NULL;
+	// parse configuration files
+	cfg_ini_t ini;
+	cfg_ini_init(&ini);
+	cfg_ini_parse(&ini, "cfg/Parametres_Ressources.ini");
+	cfg_ini_parse(&ini, "cfg/Parametres_CompetencesObjets.ini");
+	cfg_ini_parse(&ini, "cfg/Parametres_Objets.ini");
+	cfg_ini_parse(&ini, "cfg/Parametres_Batiments.ini");
+	cfg_ini_parse(&ini, "cfg/Competences_Speciales.ini");
 
-	u->n_mines = 0;
-	u->mines = NULL;
+	// apply configuration
+	universe_init_materials(u, cfg_ini_group(&ini, "Ressource"));
+	universe_init_mines    (u, cfg_ini_group(&ini, "TerrainRessource"));
+	universe_init_iskills  (u, cfg_ini_group(&ini, "CompetenceObjet"));
+	universe_init_items    (u, cfg_ini_group(&ini, "Objet"));
+	universe_init_buildings(u, cfg_ini_group(&ini, "Batiment"), g);
 
-	u->n_buildings = 0;
-	u->buildings = NULL;
-
+	// init special skills
 	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
 		kindOf_skill_init(&u->sskills[i]);
+	cfg_group_t*   gr = cfg_ini_group(&ini, "Competences");
+	cfg_section_t* s  = &gr->sections[0];
+	u->sskills[SK_BUILD]   .name = cfg_getString(s, "CompetencesSpeciales1");
+	u->sskills[SK_DESTROY] .name = cfg_getString(s, "CompetencesSpeciales2");
+	u->sskills[SK_CRITICAL].name = cfg_getString(s, "CompetencesSpeciales3");
+	u->sskills[SK_TRADE]   .name = cfg_getString(s, "CompetencesSpeciales4");
 
-	u->n_iskills = 0;
-	u->iskills = NULL;
+	fprintf(stderr, "Loaded %zu materials, %zu mines, %zu items and %zu buildings\n",
+		u->n_materials, u->n_mines, u->n_items, u->n_buildings);
+
+	cfg_ini_exit(&ini);
+
+	for (size_t i = 0; i < u->n_items; i++)
+		transform_exit(&u->tmp_items[i]);
+	free(u->tmp_items);
+
+	for (size_t i = 0; i < u->n_materials; i++)
+		transform_exit(&u->tmp_materials[i]);
+	free(u->tmp_materials);
 
 	for (size_t i = 0; i < N_STATUSES; i++)
 		kindOf_status_init(&u->statuses[i]);
@@ -79,24 +350,6 @@ universe_t* universe_init(graphics_t* g)
 	u->slots[ 8] = (kindOf_slot_t){"Main",              8};
 	u->slots[ 9] = (kindOf_slot_t){"Cou",               9};
 	u->slots[10] = (kindOf_slot_t){"Monture",          10};
-
-	// parse configuration files
-	u->tmp_materials = NULL;
-	u->tmp_items = NULL;
-
-	universe_parse(u, g, "cfg/Parametres_Ressources.ini");
-	universe_parse(u, g, "cfg/Parametres_CompetencesObjets.ini");
-	universe_parse(u, g, "cfg/Parametres_Objets.ini");
-	universe_parse(u, g, "cfg/Parametres_Batiments.ini");
-	universe_parse(u, g, "cfg/Competences_Speciales.ini");
-
-	for (size_t i = 0; i < u->n_items; i++)
-		transform_exit(&u->tmp_items[i]);
-	free(u->tmp_items);
-
-	for (size_t i = 0; i < u->n_materials; i++)
-		transform_exit(&u->tmp_materials[i]);
-	free(u->tmp_materials);
 
 	return u;
 }
@@ -144,329 +397,4 @@ void universe_exit(universe_t* u)
 	free(u->materials);
 
 	free(u);
-}
-
-void universe_parse(universe_t* u, graphics_t* g, const char* filename)
-{
-	FILE* f = fopen(filename, "r");
-	if (f == NULL)
-	{
-		fprintf(stderr, "Could not open '%s'\n", filename);
-		exit(1);
-	}
-
-	char*  line  = NULL;
-	size_t nline = 0;
-
-	// 0 = none, 1 = material, 2 = item, 3 = mine,
-	// 4 = building, 5 = item skill
-	int cur_blck = 0;
-
-	ssize_t cur_id = 0;
-
-	char* image_file = NULL;
-	int n_sprites = 0;
-	char* button_file = NULL;
-	int button_index = -1;
-
-	while (1)
-	{
-		if (getline(&line, &nline, f) <= 0)
-			break;
-
-		if (strncmp(line, "[Ressource_", 11) == 0) // material
-		{
-			cur_blck = 1;
-			cur_id = atoi(line+11);
-			if ((size_t) cur_id > u->n_materials)
-			{
-				u->materials = CREALLOC(u->materials, kindOf_material_t, cur_id);
-				u->tmp_materials = CREALLOC(u->tmp_materials, transform_t, cur_id);
-				for (size_t i = u->n_materials; i < (size_t) cur_id; i++)
-				{
-					kindOf_material_init(&u->materials[i]);
-					transform_init(&u->tmp_materials[i]);
-					transform_res(&u->tmp_materials[i], i, 1, 0);
-				}
-				u->n_materials = cur_id;
-			}
-			cur_id--;
-			continue;
-		}
-		else if (strncmp(line, "[Objet_", 7) == 0) // item
-		{
-			cur_blck = 2;
-			cur_id = atoi(line + 7);
-			if ((size_t) cur_id > u->n_items)
-			{
-				u->items = CREALLOC(u->items, kindOf_item_t, cur_id);
-				u->tmp_items = CREALLOC(u->tmp_items, transform_t,  cur_id);
-				for (size_t i = u->n_items; i < (size_t) cur_id; i++)
-				{
-					kindOf_item_init(&u->items[i], u);
-					transform_init(&u->tmp_items[i]);
-					transform_res(&u->tmp_items[i], i, 1, 1);
-				}
-				u->n_items = cur_id;
-			}
-			cur_id--;
-			continue;
-		}
-		else if (strncmp(line, "[TerrainRessource_", 18) == 0) // mine
-		{
-			cur_blck = 3;
-			cur_id = atoi(line+18);
-			if ((size_t) cur_id > u->n_mines)
-			{
-				u->mines = CREALLOC(u->mines, kindOf_mine_t, cur_id);
-				for (size_t i = u->n_mines; i < (size_t) cur_id; i++)
-				{
-					kindOf_mine_init(&u->mines[i]);
-					u->mines[i].id = i;
-				}
-				u->n_mines = cur_id;
-			}
-			cur_id--;
-			continue;
-		}
-		else if (strncmp(line, "[Batiment_", 10) == 0) // building
-		{
-			cur_blck = 4;
-			cur_id = atoi(line+10);
-			if ((size_t) cur_id > u->n_buildings)
-			{
-				u->buildings = CREALLOC(u->buildings, kindOf_building_t, cur_id);
-				for (size_t i = u->n_buildings; i < (size_t) cur_id; i++)
-					kindOf_building_init(&u->buildings[i]);
-				u->n_buildings = cur_id;
-			}
-
-			free(image_file);
-			free(button_file);
-
-			image_file = NULL;
-			n_sprites = 0;
-			button_file = NULL;
-			button_index = -1;
-			cur_id--;
-			continue;
-		}
-		else if (strncmp(line, "[CompetenceObjet_", 17) == 0) // item skill
-		{
-			cur_blck = 5;
-			cur_id = atoi(line+17);
-			if ((size_t) cur_id > u->n_iskills)
-			{
-				u->iskills = CREALLOC(u->iskills, kindOf_skill_t, cur_id);
-				for (size_t i = u->n_iskills; i < (size_t) cur_id; i++)
-					kindOf_skill_init(&u->iskills[i]);
-				u->n_iskills = cur_id;
-			}
-			cur_id--;
-			continue;
-		}
-		// probably another section
-		else if (line[0] == '[')
-		{
-			cur_blck = 0;
-		}
-
-		// check if it's an affectation
-		char* sep = strchr(line, '=');
-		if (sep == NULL)
-			continue;
-
-		// identify the variable name
-		char* var = line + strspn(line, " \t");
-		var[strcspn(var, " \t=")] = 0;
-
-		// identify the value
-		sep++;
-		char* val = sep + strspn(sep, " \t\"");
-		val[strcspn(val, "\r\n\"")] = 0;
-
-		if (cur_blck == 0) // global
-		{
-			if (strncmp(var, "CompetencesSpeciales", 20) == 0)
-			{
-				int id = atoi(var+20) - 1;
-				u->sskills[id].name = strdup(val);
-			}
-		}
-
-		if (cur_id < 0)
-			continue;
-
-		if (cur_blck == 1) // material
-		{
-			if (strcmp(var, "Nom") == 0)
-			{
-				u->materials[cur_id].name = strdup(val);
-			}
-			else if (strcmp(var, "VitesseExtraction") == 0)
-			{
-				u->tmp_materials[cur_id].rate = atof(val);
-			}
-			else if (strcmp(var, "TypeMatierePremiere") == 0)
-			{
-				int id = atoi(val) - 1;
-				if (id >= 0)
-					transform_req(&u->tmp_materials[cur_id], id, 0, 0);
-			}
-			else if (strcmp(var, "QuantiteMatierePremiere") == 0)
-			{
-				if (u->tmp_materials[cur_id].n_req > 0)
-					u->tmp_materials[cur_id].req[0].amount = atof(val);
-			}
-			else if (strcmp(var, "NomCompetence") == 0)
-			{
-				u->materials[cur_id].skill.name = strdup(val);
-			}
-			else if (strcmp(var, "Mangeable") == 0)
-			{
-				u->materials[cur_id].edible = atoi(val);
-			}
-			else if (strcmp(var, "GainVie") == 0)
-			{
-				u->materials[cur_id].eatBonus[ST_HEALTH] = atof(val);
-			}
-			else if (strcmp(var, "GainEnergie") == 0)
-			{
-				u->materials[cur_id].eatBonus[ST_STAMINA] = atof(val);
-			}
-			else if (strcmp(var, "GainMoral") == 0)
-			{
-				u->materials[cur_id].eatBonus[ST_MORAL] = atof(val);
-			}
-			else if (strcmp(var, "GainMagie") == 0)
-			{
-				u->materials[cur_id].eatBonus[ST_MANA] = atof(val);
-			}
-		}
-		else if (cur_blck == 2) // item
-		{
-			if (strcmp(var, "Nom") == 0 || strcmp(var, "NomFR") == 0)
-			{
-				u->items[cur_id].name = strdup(val);
-			}
-			else if (strcmp(var, "Categorie") == 0)
-			{
-				u->items[cur_id].category = atoi(val);
-			}
-			else if (strcmp(var, "Competence") == 0)
-			{
-				u->items[cur_id].skill = atoi(val) - 1;
-			}
-			else if (strncmp(var, "PrixRessources(", 15) == 0)
-			{
-				int mat_id = atoi(var + 15) - 1;
-				float amount = atof(val);
-				transform_req(&u->tmp_items[cur_id], mat_id, amount, 0);
-			}
-			else if (strcmp(var, "DureeFabrication") == 0)
-			{
-				u->tmp_items[cur_id].rate = 100.f / atoi(val);
-			}
-			else if (strncmp(var, "BonusCompetencesSpeciales(", 26) == 0)
-			{
-				int id = atoi(var + 26) - 1;
-				float amount = atof(val);
-				u->items[cur_id].bonus_special[id] = amount;
-			}
-			else if (strncmp(var, "BonusCompetencesRessources(", 27) == 0)
-			{
-				int id = atoi(var + 27) - 1;
-				float amount = atof(val);
-				u->items[cur_id].bonus_material[id] = amount;
-			}
-			else if (strncmp(var, "BonusCompetencesObjets(", 23) == 0)
-			{
-				int id = atoi(var + 23) - 1;
-				float amount = atof(val);
-				u->items[cur_id].bonus_item[id] = amount;
-			}
-		}
-		else if (cur_blck == 3) // mine
-		{
-			if (strcmp(var, "Nom") == 0)
-			{
-				u->mines[cur_id].name = strdup(val);
-			}
-			else if (strcmp(var, "TypeRessource") == 0)
-			{
-				int id = atoi(val) - 1;
-				transform_copy(&u->mines[cur_id].harvest, &u->tmp_materials[id]);
-			}
-		}
-		else if (cur_blck == 4) // building
-		{
-			if (strcmp(var, "Nom") == 0)
-			{
-				u->buildings[cur_id].name = strdup(val);
-			}
-			else if (strcmp(var, "Image") == 0)
-			{
-				image_file = strdup(val);
-			}
-			else if (strcmp(var, "ImageBouton") == 0)
-			{
-				button_file = strdup(val);
-			}
-			else if (strcmp(var, "SpriteBoutonIndex") == 0)
-			{
-				button_index = atoi(val) - 1;
-			}
-			else if (strcmp(var, "MaxVie") == 0)
-			{
-				u->buildings[cur_id].build.rate = 100. / atof(val);
-			}
-			else if (strncmp(var, "PrixRessources(", 15) == 0)
-			{
-				int mat_id = atoi(var + 15) - 1;
-				float amount = atof(val);
-				transform_req(&u->buildings[cur_id].build, mat_id, amount, 0);
-			}
-			else if (strcmp(var, "RessourceFabrique") == 0)
-			{
-				int id = atoi(val) - 1;
-				transform_copy(&u->buildings[cur_id].make, &u->tmp_materials[id]);
-			}
-			else if (strncmp(var, "ObjetsFabriques(", 16) == 0)
-			{
-				int id = atoi(val) - 1;
-
-				kindOf_building_t* b = &u->buildings[cur_id];
-				int i = kindOf_building_newItem(b);
-				transform_copy(&b->items[i], &u->tmp_items[id]);;
-			}
-			else if (strcmp(var, "NombreEtapeFabrication") == 0)
-			{
-				n_sprites = atoi(val);
-			}
-
-			if (image_file && n_sprites)
-			{
-				kindOf_building_sprite(&u->buildings[cur_id], g, image_file, n_sprites+1);
-
-				image_file = NULL;
-				n_sprites = 0;
-			}
-			if (button_file && button_index >= 0)
-			{
-				kindOf_building_button(&u->buildings[cur_id], g, button_file, button_index);
-
-				button_file = NULL;
-				button_index = 0;
-			}
-		}
-		else if (cur_blck == 5) // item skill
-		{
-			if (strcmp(var, "NomFR") == 0)
-			{
-				u->iskills[cur_id].name = strdup(val);
-			}
-		}
-	}
-
-	fclose(f);
 }
