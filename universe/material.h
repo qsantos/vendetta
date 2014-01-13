@@ -21,6 +21,7 @@
 
 typedef struct kindOf_material kindOf_material_t;
 
+#include "../graphics.h"
 #include "skill.h"
 #include "status.h"
 
@@ -32,9 +33,14 @@ struct kindOf_material
 
 	char edible;
 	float eatBonus[N_STATUSES];
+
+	int icon_sprite;
+	int icon_index;
 };
 
 void kindOf_material_init(kindOf_material_t* m);
 void kindOf_material_exit(kindOf_material_t* m);
+
+void kindOf_material_icon(kindOf_material_t* m, graphics_t* g, const char* filename, int idx);
 
 #endif

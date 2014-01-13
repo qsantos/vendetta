@@ -23,8 +23,9 @@
 #include "../util.h"
 #include "ini.h"
 
-void universe_init_materials(universe_t* u, cfg_group_t* gr)
+void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
+	(void) g;
 	if (gr == NULL)
 		return;
 
@@ -40,8 +41,6 @@ void universe_init_materials(universe_t* u, cfg_group_t* gr)
 		kindOf_material_init(m);
 		transform_init(t);
 		transform_res(t, i, 1, 0);
-
-		m->name = cfg_getString(s, "Nom");
 		t->rate = cfg_getFloat(s, "VitesseExtraction");
 
 		int   id = cfg_getInt(s, "TypeMatierePremiere");
@@ -55,17 +54,25 @@ void universe_init_materials(universe_t* u, cfg_group_t* gr)
 		if (id >= 0)
 			transform_req(t, id, a, 0);
 
+		m->name = cfg_getString(s, "Nom");
 		m->skill.name = cfg_getString(s, "NomCompetence");
 		m->edible     = cfg_getInt(s, "Mangeable");
 		m->eatBonus[ST_HEALTH]  = cfg_getFloat(s, "GainVie");
 		m->eatBonus[ST_STAMINA] = cfg_getFloat(s, "GainEnergie");
 		m->eatBonus[ST_MORAL]   = cfg_getFloat(s, "GainMoral");
 		m->eatBonus[ST_MANA]    = cfg_getFloat(s, "GainMagie");
+
+		char* icon_file  = cfg_getString(s, "Image");
+		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
+		if (icon_file != NULL && icon_index >= 0)
+			kindOf_material_icon(m, g, icon_file, icon_index);
+		free(icon_file);
 	}
 }
 
-void universe_init_mines(universe_t* u, cfg_group_t* gr)
+void universe_init_mines(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
+	(void) g;
 	if (gr == NULL)
 		return;
 
@@ -89,8 +96,9 @@ void universe_init_mines(universe_t* u, cfg_group_t* gr)
 	}
 }
 
-void universe_init_iskills(universe_t* u, cfg_group_t* gr)
+void universe_init_iskills(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
+	(void) g;
 	if (gr == NULL)
 		return;
 
@@ -105,8 +113,9 @@ void universe_init_iskills(universe_t* u, cfg_group_t* gr)
 	}
 }
 
-void universe_init_items(universe_t* u, cfg_group_t* gr)
+void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
+	(void) g;
 	if (gr == NULL)
 		return;
 
@@ -196,8 +205,9 @@ void universe_init_items(universe_t* u, cfg_group_t* gr)
 	}
 }
 
-void universe_init_buildings(universe_t* u, cfg_group_t* gr, graphics_t* g)
+void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
+	(void) g;
 	if (gr == NULL)
 		return;
 
@@ -289,11 +299,11 @@ universe_t* universe_init(graphics_t* g)
 	cfg_ini_parse(&ini, "cfg/Competences_Speciales.ini");
 
 	// apply configuration
-	universe_init_materials(u, cfg_ini_group(&ini, "Ressource"));
-	universe_init_mines    (u, cfg_ini_group(&ini, "TerrainRessource"));
-	universe_init_iskills  (u, cfg_ini_group(&ini, "CompetenceObjet"));
-	universe_init_items    (u, cfg_ini_group(&ini, "Objet"));
-	universe_init_buildings(u, cfg_ini_group(&ini, "Batiment"), g);
+	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
+	universe_init_mines    (u, g, cfg_ini_group(&ini, "TerrainRessource"));
+	universe_init_iskills  (u, g, cfg_ini_group(&ini, "CompetenceObjet"));
+	universe_init_items    (u, g, cfg_ini_group(&ini, "Objet"));
+	universe_init_buildings(u, g, cfg_ini_group(&ini, "Batiment"));
 
 	// init special skills
 	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
