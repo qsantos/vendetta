@@ -113,17 +113,26 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		if (c->is_item)
 			exit(1);
 
-		const char* action = t->make.n_req == 0 ? "Harvest" : "Transform to";
-		const char* name   = g->u->materials[c->id].name;
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s %s", action, name);
+		kindOf_material_t* m = &g->u->materials[c->id];
 
-		sfText_setPosition(text, (sfVector2f){x,y});
+		// icon
+		sfSprite* sprite = g->g->sprites[m->icon_sprite];
+		sfIntRect rect = {32*m->icon_index, 0, 32, 32};
+		sfSprite_setTextureRect(sprite, rect);
+		sfSprite_setPosition(sprite, (sfVector2f){x,y});
+		if (do_draw)
+			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+
+		// text
+		const char* action = t->make.n_req == 0 ? "Harvest" : "Transform to";
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s %s", action, m->name);
+		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
-		y += 20;
+		y += 32;
 	}
 
 	int cur_work = b->work_n == 0 ? -1 : b->work_list[0];
