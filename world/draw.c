@@ -150,12 +150,12 @@ void draw_world(graphics_t* g, world_t* w)
 
 	sfRenderWindow_drawVertexArray(g->render, array, &states);
 
-	for (int i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < w->n_buildings; i++)
 		draw_building(g, w->buildings[i]);
 
-	for (int i = 0; i < w->n_mines; i++)
+	for (size_t i = 0; i < w->n_mines; i++)
 		draw_mine(g, &w->mines[i]);
 
-	for (int i = 0; i < w->n_characters; i++)
+	for (size_t i = 0; i < w->n_characters; i++)
 		draw_character(g, &w->characters[i]);
 }

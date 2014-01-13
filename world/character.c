@@ -47,18 +47,18 @@ void character_init(character_t* c, universe_t* u)
 		c->sskills[i] = 1;
 
 	c->mskills = CALLOC(skill_t, u->n_materials);
-	for (int i = 0; i < u->n_materials; i++)
+	for (size_t i = 0; i < u->n_materials; i++)
 		c->mskills[i] = 1;
 
 	c->iskills = CALLOC(skill_t, u->n_iskills);
-	for (int i = 0; i < u->n_iskills; i++)
+	for (size_t i = 0; i < u->n_iskills; i++)
 		c->iskills[i] = 1;
 
 	for (int i = 0; i < N_STATUSES; i++)
 		c->statuses[i] = 20;
 
 	c->equipment = CALLOC(int, u->n_slots);
-	for (int i = 0; i < u->n_slots; i++)
+	for (size_t i = 0; i < u->n_slots; i++)
 		c->equipment[i] = -1;
 }
 
@@ -105,7 +105,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		float skill = c->mskills[id];
 		universe_t* u = c->universe;
-		for (int i = 0; i < u->n_slots; i++)
+		for (size_t i = 0; i < u->n_slots; i++)
 		{
 			int item = c->equipment[i];
 			if (item < 0)
@@ -133,7 +133,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float skill = c->sskills[SK_BUILD];
 			universe_t* u = c->universe;
-			for (int i = 0; i < u->n_slots; i++)
+			for (size_t i = 0; i < u->n_slots; i++)
 			{
 				int item = c->equipment[i];
 				if (item < 0)
@@ -167,7 +167,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float skill = c->iskills[id];
 			universe_t* u = c->universe;
-			for (int i = 0; i < u->n_slots; i++)
+			for (size_t i = 0; i < u->n_slots; i++)
 			{
 				int item = c->equipment[i];
 				if (item < 0)
@@ -205,7 +205,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float skill = c->mskills[id];
 			universe_t* u = c->universe;
-			for (int i = 0; i < u->n_slots; i++)
+			for (size_t i = 0; i < u->n_slots; i++)
 			{
 				int item = c->equipment[i];
 				if (item < 0)

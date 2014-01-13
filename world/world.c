@@ -143,7 +143,7 @@ world_t* world_init(universe_t* u)
 	// BEGIN character generation
 	w->n_characters = 5;
 	w->characters = CALLOC(character_t, w->n_characters);
-	for (int i = 0; i < w->n_characters; i++)
+	for (size_t i = 0; i < w->n_characters; i++)
 	{
 		character_t* c = &w->characters[i];
 		character_init(c, u);
@@ -157,7 +157,7 @@ world_t* world_init(universe_t* u)
 		w->n_mines = u->n_mines;
 	w->mines = CALLOC(mine_t, w->n_mines);
 	static const float mine_probas[] = {0.22,0.22,0.20,0.10,0.08,0.06,0.06,0.06};
-	for (int i = 0; i < u->n_mines; i++) // ensure there is at least one of each
+	for (size_t i = 0; i < u->n_mines; i++) // ensure there is at least one of each
 	{
 		mine_t* m = &w->mines[i];
 		int type = i;
@@ -165,7 +165,7 @@ world_t* world_init(universe_t* u)
 		m->o.x = cfrnd(width);
 		m->o.y = cfrnd(height);
 	}
-	for (int i = u->n_mines; i < w->n_mines; i++)
+	for (size_t i = u->n_mines; i < w->n_mines; i++)
 	{
 		mine_t* m = &w->mines[i];
 		int type = rnd_pick(mine_probas);
@@ -184,18 +184,18 @@ world_t* world_init(universe_t* u)
 
 void world_exit(world_t* w)
 {
-	for (int i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < w->n_buildings; i++)
 	{
 		building_exit(w->buildings[i]);
 		free(w->buildings[i]);
 	}
 	free(w->buildings);
 
-	for (int i = 0; i < w->n_mines; i++)
+	for (size_t i = 0; i < w->n_mines; i++)
 		mine_exit(&w->mines[i]);
 	free(w->mines);
 
-	for (int i = 0; i < w->n_characters; i++)
+	for (size_t i = 0; i < w->n_characters; i++)
 		character_exit(&w->characters[i]);
 	free(w->characters);
 
@@ -205,21 +205,21 @@ void world_exit(world_t* w)
 
 void world_doRound(world_t* w, float duration)
 {
-	for (int i = 0; i < w->n_characters; i++)
+	for (size_t i = 0; i < w->n_characters; i++)
 		character_doRound(&w->characters[i], duration);
 }
 
 object_t* world_objectAt(world_t* w, float x, float y)
 {
-	for (int i = 0; i < w->n_characters; i++)
+	for (size_t i = 0; i < w->n_characters; i++)
 		if (object_isAt((object_t*) &w->characters[i], x, y))
 			return (object_t*) &w->characters[i];
 
-	for (int i = 0; i < w->n_mines; i++)
+	for (size_t i = 0; i < w->n_mines; i++)
 		if (object_isAt((object_t*) &w->mines[i], x, y))
 			return (object_t*) &w->mines[i];
 
-	for (int i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < w->n_buildings; i++)
 		if (object_isAt((object_t*) w->buildings[i], x, y))
 			return (object_t*) w->buildings[i];
 
@@ -230,7 +230,7 @@ mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 {
 	mine_t* ret = NULL;
 	float min_d = -1;
-	for (int i = 0; i < w->n_mines; i++)
+	for (size_t i = 0; i < w->n_mines; i++)
 	{
 		mine_t* m = &w->mines[i];
 		if (t == NULL || m->t == t)
@@ -248,11 +248,11 @@ mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 
 char world_canBeBuilt(world_t* w, float x, float y, float wi, float he)
 {
-	for (int i = 0; i < w->n_mines; i++)
+	for (size_t i = 0; i < w->n_mines; i++)
 		if (object_rect((object_t*) &w->mines[i], x, y, wi, he))
 			return 0;
 
-	for (int i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < w->n_buildings; i++)
 		if (object_rect((object_t*) w->buildings[i], x, y, wi, he))
 			return 0;
 

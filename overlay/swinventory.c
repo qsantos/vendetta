@@ -73,7 +73,7 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 		cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
 	}
 
-	for (int i = 0; i < u->n_materials; i++)
+	for (size_t i = 0; i < u->n_materials; i++)
 	{
 		float b = it->bonus_material[i];
 		if (b == 0)
@@ -83,7 +83,7 @@ size_t swinventory_itemTooltip(wchar_t* buffer, size_t n, universe_t* u, kindOf_
 		cur += swprintf(buffer+cur, n-cur, L"\n%+.1f %ls", b, name);
 	}
 
-	for (int i = 0; i < u->n_iskills; i++)
+	for (size_t i = 0; i < u->n_iskills; i++)
 	{
 		float b = it->bonus_item[i];
 		if (b == 0)
@@ -115,7 +115,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 
 	sfVector2f pos = {0, 0};
 
-	for (int i = 0; i < g->u->n_materials; i++)
+	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
 		const wchar_t* name = g->u->materials[i].name;
 		float amount = floor(g->player->inventory.materials[i]);
@@ -141,7 +141,7 @@ char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
 		return 1;
 	}
 
-	for (int i = 0; i < g->u->n_items; i++)
+	for (size_t i = 0; i < g->u->n_items; i++)
 	{
 		wchar_t* name = g->u->items[i].name;
 		float amount = floor(g->player->inventory.items[i]);
@@ -188,7 +188,7 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 	sfVector2f pos = {0, 0};
 
-	for (int i = 0; i < g->u->n_materials; i++)
+	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
 		const wchar_t* name = g->u->materials[i].name;
 		float amount = floor(g->player->inventory.materials[i]);
@@ -206,7 +206,7 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
-	for (int i = 0; i < g->u->n_items; i++)
+	for (size_t i = 0; i < g->u->n_items; i++)
 	{
 		wchar_t* name = g->u->items[i].name;
 		float amount = floor(g->player->inventory.items[i]);
@@ -249,7 +249,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 
 	sfVector2f pos = {0, 0};
 
-	for (int i = 0; i < g->u->n_materials; i++)
+	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
 		const wchar_t* name = g->u->materials[i].name;
 		float amount = floor(g->player->inventory.materials[i]);
@@ -280,7 +280,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 		return 1;
 	}
 
-	for (int i = 0; i < g->u->n_items; i++)
+	for (size_t i = 0; i < g->u->n_items; i++)
 	{
 		wchar_t* name = g->u->items[i].name;
 		float amount = floor(g->player->inventory.items[i]);
@@ -301,7 +301,7 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 			continue;
 
 		int cat = g->u->items[i].category;
-		for (int j = 0; j < g->u->n_slots; j++)
+		for (size_t j = 0; j < g->u->n_slots; j++)
 		{
 			if (g->u->slots[j].category == cat && g->player->equipment[j] < 0)
 			{

@@ -32,29 +32,29 @@ typedef struct universe universe_t;
 
 struct universe
 {
-	int n_materials;
+	size_t n_materials;
 	kindOf_material_t* materials;
 
-	int n_items;
+	size_t n_items;
 	kindOf_item_t* items;
 
-	int n_mines;
+	size_t n_mines;
 	kindOf_mine_t* mines;
 
-	int n_buildings;
+	size_t n_buildings;
 	kindOf_building_t* buildings;
 
 	kindOf_skill_t sskills[N_SPECIAL_SKILLS];
 
-	int n_iskills;
+	size_t n_iskills;
 	kindOf_skill_t* iskills;
 
 	kindOf_status_t statuses[N_STATUSES];
 
-	int n_categories;
+	size_t n_categories;
 	kindOf_category_t* categories;
 
-	int n_slots;
+	size_t n_slots;
 	kindOf_slot_t* slots;
 
 	// temporarily stores the harvest, transformation

@@ -67,7 +67,7 @@ void draw_buildPanel(game_t* g)
 {
 	float x = 0;
 	float y = 0;
-	for (int i = 0; i < g->u->n_buildings; i++)
+	for (size_t i = 0; i < g->u->n_buildings; i++)
 	{
 		kindOf_building_t* b = &g->u->buildings[i];
 		if (b->button_sprite < 0)
@@ -112,7 +112,7 @@ void ov_build_tooltip(wchar_t* buffer, size_t n, game_t* g, kindOf_building_t* b
 	// list items
 	if (b->n_items != 0)
 		cur += swprintf(buffer+cur, n-cur, L"\n\nmake:");
-	for (int i = 0; i < b->n_items; i++)
+	for (size_t i = 0; i < b->n_items; i++)
 	{
 		int id = b->items[i].res[0].id;
 		kindOf_item_t* it = &g->u->items[id];
@@ -123,7 +123,7 @@ void ov_build_tooltip(wchar_t* buffer, size_t n, game_t* g, kindOf_building_t* b
 char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 {
 	sfFloatRect rect = {0, 0, 28, 28};
-	for (int i = 0; i < g->u->n_buildings; i++)
+	for (size_t i = 0; i < g->u->n_buildings; i++)
 	{
 		kindOf_building_t* b = &g->u->buildings[i];
 
@@ -294,7 +294,7 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 	if (t == sfMouseLeft)
 	{
 		sfFloatRect rect = {0, 0, 28, 28};
-		for (int i = 0; i < g->u->n_buildings; i++)
+		for (size_t i = 0; i < g->u->n_buildings; i++)
 		{
 			kindOf_building_t* b = &g->u->buildings[i];
 

@@ -35,14 +35,14 @@ struct world
 	int tilesy;
 	short* terrain;
 
-	int n_characters;
+	size_t n_characters;
 	character_t* characters;
 
-	int n_mines;
+	size_t n_mines;
 	mine_t* mines;
 
-	int n_buildings;
-	int a_buildings;
+	size_t n_buildings;
+	size_t a_buildings;
 	building_t** buildings;
 };
 

@@ -117,7 +117,7 @@ void game_loop(game_t* g)
 				}
 				else if (sfKeyF1 <= k && k <= sfKeyF12)
 				{
-					int id = k - sfKeyF1;
+					size_t id = k - sfKeyF1;
 					if (id < g->u->n_mines)
 					{
 						kindOf_mine_t* t = &g->u->mines[id];

@@ -45,7 +45,7 @@ struct kindOf_building
 	transform_t make;
 
 	// available items
-	int n_items;
+	size_t n_items;
 	transform_t* items;
 };
 

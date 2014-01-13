@@ -38,13 +38,13 @@ universe_t* universe_init(graphics_t* g)
 	u->n_buildings = 0;
 	u->buildings = NULL;
 
-	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
 		kindOf_skill_init(&u->sskills[i]);
 
 	u->n_iskills = 0;
 	u->iskills = NULL;
 
-	for (int i = 0; i < N_STATUSES; i++)
+	for (size_t i = 0; i < N_STATUSES; i++)
 		kindOf_status_init(&u->statuses[i]);
 
 	u->statuses[ST_HEALTH] .name = L"Santé";
@@ -90,11 +90,11 @@ universe_t* universe_init(graphics_t* g)
 	universe_parse(u, g, "cfg/Parametres_Batiments.ini");
 	universe_parse(u, g, "cfg/Competences_Speciales.ini");
 
-	for (int i = 0; i < u->n_items; i++)
+	for (size_t i = 0; i < u->n_items; i++)
 		transform_exit(&u->tmp_items[i]);
 	free(u->tmp_items);
 
-	for (int i = 0; i < u->n_materials; i++)
+	for (size_t i = 0; i < u->n_materials; i++)
 		transform_exit(&u->tmp_materials[i]);
 	free(u->tmp_materials);
 
@@ -120,26 +120,26 @@ void universe_exit(universe_t* u)
 		kindOf_status_exit(&u->statuses[i]);
 	*/
 
-	for (int i = 0; i < u->n_iskills; i++)
+	for (size_t i = 0; i < u->n_iskills; i++)
 		kindOf_skill_exit(&u->iskills[i]);
 	free(u->iskills);
 
-	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
 		kindOf_skill_exit(&u->sskills[i]);
 
-	for (int i = 0; i < u->n_buildings; i++)
+	for (size_t i = 0; i < u->n_buildings; i++)
 		kindOf_building_exit(&u->buildings[i]);
 	free(u->buildings);
 
-	for (int i = 0; i < u->n_mines; i++)
+	for (size_t i = 0; i < u->n_mines; i++)
 		kindOf_mine_exit(&u->mines[i]);
 	free(u->mines);
 
-	for (int i = 0; i < u->n_items; i++)
+	for (size_t i = 0; i < u->n_items; i++)
 		kindOf_item_exit(&u->items[i]);
 	free(u->items);
 
-	for (int i = 0; i < u->n_materials; i++)
+	for (size_t i = 0; i < u->n_materials; i++)
 		kindOf_material_exit(&u->materials[i]);
 	free(u->materials);
 
@@ -162,7 +162,7 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 	// 4 = building, 5 = item skill
 	int cur_blck = 0;
 
-	int cur_id = 0;
+	ssize_t cur_id = 0;
 
 	char* image_file = NULL;
 	int n_sprites = 0;
@@ -178,11 +178,11 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			cur_blck = 1;
 			cur_id = atoi(line+11);
-			if (cur_id > u->n_materials)
+			if ((size_t) cur_id > u->n_materials)
 			{
 				u->materials = CREALLOC(u->materials, kindOf_material_t, cur_id);
 				u->tmp_materials = CREALLOC(u->tmp_materials, transform_t, cur_id);
-				for (int i = u->n_materials; i < cur_id; i++)
+				for (size_t i = u->n_materials; i < (size_t) cur_id; i++)
 				{
 					kindOf_material_init(&u->materials[i]);
 					transform_init(&u->tmp_materials[i]);
@@ -197,11 +197,11 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			cur_blck = 2;
 			cur_id = atoi(line + 7);
-			if (cur_id > u->n_items)
+			if ((size_t) cur_id > u->n_items)
 			{
 				u->items = CREALLOC(u->items, kindOf_item_t, cur_id);
 				u->tmp_items = CREALLOC(u->tmp_items, transform_t,  cur_id);
-				for (int i = u->n_items; i < cur_id; i++)
+				for (size_t i = u->n_items; i < (size_t) cur_id; i++)
 				{
 					kindOf_item_init(&u->items[i], u);
 					transform_init(&u->tmp_items[i]);
@@ -216,10 +216,10 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			cur_blck = 3;
 			cur_id = atoi(line+18);
-			if (cur_id > u->n_mines)
+			if ((size_t) cur_id > u->n_mines)
 			{
 				u->mines = CREALLOC(u->mines, kindOf_mine_t, cur_id);
-				for (int i = u->n_mines; i < cur_id; i++)
+				for (size_t i = u->n_mines; i < (size_t) cur_id; i++)
 				{
 					kindOf_mine_init(&u->mines[i]);
 					u->mines[i].id = i;
@@ -233,14 +233,13 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 		{
 			cur_blck = 4;
 			cur_id = atoi(line+10);
-			if (cur_id > u->n_buildings)
+			if ((size_t) cur_id > u->n_buildings)
 			{
 				u->buildings = CREALLOC(u->buildings, kindOf_building_t, cur_id);
-				for (int i = u->n_buildings; i < cur_id; i++)
+				for (size_t i = u->n_buildings; i < (size_t) cur_id; i++)
 					kindOf_building_init(&u->buildings[i]);
 				u->n_buildings = cur_id;
 			}
-			cur_id--;
 
 			free(image_file);
 			free(button_file);
@@ -249,16 +248,17 @@ void universe_parse(universe_t* u, graphics_t* g, const char* filename)
 			n_sprites = 0;
 			button_file = NULL;
 			button_index = -1;
+			cur_id--;
 			continue;
 		}
 		else if (strncmp(line, "[CompetenceObjet_", 17) == 0) // item skill
 		{
 			cur_blck = 5;
 			cur_id = atoi(line+17);
-			if (cur_id > u->n_iskills)
+			if ((size_t) cur_id > u->n_iskills)
 			{
 				u->iskills = CREALLOC(u->iskills, kindOf_skill_t, cur_id);
-				for (int i = u->n_iskills; i < cur_id; i++)
+				for (size_t i = u->n_iskills; i < (size_t) cur_id; i++)
 					kindOf_skill_init(&u->iskills[i]);
 				u->n_iskills = cur_id;
 			}

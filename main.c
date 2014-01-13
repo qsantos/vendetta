@@ -80,19 +80,19 @@ int main(int argc, char** argv)
 	if (quick_start)
 	{
 		float* m = game.player->inventory.materials;
-		for (int i = 0; i < game.u->n_materials; i++)
+		for (size_t i = 0; i < game.u->n_materials; i++)
 			m[i] = 1000;
 	}
 	if (god_mode)
 	{
 		float* s= game.player->sskills;
-		for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+		for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
 			s[i] = 1000;
 		s = game.player->mskills;
-		for (int i = 0; i < game.u->n_materials; i++)
+		for (size_t i = 0; i < game.u->n_materials; i++)
 			s[i] = 1000;
 		s = game.player->iskills;
-		for (int i = 0; i < game.u->n_iskills; i++)
+		for (size_t i = 0; i < game.u->n_iskills; i++)
 			s[i] = 1000;
 	}
 

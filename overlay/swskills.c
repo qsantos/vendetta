@@ -80,7 +80,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 		}
 	}
 
-	for (int i = 0; i < g->u->n_materials; i++)
+	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
 		skill_t s = g->player->mskills[i];
 		if (s != 1)
@@ -97,7 +97,7 @@ void swskills_draw(swskills_t* w, game_t* g)
 		}
 	}
 
-	for (int i = 0; i < g->u->n_iskills; i++)
+	for (size_t i = 0; i < g->u->n_iskills; i++)
 	{
 		skill_t s = g->player->iskills[i];
 		if (s != 1)

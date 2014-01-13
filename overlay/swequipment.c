@@ -55,7 +55,7 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 
 	sfVector2f pos = {0, 0};
 
-	for (int i = 0; i < g->u->n_slots; i++)
+	for (size_t i = 0; i < g->u->n_slots; i++)
 	{
 		sfText_setPosition(text, pos);
 		sfText_setWString(text, g->u->slots[i].name); // TODO
@@ -98,7 +98,7 @@ char swequipment_catch(swequipment_t* w, game_t* g, int _x, int _y, int t)
 	sfVector2f pos = {0, 0};
 
 	pos.y -= 20;
-	for (int i = 0; i < g->u->n_slots; i++)
+	for (size_t i = 0; i < g->u->n_slots; i++)
 	{
 		pos.y += 20;
 

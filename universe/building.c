@@ -40,7 +40,7 @@ void kindOf_building_init(kindOf_building_t* b)
 
 void kindOf_building_exit(kindOf_building_t* b)
 {
-	for (int i = 0; i < b->n_items; i++)
+	for (size_t i = 0; i < b->n_items; i++)
 		transform_exit(&b->items[i]);
 	free(b->items);
 	transform_exit(&b->make);
