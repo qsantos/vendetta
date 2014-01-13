@@ -33,6 +33,7 @@ void game_init(game_t* g)
 	g->w =    world_init(g->u);
 
 	g->player = &g->w->characters[g->w->n_characters-1];
+	g->player->is_player = 1;
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	g->g->overlay_view = sfView_copy(default_view);

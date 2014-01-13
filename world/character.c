@@ -27,7 +27,7 @@
 
 #define M_PI 3.14159265358979323846
 
-void character_init(character_t* c, universe_t* u)
+void character_init(character_t* c, universe_t* u, world_t* w)
 {
 	c->o.t = O_CHARACTER;
 	c->o.w = 24;
@@ -39,7 +39,12 @@ void character_init(character_t* c, universe_t* u)
 	c->dir  = D_SOUTH;
 	c->step = 5; // standing still
 
+	c->is_player = 0;
+	c->bot_step  = 0;
+
 	c->universe = u;
+	c->world    = w;
+
 	inventory_init(&c->inventory, u);
 	c->inBuilding = NULL;
 
@@ -227,6 +232,54 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 void character_doRound(character_t* c, float duration)
 {
+	if (!c->is_player)
+	{
+		if (c->bot_step == 0)
+		{
+			kindOf_mine_t* t = &c->universe->mines[2];
+			mine_t* m = world_findMine(c->world, c->o.x, c->o.y, t);
+			if (m != NULL)
+			{
+				c->bot_step++;
+				c->go_o = &m->o;
+			}
+		}
+		else if (c->bot_step == 1 && c->inventory.materials[2] >= 17)
+		{
+			kindOf_building_t* t = &c->universe->buildings[2];
+			float x;
+			float y;
+			do
+			{
+				x = cfrnd(1000);
+				y = cfrnd(1000);
+			} while (!world_canBuild(c->world, c, t, x, y));
+			building_t* b = world_addBuilding(c->world, t, x, y);
+			if (b != NULL)
+			{
+				c->bot_step++;
+				c->go_o = &b->o;
+			}
+		}
+		else if (c->bot_step == 2 && c->inventory.materials[3] >= 9)
+		{
+			kindOf_building_t* t = &c->universe->buildings[9];
+			float x;
+			float y;
+			do
+			{
+				x = cfrnd(1000);
+				y = cfrnd(1000);
+			} while (!world_canBuild(c->world, c, t, x, y));
+			building_t* b = world_addBuilding(c->world, t, x, y);
+			if (b != NULL)
+			{
+				c->bot_step++;
+				c->go_o = &b->o;
+			}
+		}
+	}
+
 	duration *= character_vitality(c);
 
 	float dx;

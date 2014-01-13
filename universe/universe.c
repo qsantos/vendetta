@@ -236,7 +236,6 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 
 void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
-	(void) g;
 	if (gr == NULL)
 		return;
 

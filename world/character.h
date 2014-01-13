@@ -26,6 +26,7 @@ typedef struct character character_t;
 #include "building.h"
 #include "skill.h"
 #include "status.h"
+#include "world.h"
 #include "../universe/universe.h"
 
 typedef enum
@@ -46,7 +47,12 @@ struct character
 	direction_t dir;
 	float       step;
 
+	char is_player;
+	int  bot_step;
+
 	universe_t* universe;
+	world_t*    world;
+
 	inventory_t inventory;
 	building_t* inBuilding;
 
@@ -59,7 +65,7 @@ struct character
 	int* equipment;
 };
 
-void character_init(character_t* c, universe_t* u);
+void character_init(character_t* c, universe_t* u, world_t* w);
 void character_exit(character_t* c);
 
 float character_vitality(character_t* c);

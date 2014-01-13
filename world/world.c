@@ -146,7 +146,7 @@ world_t* world_init(universe_t* u)
 	for (size_t i = 0; i < w->n_characters; i++)
 	{
 		character_t* c = &w->characters[i];
-		character_init(c, u);
+		character_init(c, u, w);
 		character_setPosition(c, cfrnd(width), cfrnd(height));
 	}
 	// END character generation
@@ -265,7 +265,7 @@ char world_canBuild(world_t* w, character_t* c, kindOf_building_t* b, float x, f
 	       world_canBeBuilt(w, x, y, b->width, b->height);
 }
 
-void world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y)
+building_t* world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y)
 {
 	if (w->n_buildings == w->a_buildings)
 	{
@@ -276,4 +276,5 @@ void world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y)
 	building_t* b = CALLOC(building_t, 1);
 	w->buildings[w->n_buildings++] = b;
 	building_init(b, t, x, y);
+	return b;
 }
