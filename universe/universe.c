@@ -45,14 +45,15 @@ void universe_init_materials(universe_t* u, cfg_group_t* gr)
 		t->rate = cfg_getFloat(s, "VitesseExtraction");
 
 		int   id = cfg_getInt(s, "TypeMatierePremiere");
-		float a  = cfg_getFloat(s, "QuantiteMatierePremiere");
-		if (id < 0 || (size_t) id >= u->n_materials)
+		float a  = cfg_getFloat(s, "QuantiteMatierePremiere") - 1;
+		if ((size_t) id >= u->n_materials)
 		{
 			fprintf(stderr, "Invalid requisite material id '%i' at '%s_%s'\n",
 				id, gr->name, s->name);
 			exit(1);
 		}
-		transform_req(t, id, a, 0);
+		if (id >= 0)
+			transform_req(t, id, a, 0);
 
 		m->skill.name = cfg_getString(s, "NomCompetence");
 		m->edible     = cfg_getInt(s, "Mangeable");
