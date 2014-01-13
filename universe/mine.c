@@ -20,8 +20,9 @@
 
 #include <stdlib.h>
 
-void kindOf_mine_init(kindOf_mine_t* m)
+void kindOf_mine_init(kindOf_mine_t* m, int id)
 {
+	m->id = id;
 	m->name = NULL;
 	transform_init(&m->harvest);
 }

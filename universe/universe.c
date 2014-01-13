@@ -74,7 +74,7 @@ void universe_init_mines(universe_t* u, cfg_group_t* gr)
 	{
 		cfg_section_t* s = &gr->sections[i];
 		kindOf_mine_t* m = &u->mines[i];
-		kindOf_mine_init(m);
+		kindOf_mine_init(m, i);
 
 		m->name = cfg_getString(s, "Nom");
 		int id = cfg_getInt(s, "TypeRessource") - 1;

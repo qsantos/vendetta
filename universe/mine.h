@@ -31,7 +31,7 @@ struct kindOf_mine
 	transform_t harvest;
 };
 
-void kindOf_mine_init(kindOf_mine_t* m);
+void kindOf_mine_init(kindOf_mine_t* m, int id);
 void kindOf_mine_exit(kindOf_mine_t* m);
 
 #endif
