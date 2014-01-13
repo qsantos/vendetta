@@ -119,23 +119,33 @@ int swinventory_draw(swinventory_t* w, game_t* g, char do_draw)
 		sfText_setColor        (text, color);
 	}
 
-	sfVector2f pos = {0, 0};
+	float x = 0;
+	float y = 0;
 
 	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
-		const char* name = g->u->materials[i].name;
 		float amount = floor(g->player->inventory.materials[i]);
 
 		if (amount == 0)
 			continue;
 
-		pos.y += 20;
+		kindOf_material_t* m = &g->u->materials[i];
 
+		// icon
+		sfSprite* sprite = g->g->sprites[m->icon_sprite];
+		sfIntRect textrect = {32*m->icon_index, 0, 32, 32};
+		sfSprite_setTextureRect(sprite, textrect);
+		sfSprite_setPosition(sprite, (sfVector2f){x,y});
+		if (do_draw)
+			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+
+		// text
 		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f", name, amount);
-
-		sfText_setPosition(text, pos);
+		snprintf(buffer, 1024, "%s: %.0f", m->name, amount);
+		sfText_setPosition(text, (sfVector2f){x+32, y+6});
 		sfText_setUTF8(text, buffer);
+
+		y += 32;
 
 		if (do_draw)
 		{
@@ -156,13 +166,13 @@ int swinventory_draw(swinventory_t* w, game_t* g, char do_draw)
 		if (amount == 0)
 			continue;
 
-		pos.y += 20;
-
 		char buffer[1024];
 		snprintf(buffer, 1024, "%s: %.0f", name, amount);
 
-		sfText_setPosition(text, pos);
+		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
+
+		y += 20;
 
 		if (do_draw)
 		{
