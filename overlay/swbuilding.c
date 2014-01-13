@@ -60,95 +60,25 @@ size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr
 	return cur;
 }
 
-char swbuilding_cursor(swbuilding_t* w, game_t* g, int _x, int _y)
+int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 {
-	if (!w->w.visible)
-		return 0;
-
-	building_t* b = g->player->inBuilding;
-	if (b == NULL)
-		return 0;
-
-	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
-	float x = cursor.x;
-	float y = cursor.y;
-
-	static sfText* text = NULL;
-	if (text == NULL)
+	if (do_draw)
 	{
-		text = sfText_create();
-		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
+		if (!subwindow_draw(&w->w, g->g))
+			return -1;
 	}
 
-	sfVector2f pos = {0, 0};
-	pos.y += 20; // material
-
-	kindOf_building_t* t = b->t;
-	if (t->make.n_res != 0)
-	{
-		component_t* c = &t->make.res[0];
-		if (c->is_item)
-			exit(1);
-
-		const char* action = t->make.n_req == 0 ? "Harvest" : "Transform to";
-		const char* name   = g->u->materials[c->id].name;
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s %s", action, name);
-
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, buffer);
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (sfFloatRect_contains(&rect, x, y))
-		{
-			char buffer[1024];
-			swbuilding_tooltip(buffer, 1024, g->u, &t->make);
-			graphics_drawTooltip(g->g, _x, _y, buffer);
-			return 1;
-		}
-	}
-	pos.y += 20;
-
-	for (size_t i = 0; i < t->n_items; i++)
-	{
-		transform_t* tr = &t->items[i];
-		if (tr->n_res == 0)
-			continue;
-
-		component_t* c = &tr->res[0];
-		if (!c->is_item)
-			exit(1);
-
-		pos.y += 20;
-
-		char* name = g->u->items[c->id].name;
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, name);
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (!sfFloatRect_contains(&rect, x, y))
-			continue;
-
-		char buffer[1024];
-		swbuilding_tooltip(buffer, 1024, g->u, tr);
-		graphics_drawTooltip(g->g, _x, _y, buffer);
-		return 1;
-	}
-
-	return 0;
-}
-
-void swbuilding_draw(swbuilding_t* w, game_t* g)
-{
-	if (!subwindow_draw(&w->w, g->g))
-		return;
+	sfVector2f cursor;
+	if (!do_draw)
+		cursor = subwindow_mouse(&w->w, g->g);
 
 	building_t* b = g->player->inBuilding;
 	if (b == NULL)
 	{
-		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
-		return;
+		if (do_draw)
+			sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+
+		return -1;
 	}
 
 	kindOf_building_t* t = b->t;
@@ -168,10 +98,11 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 	char buffer[1024];
 	snprintf(buffer, 1024, "%s", t->name);
-
 	sfText_setPosition(text, pos);
 	sfText_setUTF8(text, buffer);
-	sfRenderWindow_drawText(g->g->render, text, NULL);
+	if (do_draw)
+		sfRenderWindow_drawText(g->g->render, text, NULL);
+
 	pos.y += 20;
 
 	if (t->make.n_res != 0)
@@ -187,7 +118,8 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 		sfText_setPosition(text, pos);
 		sfText_setUTF8(text, buffer);
-		sfRenderWindow_drawText(g->g->render, text, NULL);
+		if (do_draw)
+			sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 	pos.y += 20;
 
@@ -213,67 +145,58 @@ void swbuilding_draw(swbuilding_t* w, game_t* g)
 
 		sfText_setPosition(text, pos);
 		sfText_setUTF8(text, buffer);
-		sfRenderWindow_drawText(g->g->render, text, NULL);
+		if (do_draw)
+		{
+			sfRenderWindow_drawText(g->g->render, text, NULL);
+			continue;
+		}
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+			return i;
 	}
 
 //	sfText_destroy(text); // TODO
 
-	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+	if (do_draw)
+		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+
+	return -1;
 }
 
-char swbuilding_catch(swbuilding_t* w, game_t* g, int _x, int _y, int t)
+char swbuilding_cursor(swbuilding_t* w, game_t* g, int x, int y)
 {
-	if (!subwindow_cursor(&w->w, _x, _y))
+	if (!subwindow_cursor(&w->w, x, y))
 		return 0;
 
-	building_t* b = g->player->inBuilding;
-	if (b == NULL)
+	int i = swbuilding_draw(w, g, 0);
+	if (i < 0)
 		return 1;
+
+	char buffer[1024];
+	building_t* b = g->player->inBuilding;
+	transform_t* tr = &b->t->items[i];
+	swbuilding_tooltip(buffer, 1024, g->u, tr);
+	graphics_drawTooltip(g->g, x, y, buffer);
+	return 1;
+}
+
+char swbuilding_catch(swbuilding_t* w, game_t* g, int x, int y, int t)
+{
+	if (!subwindow_cursor(&w->w, x, y))
+		return 0;
 
 	if (t != sfMouseLeft)
-		return 1;
+		return subwindow_catch(&w->w, x, y, t);
 
-	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
-	float x = cursor.x;
-	float y = cursor.y;
+	int i = swbuilding_draw(w, g, 0);
+	if (i < 0)
+		return subwindow_catch(&w->w, x, y, t);
 
-	static sfText* text = NULL;
-	if (text == NULL)
-	{
-		text = sfText_create();
-		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
-	}
+	building_t* b = g->player->inBuilding;
+	transform_t* tr = &b->t->items[i];
+	if (transform_check(tr, &g->player->inventory))
+		building_work_enqueue(b, i);
 
-	sfVector2f pos = {0, 0};
-	pos.y += 20; // building name
-	pos.y += 20; // material
-
-	for (size_t i = 0; i < b->t->n_items; i++)
-	{
-		transform_t* tr = &b->t->items[i];
-		if (tr->n_res == 0)
-			continue;
-
-		component_t* c = &tr->res[0];
-		if (!c->is_item)
-			exit(1);
-
-		pos.y += 20;
-
-		char* name = g->u->items[c->id].name;
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, name);
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (!sfFloatRect_contains(&rect, x, y))
-			continue;
-
-		if (transform_check(tr, &g->player->inventory))
-			building_work_enqueue(b, i);
-
-		return 1;
-	}
-
-	return subwindow_catch(&w->w, _x, _y, t);
+	return 1;
 }

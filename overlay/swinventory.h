@@ -33,8 +33,8 @@ struct swinventory
 void swinventory_init(swinventory_t* w, graphics_t* g);
 void swinventory_exit(swinventory_t* w);
 
+int  swinventory_draw  (swinventory_t* w, game_t* g, char do_draw);
 char swinventory_cursor(swinventory_t* w, game_t* g, int x, int y);
-void swinventory_draw  (swinventory_t* w, game_t* g);
 char swinventory_catch (swinventory_t* w, game_t* g, int x, int y, int t);
 
 #endif

@@ -35,19 +35,17 @@ void swskills_exit(swskills_t* w)
 	subwindow_exit(&w->w);
 }
 
-char swskills_cursor(swskills_t* w, game_t* g, int x, int y)
+int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 {
-	(void) w;
-	(void) g;
-	(void) x;
-	(void) y;
-	return 0;
-}
+	if (do_draw)
+	{
+		if (!subwindow_draw(&w->w, g->g))
+			return -1;
+	}
 
-void swskills_draw(swskills_t* w, game_t* g)
-{
-	if (!subwindow_draw(&w->w, g->g))
-		return;
+	sfVector2f cursor;
+	if (!do_draw)
+		cursor = subwindow_mouse(&w->w, g->g);
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -66,57 +64,95 @@ void swskills_draw(swskills_t* w, game_t* g)
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 	{
 		skill_t s = g->player->sskills[i];
-		if (s != 1)
+		if (s == 1)
+			continue;
+
+		float level;
+		float progress = 100 * modff(s, &level);
+		snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->sskills[i].name, level, progress);
+
+		sfText_setPosition(text, pos);
+		pos.y += 20;
+		sfText_setUTF8(text, buffer);
+		if (do_draw)
 		{
-			float level;
-			float progress = 100 * modff(s, &level);
-			snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->sskills[i].name, level, progress);
-
-			sfText_setPosition(text, pos);
-			sfText_setUTF8(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
-
-			pos.y += 20;
+			continue;
 		}
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+			return i;
 	}
 
 	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
 		skill_t s = g->player->mskills[i];
-		if (s != 1)
+		if (s == 1)
+			continue;
+
+		float level;
+		float progress = 100 * modff(s, &level);
+		snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->materials[i].skill.name, level, progress);
+
+		sfText_setPosition(text, pos);
+		pos.y += 20;
+		sfText_setUTF8(text, buffer);
+		if (do_draw)
 		{
-			float level;
-			float progress = 100 * modff(s, &level);
-			snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->materials[i].skill.name, level, progress);
-
-			sfText_setPosition(text, pos);
-			sfText_setUTF8(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
-
-			pos.y += 20;
+			continue;
 		}
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+			return N_SPECIAL_SKILLS+i;
 	}
 
 	for (size_t i = 0; i < g->u->n_iskills; i++)
 	{
 		skill_t s = g->player->iskills[i];
-		if (s != 1)
+		if (s == 1)
+			continue;
+
+		snprintf(buffer, 1024, "%s %i", g->u->iskills[i].name, (int)floor(s*100));
+
+		sfText_setPosition(text, pos);
+		pos.y += 20;
+		sfText_setUTF8(text, buffer);
+		if (do_draw)
 		{
-			snprintf(buffer, 1024, "%s %i", g->u->iskills[i].name, (int)floor(s*100));
-
-			sfText_setPosition(text, pos);
-			sfText_setUTF8(text, buffer);
 			sfRenderWindow_drawText(g->g->render, text, NULL);
-
-			pos.y += 20;
+			continue;
 		}
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+			return N_SPECIAL_SKILLS + g->u->n_materials + i;
 	}
 
-	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+	if (do_draw)
+		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+
+	return -1;
+}
+
+char swskills_cursor(swskills_t* w, game_t* g, int x, int y)
+{
+	if (!subwindow_cursor(&w->w, x, y))
+		return 0;
+
+	(void) g;
+
+	return 1;
 }
 
 char swskills_catch(swskills_t* w, game_t* g, int x, int y, int t)
 {
+	if (!subwindow_cursor(&w->w, x, y))
+		return 0;
+
 	(void) g;
+
 	return subwindow_catch(&w->w, x, y, t);
 }

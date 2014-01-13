@@ -105,3 +105,9 @@ char subwindow_wheel(subwindow_t* w, int x, int y, int delta)
 	sfView_move(w->view, (sfVector2f){0,-10*delta});
 	return 1;
 }
+
+sfVector2f subwindow_mouse(subwindow_t* w, graphics_t* g)
+{
+	sfVector2i mouse = sfMouse_getPosition((sfWindow*) g->render);
+	return sfRenderWindow_mapPixelToCoords(g->render, mouse, w->view);
+}

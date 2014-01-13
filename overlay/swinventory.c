@@ -96,84 +96,17 @@ size_t swinventory_itemTooltip(char* buffer, size_t n, universe_t* u, kindOf_ite
 	return cur;
 }
 
-char swinventory_cursor(swinventory_t* w, game_t* g, int _x, int _y)
+int swinventory_draw(swinventory_t* w, game_t* g, char do_draw)
 {
-	if (!subwindow_cursor(&w->w, _x, _y))
-		return 0;
-
-	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
-	float x = cursor.x;
-	float y = cursor.y;
-
-	static sfText* text = NULL;
-	if (text == NULL)
+	if (do_draw)
 	{
-		text = sfText_create();
-		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
+		if (!subwindow_draw(&w->w, g->g))
+			return -1;
 	}
 
-	sfVector2f pos = {0, 0};
-
-	for (size_t i = 0; i < g->u->n_materials; i++)
-	{
-		const char* name = g->u->materials[i].name;
-		float amount = floor(g->player->inventory.materials[i]);
-
-		if (amount == 0)
-			continue;
-
-		pos.y += 20;
-
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f", name, amount);
-
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, buffer);
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (!sfFloatRect_contains(&rect, x, y))
-			continue;
-
-		swinventory_materialTooltip(buffer, 1024, g->u, &g->u->materials[i]);
-		graphics_drawTooltip(g->g, _x, _y, buffer);
-
-		return 1;
-	}
-
-	for (size_t i = 0; i < g->u->n_items; i++)
-	{
-		char* name = g->u->items[i].name;
-		float amount = floor(g->player->inventory.items[i]);
-
-		if (amount == 0)
-			continue;
-
-		pos.y += 20;
-
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f", name, amount);
-
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, buffer);
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (!sfFloatRect_contains(&rect, x, y))
-			continue;
-
-		swinventory_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
-		graphics_drawTooltip(g->g, _x, _y, buffer);
-
-		return 1;
-	}
-
-	return 0;
-}
-
-void swinventory_draw(swinventory_t* w, game_t* g)
-{
-	if (!subwindow_draw(&w->w, g->g))
-		return;
+	sfVector2f cursor;
+	if (!do_draw)
+		cursor = subwindow_mouse(&w->w, g->g);
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -203,7 +136,16 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 		sfText_setPosition(text, pos);
 		sfText_setUTF8(text, buffer);
-		sfRenderWindow_drawText(g->g->render, text, NULL);
+
+		if (do_draw)
+		{
+			sfRenderWindow_drawText(g->g->render, text, NULL);
+			continue;
+		}
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+			return i;
 	}
 
 	for (size_t i = 0; i < g->u->n_items; i++)
@@ -221,54 +163,61 @@ void swinventory_draw(swinventory_t* w, game_t* g)
 
 		sfText_setPosition(text, pos);
 		sfText_setUTF8(text, buffer);
-		sfRenderWindow_drawText(g->g->render, text, NULL);
+
+		if (do_draw)
+		{
+			sfRenderWindow_drawText(g->g->render, text, NULL);
+			continue;
+		}
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+			return g->u->n_materials + i;
 	}
 
-	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+	if (do_draw)
+		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+
+	return -1;
 }
 
-char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
+char swinventory_cursor(swinventory_t* w, game_t* g, int x, int y)
 {
-	if (!subwindow_cursor(&w->w, _x, _y))
+	if (!subwindow_cursor(&w->w, x, y))
+		return 0;
+
+	int i = swinventory_draw(w, g, 0);
+	if (i < 0)
+		return 1;
+
+	char buffer[1024];
+	if ((size_t) i < g->u->n_materials)
+	{
+		swinventory_materialTooltip(buffer, 1024, g->u, &g->u->materials[i]);
+	}
+	else
+	{
+		i -= g->u->n_materials;
+		swinventory_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
+	}
+	graphics_drawTooltip(g->g, x, y, buffer);
+	return 1;
+}
+
+char swinventory_catch(swinventory_t* w, game_t* g, int x, int y, int t)
+{
+	if (!subwindow_cursor(&w->w, x, y))
 		return 0;
 
 	if (t != sfMouseLeft)
-		return 0;
+		return subwindow_catch(&w->w, x, y, t);
 
-	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
-	float x = cursor.x;
-	float y = cursor.y;
+	int i = swinventory_draw(w, g, 0);
+	if (i < 0)
+		return subwindow_catch(&w->w, x, y, t);
 
-	static sfText* text = NULL;
-	if (text == NULL)
+	if ((size_t) i < g->u->n_materials)
 	{
-		text = sfText_create();
-		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
-	}
-
-	sfVector2f pos = {0, 0};
-
-	for (size_t i = 0; i < g->u->n_materials; i++)
-	{
-		const char* name = g->u->materials[i].name;
-		float amount = floor(g->player->inventory.materials[i]);
-
-		if (amount == 0)
-			continue;
-
-		pos.y += 20;
-
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f", name, amount);
-
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, buffer);
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (!sfFloatRect_contains(&rect, x, y))
-			continue;
-
 		kindOf_material_t* t = &g->u->materials[i];
 		if (t->edible)
 		{
@@ -279,26 +228,9 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 
 		return 1;
 	}
-
-	for (size_t i = 0; i < g->u->n_items; i++)
+	else
 	{
-		char* name = g->u->items[i].name;
-		float amount = floor(g->player->inventory.items[i]);
-
-		if (amount == 0)
-			continue;
-
-		pos.y += 20;
-
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f", name, amount);
-
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, buffer);
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (!sfFloatRect_contains(&rect, x, y))
-			continue;
+		i -= g->u->n_materials;
 
 		int cat = g->u->items[i].category;
 
@@ -368,6 +300,4 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 
 		return 1;
 	}
-
-	return subwindow_catch(&w->w, _x, _y, t);
 }

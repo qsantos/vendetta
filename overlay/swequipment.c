@@ -28,19 +28,17 @@ void swequipment_exit(swequipment_t* w)
 	subwindow_exit(&w->w);
 }
 
-char swequipment_cursor(swequipment_t* w, game_t* g, int x, int y)
+int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 {
-	(void) w;
-	(void) g;
-	(void) x;
-	(void) y;
-	return 0;
-}
+	if (do_draw)
+	{
+		if (!subwindow_draw(&w->w, g->g))
+			return -1;
+	}
 
-void swequipment_draw(swequipment_t* w, game_t* g)
-{
-	if (!subwindow_draw(&w->w, g->g))
-		return;
+	sfVector2f cursor;
+	if (!do_draw)
+		cursor = subwindow_mouse(&w->w, g->g);
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -82,62 +80,53 @@ void swequipment_draw(swequipment_t* w, game_t* g)
 
 		pos.x += 150;
 		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, txt); // TODO
-		sfRenderWindow_drawText(g->g->render, text, NULL);
 		pos.x -= 150;
-
 		pos.y += 20;
+		sfText_setUTF8(text, txt); // TODO
+		if (do_draw)
+		{
+			sfRenderWindow_drawText(g->g->render, text, NULL);
+			continue;
+		}
+
+		sfFloatRect rect = sfText_getGlobalBounds(text);
+		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+			return i;
 	}
 
-	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+	if (do_draw)
+		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
+
+	return -1;
 }
 
-char swequipment_catch(swequipment_t* w, game_t* g, int _x, int _y, int t)
+char swequipment_cursor(swequipment_t* w, game_t* g, int x, int y)
 {
-	if (!subwindow_cursor(&w->w, _x, _y))
+	if (!subwindow_cursor(&w->w, x, y))
+		return 0;
+
+	(void) g;
+
+	return 1;
+}
+
+char swequipment_catch(swequipment_t* w, game_t* g, int x, int y, int t)
+{
+	if (!subwindow_cursor(&w->w, x, y))
 		return 0;
 
 	if (t != sfMouseLeft)
-		return 0;
+		return subwindow_catch(&w->w, x, y, t);
 
-	sfVector2f cursor = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){_x,_y}, w->w.view);
-	float x = cursor.x;
-	float y = cursor.y;
+	int i = swequipment_draw(w, g, 0);
+	if (i < 0)
+		return subwindow_catch(&w->w, x, y, t);
 
-	static sfText* text = NULL;
-	if (text == NULL)
+	int j = g->player->equipment[i];
+	if (j >= 0)
 	{
-		text = sfText_create();
-		sfText_setFont         (text, g->g->font);
-		sfText_setCharacterSize(text, 18);
+		g->player->equipment[i] = -1;
+		g->player->inventory.items[j]++;
 	}
-
-	sfVector2f pos = {0, 0};
-
-	pos.y -= 20;
-	for (size_t i = 0; i < g->u->n_slots; i++)
-	{
-		pos.y += 20;
-
-		int id = g->player->equipment[i];
-		char* txt = id >= 0 ? g->u->items[id].name : "-";
-		pos.x += 150;
-		sfText_setPosition(text, pos);
-		sfText_setUTF8(text, txt);
-		pos.x -= 150;
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (!sfFloatRect_contains(&rect, x, y))
-			continue;
-
-		int j = g->player->equipment[i];
-		if (j >= 0)
-		{
-			g->player->equipment[i] = -1;
-			g->player->inventory.items[j]++;
-		}
-		return 1;
-	}
-
-	return subwindow_catch(&w->w, _x, _y, t);
+	return 1;
 }

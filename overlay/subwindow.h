@@ -44,4 +44,6 @@ char subwindow_draw  (subwindow_t* w, graphics_t* g);
 char subwindow_catch (subwindow_t* w, int x, int y, int t);
 char subwindow_wheel (subwindow_t* w, int x, int y, int delta);
 
+sfVector2f subwindow_mouse(subwindow_t* w, graphics_t* g);
+
 #endif

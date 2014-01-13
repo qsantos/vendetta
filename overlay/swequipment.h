@@ -33,8 +33,8 @@ struct swequipment
 void swequipment_init(swequipment_t* w, graphics_t* g);
 void swequipment_exit(swequipment_t* w);
 
+int  swequipment_draw  (swequipment_t* w, game_t* g, char do_draw);
 char swequipment_cursor(swequipment_t* w, game_t* g, int x, int y);
-void swequipment_draw  (swequipment_t* w, game_t* g);
 char swequipment_catch (swequipment_t* w, game_t* g, int x, int y, int t);
 
 #endif

@@ -129,10 +129,10 @@ void overlay_draw(overlay_t* o, game_t* g)
 		y += 30;
 	}
 
-	swbuilding_draw (&o->swbuilding,  g);
-	swinventory_draw(&o->swinventory, g);
-	swskills_draw   (&o->swskills,    g);
-	swequipment_draw(&o->swequipment, g);
+	swbuilding_draw (&o->swbuilding,  g, 1);
+	swinventory_draw(&o->swinventory, g, 1);
+	swskills_draw   (&o->swskills,    g, 1);
+	swequipment_draw(&o->swequipment, g, 1);
 
 	ov_build_draw(&o->build, g);
 
