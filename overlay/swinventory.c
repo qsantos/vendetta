@@ -301,15 +301,70 @@ char swinventory_catch(swinventory_t* w, game_t* g, int _x, int _y, int t)
 			continue;
 
 		int cat = g->u->items[i].category;
-		for (size_t j = 0; j < g->u->n_slots; j++)
+
+		// TODO
+		// BEGIN quickfix
+		// handling two-handed items simply is tricky
+		// as there is only one such category, let's hard-code it!
+		// two-handed items are equiped in single-handed slot and reserve the next one
+		if (cat == 0) // one-handed
 		{
+			char twohanded = 0; // keep track of reserved slot
+			for (size_t j = 0; j < g->u->n_slots; j++)
+				if (g->u->slots[j].category == 0)
+				{
+					int k = g->player->equipment[j];
+					if (k < 0)
+					{
+						if (twohanded)
+						{
+							twohanded = 0;
+						}
+						else
+						{
+							g->player->equipment[j] = i;
+							g->player->inventory.items[i]--;
+							break;
+						}
+					}
+					else if (g->u->items[k].category == 1)
+					{
+						twohanded = 1;
+					}
+				}
+		}
+		else if (cat == 1) // two-handed
+		{
+			// find two single-hand slots
+			int a = -1;
+			int b = -1;
+			for (size_t j = 0; j < g->u->n_slots; j++)
+				if (g->u->slots[j].category == 0 && g->player->equipment[j] < 0)
+				{
+					if (a < 0)
+						a = j;
+					else
+					{
+						b = j;
+						break;
+					}
+				}
+			if (a >= 0 && b >= 0)
+			{
+				g->player->equipment[a] = i;
+				g->player->inventory.items[i]--;
+			}
+		}
+		else
+		// END quickfix
+
+		for (size_t j = 0; j < g->u->n_slots; j++)
 			if (g->u->slots[j].category == cat && g->player->equipment[j] < 0)
 			{
 				g->player->equipment[j] = i;
 				g->player->inventory.items[i]--;
 				break;
 			}
-		}
 
 		return 1;
 	}
