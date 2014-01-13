@@ -135,6 +135,8 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		y += 32;
 	}
 
+	y += 20;
+
 	int cur_work = b->work_n == 0 ? -1 : b->work_list[0];
 	for (size_t i = 0; i < t->n_items; i++)
 	{
@@ -146,21 +148,35 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		if (!c->is_item)
 			exit(1);
 
-		char* name = g->u->items[c->id].name;
+		// icon
+		kindOf_item_t* it = &g->u->items[c->id];
+		static const int max_cols = 1024 / 32;
+		int idx = it->icon_index;
+		int col = idx % max_cols;
+		int row = idx / max_cols;
+		sfSprite* sprite = g->g->sprites[it->icon_sprite];
+		sfIntRect rect = {32*col, 32*row, 32, 32};
+		sfSprite_setTextureRect(sprite, rect);
+		sfSprite_setPosition(sprite, (sfVector2f){x,y});
+		if (do_draw)
+			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+		else
+			caught |= sfSprite_contains(sprite, cursor);
+
+		// text
 		char buffer[1024];
 		if ((int) i == cur_work)
-			snprintf(buffer, 1024, "%s (%i%%)", name, (int) floor(100*b->work_progress));
+			snprintf(buffer, 1024, "%s (%i%%)", it->name, (int) floor(100*b->work_progress));
 		else
-			snprintf(buffer, 1024, "%s", name);
-
-		sfText_setPosition(text, (sfVector2f){x,y});
+			snprintf(buffer, 1024, "%s", it->name);
+		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 		else
 			caught |= sfText_contains(text, cursor);
 
-		y += 20;
+		y += 32;
 
 		if (caught)
 			return i;
