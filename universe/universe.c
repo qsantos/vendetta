@@ -232,14 +232,15 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			b->name = cfg_getString(s, "NomFR");
 		b->build.rate = 100. / cfg_getFloat(s, "MaxVie");
 
-		int id = cfg_getInt(s, "RessourceFabrique");
-		if (id < 0 || (size_t) id >= u->n_materials)
+		int id = cfg_getInt(s, "RessourceFabrique") - 1;
+		if (id >= (ssize_t) u->n_materials)
 		{
 			fprintf(stderr, "Invalid result material id '%i' at '%s_%s'\n",
 				id, gr->name, s->name);
 			exit(1);
 		}
-		transform_copy(&b->make, &u->tmp_materials[id]);
+		if (id >= 0)
+			transform_copy(&b->make, &u->tmp_materials[id]);
 
 		char* image_file = cfg_getString(s, "Image");
 		int   n_sprites  = cfg_getInt(s, "NombreEtapeFabrication") + 1;
