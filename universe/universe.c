@@ -210,6 +210,8 @@ void universe_init_buildings(universe_t* u, cfg_group_t* gr, graphics_t* g)
 		kindOf_building_init(b);
 
 		b->name = cfg_getString(s, "Nom");
+		if (b->name == NULL)
+			b->name = cfg_getString(s, "NomFR");
 		b->build.rate = 100. / cfg_getFloat(s, "MaxVie");
 
 		int id = cfg_getInt(s, "RessourceFabrique");
