@@ -373,7 +373,7 @@ universe_t* universe_init(graphics_t* g)
 	u->slots[ 5] = (kindOf_slot_t){"Dos",               5};
 	u->slots[ 6] = (kindOf_slot_t){"Annulaire droit",   6};
 	u->slots[ 7] = (kindOf_slot_t){"Annulaire gauche",  6};
-	u->slots[ 8] = (kindOf_slot_t){"Main",              8};
+	u->slots[ 8] = (kindOf_slot_t){"Mains",             8};
 	u->slots[ 9] = (kindOf_slot_t){"Cou",               9};
 	u->slots[10] = (kindOf_slot_t){"Monture",          10};
 

@@ -38,10 +38,10 @@ void ov_build_init(ov_build_t* o)
 	o->list[1] =  2;
 	o->list[2] =  6;
 	o->list[3] =  9;
-	o->list[4] = 17;
-	o->list[5] = 20;
-	o->list[6] = 21;
-	o->list[7] = 22;
+	o->list[4] = 15;
+	o->list[5] = 18;
+	o->list[6] = 19;
+	o->list[7] = 20;
 
 }
 
