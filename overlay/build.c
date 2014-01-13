@@ -54,8 +54,15 @@ void draw_buildButton(game_t* g, kindOf_building_t* b, float x, float y)
 {
 	sfSprite* sprite = g->g->sprites[b->button_sprite];
 
+	static const int max_cols = 1024 / 28;
+
+	int idx = b->button_index;
 	int ok = transform_check(&b->build, &g->player->inventory);
-	sfIntRect rect = {28*b->button_index, 28*ok, 28, 28};
+
+	int col = idx % max_cols;
+	int row = 3*(idx / max_cols) + ok;
+
+	sfIntRect rect = {28*col, 28*row, 28, 28};
 	sfSprite_setTextureRect(sprite, rect);
 
 	sfSprite_setPosition(sprite, (sfVector2f){x,y});
