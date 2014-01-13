@@ -156,6 +156,8 @@ static vr_edge_t* new_edge(vr_diagram_t* v, vr_region_t* a, vr_region_t* b)
 	*e = (vr_edge_t){{NULL, NULL}, a, b};
 	if (a != NULL) region_addEdge(a, e);
 	if (b != NULL) region_addEdge(b, e);
+
+	v->edges[v->n_edges++] = e;
 	return e;
 }
 char vr_diagram_step(vr_diagram_t* v)
@@ -334,7 +336,7 @@ static void vr_diagram_restrictRegion(vr_diagram_t* v, vr_region_t* r)
 		return;
 
 	// apply common corner correction
-	vr_vertex_t* np = CALLOC(vr_vertex_t, 1);
+	vr_vertex_t* np = new_vertex(v);
 	np->p = p;
 	vr_edge_t* e1 = new_edge(v, r, NULL);
 	vr_edge_t* e2 = new_edge(v, r, NULL);

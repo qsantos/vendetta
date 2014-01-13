@@ -23,10 +23,13 @@
 
 static void xchg(char *base, size_t size, size_t a, size_t b)
 {
-	char buffer[size];
-	memcpy(buffer,      base+a*size, size);
-	memcpy(base+a*size, base+b*size, size);
-	memcpy(base+b*size, buffer,      size);
+	if (a != b)
+	{
+		char buffer[size];
+		memcpy(buffer,      base+a*size, size);
+		memcpy(base+a*size, base+b*size, size);
+		memcpy(base+b*size, buffer,      size);
+	}
 }
 
 static void aux(char *base, size_t nmemb, size_t size,
