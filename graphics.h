@@ -53,4 +53,7 @@ void graphics_drawTooltip    (graphics_t* g, float x, float y, const char* txt);
 
 void sfText_setUTF8(sfText* text, const char* string);
 
+char sfText_contains  (sfText*   text,   sfVector2f point);
+char sfSprite_contains(sfSprite* sprite, sfVector2f point);
+
 #endif

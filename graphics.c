@@ -212,3 +212,15 @@ void sfText_setUTF8(sfText* text, const char* string)
 #endif
 	sfText_setUnicodeString(text, buf32);
 }
+
+char sfText_contains(sfText* text, sfVector2f point)
+{
+	sfFloatRect rect = sfText_getGlobalBounds(text);
+	return sfFloatRect_contains(&rect, point.x, point.y);
+}
+
+char sfSprite_contains(sfSprite* sprite, sfVector2f point)
+{
+	sfFloatRect rect = sfSprite_getGlobalBounds(sprite);
+	return sfFloatRect_contains(&rect, point.x, point.y);
+}

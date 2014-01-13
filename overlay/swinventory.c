@@ -121,6 +121,7 @@ int swinventory_draw(swinventory_t* w, game_t* g, char do_draw)
 
 	float x = 0;
 	float y = 0;
+	char caught = 0;
 
 	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
@@ -133,28 +134,27 @@ int swinventory_draw(swinventory_t* w, game_t* g, char do_draw)
 
 		// icon
 		sfSprite* sprite = g->g->sprites[m->icon_sprite];
-		sfIntRect textrect = {32*m->icon_index, 0, 32, 32};
-		sfSprite_setTextureRect(sprite, textrect);
+		sfIntRect rect = {32*m->icon_index, 0, 32, 32};
+		sfSprite_setTextureRect(sprite, rect);
 		sfSprite_setPosition(sprite, (sfVector2f){x,y});
 		if (do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+		else
+			caught |= sfSprite_contains(sprite, cursor);
 
 		// text
 		char buffer[1024];
 		snprintf(buffer, 1024, "%s: %.0f", m->name, amount);
 		sfText_setPosition(text, (sfVector2f){x+32, y+6});
 		sfText_setUTF8(text, buffer);
+		if (do_draw)
+			sfRenderWindow_drawText(g->g->render, text, NULL);
+		else
+			caught |= sfText_contains(text, cursor);
 
 		y += 32;
 
-		if (do_draw)
-		{
-			sfRenderWindow_drawText(g->g->render, text, NULL);
-			continue;
-		}
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+		if (caught)
 			return i;
 	}
 
@@ -175,13 +175,11 @@ int swinventory_draw(swinventory_t* w, game_t* g, char do_draw)
 		y += 20;
 
 		if (do_draw)
-		{
 			sfRenderWindow_drawText(g->g->render, text, NULL);
-			continue;
-		}
+		else
+			caught |= sfText_contains(text, cursor);
 
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+		if (caught)
 			return g->u->n_materials + i;
 	}
 
