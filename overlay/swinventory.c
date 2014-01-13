@@ -160,24 +160,38 @@ int swinventory_draw(swinventory_t* w, game_t* g, char do_draw)
 
 	for (size_t i = 0; i < g->u->n_items; i++)
 	{
-		char* name = g->u->items[i].name;
 		float amount = floor(g->player->inventory.items[i]);
 
 		if (amount == 0)
 			continue;
 
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f", name, amount);
+		kindOf_item_t* it = &g->u->items[i];
 
+		// icon
+		static const int max_cols = 1024 / 32;
+		int idx = it->icon_index;
+		int col = idx % max_cols;
+		int row = idx / max_cols;
+		sfSprite* sprite = g->g->sprites[it->icon_sprite];
+		sfIntRect rect = {32*col, 32*row, 32, 32};
+		sfSprite_setTextureRect(sprite, rect);
+		sfSprite_setPosition(sprite, (sfVector2f){x,y});
+		if (do_draw)
+			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+		else
+			caught |= sfSprite_contains(sprite, cursor);
+
+		// text
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %.0f", it->name, amount);
 		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
-
-		y += 20;
-
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 		else
 			caught |= sfText_contains(text, cursor);
+
+		y += 32;
 
 		if (caught)
 			return g->u->n_materials + i;
