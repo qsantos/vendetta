@@ -34,9 +34,14 @@ struct kindOf_item
 	float  bonus_special[N_SPECIAL_SKILLS];
 	float* bonus_material;
 	float* bonus_item;
+
+	int icon_sprite;
+	int icon_index;
 };
 
 void kindOf_item_init(kindOf_item_t* i, universe_t* u);
 void kindOf_item_exit(kindOf_item_t* i);
+
+void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx);
 
 #endif

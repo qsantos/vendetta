@@ -25,7 +25,6 @@
 
 void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
-	(void) g;
 	if (gr == NULL)
 		return;
 
@@ -117,7 +116,6 @@ void universe_init_iskills(universe_t* u, graphics_t* g, cfg_group_t* gr)
 
 void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
-	(void) g;
 	if (gr == NULL)
 		return;
 
@@ -204,6 +202,14 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			}
 			it->bonus_item[i] = atof(v);
 		}
+
+		char* icon_file  = cfg_getString(s, "Image");
+		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
+		if (icon_file != NULL && icon_index >= 0)
+			kindOf_item_icon(it, g, icon_file, icon_index);
+		else
+			fprintf(stderr, "Missing icon for '%s_%s'\n", gr->name, s->name);
+		free(icon_file);
 	}
 }
 
