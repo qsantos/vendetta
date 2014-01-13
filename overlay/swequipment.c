@@ -62,15 +62,32 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 	{
 		kindOf_slot_t* s = &g->u->slots[i];
 
+		// slot
 		sfText_setPosition(text, (sfVector2f){x,y});
 		sfText_setUTF8(text, s->name); // TODO
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		int id = g->player->equipment[i];
-		char* txt = "";
+
+
+		char* txt = NULL;
 		if (id >= 0)
 		{
+			// icon
 			kindOf_item_t* it = &g->u->items[id];
+			static const int max_cols = 1024 / 32;
+			int idx = it->icon_index;
+			int col = idx % max_cols;
+			int row = idx / max_cols;
+			sfSprite* sprite = g->g->sprites[it->icon_sprite];
+			sfIntRect rect = {32*col, 32*row, 32, 32};
+			sfSprite_setTextureRect(sprite, rect);
+			sfSprite_setPosition(sprite, (sfVector2f){x+150,y});
+			if (do_draw)
+				sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+			else
+				caught |= sfSprite_contains(sprite, cursor);
+
 			if (it->category == 1)
 				twohanded = 1;
 			txt = it->name;
@@ -81,14 +98,18 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 			txt = "-";
 		}
 
-		sfText_setPosition(text, (sfVector2f){x+150,y});
-		sfText_setUTF8(text, txt); // TODO
-		if (do_draw)
-			sfRenderWindow_drawText(g->g->render, text, NULL);
-		else
-			caught |= sfText_contains(text, cursor);
+		// text
+		if (txt != NULL)
+		{
+			sfText_setPosition(text, (sfVector2f){x+182,y});
+			sfText_setUTF8(text, txt); // TODO
+			if (do_draw)
+				sfRenderWindow_drawText(g->g->render, text, NULL);
+			else
+				caught |= sfText_contains(text, cursor);
+		}
 
-		y += 20;
+		y += 32;
 
 		if (caught)
 			return i;
