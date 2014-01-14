@@ -16,29 +16,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef GAME_H
-#define GAME_H
+#ifndef U_AI_H
+#define U_AI_H
 
-typedef struct game game_t;
+typedef struct ai ai_t;
 
-#include "universe/universe.h"
-#include "world/world.h"
-#include "graphics.h"
-#include "overlay/overlay.h"
+#include "world/character.h"
 
-struct game
+struct ai
 {
-	graphics_t* g;
-	overlay_t*  o;
-	universe_t* u;
-	world_t*    w;
-
-	character_t* player;
-	ai_t         default_ai;
+	int building;
 };
 
-void game_init(game_t* g);
-void game_exit(game_t* g);
-void game_loop(game_t* g);
+void ai_init(ai_t* ai);
+void ai_exit(ai_t* ai);
+
+void ai_load(ai_t* ai, const char* filename);
+void ai_do  (ai_t* ai, character_t* c);
+
+char ai_gather(character_t* c, int id, float amount);
+char ai_build (character_t* c, int id);
 
 #endif

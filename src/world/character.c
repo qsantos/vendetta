@@ -23,7 +23,6 @@
 
 #include "../util.h"
 #include "mine.h"
-#include "building.h"
 
 #define M_PI 3.14159265358979323846
 
@@ -39,8 +38,7 @@ void character_init(character_t* c, universe_t* u, world_t* w)
 	c->dir  = D_SOUTH;
 	c->step = 5; // standing still
 
-	c->is_player = 0;
-	c->bot_step  = 0;
+	c->ai        = NULL;
 
 	c->universe = u;
 	c->world    = w;
@@ -232,23 +230,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 void character_doRound(character_t* c, float duration)
 {
-	if (!c->is_player)
+	if (c->ai != NULL)
 	{
-		if (c->bot_step == 0)
-		{
-			character_goMine(c, 2);
-			c->bot_step++;
-		}
-		else if (c->bot_step == 1 && c->inventory.materials[2] >= 17)
-		{
-			character_makeBuilding(c, 2);
-			c->bot_step++;
-		}
-		else if (c->bot_step == 2 && c->inventory.materials[3] >= 9)
-		{
-			character_makeBuilding(c, 9);
-			c->bot_step++;
-		}
+		ai_do(c->ai, c);
 	}
 
 	duration *= character_vitality(c);
@@ -337,6 +321,10 @@ void character_goMine(character_t* c, int id)
 void character_makeBuilding(character_t* c, int id)
 {
 	kindOf_building_t* t = &c->universe->buildings[id];
+
+	if (!transform_check(&t->build, &c->inventory))
+		return;
+
 	float x;
 	float y;
 	float dx = 0;
@@ -347,7 +335,7 @@ void character_makeBuilding(character_t* c, int id)
 		y = c->o.y + cfrnd(dy);
 		dx += 100;
 		dy += 100;
-	} while (!world_canBuild(c->world, c, t, x, y));
+	} while (!world_canBuild(c->world, x, y, t));
 	building_t* b = world_addBuilding(c->world, t, x, y);
 	if (b != NULL)
 		c->go_o = &b->o;

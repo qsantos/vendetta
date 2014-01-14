@@ -1,0 +1,45 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer du blé.
+Equiper_0
+
+Age_1
+#Fait simplement une ferme.
+ChangerMode_1
+GagnerArgent_1=100
+Objet_6=1
+Batiment_1
+Ressource_13=5
+Travailler
+
+Age_2
+#Fabrique une grange et quelques outils.
+ChangerMode_1
+GagnerArgent_1=100
+Objet_6=1
+Batiment_1
+Travailler
+
+Age_3
+#Fabrique une grange et s'équipe.
+ChangerMode_1
+GagnerArgent_1=100
+Objet_6=1
+Batiment_1
+Travailler
+
+Age_4
+#Fabrique une grange et s'équipe.
+ChangerMode_1
+GagnerArgent_1=100
+Objet_6=1
+Batiment_1
+Travailler
+
+Age_5
+#Fabrique une grange et s'équipe.
+ChangerMode_1
+GagnerArgent_1=100
+Objet_6=1
+Batiment_1
+Travailler
+
+#Fin

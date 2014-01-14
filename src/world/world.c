@@ -246,6 +246,26 @@ mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 	return ret;
 }
 
+building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* t)
+{
+	building_t* ret = NULL;
+	float min_d = -1;
+	for (size_t i = 0; i < w->n_buildings; i++)
+	{
+		building_t* m = w->buildings[i];
+		if (t == NULL || m->t == t)
+		{
+			float d = object_distance((object_t*) m, x, y);
+			if (min_d < 0 || d < min_d)
+			{
+				ret = m;
+				min_d = d;
+			}
+		}
+	}
+	return ret;
+}
+
 char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 {
 	for (size_t i = 0; i < w->n_mines; i++)

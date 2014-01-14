@@ -28,6 +28,7 @@ typedef struct character character_t;
 #include "status.h"
 #include "world.h"
 #include "../universe/universe.h"
+#include "../ai.h"
 
 typedef enum
 {
@@ -47,8 +48,7 @@ struct character
 	direction_t dir;
 	float       step;
 
-	char is_player;
-	int  bot_step;
+	ai_t* ai;
 
 	universe_t* universe;
 	world_t*    world;

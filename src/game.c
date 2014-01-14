@@ -33,7 +33,18 @@ void game_init(game_t* g)
 	g->w =    world_init(g->u);
 
 	g->player = &g->w->characters[g->w->n_characters-1];
-	g->player->is_player = 1;
+
+	ai_t* ai = &g->default_ai;
+	ai_init(ai);
+	ai_load(ai, "bots/Fermier de ble.ia");
+
+	for (size_t i = 0; i < g->w->n_characters; i++)
+	{
+		character_t* c = &g->w->characters[i];
+		if (c == g->player)
+			continue;
+		c->ai = ai;
+	}
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	g->g->overlay_view = sfView_copy(default_view);
@@ -42,6 +53,8 @@ void game_init(game_t* g)
 
 void game_exit(game_t* g)
 {
+	ai_exit(&g->default_ai);
+
 	world_exit   (g->w);
 	universe_exit(g->u);
 	overlay_exit (g->o);
