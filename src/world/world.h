@@ -27,6 +27,11 @@ typedef struct world world_t;
 #include "object.h"
 #include "building.h"
 
+#define TILE_SIZE 16
+#define TERRAIN(W,I,J) ((W)->terrain[(J)*(W)->tilesx + (I)])
+#define TERRAINI(W,X)  ((int)floor((X) / TILE_SIZE + 0.5*(W)->tilesx))
+#define TERRAINJ(W,Y)  ((int)floor((Y) / TILE_SIZE + 0.5*(W)->tilesy))
+
 struct world
 {
 	universe_t* universe;
@@ -51,6 +56,7 @@ void     world_exit(world_t* w);
 
 void world_doRound(world_t* w, float duration);
 
+int         world_landAt      (world_t* w, float x, float y);
 object_t*   world_objectAt    (world_t* w, float x, float y);
 mine_t*     world_findMine    (world_t* w, float x, float y, kindOf_mine_t* t);
 building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* t);

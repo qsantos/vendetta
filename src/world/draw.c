@@ -100,7 +100,7 @@ void draw_world(graphics_t* g, world_t* w)
 		for (int i = 0; i < x; i++)
 			for (int j = 0; j < y; j++)
 			{
-				sfVertex* v = sfVertexArray_getVertex(array, (i*x+j)*4);
+				sfVertex* v = sfVertexArray_getVertex(array, (j*x+i)*4);
 
 				float a = (i-x/2)*16;
 				float b = (j-y/2)*16;
@@ -112,7 +112,7 @@ void draw_world(graphics_t* g, world_t* w)
 				for (int k = 0; k < 4; k++)
 					v[k].color = sfWhite;
 
-				int t = w->terrain[i*x+j];
+				int t = TERRAIN(w,i,j);
 				a = 16*(t%16);
 				b = 16*(t/16);
 				v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
@@ -134,13 +134,13 @@ void draw_world(graphics_t* g, world_t* w)
 		for (int i = 0; i < x; i++)
 		for (int j = 0; j < y; j++)
 		{
-			int t = w->terrain[i*x+j];
+			int t = TERRAIN(w,i,j);
 			if (!(160 <= t && t < 176))
 				continue;
 			t += 16*(water_step == 3 ? 1 : water_step);
 			float a = 16*(t%16);
 			float b = 16*(t/16);
-			sfVertex* v = sfVertexArray_getVertex(array, (i*x+j)*4);
+			sfVertex* v = sfVertexArray_getVertex(array, (j*x+i)*4);
 			v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
 			v[1].texCoords = (sfVector2f){a+15.99,b+ 0.01};
 			v[2].texCoords = (sfVector2f){a+15.99,b+15.99};

@@ -26,8 +26,6 @@
 #include "../util.h"
 #include "../voronoi/lloyd.h"
 
-#define TILE_SIZE 16
-
 world_t* world_init(universe_t* u)
 {
 	world_t* w = CALLOC(world_t, 1);
@@ -70,44 +68,44 @@ world_t* world_init(universe_t* u)
 
 		// first, get vertical bounds on the region
 		vr_region_t* r = v.regions[i];
-		int miny = w->tilesy;
-		int maxy = 0;
-		for (size_t j = 0; j < r->n_edges; j++)
+		int minj = w->tilesy;
+		int maxj = 0;
+		for (size_t k = 0; k < r->n_edges; k++)
 		{
-			segment_t* s = &r->edges[j]->s;
-			if (s->a->y < miny) miny = floor(s->a->y);
-			if (s->a->y > maxy) maxy = floor(s->a->y);
-			if (s->b->y < miny) miny = floor(s->b->y);
-			if (s->b->y > maxy) maxy = floor(s->b->y);
+			segment_t* s = &r->edges[k]->s;
+			if (s->a->y < minj) minj = floor(s->a->y);
+			if (s->a->y > maxj) maxj = floor(s->a->y);
+			if (s->b->y < minj) minj = floor(s->b->y);
+			if (s->b->y > maxj) maxj = floor(s->b->y);
 		}
-		if (maxy >= w->tilesy)
-			maxy = w->tilesy - 1;
+		if (maxj >= w->tilesy)
+			maxj = w->tilesy - 1;
 
 		// then, consider each so-selected slide row
-		for (int y = miny; y <= maxy; y++)
+		for (int j = minj; j <= maxj; j++)
 		{
 			// find the portion of the row in the region
-			int rowmin = w->tilesx;
-			int rowmax = 0;
-			point_t a = {rowmin, y};
-			point_t b = {rowmax, y};
+			int mini = w->tilesx;
+			int maxi = 0;
+			point_t a = {mini, j};
+			point_t b = {maxi, j};
 			segment_t s = {&a, &b};
-			for (size_t j = 0; j < r->n_edges; j++)
+			for (size_t k = 0; k < r->n_edges; k++)
 			{
 				point_t p;
-				if (!segment_intersect(&p, &s, &r->edges[j]->s))
+				if (!segment_intersect(&p, &s, &r->edges[k]->s))
 					continue;
-				if (p.x < rowmin)
-					rowmin = floor(p.x);
-				if (p.x > rowmax)
-					rowmax = floor(p.x);
+				if (p.x < mini)
+					mini = floor(p.x);
+				if (p.x > maxi)
+					maxi = floor(p.x);
 			}
-			if (rowmax >= w->tilesx)
-				rowmax = w->tilesx - 1;
+			if (maxi >= w->tilesx)
+				maxi = w->tilesx - 1;
 
 			// set this portion to proper type
-			for (int x = rowmin; x <= rowmax; x++)
-				w->terrain[y*w->tilesx + x] = t;
+			for (int i = mini; i <= maxi; i++)
+				TERRAIN(w,i,j) = t;
 		}
 	}
 
@@ -115,7 +113,7 @@ world_t* world_init(universe_t* u)
 	// END map generation
 
 	// BEGIN land type borders
-#define LAND_TYPE(I,J) (w->terrain[(I)*w->tilesx + (J)] / 16)
+#define LAND_TYPE(I,J) (TERRAIN(w,I,J) / 16)
 #define LAND_SAME(I,J) ( \
 	((I) < 0 || (I) >= w->tilesx || (J) < 0 || (J) >= w->tilesy) ? \
 	1 : \
@@ -133,7 +131,7 @@ world_t* world_init(universe_t* u)
 		char bottom = LAND_SAME(i,j+1);
 		char left   = LAND_SAME(i-1,j);
 		int neighbor = (top<<3) | (right<<2) | (bottom<<1) | (left<<0);
-		w->terrain[i*w->tilesx + j] += type2tile[neighbor];
+		TERRAIN(w,i,j) += type2tile[neighbor];
 	}
 	// END land type borders
 
@@ -207,6 +205,13 @@ void world_doRound(world_t* w, float duration)
 {
 	for (size_t i = 0; i < w->n_characters; i++)
 		character_doRound(&w->characters[i], duration);
+}
+
+int world_landAt(world_t* w, float x, float y)
+{
+	int i = TERRAINI(w,x);
+	int j = TERRAINJ(w,y);
+	return TERRAIN(w,i,j) / 16;
 }
 
 object_t* world_objectAt(world_t* w, float x, float y)
