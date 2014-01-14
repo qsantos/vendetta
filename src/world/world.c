@@ -161,16 +161,14 @@ world_t* world_init(universe_t* u, int _w, int _h)
 		mine_t* m = &w->mines[i];
 		int type = i;
 		mine_init(m, &u->mines[type]);
-		m->o.x = cfrnd(width);
-		m->o.y = cfrnd(height);
+		world_randMine(w, m);
 	}
 	for (size_t i = u->n_mines; i < w->n_mines; i++)
 	{
 		mine_t* m = &w->mines[i];
 		int type = rnd_pick(mine_probas);
 		mine_init(m, &u->mines[type]);
-		m->o.x = cfrnd(width);
-		m->o.y = cfrnd(height);
+		world_randMine(w, m);
 	}
 	// END mine generation
 
@@ -200,6 +198,17 @@ void world_exit(world_t* w)
 
 	free(w->terrain);
 	free(w);
+}
+
+void world_randMine(world_t* w, mine_t* m)
+{
+	int t;
+	do
+	{
+		m->o.x = cfrnd(w->tilesx * TILE_SIZE);
+		m->o.y = cfrnd(w->tilesy * TILE_SIZE);
+		t = world_landAt(w, m->o.x, m->o.y);
+	} while (t == 4 || t == 10);
 }
 
 void world_doRound(world_t* w, float duration)

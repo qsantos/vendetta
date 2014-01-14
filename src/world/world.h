@@ -54,6 +54,8 @@ struct world
 world_t* world_init(universe_t* u, int w, int h);
 void     world_exit(world_t* w);
 
+void world_randMine(world_t* w, mine_t* m);
+
 void world_doRound(world_t* w, float duration);
 
 int         world_landAt      (world_t* w, float x, float y);
