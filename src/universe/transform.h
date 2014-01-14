@@ -55,4 +55,7 @@ int   transform_check(transform_t* t, struct inventory* inv);
 float transform_ratio(transform_t* t, struct inventory* inv, float max_ratio);
 float transform_apply(transform_t* t, struct inventory* inv, float ratio);
 
+char transform_is_req(transform_t* t, int id, char is_item);
+char transform_is_res(transform_t* t, int id, char is_item);
+
 #endif

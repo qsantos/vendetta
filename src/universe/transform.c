@@ -127,3 +127,26 @@ float transform_apply(transform_t* t, inventory_t* inv, float ratio)
 	}
 	return ratio;
 }
+
+char transform_is_req(transform_t* t, int id, char is_item)
+{
+	for (int i = 0; i < t->n_req; i++)
+	{
+		component_t* c = &t->req[i];
+		if (c->id == id && c->is_item == is_item)
+			return 1;
+	}
+	return 0;
+}
+
+char transform_is_res(transform_t* t, int id, char is_item)
+{
+	for (int i = 0; i < t->n_res; i++)
+	{
+		component_t* c = &t->res[i];
+		if (c->id == id && c->is_item == is_item)
+			return 1;
+	}
+	return 0;
+}
+
