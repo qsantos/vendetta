@@ -210,7 +210,7 @@ void world_randMine(world_t* w, mine_t* m)
 		t = world_landAt(w, m->o.x, m->o.y);
 
 		for (size_t i = 0; i < w->n_mines && &w->mines[i] < m; i++)
-			if (object_rect((object_t*) &w->mines[i], m->o.x, m->o.y, m->o.w, m->o.h))
+			if (object_overlap(&w->mines[i].o, &m->o))
 			{
 				t = 4;
 				break;
@@ -257,7 +257,7 @@ mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 		mine_t* m = &w->mines[i];
 		if (t == NULL || m->t == t)
 		{
-			float d = object_distance((object_t*) m, x, y);
+			float d = object_distance(&m->o, x, y);
 			if (min_d < 0 || d < min_d)
 			{
 				ret = m;
@@ -277,7 +277,7 @@ building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* 
 		building_t* m = w->buildings[i];
 		if (t == NULL || m->t == t)
 		{
-			float d = object_distance((object_t*) m, x, y);
+			float d = object_distance(&m->o, x, y);
 			if (min_d < 0 || d < min_d)
 			{
 				ret = m;
@@ -299,12 +299,13 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 			if (TERRAIN(w,i,j) / 16 != 0)
 				return 0;
 
+	object_t o = {O_BUILDING, x, y, b->width, b->height};
 	for (size_t i = 0; i < w->n_mines; i++)
-		if (object_rect((object_t*) &w->mines[i], x, y, b->width, b->height))
+		if (object_overlap(&w->mines[i].o, &o))
 			return 0;
 
 	for (size_t i = 0; i < w->n_buildings; i++)
-		if (object_rect((object_t*) w->buildings[i], x, y, b->width, b->height))
+		if (object_overlap(&w->buildings[i]->o, &o))
 			return 0;
 
 	return 1;

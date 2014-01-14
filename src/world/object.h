@@ -38,9 +38,8 @@ struct object
 	float h;
 };
 
-int object_isAt(object_t* o, float x, float y);
-int object_rect(object_t* o, float x, float y, float w, float h);
-
+int   object_overlap (object_t* o, object_t* a);
+int   object_isAt    (object_t* o, float x, float y);
 float object_distance(object_t* o, float x, float y);
 
 #endif
