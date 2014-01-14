@@ -287,6 +287,7 @@ void cfg_ini_parse(cfg_ini_t* ini, const char* filename)
 	}
 
 	free(line);
+	fclose(f);
 }
 
 cfg_group_t* cfg_ini_group(cfg_ini_t* ini, const char* name)
