@@ -224,7 +224,7 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 
 	sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){x,y}, g->g->world_view);
 
-	int ok = world_canBuild(g->w, g->player, b, pos.x, pos.y + b->height/2);
+	int ok = world_canBuild(g->w, pos.x, pos.y + b->height/2, b);
 
 	// building sprite
 	sfSprite* sprite = g->g->sprites[b->sprite];
@@ -291,7 +291,10 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, cursor, g->g->world_view);
 		pos.y += b->height / 2;
 
-		if (!world_canBuild(g->w, g->player, b, pos.x, pos.y))
+		if (!transform_check(&b->build, &g->player->inventory))
+			return 1;
+
+		if (!world_canBuild(g->w, pos.x, pos.y, b))
 			return 1;
 
 		transform_apply(&b->build, &g->player->inventory, 1);

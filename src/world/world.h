@@ -53,8 +53,7 @@ void world_doRound(world_t* w, float duration);
 
 object_t*   world_objectAt   (world_t* w, float x, float y);
 mine_t*     world_findMine   (world_t* w, float x, float y, kindOf_mine_t* t);
-char        world_canBeBuilt (world_t* w, float x, float y, float wi, float he);
-char        world_canBuild   (world_t* w, character_t* c, kindOf_building_t* b, float x, float y);
+char        world_canBuild   (world_t* w, float x, float y, kindOf_building_t* b);
 building_t* world_addBuilding(world_t* w, kindOf_building_t* b, float x, float y);
 
 #endif

@@ -246,23 +246,17 @@ mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 	return ret;
 }
 
-char world_canBeBuilt(world_t* w, float x, float y, float wi, float he)
+char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 {
 	for (size_t i = 0; i < w->n_mines; i++)
-		if (object_rect((object_t*) &w->mines[i], x, y, wi, he))
+		if (object_rect((object_t*) &w->mines[i], x, y, b->width, b->height))
 			return 0;
 
 	for (size_t i = 0; i < w->n_buildings; i++)
-		if (object_rect((object_t*) w->buildings[i], x, y, wi, he))
+		if (object_rect((object_t*) w->buildings[i], x, y, b->width, b->height))
 			return 0;
 
 	return 1;
-}
-
-char world_canBuild(world_t* w, character_t* c, kindOf_building_t* b, float x, float y)
-{
-	return transform_check(&b->build, &c->inventory) &&
-	       world_canBeBuilt(w, x, y, b->width, b->height);
 }
 
 building_t* world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y)
