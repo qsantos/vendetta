@@ -350,18 +350,16 @@ void character_makeBuilding(character_t* c, int id)
 	if (!transform_check(&t->build, &c->inventory))
 		return;
 
-	float x;
-	float y;
-	float dx = 0;
-	float dy = 0;
-	do
+	for (float radius = 50; radius < 500; radius += 10)
 	{
-		x = c->o.x + cfrnd(dx);
-		y = c->o.y + cfrnd(dy);
-		dx += 100;
-		dy += 100;
-	} while (!world_canBuild(c->world, x, y, t));
-	building_t* b = world_addBuilding(c->world, t, x, y);
-	if (b != NULL)
-		c->go_o = &b->o;
+		float x = c->o.x + cfrnd(radius);
+		float y = c->o.y + cfrnd(radius);
+
+		if (world_canBuild(c->world, x, y, t))
+		{
+			building_t* b = world_addBuilding(c->world, t, x, y);
+			c->go_o = &b->o;
+			break;
+		}
+	}
 }
