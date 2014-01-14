@@ -23,6 +23,9 @@
 
 #include "game.h"
 
+#define MAP_MIN_WIDTH  20
+#define MAP_MIN_HEIGHT 20
+
 static void usage(const char* name)
 {
 	fprintf(stderr,
@@ -31,6 +34,7 @@ static void usage(const char* name)
 		"options:\n"
 		"  -h, --help        print this help\n"
 		"  -V, --version     print version information\n"
+		"  -s, --size W H    set map's size to WxH tiles\n"
 		"  -q, --quickstart  give player 1000 of each material\n"
 		"  -g, --godmode     give player god-like skills\n"
 		, name
@@ -44,6 +48,8 @@ int main(int argc, char** argv)
 
 	char god_mode    = 0;
 	char quick_start = 0;
+	int  width  = 100;
+	int  height = 100;
 
 	int curarg = 1;
 	while (curarg < argc)
@@ -58,6 +64,31 @@ int main(int argc, char** argv)
 			fprintf(stderr, "Vendetta version 0.2\n");
 			fprintf(stderr, "Compiled on %s at %s\n", __DATE__, __TIME__);
 			exit(1);
+		}
+		else if (strcmp(option, "--size") == 0 || strcmp(option, "-s") == 0)
+		{
+			if (curarg == argc)
+			{
+				fprintf(stderr, "No width given\n");
+				usage(argv[0]);
+			}
+			width = atoi(argv[curarg++]);
+			if (width < MAP_MIN_WIDTH)
+			{
+				fprintf(stderr, "Width must be at least %i (%i given)\n", MAP_MIN_WIDTH, width);
+				usage(argv[0]);
+			}
+			if (curarg == argc)
+			{
+				fprintf(stderr, "No width given\n");
+				usage(argv[0]);
+			}
+			height = atoi(argv[curarg++]);
+			if (height < MAP_MIN_HEIGHT)
+			{
+				fprintf(stderr, "Height must be at least %i (%i given)\n", MAP_MIN_HEIGHT, height);
+				usage(argv[0]);
+			}
 		}
 		else if (strcmp(option, "--quickstart") == 0 || strcmp(option, "-q") == 0)
 		{
@@ -75,7 +106,7 @@ int main(int argc, char** argv)
 	}
 
 	game_t game;
-	game_init(&game);
+	game_init(&game, width, height);
 
 	if (quick_start)
 	{

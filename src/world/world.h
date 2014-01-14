@@ -51,7 +51,7 @@ struct world
 	building_t** buildings;
 };
 
-world_t* world_init(universe_t* u);
+world_t* world_init(universe_t* u, int w, int h);
 void     world_exit(world_t* w);
 
 void world_doRound(world_t* w, float duration);

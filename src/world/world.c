@@ -26,20 +26,21 @@
 #include "../util.h"
 #include "../voronoi/lloyd.h"
 
-world_t* world_init(universe_t* u)
+world_t* world_init(universe_t* u, int _w, int _h)
 {
 	world_t* w = CALLOC(world_t, 1);
 	w->universe = u;
 
 	// BEGIN map generation
-	w->tilesx = 100;
-	w->tilesy = 100;
+	w->tilesx = _w;
+	w->tilesy = _h;
 	w->terrain = CALLOC(short, w->tilesx*w->tilesy);
 
 	// generate Voronoi diagram
 	vr_diagram_t v;
 	vr_diagram_init(&v, w->tilesx, w->tilesy);
-	for (size_t i = 0; i < 1000; i++)
+	size_t n_vrPoints = w->tilesx * w->tilesy / 50;
+	for (size_t i = 0; i < n_vrPoints; i++)
 	{
 		double x = frnd(0, w->tilesx);
 		double y = frnd(0, w->tilesy);
