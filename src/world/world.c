@@ -208,6 +208,13 @@ void world_randMine(world_t* w, mine_t* m)
 		m->o.x = cfrnd(w->tilesx * TILE_SIZE - 32);
 		m->o.y = 16 + cfrnd(w->tilesy * TILE_SIZE - 32);
 		t = world_landAt(w, m->o.x, m->o.y);
+
+		for (size_t i = 0; i < w->n_mines && &w->mines[i] < m; i++)
+			if (object_rect((object_t*) &w->mines[i], m->o.x, m->o.y, m->o.w, m->o.h))
+			{
+				t = 4;
+				break;
+			}
 	} while (t == 4 || t == 10);
 }
 
