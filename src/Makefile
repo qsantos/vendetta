@@ -1,7 +1,7 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99
 LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
-TARGETS = vendetta
+TARGETS = ../vendetta
 
 SRC = $(shell find -name "*.c")
 OBJ = $(SRC:.c=.o)
@@ -15,7 +15,7 @@ headers: $(GCH)
 %.h.gch: %.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-vendetta: $(OBJ)
+../vendetta: $(OBJ)
 	@echo $(CC) [...] $(LDFLAGS) -o $@
 	@$(CC) $^ $(LDFLAGS) -o $@
 -include $(OBJ:.o=.d)
