@@ -312,6 +312,11 @@ void character_doRound(character_t* c, float duration)
 	c->o.x += distance * cos(dir);
 	c->o.y += distance * sin(dir);
 
+	c->o.x = fmax(c->o.x, -(float)c->world->tilesx/2 * TILE_SIZE);
+	c->o.y = fmax(c->o.y, -(float)c->world->tilesy/2 * TILE_SIZE);
+	c->o.x = fmin(c->o.x,  (float)c->world->tilesx/2 * TILE_SIZE);
+	c->o.y = fmin(c->o.y,  (float)c->world->tilesy/2 * TILE_SIZE);
+
 	if (c->step == 5)
 		c->step = 0;
 	c->step += 0.1 * distance;
