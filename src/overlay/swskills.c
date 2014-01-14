@@ -22,8 +22,6 @@
 
 #include "../util.h"
 
-#define PANEL_N_COLS 3
-
 void swskills_init(swskills_t* w, graphics_t* g)
 {
 	subwindow_init(&w->w, g, "Skills", 1024-SW_WIDTH*1, 0);

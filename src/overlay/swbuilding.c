@@ -23,8 +23,6 @@
 
 #include "../util.h"
 
-#define PANEL_N_COLS 3
-
 void swbuilding_init(swbuilding_t* w, graphics_t* g)
 {
 	subwindow_init(&w->w, g, "Building", 1024-SW_WIDTH*3, 0);

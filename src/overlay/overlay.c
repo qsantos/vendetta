@@ -27,7 +27,8 @@ overlay_t* overlay_init(graphics_t* g)
 	overlay_t* o = CALLOC(overlay_t, 1);
 
 	swbuilding_init (&o->swbuilding,  g);
-	swinventory_init(&o->swinventory, g);
+	switems_init    (&o->switems,     g);
+	swmaterials_init(&o->swmaterials, g);
 	swskills_init   (&o->swskills,    g);
 	swequipment_init(&o->swequipment, g);
 
@@ -42,7 +43,8 @@ void overlay_exit(overlay_t* o)
 
 	swequipment_exit(&o->swequipment);
 	swskills_exit   (&o->swskills);
-	swinventory_exit(&o->swinventory);
+	switems_exit    (&o->switems);
+	swmaterials_exit(&o->swmaterials);
 	swbuilding_exit (&o->swbuilding);
 
 	free(o);
@@ -58,7 +60,8 @@ void overlay_cursor(overlay_t* o, game_t* g)
 		rect.left = 4 * 24;
 	}
 	else if (swbuilding_cursor (&o->swbuilding,  g, cursor.x, cursor.y));
-	else if (swinventory_cursor(&o->swinventory, g, cursor.x, cursor.y));
+	else if (switems_cursor    (&o->switems,     g, cursor.x, cursor.y));
+	else if (swmaterials_cursor(&o->swmaterials, g, cursor.x, cursor.y));
 	else if (swskills_cursor   (&o->swskills,    g, cursor.x, cursor.y));
 	else if (swequipment_cursor(&o->swequipment, g, cursor.x, cursor.y));
 	else
@@ -130,7 +133,8 @@ void overlay_draw(overlay_t* o, game_t* g)
 	}
 
 	swbuilding_draw (&o->swbuilding,  g, 1);
-	swinventory_draw(&o->swinventory, g, 1);
+	switems_draw    (&o->switems,     g, 1);
+	swmaterials_draw(&o->swmaterials, g, 1);
 	swskills_draw   (&o->swskills,    g, 1);
 	swequipment_draw(&o->swequipment, g, 1);
 
@@ -151,7 +155,8 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 	return
 	ov_build_catch   (&o->build,       g, x, y, t) ||
 	swbuilding_catch (&o->swbuilding,  g, x, y, t) ||
-	swinventory_catch(&o->swinventory, g, x, y, t) ||
+	switems_catch    (&o->switems,     g, x, y, t) ||
+	swmaterials_catch(&o->swmaterials, g, x, y, t) ||
 	swskills_catch   (&o->swskills,    g, x, y, t) ||
 	swequipment_catch(&o->swequipment, g, x, y, t) ||
 	0;
@@ -161,7 +166,8 @@ int overlay_wheel(overlay_t* o, int x, int y, int d)
 {
 	return
 	subwindow_wheel(&o->swbuilding.w,  x, y, d) ||
-	subwindow_wheel(&o->swinventory.w, x, y, d) ||
+	subwindow_wheel(&o->switems.w,     x, y, d) ||
+	subwindow_wheel(&o->swmaterials.w, x, y, d) ||
 	subwindow_wheel(&o->swskills.w,    x, y, d) ||
 	subwindow_wheel(&o->swequipment.w, x, y, d) ||
 	0;

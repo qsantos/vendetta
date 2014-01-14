@@ -16,25 +16,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef O_SW_INVENTORY_H
-#define O_SW_INVENTORY_H
+#ifndef O_SW_MATERIALS_H
+#define O_SW_MATERIALS_H
 
-typedef struct swinventory swinventory_t;
+typedef struct swmaterials swmaterials_t;
 
 #include "subwindow.h"
 
-struct swinventory
+struct swmaterials
 {
 	subwindow_t w;
 };
 
 #include "../game.h"
 
-void swinventory_init(swinventory_t* w, graphics_t* g);
-void swinventory_exit(swinventory_t* w);
+void swmaterials_init(swmaterials_t* w, graphics_t* g);
+void swmaterials_exit(swmaterials_t* w);
 
-int  swinventory_draw  (swinventory_t* w, game_t* g, char do_draw);
-char swinventory_cursor(swinventory_t* w, game_t* g, int x, int y);
-char swinventory_catch (swinventory_t* w, game_t* g, int x, int y, int t);
+int  swmaterials_draw  (swmaterials_t* w, game_t* g, char do_draw);
+char swmaterials_cursor(swmaterials_t* w, game_t* g, int x, int y);
+char swmaterials_catch (swmaterials_t* w, game_t* g, int x, int y, int t);
 
 #endif

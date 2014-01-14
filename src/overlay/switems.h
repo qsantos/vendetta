@@ -16,38 +16,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef O_OVERLAY_H
-#define O_OVERLAY_H
+#ifndef O_SW_ITEMS_H
+#define O_SW_ITEMS_H
 
-typedef struct overlay overlay_t;
+typedef struct switems switems_t;
 
-#include "swbuilding.h"
-#include "switems.h"
-#include "swmaterials.h"
-#include "swskills.h"
-#include "swequipment.h"
-#include "build.h"
+#include "subwindow.h"
 
-struct overlay
+struct switems
 {
-	swbuilding_t  swbuilding;
-	switems_t     switems;
-	swmaterials_t swmaterials;
-	swskills_t    swskills;
-	swequipment_t swequipment;
-	ov_build_t    build;
+	subwindow_t w;
 };
 
 #include "../game.h"
 
-overlay_t* overlay_init(graphics_t* g);
-void       overlay_exit(overlay_t* o);
+void switems_init(switems_t* w, graphics_t* g);
+void switems_exit(switems_t* w);
 
-void overlay_cursor(overlay_t* o, game_t* g);
-void overlay_draw  (overlay_t* o, game_t* g);
-int  overlay_catch (overlay_t* o, game_t* g, int x, int y, int t);
-int  overlay_wheel (overlay_t* o, int x, int y, int d);
-
-sfVector2f overlay_mouse(graphics_t* g);
+int  switems_draw  (switems_t* w, game_t* g, char do_draw);
+char switems_cursor(switems_t* w, game_t* g, int x, int y);
+char switems_catch (switems_t* w, game_t* g, int x, int y, int t);
 
 #endif

@@ -112,7 +112,11 @@ void game_loop(game_t* g)
 				}
 				else if (k == sfKeyI)
 				{
-					g->o->swinventory.w.visible ^= 1;
+					g->o->switems.w.visible ^= 1;
+				}
+				else if (k == sfKeyM)
+				{
+					g->o->swmaterials.w.visible ^= 1;
 				}
 				else if (k == sfKeyS)
 				{
@@ -124,9 +128,10 @@ void game_loop(game_t* g)
 				}
 				else if (k == sfKeySpace)
 				{
-					g->o->swbuilding.w.visible  ^= 1;
-					g->o->swinventory.w.visible ^= 1;
-					g->o->swskills.w.visible    ^= 1;
+					g->o->swbuilding .w.visible ^= 1;
+					g->o->switems    .w.visible ^= 1;
+					g->o->swmaterials.w.visible ^= 1;
+					g->o->swskills   .w.visible ^= 1;
 					g->o->swequipment.w.visible ^= 1;
 				}
 				else if (sfKeyF1 <= k && k <= sfKeyF12)
