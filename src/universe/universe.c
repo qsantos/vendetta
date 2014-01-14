@@ -63,9 +63,9 @@ void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		transform_res(t, i, 1, 0);
 		t->rate = cfg_getFloat(s, "VitesseExtraction");
 
-		int   id = cfg_getInt(s, "TypeMatierePremiere");
-		float a  = cfg_getFloat(s, "QuantiteMatierePremiere") - 1;
-		if ((size_t) id >= u->n_materials)
+		int   id = cfg_getInt(s, "TypeMatierePremiere") - 1;
+		float a  = cfg_getFloat(s, "QuantiteMatierePremiere");
+		if (id >= (ssize_t) u->n_materials)
 		{
 			fprintf(stderr, "Invalid requisite material id '%i' at '%s_%s'\n",
 				id, gr->name, s->name);
