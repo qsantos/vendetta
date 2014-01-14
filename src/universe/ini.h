@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef U_INI_H
+#define U_INI_H
 
 typedef struct cfg_array   cfg_array_t;
 typedef struct cfg_keyval  cfg_keyval_t;
