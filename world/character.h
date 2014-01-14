@@ -76,4 +76,7 @@ void character_doRound (character_t* c, float duration);
 
 void character_setPosition(character_t* c, float x, float y);
 
+void character_goMine      (character_t* c, int id);
+void character_makeBuilding(character_t* c, int id);
+
 #endif

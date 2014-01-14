@@ -236,47 +236,18 @@ void character_doRound(character_t* c, float duration)
 	{
 		if (c->bot_step == 0)
 		{
-			kindOf_mine_t* t = &c->universe->mines[2];
-			mine_t* m = world_findMine(c->world, c->o.x, c->o.y, t);
-			if (m != NULL)
-			{
-				c->bot_step++;
-				c->go_o = &m->o;
-			}
+			character_goMine(c, 2);
+			c->bot_step++;
 		}
 		else if (c->bot_step == 1 && c->inventory.materials[2] >= 17)
 		{
-			kindOf_building_t* t = &c->universe->buildings[2];
-			float x;
-			float y;
-			do
-			{
-				x = cfrnd(1000);
-				y = cfrnd(1000);
-			} while (!world_canBuild(c->world, c, t, x, y));
-			building_t* b = world_addBuilding(c->world, t, x, y);
-			if (b != NULL)
-			{
-				c->bot_step++;
-				c->go_o = &b->o;
-			}
+			character_makeBuilding(c, 2);
+			c->bot_step++;
 		}
 		else if (c->bot_step == 2 && c->inventory.materials[3] >= 9)
 		{
-			kindOf_building_t* t = &c->universe->buildings[9];
-			float x;
-			float y;
-			do
-			{
-				x = cfrnd(1000);
-				y = cfrnd(1000);
-			} while (!world_canBuild(c->world, c, t, x, y));
-			building_t* b = world_addBuilding(c->world, t, x, y);
-			if (b != NULL)
-			{
-				c->bot_step++;
-				c->go_o = &b->o;
-			}
+			character_makeBuilding(c, 9);
+			c->bot_step++;
 		}
 	}
 
@@ -353,4 +324,27 @@ void character_setPosition(character_t* c, float x, float y)
 	c->o.y = y;
 	c->go_x = x;
 	c->go_y = y;
+}
+
+void character_goMine(character_t* c, int id)
+{
+	kindOf_mine_t* t = &c->universe->mines[id];
+	mine_t* m = world_findMine(c->world, c->o.x, c->o.y, t);
+	if (m != NULL)
+		c->go_o = &m->o;
+}
+
+void character_makeBuilding(character_t* c, int id)
+{
+	kindOf_building_t* t = &c->universe->buildings[id];
+	float x;
+	float y;
+	do
+	{
+		x = cfrnd(1000);
+		y = cfrnd(1000);
+	} while (!world_canBuild(c->world, c, t, x, y));
+	building_t* b = world_addBuilding(c->world, t, x, y);
+	if (b != NULL)
+		c->go_o = &b->o;
 }
