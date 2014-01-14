@@ -44,7 +44,7 @@ void draw_character(graphics_t* g, character_t* c)
 	if (step >= 3)
 		step = 1;
 
-	sfIntRect rect = {24*step, 32*c->dir, 24, 32};
+	sfIntRect rect = {24*step, 32*c->dir, 24, c->inWater ? 20 : 32};
 	sfSprite_setTextureRect(sprite, rect);
 	draw_object(g, &c->o, sprite);
 }

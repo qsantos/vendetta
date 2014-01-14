@@ -37,6 +37,7 @@ void character_init(character_t* c, universe_t* u, world_t* w)
 	c->go_o = NULL;
 	c->dir  = D_SOUTH;
 	c->step = 5; // standing still
+	c->inWater = 0;
 
 	c->ai        = NULL;
 
@@ -288,6 +289,7 @@ void character_doRound(character_t* c, float duration)
 
 	float distance = 100 * duration;
 
+	c->inWater = 0;
 	int t = world_landAt(c->world, c->o.x, c->o.y);
 	if (t == 4) // mountains
 	{
@@ -296,6 +298,7 @@ void character_doRound(character_t* c, float duration)
 	else if (t == 10) // water
 	{
 		distance /= 1.5;
+		c->inWater = 1;
 	}
 
 	if (distance > remDistance)

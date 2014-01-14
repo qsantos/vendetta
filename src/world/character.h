@@ -47,6 +47,7 @@ struct character
 	object_t*   go_o;
 	direction_t dir;
 	float       step;
+	char        inWater;
 
 	ai_t* ai;
 
