@@ -297,8 +297,13 @@ void character_doRound(character_t* c, float duration)
 	}
 	else if (t == 10) // water
 	{
-		distance /= 1.5;
-		c->inWater = 1;
+		float y = c->o.y - 6;
+		if (world_landAt(c->world, c->o.x-c->o.w/2, y) == t &&
+		    world_landAt(c->world, c->o.x+c->o.w/2, y) == t)
+		{
+			distance /= 1.5;
+			c->inWater = 1;
+		}
 	}
 
 	if (distance > remDistance)
