@@ -287,6 +287,17 @@ void character_doRound(character_t* c, float duration)
 		                     D_EAST;
 
 	float distance = 100 * duration;
+
+	int t = world_landAt(c->world, c->o.x, c->o.y);
+	if (t == 4) // mountains
+	{
+		distance /= 3;
+	}
+	else if (t == 10) // water
+	{
+		distance /= 1.5;
+	}
+
 	if (distance > remDistance)
 		distance = remDistance;
 
