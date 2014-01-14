@@ -39,18 +39,18 @@ world_t* world_init(universe_t* u, int _w, int _h)
 	w->universe = u;
 
 	// BEGIN map generation
-	w->tilesx = _w;
-	w->tilesy = _h;
-	w->terrain = CALLOC(short, w->tilesx*w->tilesy);
+	w->rows = _w;
+	w->cols = _h;
+	w->terrain = CALLOC(short, w->rows*w->cols);
 
 	// generate Voronoi diagram
 	vr_diagram_t v;
-	vr_diagram_init(&v, w->tilesx, w->tilesy);
-	size_t n_vrPoints = w->tilesx * w->tilesy / 50;
+	vr_diagram_init(&v, w->rows, w->cols);
+	size_t n_vrPoints = w->rows * w->cols / 50;
 	for (size_t i = 0; i < n_vrPoints; i++)
 	{
-		double x = frnd(0, w->tilesx);
-		double y = frnd(0, w->tilesy);
+		double x = frnd(0, w->rows);
+		double y = frnd(0, w->cols);
 		vr_diagram_point(&v, (point_t){x,y});
 	}
 	vr_lloyd_relaxation(&v);
@@ -76,7 +76,7 @@ world_t* world_init(universe_t* u, int _w, int _h)
 
 		// first, get vertical bounds on the region
 		vr_region_t* r = v.regions[i];
-		int minj = w->tilesy;
+		int minj = w->cols;
 		int maxj = 0;
 		for (size_t k = 0; k < r->n_edges; k++)
 		{
@@ -86,14 +86,14 @@ world_t* world_init(universe_t* u, int _w, int _h)
 			if (s->b->y < minj) minj = floor(s->b->y);
 			if (s->b->y > maxj) maxj = floor(s->b->y);
 		}
-		if (maxj >= w->tilesy)
-			maxj = w->tilesy - 1;
+		if (maxj >= w->cols)
+			maxj = w->cols - 1;
 
 		// then, consider each so-selected slide row
 		for (int j = minj; j <= maxj; j++)
 		{
 			// find the portion of the row in the region
-			int mini = w->tilesx;
+			int mini = w->rows;
 			int maxi = 0;
 			point_t a = {mini, j};
 			point_t b = {maxi, j};
@@ -108,8 +108,8 @@ world_t* world_init(universe_t* u, int _w, int _h)
 				if (p.x > maxi)
 					maxi = floor(p.x);
 			}
-			if (maxi >= w->tilesx)
-				maxi = w->tilesx - 1;
+			if (maxi >= w->rows)
+				maxi = w->rows - 1;
 
 			// set this portion to proper type
 			for (int i = mini; i <= maxi; i++)
@@ -123,13 +123,13 @@ world_t* world_init(universe_t* u, int _w, int _h)
 	// BEGIN land type borders
 #define LAND_TYPE(I,J) (TERRAIN(w,I,J) / 16)
 #define LAND_SAME(I,J) ( \
-	((I) < 0 || (I) >= w->tilesx || (J) < 0 || (J) >= w->tilesy) ? \
+	((I) < 0 || (I) >= w->rows || (J) < 0 || (J) >= w->cols) ? \
 	1 : \
 	t == LAND_TYPE(I,J) \
 )
 	static const char type2tile[16] = {0,5,2,13,4,7,12,8,3,15,6,11,14,9,10,1};
-	for (int i = 0; i < w->tilesx; i++)
-	for (int j = 0; j < w->tilesy; j++)
+	for (int i = 0; i < w->rows; i++)
+	for (int j = 0; j < w->cols; j++)
 	{
 		int t = LAND_TYPE(i,j);
 		if (t == 0)
@@ -155,7 +155,7 @@ world_t* world_init(universe_t* u, int _w, int _h)
 	// END character generation
 
 	// BEGIN mine generation
-	w->n_mines = w->tilesx*w->tilesy / 400;
+	w->n_mines = w->rows*w->cols / 400;
 	if (w->n_mines < u->n_mines)
 		w->n_mines = u->n_mines;
 	w->mines = CALLOC(mine_t, w->n_mines);
@@ -209,8 +209,8 @@ void world_randMine(world_t* w, mine_t* m)
 	int t;
 	do
 	{
-		m->o.x = cfrnd(w->tilesx * TILE_SIZE - 32);
-		m->o.y = 16 + cfrnd(w->tilesy * TILE_SIZE - 32);
+		m->o.x = cfrnd(w->o.w - 32);
+		m->o.y = cfrnd(w->o.h - 32) + 16;
 		t = world_landAt(w, m->o.x, m->o.y);
 
 		for (size_t i = 0; i < w->n_mines && &w->mines[i] < m; i++)

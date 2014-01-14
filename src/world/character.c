@@ -290,7 +290,8 @@ void character_doRound(character_t* c, float duration)
 	float distance = 100 * duration;
 
 	c->inWater = 0;
-	int t = world_landAt(c->world, c->o.x, c->o.y);
+	world_t* w = c->world;
+	int t = world_landAt(w, c->o.x, c->o.y);
 	if (t == 4) // mountains
 	{
 		distance /= 3;
@@ -298,8 +299,8 @@ void character_doRound(character_t* c, float duration)
 	else if (t == 10) // water
 	{
 		float y = c->o.y - 6;
-		if (world_landAt(c->world, c->o.x-c->o.w/2, y) == t &&
-		    world_landAt(c->world, c->o.x+c->o.w/2, y) == t)
+		if (world_landAt(w, c->o.x-c->o.w/2, y) == t &&
+		    world_landAt(w, c->o.x+c->o.w/2, y) == t)
 		{
 			distance /= 1.5;
 			c->inWater = 1;
@@ -312,10 +313,10 @@ void character_doRound(character_t* c, float duration)
 	c->o.x += distance * cos(dir);
 	c->o.y += distance * sin(dir);
 
-	c->o.x = fmax(c->o.x, -(float)c->world->tilesx/2 * TILE_SIZE);
-	c->o.y = fmax(c->o.y, -(float)c->world->tilesy/2 * TILE_SIZE);
-	c->o.x = fmin(c->o.x,  (float)c->world->tilesx/2 * TILE_SIZE);
-	c->o.y = fmin(c->o.y,  (float)c->world->tilesy/2 * TILE_SIZE);
+	c->o.x = fmax(c->o.x, -w->o.w/2);
+	c->o.y = fmax(c->o.y, -w->o.h/2);
+	c->o.x = fmin(c->o.x,  w->o.w/2);
+	c->o.y = fmin(c->o.y,  w->o.h/2);
 
 	if (c->step == 5)
 		c->step = 0;

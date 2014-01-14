@@ -28,9 +28,9 @@ typedef struct world world_t;
 #include "building.h"
 
 #define TILE_SIZE 16
-#define TERRAIN(W,I,J) ((W)->terrain[(J)*(W)->tilesx + (I)])
-#define TERRAINI(W,X)  ((int)floor((X) / TILE_SIZE + 0.5*(W)->tilesx))
-#define TERRAINJ(W,Y)  ((int)floor((Y) / TILE_SIZE + 0.5*(W)->tilesy))
+#define TERRAIN(W,I,J) ((W)->terrain[(J)*(W)->rows + (I)])
+#define TERRAINI(W,X)  ((int)floor((X) / TILE_SIZE + 0.5*(W)->rows))
+#define TERRAINJ(W,Y)  ((int)floor((Y) / TILE_SIZE + 0.5*(W)->cols))
 
 struct world
 {
@@ -38,8 +38,8 @@ struct world
 
 	universe_t* universe;
 
-	int tilesx;
-	int tilesy;
+	int rows;
+	int cols;
 	short* terrain;
 
 	size_t n_characters;

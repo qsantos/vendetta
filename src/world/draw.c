@@ -91,8 +91,8 @@ void draw_world(graphics_t* g, world_t* w)
 	{
 		sfTexture* texture = sfTexture_createFromFile("lands.png", NULL);
 
-		int x = w->tilesx;
-		int y = w->tilesy;
+		int x = w->rows;
+		int y = w->cols;
 		array = sfVertexArray_create();
 		sfVertexArray_setPrimitiveType(array, sfQuads);
 		sfVertexArray_resize(array, x*y*4);
@@ -129,8 +129,8 @@ void draw_world(graphics_t* g, world_t* w)
 	{
 		water_step = cur_step;
 
-		int x = w->tilesx;
-		int y = w->tilesy;
+		int x = w->rows;
+		int y = w->cols;
 		for (int i = 0; i < x; i++)
 		for (int j = 0; j < y; j++)
 		{
