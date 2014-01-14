@@ -339,10 +339,14 @@ void character_makeBuilding(character_t* c, int id)
 	kindOf_building_t* t = &c->universe->buildings[id];
 	float x;
 	float y;
+	float dx = 0;
+	float dy = 0;
 	do
 	{
-		x = cfrnd(1000);
-		y = cfrnd(1000);
+		x = c->o.x + cfrnd(dx);
+		y = c->o.y + cfrnd(dy);
+		dx += 100;
+		dy += 100;
 	} while (!world_canBuild(c->world, c, t, x, y));
 	building_t* b = world_addBuilding(c->world, t, x, y);
 	if (b != NULL)
