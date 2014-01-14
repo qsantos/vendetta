@@ -273,6 +273,15 @@ building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* 
 
 char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 {
+	int mini = TERRAINI(w, x-b->width/2);
+	int maxi = TERRAINI(w, x+b->width/2);
+	int minj = TERRAINJ(w, y-b->height);
+	int maxj = TERRAINJ(w, y);
+	for (int i = mini; i <= maxi; i++)
+		for (int j = minj; j <= maxj; j++)
+			if (TERRAIN(w,i,j) / 16 != 0)
+				return 0;
+
 	for (size_t i = 0; i < w->n_mines; i++)
 		if (object_rect((object_t*) &w->mines[i], x, y, b->width, b->height))
 			return 0;
