@@ -31,10 +31,10 @@ world_t* world_init(universe_t* u, int _w, int _h)
 	world_t* w = CALLOC(world_t, 1);
 
 	w->o.t = O_WORLD;
-	w->o.x = 0;
-	w->o.y = 0;
 	w->o.w = _w * TILE_SIZE;
 	w->o.h = _h * TILE_SIZE;
+	w->o.x = 0;
+	w->o.y = w->o.h / 2;
 
 	w->universe = u;
 
@@ -214,7 +214,7 @@ void world_randMine(world_t* w, mine_t* m)
 		t = world_landAt(w, m->o.x, m->o.y);
 
 		for (size_t i = 0; i < w->n_mines && &w->mines[i] < m; i++)
-			if (object_overlap(&w->mines[i].o, &m->o))
+			if (object_overlaps(&w->mines[i].o, &m->o))
 			{
 				t = 4;
 				break;
@@ -294,6 +294,10 @@ building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* 
 
 char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 {
+	object_t o = {O_BUILDING, x, y, b->width, b->height};
+	if (!object_contains(&w->o, &o))
+		return 0;
+
 	int mini = TERRAINI(w, x-b->width/2);
 	int maxi = TERRAINI(w, x+b->width/2);
 	int minj = TERRAINJ(w, y-b->height);
@@ -303,13 +307,12 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 			if (TERRAIN(w,i,j) / 16 != 0)
 				return 0;
 
-	object_t o = {O_BUILDING, x, y, b->width, b->height};
 	for (size_t i = 0; i < w->n_mines; i++)
-		if (object_overlap(&w->mines[i].o, &o))
+		if (object_overlaps(&w->mines[i].o, &o))
 			return 0;
 
 	for (size_t i = 0; i < w->n_buildings; i++)
-		if (object_overlap(&w->buildings[i]->o, &o))
+		if (object_overlaps(&w->buildings[i]->o, &o))
 			return 0;
 
 	return 1;

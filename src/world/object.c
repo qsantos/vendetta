@@ -23,7 +23,7 @@
 #include "character.h"
 #include "mine.h"
 
-int object_overlap(object_t* o, object_t* a)
+char object_overlaps(object_t* o, object_t* a)
 {
 	float dx = a->x - o->x;
 	float dy = a->y - o->y;
@@ -32,7 +32,14 @@ int object_overlap(object_t* o, object_t* a)
 	return hori && vert;
 }
 
-int object_isAt(object_t* o, float x, float y)
+char object_contains(object_t* o, object_t* a)
+{
+	char hori = o->x-o->w/2 <= a->x-a->w/2 && a->x+a->w/2 <= o->x+o->w/2;
+	char vert = o->y-o->h   <= a->y-a->h   && a->y        <= o->y;
+	return hori && vert;
+}
+
+char object_isAt(object_t* o, float x, float y)
 {
 	return fabs(x - o->x) <= o->w/2 && o->y - o->h <= y && y <= o->y;
 }
