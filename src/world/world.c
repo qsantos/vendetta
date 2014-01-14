@@ -211,17 +211,17 @@ void world_doRound(world_t* w, float duration)
 
 object_t* world_objectAt(world_t* w, float x, float y)
 {
-	for (size_t i = 0; i < w->n_characters; i++)
-		if (object_isAt((object_t*) &w->characters[i], x, y))
-			return (object_t*) &w->characters[i];
+	for (size_t i = 0; i < w->n_buildings; i++)
+		if (object_isAt((object_t*) w->buildings[i], x, y))
+			return (object_t*) w->buildings[i];
 
 	for (size_t i = 0; i < w->n_mines; i++)
 		if (object_isAt((object_t*) &w->mines[i], x, y))
 			return (object_t*) &w->mines[i];
 
-	for (size_t i = 0; i < w->n_buildings; i++)
-		if (object_isAt((object_t*) w->buildings[i], x, y))
-			return (object_t*) w->buildings[i];
+	for (size_t i = 0; i < w->n_characters; i++)
+		if (object_isAt((object_t*) &w->characters[i], x, y))
+			return (object_t*) &w->characters[i];
 
 	return NULL;
 }
