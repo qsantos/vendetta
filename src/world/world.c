@@ -205,8 +205,8 @@ void world_randMine(world_t* w, mine_t* m)
 	int t;
 	do
 	{
-		m->o.x = cfrnd(w->tilesx * TILE_SIZE);
-		m->o.y = cfrnd(w->tilesy * TILE_SIZE);
+		m->o.x = cfrnd(w->tilesx * TILE_SIZE - 32);
+		m->o.y = 16 + cfrnd(w->tilesy * TILE_SIZE - 32);
 		t = world_landAt(w, m->o.x, m->o.y);
 	} while (t == 4 || t == 10);
 }
