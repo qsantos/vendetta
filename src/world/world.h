@@ -34,6 +34,8 @@ typedef struct world world_t;
 
 struct world
 {
+	object_t o;
+
 	universe_t* universe;
 
 	int tilesx;

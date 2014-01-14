@@ -24,6 +24,7 @@ typedef enum
 	O_CHARACTER,
 	O_MINE,
 	O_BUILDING,
+	O_WORLD,
 } otype_t;
 
 typedef struct object object_t;

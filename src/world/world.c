@@ -29,6 +29,13 @@
 world_t* world_init(universe_t* u, int _w, int _h)
 {
 	world_t* w = CALLOC(world_t, 1);
+
+	w->o.t = O_WORLD;
+	w->o.x = 0;
+	w->o.y = 0;
+	w->o.w = _w * TILE_SIZE;
+	w->o.h = _h * TILE_SIZE;
+
 	w->universe = u;
 
 	// BEGIN map generation
@@ -136,9 +143,6 @@ world_t* world_init(universe_t* u, int _w, int _h)
 	}
 	// END land type borders
 
-	float width  = w->tilesx * TILE_SIZE;
-	float height = w->tilesy * TILE_SIZE;
-
 	// BEGIN character generation
 	w->n_characters = 5;
 	w->characters = CALLOC(character_t, w->n_characters);
@@ -146,7 +150,7 @@ world_t* world_init(universe_t* u, int _w, int _h)
 	{
 		character_t* c = &w->characters[i];
 		character_init(c, u, w);
-		character_setPosition(c, cfrnd(width), cfrnd(height));
+		character_setPosition(c, cfrnd(w->o.w), cfrnd(w->o.h));
 	}
 	// END character generation
 
