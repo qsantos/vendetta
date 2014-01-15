@@ -55,9 +55,9 @@ void game_exit(game_t* g)
 {
 	ai_exit(&g->default_ai);
 
-	world_exit   (g->w);
+	   world_exit(g->w);
 	universe_exit(g->u);
-	overlay_exit (g->o);
+	 overlay_exit(g->o);
 	graphics_exit(g->g);
 }
 

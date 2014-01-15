@@ -26,26 +26,24 @@ overlay_t* overlay_init(graphics_t* g)
 {
 	overlay_t* o = CALLOC(overlay_t, 1);
 
-	swbuilding_init (&o->swbuilding,  g);
-	switems_init    (&o->switems,     g);
+	   ov_build_init(&o->build);
+	 swbuilding_init(&o->swbuilding,  g);
+	    switems_init(&o->switems,     g);
 	swmaterials_init(&o->swmaterials, g);
-	swskills_init   (&o->swskills,    g);
+	   swskills_init(&o->swskills,    g);
 	swequipment_init(&o->swequipment, g);
-
-	ov_build_init(&o->build);
 
 	return o;
 }
 
 void overlay_exit(overlay_t* o)
 {
-	ov_build_exit(&o->build);
-
 	swequipment_exit(&o->swequipment);
-	swskills_exit   (&o->swskills);
-	switems_exit    (&o->switems);
+	   swskills_exit(&o->swskills);
+	    switems_exit(&o->switems);
 	swmaterials_exit(&o->swmaterials);
-	swbuilding_exit (&o->swbuilding);
+	 swbuilding_exit(&o->swbuilding);
+	   ov_build_exit(&o->build);
 
 	free(o);
 }
@@ -55,14 +53,13 @@ void overlay_cursor(overlay_t* o, game_t* g)
 	sfVector2i cursor = sfMouse_getPositionRenderWindow(g->g->render);
 	sfIntRect rect = {0, 0, 24, 24};
 
-	if (ov_build_cursor(&o->build, g, cursor.x, cursor.y))
-	{
+	if (0);
+	else if (   ov_build_cursor(&o->build,       g, cursor.x, cursor.y))
 		rect.left = 4 * 24;
-	}
-	else if (swbuilding_cursor (&o->swbuilding,  g, cursor.x, cursor.y));
-	else if (switems_cursor    (&o->switems,     g, cursor.x, cursor.y));
+	else if ( swbuilding_cursor(&o->swbuilding,  g, cursor.x, cursor.y));
+	else if (    switems_cursor(&o->switems,     g, cursor.x, cursor.y));
 	else if (swmaterials_cursor(&o->swmaterials, g, cursor.x, cursor.y));
-	else if (swskills_cursor   (&o->swskills,    g, cursor.x, cursor.y));
+	else if (   swskills_cursor(&o->swskills,    g, cursor.x, cursor.y));
 	else if (swequipment_cursor(&o->swequipment, g, cursor.x, cursor.y));
 	else
 	{
@@ -132,10 +129,10 @@ void overlay_draw(overlay_t* o, game_t* g)
 		y += 30;
 	}
 
-	swbuilding_draw (&o->swbuilding,  g, 1);
-	switems_draw    (&o->switems,     g, 1);
+	 swbuilding_draw(&o->swbuilding,  g, 1);
+	    switems_draw(&o->switems,     g, 1);
 	swmaterials_draw(&o->swmaterials, g, 1);
-	swskills_draw   (&o->swskills,    g, 1);
+	   swskills_draw(&o->swskills,    g, 1);
 	swequipment_draw(&o->swequipment, g, 1);
 
 	ov_build_draw(&o->build, g, 1);
@@ -153,11 +150,11 @@ void overlay_draw(overlay_t* o, game_t* g)
 int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 {
 	return
-	ov_build_catch   (&o->build,       g, x, y, t) ||
-	swbuilding_catch (&o->swbuilding,  g, x, y, t) ||
-	switems_catch    (&o->switems,     g, x, y, t) ||
+	   ov_build_catch(&o->build,       g, x, y, t) ||
+	 swbuilding_catch(&o->swbuilding,  g, x, y, t) ||
+	    switems_catch(&o->switems,     g, x, y, t) ||
 	swmaterials_catch(&o->swmaterials, g, x, y, t) ||
-	swskills_catch   (&o->swskills,    g, x, y, t) ||
+	   swskills_catch(&o->swskills,    g, x, y, t) ||
 	swequipment_catch(&o->swequipment, g, x, y, t) ||
 	0;
 }
