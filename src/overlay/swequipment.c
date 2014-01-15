@@ -36,9 +36,9 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 			return -1;
 	}
 
-	sfVector2f cursor;
+	sfVector2f mouse;
 	if (!do_draw)
-		cursor = subwindow_mouse(&w->w, g->g);
+		mouse = subwindow_mouse(&w->w, g->g);
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -65,7 +65,8 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 		// slot
 		sfText_setPosition(text, (sfVector2f){x,y});
 		sfText_setUTF8(text, s->name); // TODO
-		sfRenderWindow_drawText(g->g->render, text, NULL);
+		if (do_draw)
+			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		int id = g->player->equipment[i];
 
@@ -86,7 +87,7 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 			if (do_draw)
 				sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 			else
-				caught |= sfSprite_contains(sprite, cursor);
+				caught |= sfSprite_contains(sprite, mouse);
 
 			if (it->category == 1)
 				twohanded = 1;
@@ -106,7 +107,7 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 			if (do_draw)
 				sfRenderWindow_drawText(g->g->render, text, NULL);
 			else
-				caught |= sfText_contains(text, cursor);
+				caught |= sfText_contains(text, mouse);
 		}
 
 		y += 32;
@@ -122,14 +123,16 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 	return -1;
 }
 
-char swequipment_cursor(swequipment_t* w, game_t* g, int x, int y)
+int swequipment_cursor(swequipment_t* w, game_t* g, int x, int y)
 {
 	if (!subwindow_cursor(&w->w, x, y))
+		return -1;
+
+	int i = swequipment_draw(w, g, 0);
+	if (i < 0)
 		return 0;
 
-	(void) g;
-
-	return 1;
+	return 13;
 }
 
 char swequipment_catch(swequipment_t* w, game_t* g, int x, int y, int t)

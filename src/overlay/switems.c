@@ -79,9 +79,9 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 			return -1;
 	}
 
-	sfVector2f cursor;
+	sfVector2f mouse;
 	if (!do_draw)
-		cursor = subwindow_mouse(&w->w, g->g);
+		mouse = subwindow_mouse(&w->w, g->g);
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -118,7 +118,7 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 		if (do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 		else
-			caught |= sfSprite_contains(sprite, cursor);
+			caught |= sfSprite_contains(sprite, mouse);
 
 		// text
 		char buffer[1024];
@@ -128,7 +128,7 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 		else
-			caught |= sfText_contains(text, cursor);
+			caught |= sfText_contains(text, mouse);
 
 		y += 32;
 
@@ -143,19 +143,20 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 	return -1;
 }
 
-char switems_cursor(switems_t* w, game_t* g, int x, int y)
+int switems_cursor(switems_t* w, game_t* g, int x, int y)
 {
 	if (!subwindow_cursor(&w->w, x, y))
-		return 0;
+		return -1;
 
 	int i = switems_draw(w, g, 0);
 	if (i < 0)
-		return 1;
+		return 0;
 
 	char buffer[1024];
 	switems_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
 	graphics_drawTooltip(g->g, x, y, buffer);
-	return 1;
+
+	return 12;
 }
 
 char switems_catch(switems_t* w, game_t* g, int x, int y, int t)

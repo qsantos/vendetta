@@ -54,9 +54,9 @@ static int draw_buildButton(ov_build_t* o, game_t* g, kindOf_building_t* b, floa
 {
 	(void) o;
 
-	sfVector2f cursor;
+	sfVector2f mouse;
 	if (!do_draw)
-		cursor = overlay_mouse(g->g);
+		mouse = overlay_mouse(g->g);
 
 	char caught = 0;
 
@@ -75,7 +75,7 @@ static int draw_buildButton(ov_build_t* o, game_t* g, kindOf_building_t* b, floa
 	if (do_draw)
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	else
-		caught |= sfSprite_contains(sprite, cursor);
+		caught |= sfSprite_contains(sprite, mouse);
 
 	return caught;
 }
@@ -199,7 +199,7 @@ void ov_build_tooltip(char* buffer, size_t n, game_t* g, kindOf_building_t* b)
 	}
 }
 
-char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
+int ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 {
 	char caught = 0;
 
@@ -218,7 +218,7 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 
 	kindOf_building_t* b = o->selected;
 	if (b == NULL)
-		return caught;
+		return caught ? 4 : -1;
 
 	sfRenderWindow_setView(g->g->render, g->g->world_view);
 
@@ -252,7 +252,7 @@ char ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 	sfRenderWindow_drawRectangleShape(g->g->render, shape, NULL);
 
 	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
-	return 1;
+	return 4;
 }
 
 char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
@@ -287,8 +287,8 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 	kindOf_building_t* b = o->selected;
 	if (b != NULL)
 	{
-		sfVector2i cursor = {x, y};
-		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, cursor, g->g->world_view);
+		sfVector2i mouse = {x, y};
+		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, mouse, g->g->world_view);
 		pos.y += b->height / 2;
 
 		if (!transform_check(&b->build, &g->player->inventory))

@@ -40,9 +40,9 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 			return -1;
 	}
 
-	sfVector2f cursor;
+	sfVector2f mouse;
 	if (!do_draw)
-		cursor = subwindow_mouse(&w->w, g->g);
+		mouse = subwindow_mouse(&w->w, g->g);
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -75,7 +75,7 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 		else
-			caught |= sfText_contains(text, cursor);
+			caught |= sfText_contains(text, mouse);
 
 		y += 20;
 
@@ -98,12 +98,12 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 		else
-			caught = sfText_contains(text, cursor);
+			caught = sfText_contains(text, mouse);
 
 		y += 20;
 
 		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (sfFloatRect_contains(&rect, cursor.x, cursor.y))
+		if (sfFloatRect_contains(&rect, mouse.x, mouse.y))
 			return N_SPECIAL_SKILLS+i;
 	}
 
@@ -122,7 +122,7 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 		else
-			caught |= sfText_contains(text, cursor);
+			caught |= sfText_contains(text, mouse);
 
 		y += 20;
 
@@ -137,14 +137,14 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 	return -1;
 }
 
-char swskills_cursor(swskills_t* w, game_t* g, int x, int y)
+int swskills_cursor(swskills_t* w, game_t* g, int x, int y)
 {
 	if (!subwindow_cursor(&w->w, x, y))
-		return 0;
+		return -1;
 
 	(void) g;
 
-	return 1;
+	return 0;
 }
 
 char swskills_catch(swskills_t* w, game_t* g, int x, int y, int t)
