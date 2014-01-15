@@ -30,6 +30,8 @@ struct subwindow
 	float y;
 	char* name;
 
+	float height;
+	float scrolling;
 	sfView* view;
 };
 

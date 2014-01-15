@@ -118,6 +118,7 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 	if (do_draw)
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
+	w->w.height = y;
 	return -1;
 }
 

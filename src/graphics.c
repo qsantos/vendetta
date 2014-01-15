@@ -19,6 +19,7 @@
 #include "graphics.h"
 
 #include <string.h>
+#include <math.h>
 
 #include "util.h"
 
@@ -192,6 +193,24 @@ void graphics_drawTooltip(graphics_t* g, float x, float y, const char* txt)
 	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
 
 	sfRenderWindow_drawText(g->render, text, NULL);
+}
+
+void graphics_drawScrollBar(graphics_t* g, float x, float y, float w, float h, float r, float p)
+{
+	static sfRectangleShape* cursor = NULL;
+	if (cursor == NULL)
+	{
+		cursor = sfRectangleShape_create();
+		sfRectangleShape_setFillColor(cursor, (sfColor){70,70,102,128});
+	}
+
+	r = fmin(r, 1);
+	if (r != 1)
+		y += p * h * (1-r);
+	h *= r;
+	sfRectangleShape_setSize(cursor, (sfVector2f){w,h});
+	sfRectangleShape_setPosition(cursor, (sfVector2f){x,y});
+	sfRenderWindow_drawRectangleShape(g->render, cursor, NULL);
 }
 
 #ifdef __WIN32__

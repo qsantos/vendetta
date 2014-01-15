@@ -18,6 +18,8 @@
 
 #include "subwindow.h"
 
+#include <math.h>
+
 #include "../util.h"
 
 void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, float y)
@@ -26,6 +28,9 @@ void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, fl
 	w->x = x;
 	w->y = y;
 	w->visible = 1;
+
+	w->height = 0;
+	w->scrolling = 0;
 	w->view = sfView_copy(sfRenderWindow_getDefaultView(g->render));
 	sfView_reset(w->view, (sfFloatRect){0,0,SW_WIDTH-40,SW_HEIGHT-70});
 }
@@ -74,8 +79,22 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 	pos.x += (SW_WIDTH-rect.width)/2;
 	pos.y += + 20;
 	sfText_setPosition(text, pos);
-
 	sfRenderWindow_drawText(g->render, text, NULL);
+
+	float min_scrolling = 0;
+	float max_scrolling = fmax(0, w->height - (SW_HEIGHT-70));
+	if (w->scrolling > max_scrolling)
+	{
+		float delta = max_scrolling - w->scrolling;
+		w->scrolling += delta;
+		sfView_move(w->view, (sfVector2f){0,delta});
+	}
+	if (max_scrolling > min_scrolling)
+	{
+		float p = w->scrolling / (max_scrolling - min_scrolling);
+		float r = (SW_HEIGHT - 40) / w->height;
+		graphics_drawScrollBar(g, w->x+SW_WIDTH-20, w->y+50, 7, SW_HEIGHT-70, r, p);
+	}
 
 	sfVector2u size = sfRenderWindow_getSize(g->render);
 	sfFloatRect viewport = {(w->x+20)/size.x, (w->y+50)/size.y, (SW_WIDTH-40)/size.x, (SW_HEIGHT-70)/size.y};
@@ -102,7 +121,17 @@ char subwindow_wheel(subwindow_t* w, int x, int y, int delta)
 	if (!sfFloatRect_contains(&rect, x, y))
 		return 0;
 
-	sfView_move(w->view, (sfVector2f){0,-20*delta});
+	float min_scrolling = 0;
+	float max_scrolling = w->height - (SW_HEIGHT-70);
+
+	if (max_scrolling > min_scrolling)
+	{
+		delta *= -20;
+		delta = fmax(delta, min_scrolling-w->scrolling);
+		delta = fmin(delta, max_scrolling-w->scrolling);
+		w->scrolling += delta;
+		sfView_move(w->view, (sfVector2f){0,delta});
+	}
 	return 1;
 }
 
