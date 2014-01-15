@@ -113,7 +113,9 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 		if (s == 1)
 			continue;
 
-		snprintf(buffer, 1024, "%s %i", g->u->iskills[i].name, (int)floor(s*100));
+		float level;
+		float progress = 100 * modff(s, &level);
+		snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->iskills[i].name, level, progress);
 
 		sfText_setPosition(text, (sfVector2f){x,y});
 		sfText_setUTF8(text, buffer);
