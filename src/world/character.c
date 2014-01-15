@@ -74,13 +74,21 @@ void character_exit(character_t* c)
 	inventory_exit(&c->inventory);
 }
 
+static float vitality_malus(character_t* c, int i)
+{
+	float s = c->statuses[i] / 20;
+	if (s < 0.10) return 0.450;
+	if (s < 0.25) return 0.250;
+	if (s < 0.50) return 0.125;
+	return 0;
+}
 float character_vitality(character_t* c)
 {
 	float ret = 1;
-	ret *= sqrt(c->statuses[ST_HEALTH] / 20.);
-	ret *= sqrt(c->statuses[ST_STAMINA] / 20.);
-	ret *= sqrt(c->statuses[ST_MORAL] / 20.);
-	return max(ret, 0.3);
+	ret -= vitality_malus(c, ST_HEALTH);
+	ret -= vitality_malus(c, ST_STAMINA);
+	ret -= vitality_malus(c, ST_MORAL);
+	return fmax(ret, 0.1);
 }
 
 void character_weary(character_t* c, float f)
@@ -93,7 +101,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 {
 	if (o == NULL)
 	{
-		character_weary(c, 0.01 * duration);
+		character_weary(c, -0.01 * duration);
 		return;
 	}
 
