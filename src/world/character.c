@@ -313,9 +313,9 @@ void character_doRound(character_t* c, float duration)
 	c->o.x += distance * cos(dir);
 	c->o.y += distance * sin(dir);
 
-	c->o.x = fmax(c->o.x, -w->o.w/2);
-	c->o.y = fmax(c->o.y, -w->o.h/2);
-	c->o.x = fmin(c->o.x,  w->o.w/2);
+	c->o.x = fmax(c->o.x, -w->o.w/2+12);
+	c->o.y = fmax(c->o.y, -w->o.h/2+32);
+	c->o.x = fmin(c->o.x,  w->o.w/2-12);
 	c->o.y = fmin(c->o.y,  w->o.h/2);
 
 	if (c->step == 5)
