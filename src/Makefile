@@ -31,7 +31,8 @@ clean:
 destroy: clean
 	rm -f $(TARGETS)
 
-rebuild: destroy all
+rebuild: destroy
+	@$(MAKE)
 
 cleanheaders:
 	@echo rm -f [*.gch]
