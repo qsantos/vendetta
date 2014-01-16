@@ -205,11 +205,10 @@ void game_loop(game_t* g)
 		sfRenderWindow_display(g->g->render);
 
 		// check frame duration
-		float duration = sfTime_asSeconds(sfClock_getElapsedTime(clock));
+		float duration = sfTime_asSeconds(sfClock_restart(clock));
 		g->g->step += duration;
 
 		// measure FPS
-		sfClock_restart(clock);
 		fpssum += 1. / duration;
 		fpscount++;
 		fpslast += duration;
