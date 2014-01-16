@@ -4,5 +4,6 @@
 *.swp
 *.so
 *.dll
+*.layout
 vendetta
 vendetta.exe

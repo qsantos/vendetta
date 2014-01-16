@@ -31,6 +31,8 @@ clean:
 destroy: clean
 	rm -f $(TARGETS)
 
+cleanall: destroy
+
 rebuild: destroy
 	@$(MAKE)
 

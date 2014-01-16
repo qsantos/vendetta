@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+<FileVersion major="1" minor="6" />
+<Project>
+
+<Option title="vendetta" />
+<Option makefile_is_custom="1" />
+<Option execution_dir="." />
+<Build>
+	<Target title="all">
+		<Option output="../vendetta" prefix_auto="1" extension_auto="1" />
+		<Option working_dir=".." />
+		<Option object_output="." />
+		<Option type="1" />
+	</Target>
+</Build>
+<Unit filename="LICENCE" />
+<Unit filename="Makefile" />
+<Unit filename="ai.c" />
+<Unit filename="ai.h" />
+<Unit filename="game.c" />
+<Unit filename="game.h" />
+<Unit filename="graphics.c" />
+<Unit filename="graphics.h" />
+<Unit filename="main.c" />
+<Unit filename="overlay/swequipment.h" />
+<Unit filename="overlay/build.h" />
+<Unit filename="overlay/swbuilding.h" />
+<Unit filename="overlay/swmaterials.c" />
+<Unit filename="overlay/swskills.h" />
+<Unit filename="overlay/swmaterials.h" />
+<Unit filename="overlay/subwindow.c" />
+<Unit filename="overlay/overlay.c" />
+<Unit filename="overlay/subwindow.h" />
+<Unit filename="overlay/swbuilding.c" />
+<Unit filename="overlay/swskills.c" />
+<Unit filename="overlay/build.c" />
+<Unit filename="overlay/switems.h" />
+<Unit filename="overlay/swequipment.c" />
+<Unit filename="overlay/switems.c" />
+<Unit filename="overlay/overlay.h" />
+<Unit filename="universe/building.c" />
+<Unit filename="universe/universe.c" />
+<Unit filename="universe/mine.c" />
+<Unit filename="universe/equipment.h" />
+<Unit filename="universe/ini.h" />
+<Unit filename="universe/material.c" />
+<Unit filename="universe/building.h" />
+<Unit filename="universe/item.h" />
+<Unit filename="universe/status.c" />
+<Unit filename="universe/transform.c" />
+<Unit filename="universe/transform.h" />
+<Unit filename="universe/item.c" />
+<Unit filename="universe/ini.c" />
+<Unit filename="universe/category.h" />
+<Unit filename="universe/mine.h" />
+<Unit filename="universe/equipment.c" />
+<Unit filename="universe/skill.c" />
+<Unit filename="universe/universe.h" />
+<Unit filename="universe/status.h" />
+<Unit filename="universe/skill.h" />
+<Unit filename="universe/material.h" />
+<Unit filename="universe/category.c" />
+<Unit filename="util.c" />
+<Unit filename="util.h" />
+<Unit filename="voronoi/lloyd.h" />
+<Unit filename="voronoi/lloyd.c" />
+<Unit filename="voronoi/geometry.c" />
+<Unit filename="voronoi/qsort_r.c" />
+<Unit filename="voronoi/binbeach.c" />
+<Unit filename="voronoi/heap.c" />
+<Unit filename="voronoi/voronoi.c" />
+<Unit filename="voronoi/qsort_r.h" />
+<Unit filename="voronoi/voronoi.h" />
+<Unit filename="voronoi/utils.h" />
+<Unit filename="voronoi/geometry.h" />
+<Unit filename="voronoi/heap.h" />
+<Unit filename="voronoi/binbeach.h" />
+<Unit filename="world/world.c" />
+<Unit filename="world/building.c" />
+<Unit filename="world/mine.c" />
+<Unit filename="world/world.h" />
+<Unit filename="world/character.c" />
+<Unit filename="world/building.h" />
+<Unit filename="world/inventory.c" />
+<Unit filename="world/object.h" />
+<Unit filename="world/draw.c" />
+<Unit filename="world/mine.h" />
+<Unit filename="world/character.h" />
+<Unit filename="world/draw.h" />
+<Unit filename="world/object.c" />
+<Unit filename="world/status.h" />
+<Unit filename="world/skill.h" />
+<Unit filename="world/inventory.h" />
+
+</Project>
+</CodeBlocks_project_file>
