@@ -1,0 +1,45 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer du pain.
+Equiper_0
+
+Age_1
+#Fabrique une boulangerie.
+ChangerMode_1
+Batiment_7
+Travailler
+
+Age_2
+#Fabrique une boulangerie et s'habille.
+ChangerMode_1
+GagnerArgent_7=220
+Objet_45=1
+Batiment_7
+Travailler
+
+Age_3
+#Fabrique une boulangerie et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_7=220
+Objet_45=1
+Objet_51=1
+Batiment_7
+Travailler
+
+Age_4
+#Fabrique une boulangerie et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_7=880
+Objet_45=1
+Objet_1=1
+Batiment_7
+Travailler
+
+Age_5
+#Fabrique une boulangerie et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_7=880
+Objet_45=1
+Objet_1=1
+Batiment_7
+Travailler
+
+#Fin

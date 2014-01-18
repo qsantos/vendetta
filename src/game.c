@@ -34,16 +34,21 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 
 	g->player = &g->w->characters[g->w->n_characters-1];
 
-	ai_t* ai = &g->default_ai;
-	ai_init(ai);
-	ai_load(ai, "bots/Fermier de ble.ia");
+	for (size_t i = 0; i < 5; i++)
+		ai_init(&g->bots[i]);
+
+	ai_load(&g->bots[0], "bots/Berger.ia");
+	ai_load(&g->bots[1], "bots/Boulanger.ia");
+	ai_load(&g->bots[2], "bots/Cordonnier.ia");
+	ai_load(&g->bots[3], "bots/Mineur.ia");
+	ai_load(&g->bots[4], "bots/Armurier.ia");
 
 	for (size_t i = 0; i < g->w->n_characters; i++)
 	{
 		character_t* c = &g->w->characters[i];
 		if (c == g->player)
 			continue;
-		c->ai = ai;
+		c->ai = &g->bots[rand() % 5];
 	}
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
@@ -53,7 +58,8 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 
 void game_exit(game_t* g)
 {
-	ai_exit(&g->default_ai);
+	for (size_t i = 0; i < 5; i++)
+		ai_exit(&g->bots[i]);
 
 	   world_exit(g->w);
 	universe_exit(g->u);

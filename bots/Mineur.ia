@@ -1,0 +1,67 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer des briques.
+Equiper_0
+
+Age_1
+#Récolte de la pierre avec une pioche et travaille comme artisan.
+ChangerMode_1
+Ressource_13=20
+GagnerArgent_3=110
+Objet_51=1
+GagnerArgent_3=150
+Objet_1=1
+GagnerArgent_3=550
+Objet_231=1
+Batiment_3
+Travailler
+
+Age_2
+#Fabrique une carrière de pierre et y travaille.
+ChangerMode_1
+GagnerArgent_18=190
+Objet_7=1
+Objet_51=1
+Objet_1=1
+GagnerArgent_18=550
+Objet_231=1
+Batiment_18
+Travailler
+
+Age_3
+#Fabrique une carrière de pierre et y travaille.
+ChangerMode_1
+GagnerArgent_18=190
+Objet_7=1
+Objet_51=1
+Objet_1=1
+GagnerArgent_18=550
+Objet_231=1
+Batiment_18
+Travailler
+
+Age_4
+#Fabrique une carrière de pierre et y travaille.
+ChangerMode_1
+GagnerArgent_18=190
+Objet_7=1
+Objet_51=1
+Objet_1=1
+GagnerArgent_18=550
+Objet_66=1
+Batiment_18
+Travailler
+
+Age_5
+#Fabrique une carrière de pierre et y travaille.
+ChangerMode_1
+GagnerArgent_18=190
+Objet_7=1
+Objet_51=1
+Objet_1=1
+GagnerArgent_18=550
+Objet_66=1
+GagnerArgent_18=1350
+Objet_70=1
+Batiment_18
+Travailler
+
+#Fin

@@ -1,0 +1,49 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer des chaussures.
+Equiper_0
+
+Age_1
+#Fabrique une cordonnerie et prend des bottes pour lui.
+ChangerMode_1
+Objet_46=1
+Batiment_13
+Travailler
+
+Age_2
+#Fabrique une cordonnerie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+GagnerArgent_13=220
+Objet_3=1
+Objet_46=1
+Batiment_13
+Travailler
+
+Age_3
+#Fabrique une cordonnerie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+GagnerArgent_13=560
+Objet_2=1
+Objet_46=1
+Batiment_13
+Travailler
+
+Age_4
+#Fabrique une cordonnerie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+GagnerArgent_13=560
+Objet_2=1
+Objet_3=1
+Objet_46=1
+Batiment_13
+Travailler
+
+Age_5
+#Fabrique une cordonnerie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+GagnerArgent_13=560
+Objet_2=1
+Objet_3=1
+Objet_46=1
+Batiment_13
+Travailler
+
+#Fin

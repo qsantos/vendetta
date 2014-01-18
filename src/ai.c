@@ -42,6 +42,8 @@ void ai_load(ai_t* ai, const char* filename)
 		exit(1);
 	}
 
+	fprintf(stderr, "Parsing bot '%s'\n", filename);
+
 	int age = 0;
 
 	char* line = NULL;

@@ -1,0 +1,57 @@
+#IA officielle. Un armurier qui produit des armures et s'équipe avec ce qu'il fait de mieux.
+Equiper_0
+
+Age_1
+#Se prépare pour l'époque suivante et travaille comme artisan.
+ChangerMode_1
+Ressource_15=20
+Ressource_13=9
+Batiment_11
+Travailler
+
+Age_2
+#S'équipe comme un chevalier.
+ChangerMode_1
+Objet_47=1
+GagnerArgent_23=960
+Objet_20=1
+Batiment_23
+Travailler
+
+Age_3
+#S'équipe comme un chevalier.
+ChangerMode_1
+Ressource_11=1
+GagnerArgent_23=300
+Objet_14=1
+ChangerMode_2
+GagnerArgent_23=380
+Objet_24=1
+Batiment_23
+Travailler
+
+Age_4
+#S'équipe comme un chevalier.
+ChangerMode_1
+Ressource_11=1
+GagnerArgent_23=600
+Objet_104=1
+ChangerMode_2
+GagnerArgent_23=1920
+Objet_108=1
+Batiment_23
+Travailler
+
+Age_5
+#S'équipe comme un chevalier.
+ChangerMode_1
+Ressource_11=1
+GagnerArgent_23=600
+Objet_205=1
+ChangerMode_2
+GagnerArgent_23=1920
+Objet_108=1
+Batiment_23
+Travailler
+
+#Fin

@@ -1,0 +1,44 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer de la laine.
+Equiper_0
+
+Age_1
+#Fait simplement une bergerie.
+ChangerMode_1
+GagnerArgent_4=76
+Objet_51=1
+Batiment_4
+Travailler
+
+Age_2
+#Fabrique une bergerie et s'équipe un peu.
+ChangerMode_1
+GagnerArgent_4=330
+Objet_109=1
+Batiment_4
+Travailler
+
+Age_3
+#Fabrique une bergerie.
+ChangerMode_1
+GagnerArgent_4=330
+Objet_109=1
+Batiment_4
+Travailler
+
+Age_4
+#Fabrique une bergerie et s'équipe.
+ChangerMode_1
+GagnerArgent_4=330
+Objet_109=1
+Batiment_4
+Travailler
+
+Age_5
+#Fabrique une bergerie et s'équipe.
+ChangerMode_1
+GagnerArgent_4=330
+Objet_109=1
+Batiment_4
+Travailler
+
+#Fin
