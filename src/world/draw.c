@@ -44,9 +44,18 @@ void draw_character(graphics_t* g, character_t* c)
 	if (step >= 3)
 		step = 1;
 
-	sfIntRect rect = {24*step, 32*c->dir, 24, c->inWater ? 20 : 32};
+	sfIntRect  rect = {24*step, 32*c->dir, 24, 32};
+	sfVector2f pos  = {c->o.x - c->o.w/2, c->o.y - c->o.h};
+
+	if (c->inWater)
+	{
+		pos.y += 12;
+		rect.height -= 12;
+	}
+
 	sfSprite_setTextureRect(sprite, rect);
-	draw_object(g, &c->o, sprite);
+	sfSprite_setPosition(sprite, pos);
+	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
 void draw_mine(graphics_t* g, mine_t* m)
