@@ -87,7 +87,7 @@ static int draw_buildButton(ov_build_t* o, game_t* g, kindOf_building_t* b, floa
 static int draw_buildPanel(ov_build_t* o, game_t* g, char do_draw)
 {
 	float x = 0;
-	float y = 0;
+	float y = 100;
 	char caught = 0;
 
 	for (size_t i = 0; i < g->u->n_buildings; i++)

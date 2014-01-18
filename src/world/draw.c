@@ -82,7 +82,7 @@ void draw_building(graphics_t* g, building_t* b)
 	if (n <= 1)
 		step = 0;
 	else
-		step = floor((float)(n-2) * p);
+		step = floor(p * (n-2));
 
 	sfSprite* sprite = g->sprites[b->t->sprite];
 	sfIntRect rect = {0, b->o.h*step, b->o.w, b->o.h};

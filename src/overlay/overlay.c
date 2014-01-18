@@ -141,7 +141,7 @@ void overlay_draw(overlay_t* o, game_t* g)
 
 	ov_build_draw(&o->build, g, 1);
 
-	overlay_cursor(g->o, g);
+	overlay_cursor(o, g);
 
 	char buffer[1024];
 	snprintf(buffer, 1024, "FPS: %.0f", floor(g->g->fps));
