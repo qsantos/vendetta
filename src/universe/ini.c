@@ -24,7 +24,8 @@
 
 void cfg_keyval_init(cfg_keyval_t* kv, const char* key)
 {
-	*kv = (cfg_keyval_t){strdup(key), 0, {.array.n = 0, .array.v = NULL}};
+	memset(kv, 0, sizeof(cfg_keyval_t));
+	kv->key = strdup(key);
 }
 
 void cfg_keyval_exit(cfg_keyval_t* kv)

@@ -18,8 +18,7 @@
 
 #include "universe.h"
 
-
-#ifdef __WIN32__
+#if defined __WIN32__ && ! defined __MINGW32__
 #define off64_t long long
 #else
 enum
@@ -38,6 +37,7 @@ enum
 
 #include <string.h>
 #include <dirent.h>
+#include <sys/stat.h>
 
 #include "../util.h"
 #include "ini.h"
@@ -335,9 +335,19 @@ universe_t* universe_init(graphics_t* g)
 	char path[1024] = DIR_CONFIG;
 	while ((ent = readdir(dir)) != NULL)
 	{
-		if (ent->d_type == DT_DIR)
-			continue;
 		strncpy(path+strlen(DIR_CONFIG), ent->d_name, 1024-strlen(DIR_CONFIG));
+#ifdef __WIN32__
+		struct stat info;
+		if (stat(path, &info) < 0)
+		{
+			fprintf(stderr, "Could not stat() file '%s'\n", path);
+			exit(1);
+		}
+		if (S_ISDIR(info.st_mode))
+#else
+		if (ent->d_type == DT_DIR)
+#endif
+			continue;
 		cfg_ini_parse(&ini, path);
 	}
 	closedir(dir);

@@ -137,7 +137,7 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 
 		progress = sfRectangleShape_create();
 	}
-	sfColor inner;
+	sfColor inner = sfBlack;
 
 	     if (p <= 0.00) p = 0;
 	else if (p <= 0.25) inner = (sfColor){255,  0,  0,255};
@@ -215,7 +215,7 @@ void graphics_drawScrollBar(graphics_t* g, float x, float y, float w, float h, f
 
 #ifdef __WIN32__
 #include <windows.h>
-#include <Winnls.h>
+#include <winnls.h>
 #endif
 void sfText_setUTF8(sfText* text, const char* string)
 {
