@@ -18,7 +18,10 @@
 
 #include "building.h"
 
-#include "../util.h"
+#include <stdlib.h>
+#include <stdio.h>
+
+#include "../mem.h"
 
 void kindOf_building_init(kindOf_building_t* b)
 {

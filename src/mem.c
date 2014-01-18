@@ -16,24 +16,21 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "inventory.h"
+#ifndef MEM_C
+#define MEM_C
 
 #include <stdlib.h>
-#include <string.h>
+#include <stdio.h>
 
-#include "../mem.h"
-
-void inventory_init(inventory_t* i, universe_t* u)
+void* check_alloc(size_t n, void* ptr, const char* file, int line)
 {
-	i->materials = CALLOC(float, u->n_materials);
-	i->items     = CALLOC(float, u->n_items);
-
-	memset(i->materials, 0, sizeof(float)*u->n_materials);
-	memset(i->items,     0, sizeof(float)*u->n_items);
+	void* ret = realloc(ptr, n);
+	if (ret == NULL)
+	{
+		fprintf(stderr, "Could not allocate memory at '%s' line %i\n", file, line);
+		exit(1);
+	}
+	return ret;
 }
 
-void inventory_exit(inventory_t* i)
-{
-	free(i->items);
-	free(i->materials);
-}
+#endif

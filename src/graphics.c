@@ -18,10 +18,11 @@
 
 #include "graphics.h"
 
-#include <string.h>
+#include <stdlib.h>
 #include <math.h>
 
-#include "util.h"
+#include "mem.h"
+#include "string.h"
 
 #define HT_MAX_TEXTURES 128
 

@@ -18,10 +18,11 @@
 
 #include "game.h"
 
-#include <SFML/Graphics.h>
+#include <stdlib.h>
 #include <math.h>
+#include <SFML/Graphics.h>
 
-#include "util.h"
+#include "mem.h"
 #include "world/draw.h"
 #include "overlay/overlay.h"
 

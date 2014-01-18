@@ -19,9 +19,8 @@
 #include "swbuilding.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
-
-#include "../util.h"
 
 void swbuilding_init(swbuilding_t* w, graphics_t* g)
 {

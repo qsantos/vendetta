@@ -21,7 +21,8 @@
 #include <math.h>
 #include <string.h>
 
-#include "../util.h"
+#include "../mem.h"
+#include "../rand.h"
 #include "mine.h"
 
 #define M_PI 3.14159265358979323846
@@ -97,8 +98,8 @@ float character_vitality(character_t* c)
 
 void character_weary(character_t* c, float f)
 {
-	c->statuses[ST_STAMINA] = max(c->statuses[ST_STAMINA] - f,   0);
-	c->statuses[ST_MORAL]   = max(c->statuses[ST_MORAL]   - f/3, 0);
+	c->statuses[ST_STAMINA] = fmax(c->statuses[ST_STAMINA] - f,   0);
+	c->statuses[ST_MORAL]   = fmax(c->statuses[ST_MORAL]   - f/3, 0);
 }
 
 void character_workAt(character_t* c, object_t* o, float duration)

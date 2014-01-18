@@ -18,7 +18,9 @@
 
 #include "item.h"
 
-#include "../util.h"
+#include <stdlib.h>
+
+#include "../mem.h"
 
 void kindOf_item_init(kindOf_item_t* i, universe_t* u)
 {

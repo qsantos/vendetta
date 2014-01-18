@@ -18,9 +18,13 @@
 
 #include "build.h"
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
-#include "../util.h"
+#include "../mem.h"
+
+#define M_PI 3.14159265358979323846
 
 #define PANEL_N_COLS 3
 

@@ -23,6 +23,8 @@
 <Unit filename="graphics.c" />
 <Unit filename="graphics.h" />
 <Unit filename="main.c" />
+<Unit filename="mem.c" />
+<Unit filename="mem.h" />
 <Unit filename="overlay/swequipment.h" />
 <Unit filename="overlay/build.h" />
 <Unit filename="overlay/swbuilding.h" />
@@ -39,6 +41,9 @@
 <Unit filename="overlay/swequipment.c" />
 <Unit filename="overlay/switems.c" />
 <Unit filename="overlay/overlay.h" />
+<Unit filename="rand.h" />
+<Unit filename="string.c" />
+<Unit filename="string.h" />
 <Unit filename="universe/building.c" />
 <Unit filename="universe/universe.c" />
 <Unit filename="universe/mine.c" />
@@ -61,8 +66,6 @@
 <Unit filename="universe/skill.h" />
 <Unit filename="universe/material.h" />
 <Unit filename="universe/category.c" />
-<Unit filename="util.c" />
-<Unit filename="util.h" />
 <Unit filename="voronoi/lloyd.h" />
 <Unit filename="voronoi/lloyd.c" />
 <Unit filename="voronoi/geometry.c" />

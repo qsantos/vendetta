@@ -35,11 +35,14 @@ enum
 };
 #endif
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "../util.h"
+#include "../mem.h"
+#include "../string.h"
 #include "ini.h"
 
 #define DIR_CONFIG "cfg/"

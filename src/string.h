@@ -16,24 +16,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "inventory.h"
+#ifndef STRING_H
+#define STRING_H
 
-#include <stdlib.h>
+#include <sys/types.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "../mem.h"
+char*   strdup (const char* s);
+ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 
-void inventory_init(inventory_t* i, universe_t* u)
-{
-	i->materials = CALLOC(float, u->n_materials);
-	i->items     = CALLOC(float, u->n_items);
-
-	memset(i->materials, 0, sizeof(float)*u->n_materials);
-	memset(i->items,     0, sizeof(float)*u->n_items);
-}
-
-void inventory_exit(inventory_t* i)
-{
-	free(i->items);
-	free(i->materials);
-}
+#endif

@@ -16,24 +16,30 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "inventory.h"
+#ifndef RAND_H
+#define RAND_H
 
+#include <limits.h>
 #include <stdlib.h>
-#include <string.h>
 
-#include "../mem.h"
-
-void inventory_init(inventory_t* i, universe_t* u)
+static inline float frnd(float min, float max)
 {
-	i->materials = CALLOC(float, u->n_materials);
-	i->items     = CALLOC(float, u->n_items);
-
-	memset(i->materials, 0, sizeof(float)*u->n_materials);
-	memset(i->items,     0, sizeof(float)*u->n_items);
+	return min + ((float) rand() / RAND_MAX) * (max-min);
+}
+static inline float cfrnd(float max)
+{
+	return frnd(-max/2, max/2);
+}
+static inline int rnd_pick(const float* probas)
+{
+	float selected = frnd(0, 1);
+	int i = 0;
+	while (selected > probas[i])
+	{
+		selected -= probas[i];
+		i++;
+	}
+	return i;
 }
 
-void inventory_exit(inventory_t* i)
-{
-	free(i->items);
-	free(i->materials);
-}
+#endif

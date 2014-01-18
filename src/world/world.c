@@ -23,7 +23,8 @@
 #include <limits.h>
 #include <math.h>
 
-#include "../util.h"
+#include "../mem.h"
+#include "../rand.h"
 #include "../voronoi/lloyd.h"
 
 world_t* world_init(universe_t* u, int _w, int _h, unsigned int seed)

@@ -18,9 +18,8 @@
 
 #include "switems.h"
 
+#include <stdio.h>
 #include <math.h>
-
-#include "../util.h"
 
 void switems_init(switems_t* w, graphics_t* g)
 {

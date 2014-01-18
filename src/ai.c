@@ -18,9 +18,10 @@
 
 #include "ai.h"
 
-#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-#include "util.h"
+#include "string.h"
 
 void ai_init(ai_t* ai)
 {

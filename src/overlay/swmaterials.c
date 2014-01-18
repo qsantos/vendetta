@@ -18,9 +18,8 @@
 
 #include "swmaterials.h"
 
+#include <stdio.h>
 #include <math.h>
-
-#include "../util.h"
 
 void swmaterials_init(swmaterials_t* w, graphics_t* g)
 {

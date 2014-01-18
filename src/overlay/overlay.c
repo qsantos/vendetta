@@ -18,9 +18,11 @@
 
 #include "overlay.h"
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
-#include "../util.h"
+#include "../mem.h"
 
 overlay_t* overlay_init(graphics_t* g)
 {

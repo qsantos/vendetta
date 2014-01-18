@@ -18,10 +18,11 @@
 
 #include "transform.h"
 
+#include <stdlib.h>
 #include <math.h>
 #include <string.h>
 
-#include "../util.h"
+#include "../mem.h"
 #include "../world/inventory.h"
 
 void transform_init(transform_t* t)

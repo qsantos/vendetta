@@ -18,9 +18,10 @@
 
 #include "subwindow.h"
 
+#include <stdlib.h>
 #include <math.h>
 
-#include "../util.h"
+#include "../string.h"
 
 void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, float y)
 {

@@ -18,9 +18,10 @@
 
 #include "building.h"
 
+#include <stdlib.h>
 #include <string.h>
 
-#include "../util.h"
+#include "../mem.h"
 
 void building_init(building_t* b, kindOf_building_t* t, character_t* owner, float x, float y)
 {

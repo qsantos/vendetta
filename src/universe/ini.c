@@ -18,9 +18,10 @@
 
 #include "ini.h"
 
-#include <string.h>
+#include <stdlib.h>
 
-#include "../util.h"
+#include "../mem.h"
+#include "../string.h"
 
 void cfg_keyval_init(cfg_keyval_t* kv, const char* key)
 {

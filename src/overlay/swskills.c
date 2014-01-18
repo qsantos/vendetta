@@ -18,9 +18,8 @@
 
 #include "swskills.h"
 
+#include <stdio.h>
 #include <math.h>
-
-#include "../util.h"
 
 void swskills_init(swskills_t* w, graphics_t* g)
 {

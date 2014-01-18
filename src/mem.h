@@ -16,57 +16,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef MEM_H
+#define MEM_H
 
-# define M_PI		3.14159265358979323846	/* pi */
+void* check_alloc(size_t n, void* ptr, const char* file, int line);
 
-static inline float max(float a, float b)
-{
-	return a > b ? a : b;
-}
-
-#include <stdlib.h>
-#include <stdio.h>
-static inline void* check_alloc(size_t n, void* ptr, const char* file, int line)
-{
-	void* ret = realloc(ptr, n);
-	if (ret == NULL)
-	{
-		fprintf(stderr, "Could not allocate memory at '%s' line %i\n", file, line);
-		exit(1);
-	}
-	return ret;
-}
 #define CALLOC(T,N)     ( (T*) check_alloc((N)*sizeof(T), NULL, __FILE__, __LINE__) )
 #define CREALLOC(P,T,N) ( (T*) check_alloc((N)*sizeof(T), P,    __FILE__, __LINE__) )
-
-
-#include <sys/types.h>
-
-char*   strdup (const char* s);
-ssize_t getline(char **lineptr, size_t *n, FILE *stream);
-
-
-#include <limits.h>
-static inline float frnd(float min, float max)
-{
-	return min + ((float) rand() / RAND_MAX) * (max-min);
-}
-static inline float cfrnd(float max)
-{
-	return frnd(-max/2, max/2);
-}
-static inline int rnd_pick(const float* probas)
-{
-	float selected = frnd(0, 1);
-	int i = 0;
-	while (selected > probas[i])
-	{
-		selected -= probas[i];
-		i++;
-	}
-	return i;
-}
 
 #endif
