@@ -42,6 +42,9 @@ void building_init(building_t* b, kindOf_building_t* t, character_t* owner, floa
 
 void building_exit(building_t* b)
 {
+	if (b == NULL)
+		return;
+
 	free(b->work_list);
 }
 

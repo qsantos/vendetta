@@ -66,5 +66,6 @@ mine_t*     world_findMine    (world_t* w, float x, float y, kindOf_mine_t* t);
 building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* t);
 char        world_canBuild    (world_t* w, float x, float y, kindOf_building_t* t);
 building_t* world_addBuilding (world_t* w, float x, float y, kindOf_building_t* t, character_t* c);
+void        world_delBuilding (world_t* w, building_t* b);
 
 #endif

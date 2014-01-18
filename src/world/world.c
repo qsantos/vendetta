@@ -333,3 +333,11 @@ building_t* world_addBuilding (world_t* w, float x, float y, kindOf_building_t* 
 	building_init(b, t, c, x, y);
 	return b;
 }
+
+void world_delBuilding(world_t* w, building_t* b)
+{
+	for (size_t i = 0; i < w->n_buildings; i++)
+		if (w->buildings[i] == b)
+			w->buildings[i] = NULL;
+	building_exit(b);
+}

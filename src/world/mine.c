@@ -18,6 +18,8 @@
 
 #include "mine.h"
 
+#include <stdlib.h>
+
 void mine_init(mine_t* m, kindOf_mine_t* t)
 {
 	m->o.t = O_MINE;
@@ -30,5 +32,6 @@ void mine_init(mine_t* m, kindOf_mine_t* t)
 
 void mine_exit(mine_t* m)
 {
-	(void) m;
+	if (m == NULL)
+		return;
 }

@@ -69,6 +69,9 @@ void character_init(character_t* c, universe_t* u, world_t* w)
 
 void character_exit(character_t* c)
 {
+	if (c == NULL)
+		return;
+
 	free(c->equipment);
 	free(c->iskills);
 	free(c->mskills);
@@ -384,6 +387,9 @@ char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 	{
 		// TODO
 	}
+
+	if (c->hasBuilding)
+		world_delBuilding(c->world, c->hasBuilding);
 
 	transform_apply(&t->build, &c->inventory, 1);
 	c->hasBuilding = world_addBuilding(c->world, x, y, t, c);

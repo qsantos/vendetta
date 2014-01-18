@@ -30,6 +30,9 @@ void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 
 void draw_character(graphics_t* g, character_t* c)
 {
+	if (c == NULL)
+		return;
+
 	if (c->inBuilding != NULL)
 		return;
 
@@ -60,6 +63,9 @@ void draw_character(graphics_t* g, character_t* c)
 
 void draw_mine(graphics_t* g, mine_t* m)
 {
+	if (m == NULL)
+		return;
+
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 	{
@@ -75,6 +81,9 @@ void draw_mine(graphics_t* g, mine_t* m)
 
 void draw_building(graphics_t* g, building_t* b)
 {
+	if (b == NULL)
+		return;
+
 	int step;
 	int n = b->t->n_sprites;
 	float p = b->build_progress;
