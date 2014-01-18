@@ -26,7 +26,6 @@ typedef struct vr_binbeach vr_binbeach_t;
 
 #include "geometry.h"
 
-struct vr_vertex;
 struct vr_region;
 struct vr_event;
 
@@ -43,7 +42,7 @@ struct vr_bnode
 	vr_bnode_t* parent;
 
 	// linked point id
-	struct vr_vertex** end;
+	point_t** end;
 
 	struct vr_event* event;
 };

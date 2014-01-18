@@ -186,8 +186,8 @@ char vr_diagram_step(vr_diagram_t* v)
 		// finish edges at breakpoints
 		vr_bnode_t* lb = vr_bnode_right(n);
 		vr_bnode_t* rb = vr_bnode_left (n);
-		*lb->end = e->p;
-		*rb->end = e->p;
+		*lb->end = &e->p->p;
+		*rb->end = &e->p->p;
 
 		// save previous and next arcs
 		vr_bnode_t* pa = vr_bnode_prev(n);
@@ -203,7 +203,7 @@ char vr_diagram_step(vr_diagram_t* v)
 		// start new edge
 		vr_edge_t* f = new_edge(v, pa->r1, na->r1);
 		f->s.a = &e->p->p;
-		n->end = (vr_vertex_t**) &f->s.b;
+		n->end = &f->s.b;
 	}
 	else
 	{
@@ -221,8 +221,8 @@ char vr_diagram_step(vr_diagram_t* v)
 
 		// add edge
 		vr_edge_t* f = new_edge(v, n->r1, e->r);
-		n       ->end = (vr_vertex_t**) &f->s.a;
-		n->right->end = (vr_vertex_t**) &f->s.b;
+		n       ->end = &f->s.a;
+		n->right->end = &f->s.b;
 	}
 
 	free(e);
@@ -236,7 +236,7 @@ static void finishEdges(vr_diagram_t* v, vr_bnode_t* n)
 
 	vr_vertex_t* p = new_vertex(v);
 	parabola_intersect(&p->p, &n->r1->p, &n->r2->p, v->sweepline);
-	*n->end = p;
+	*n->end = &p->p;
 
 	finishEdges(v, n->left);
 	finishEdges(v, n->right);
