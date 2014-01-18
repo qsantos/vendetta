@@ -196,7 +196,13 @@ void game_loop(game_t* g)
 		sfRenderWindow_clear(g->g->render, sfBlack);
 
 		sfVector2f pos = {g->player->o.x, g->player->o.y};
+		sfVector2f size = sfView_getSize(g->g->world_view);
+		pos.x = fmax(pos.x, size.x/2-g->w->o.w/2);
+		pos.y = fmax(pos.y, size.y/2-g->w->o.h/2);
+		pos.x = fmin(pos.x,-size.x/2+g->w->o.w/2);
+		pos.y = fmin(pos.y,-size.y/2+g->w->o.h/2);
 		sfView_setCenter(g->g->world_view, pos);
+
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
 		draw_world(g->g, g->w);
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
