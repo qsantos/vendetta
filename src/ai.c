@@ -52,7 +52,7 @@ void ai_load(ai_t* ai, const char* filename)
 		if (strval != NULL)
 		{
 			*strval = 0;
-			val = atoi(strval+1);
+			val = strtol(strval+1, NULL, 0);
 		}
 
 		int id = 0;
@@ -60,7 +60,7 @@ void ai_load(ai_t* ai, const char* filename)
 		if (strid != NULL)
 		{
 			*strid = 0;
-			id = atoi(strid+1);
+			id = strtol(strid+1, NULL, 0);
 		}
 
 		char* key = line;

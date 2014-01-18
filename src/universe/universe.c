@@ -303,7 +303,7 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 				continue;
 
 			int i = kindOf_building_newItem(b);
-			int id = atoi(v) - 1;
+			int id = strtol(v, NULL, 0) - 1;
 			if (id < 0 || (size_t) id >= u->n_items)
 			{
 				fprintf(stderr, "Invalid avalaible item id '%i' at '%s_%s'\n",

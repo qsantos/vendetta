@@ -77,7 +77,7 @@ int main(int argc, char** argv)
 				fprintf(stderr, "No width given\n");
 				usage(argv[0]);
 			}
-			width = atoi(argv[curarg++]);
+			width = strtol(argv[curarg++], NULL, 0);
 			if (width < MAP_MIN_WIDTH)
 			{
 				fprintf(stderr, "Width must be at least %i (%i given)\n", MAP_MIN_WIDTH, width);
@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 				fprintf(stderr, "No width given\n");
 				usage(argv[0]);
 			}
-			height = atoi(argv[curarg++]);
+			height = strtol(argv[curarg++], NULL, 0);
 			if (height < MAP_MIN_HEIGHT)
 			{
 				fprintf(stderr, "Height must be at least %i (%i given)\n", MAP_MIN_HEIGHT, height);
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
 				fprintf(stderr, "No seed was given\n");
 				usage(argv[0]);
 			}
-			seed = atoi(argv[curarg++]);
+			seed = strtol(argv[curarg++], NULL, 0);
 		}
 		else if (strcmp(option, "--quickstart") == 0 || strcmp(option, "-q") == 0)
 		{

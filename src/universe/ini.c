@@ -109,7 +109,7 @@ void cfg_section_saveKV(cfg_section_t* sect, char* key, char* val, cfg_group_t* 
 	if (idx != NULL) // array variable
 	{
 		*idx = 0;
-		size_t i = atoi(idx+1);
+		size_t i = strtol(idx+1, NULL, 0);
 		if (i == 0)
 		{
 			fprintf(stderr, "Arrays are indexed starting at 1\n");
@@ -170,7 +170,7 @@ int cfg_getInt(cfg_section_t* sect, const char* key)
 	char* val = kv_find(sect, key);
 	if (val == NULL)
 		return 0;
-	return atoi(val);
+	return strtol(val, NULL, 0);
 }
 
 float cfg_getFloat(cfg_section_t* sect, const char* key)
