@@ -25,12 +25,12 @@
 #include "world/draw.h"
 #include "overlay/overlay.h"
 
-void game_init(game_t* g, int w, int h)
+void game_init(game_t* g, int w, int h, unsigned int seed)
 {
 	g->g = graphics_init();
 	g->o =  overlay_init(g->g);
 	g->u = universe_init(g->g);
-	g->w =    world_init(g->u, w, h);
+	g->w =    world_init(g->u, w, h, seed);
 
 	g->player = &g->w->characters[g->w->n_characters-1];
 

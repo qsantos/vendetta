@@ -37,7 +37,7 @@ struct game
 	ai_t         default_ai;
 };
 
-void game_init(game_t* g, int w, int h);
+void game_init(game_t* g, int w, int h, unsigned int seed);
 void game_exit(game_t* g);
 void game_loop(game_t* g);
 

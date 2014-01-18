@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <locale.h>
+#include <time.h>
 
 #include "game.h"
 
@@ -35,6 +36,9 @@ static void usage(const char* name)
 		"  -h, --help        print this help\n"
 		"  -V, --version     print version information\n"
 		"  -s, --size W H    set map's size to WxH tiles\n"
+		"  -r, --seed seed   set generation seed\n"
+		"                    if this parameter is omitted, the seed\n"
+		"                    is generated from the current time\n"
 		"  -q, --quickstart  give player 1000 of each material\n"
 		"  -g, --godmode     give player god-like skills\n"
 		, name
@@ -50,6 +54,7 @@ int main(int argc, char** argv)
 	char quick_start = 0;
 	int  width  = 100;
 	int  height = 100;
+	unsigned int seed = time(NULL);
 
 	int curarg = 1;
 	while (curarg < argc)
@@ -90,6 +95,15 @@ int main(int argc, char** argv)
 				usage(argv[0]);
 			}
 		}
+		else if (strcmp(option, "--seed") == 0 || strcmp(option, "-r") == 0)
+		{
+			if (curarg == argc)
+			{
+				fprintf(stderr, "No seed was given\n");
+				usage(argv[0]);
+			}
+			seed = atoi(argv[curarg++]);
+		}
 		else if (strcmp(option, "--quickstart") == 0 || strcmp(option, "-q") == 0)
 		{
 			quick_start = 1;
@@ -105,8 +119,10 @@ int main(int argc, char** argv)
 		}
 	}
 
+	fprintf(stderr, "Using seed %#x\n", seed);
+
 	game_t game;
-	game_init(&game, width, height);
+	game_init(&game, width, height, seed);
 
 	if (quick_start)
 	{

@@ -26,7 +26,7 @@
 #include "../util.h"
 #include "../voronoi/lloyd.h"
 
-world_t* world_init(universe_t* u, int _w, int _h)
+world_t* world_init(universe_t* u, int _w, int _h, unsigned int seed)
 {
 	world_t* w = CALLOC(world_t, 1);
 
@@ -37,6 +37,8 @@ world_t* world_init(universe_t* u, int _w, int _h)
 	w->o.y = w->o.h / 2;
 
 	w->universe = u;
+
+	srand(seed);
 
 	// BEGIN map generation
 	w->rows = _w;
