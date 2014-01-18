@@ -294,15 +294,15 @@ building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* 
 	return ret;
 }
 
-char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
+char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 {
-	object_t o = {O_BUILDING, x, y, b->width, b->height};
+	object_t o = {O_BUILDING, x, y, t->width, t->height};
 	if (!object_contains(&w->o, &o))
 		return 0;
 
-	int mini = TERRAINI(w, x-b->width/2);
-	int maxi = TERRAINI(w, x+b->width/2);
-	int minj = TERRAINJ(w, y-b->height);
+	int mini = TERRAINI(w, x-t->width/2);
+	int maxi = TERRAINI(w, x+t->width/2);
+	int minj = TERRAINJ(w, y-t->height);
 	int maxj = TERRAINJ(w, y);
 	for (int i = mini; i <= maxi; i++)
 		for (int j = minj; j <= maxj; j++)
@@ -320,7 +320,7 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 	return 1;
 }
 
-building_t* world_addBuilding(world_t* w, kindOf_building_t* t, character_t* c, float x, float y)
+building_t* world_addBuilding (world_t* w, float x, float y, kindOf_building_t* t, character_t* c)
 {
 	if (w->n_buildings == w->a_buildings)
 	{

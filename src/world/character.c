@@ -386,6 +386,6 @@ char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 	}
 
 	transform_apply(&t->build, &c->inventory, 1);
-	c->hasBuilding = world_addBuilding(c->world, t, c, x, y);
+	c->hasBuilding = world_addBuilding(c->world, x, y, t, c);
 	return 1;
 }
