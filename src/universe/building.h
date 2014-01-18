@@ -55,4 +55,6 @@ void kindOf_building_button(kindOf_building_t* b, graphics_t* g, const char* fil
 
 int kindOf_building_newItem(kindOf_building_t* b);
 
+transform_t* kindOf_building_available(kindOf_building_t* b, int id, int is_item);
+
 #endif

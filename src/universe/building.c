@@ -76,3 +76,15 @@ int kindOf_building_newItem(kindOf_building_t* b)
 	transform_init(&b->items[b->n_items]);
 	return b->n_items++;
 }
+
+transform_t* kindOf_building_available(kindOf_building_t* b, int id, int is_item)
+{
+	if (transform_is_res(&b->make, id, is_item))
+		return &b->make;
+
+	for (size_t i = 0; i < b->n_items; i++)
+		if (transform_is_res(&b->items[i], id, is_item))
+			return &b->items[i];
+
+	return NULL;
+}

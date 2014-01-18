@@ -25,16 +25,21 @@ typedef struct ai ai_t;
 
 struct ai
 {
-	int building;
+	transform_t inventory;
+	int         building;
 };
 
 void ai_init(ai_t* ai);
 void ai_exit(ai_t* ai);
 
+void ai_push_item(ai_t* ai, int id);
+
 void ai_load(ai_t* ai, const char* filename);
-void ai_do  (ai_t* ai, character_t* c);
 
 char ai_gather(character_t* c, int id, float amount);
+char ai_make  (character_t* c, int id, float amount);
+char ai_getreq(character_t* c, transform_t* tr, float amount);
 char ai_build (character_t* c, int id);
+char ai_do  (ai_t* ai, character_t* c);
 
 #endif
