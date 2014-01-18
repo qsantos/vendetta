@@ -55,6 +55,7 @@ struct character
 	world_t*    world;
 
 	inventory_t inventory;
+	building_t* hasBuilding;
 	building_t* inBuilding;
 
 	skill_t  sskills[N_SPECIAL_SKILLS];
@@ -77,7 +78,8 @@ void character_doRound (character_t* c, float duration);
 
 void character_setPosition(character_t* c, float x, float y);
 
-void character_goMine      (character_t* c, int id);
-void character_makeBuilding(character_t* c, int id);
+void character_goMine   (character_t* c, kindOf_mine_t* t);
+char character_buildAuto(character_t* c, kindOf_building_t* t);
+char character_buildAt  (character_t* c, kindOf_building_t* t, float x, float y);
 
 #endif

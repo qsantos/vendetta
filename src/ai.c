@@ -95,7 +95,7 @@ char ai_gather(character_t* c, int id, float amount)
 		kindOf_mine_t* t = &u->mines[i];
 		if (transform_is_res(&t->harvest, id, 0))
 		{
-			character_goMine(c, i);
+			character_goMine(c, t);
 			return 1;
 		}
 	}
@@ -127,7 +127,7 @@ char ai_build(character_t* c, int id)
 		if (ai_gather(c, tr->req[i].id, tr->req[i].amount))
 			return 1;
 
-	character_makeBuilding(c, id);
+	character_buildAuto(c, t);
 	return 1;
 }
 void ai_do(ai_t* ai, character_t* c)

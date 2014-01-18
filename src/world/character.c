@@ -45,7 +45,8 @@ void character_init(character_t* c, universe_t* u, world_t* w)
 	c->world    = w;
 
 	inventory_init(&c->inventory, u);
-	c->inBuilding = NULL;
+	c->hasBuilding = NULL;
+	c->inBuilding  = NULL;
 
 	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
 		c->sskills[i] = 1;
@@ -343,31 +344,44 @@ void character_setPosition(character_t* c, float x, float y)
 	c->go_y = y;
 }
 
-void character_goMine(character_t* c, int id)
+void character_goMine(character_t* c, kindOf_mine_t* t)
 {
-	kindOf_mine_t* t = &c->universe->mines[id];
 	mine_t* m = world_findMine(c->world, c->o.x, c->o.y, t);
 	if (m != NULL)
 		c->go_o = &m->o;
 }
 
-void character_makeBuilding(character_t* c, int id)
+char character_buildAuto(character_t* c, kindOf_building_t* t)
 {
-	kindOf_building_t* t = &c->universe->buildings[id];
-
 	if (!transform_check(&t->build, &c->inventory))
-		return;
+		return 0;
 
 	for (float radius = 50; radius < 500; radius += 10)
 	{
 		float x = c->o.x + cfrnd(radius);
 		float y = c->o.y + cfrnd(radius);
 
-		if (world_canBuild(c->world, x, y, t))
-		{
-			building_t* b = world_addBuilding(c->world, t, x, y);
-			c->go_o = &b->o;
-			break;
-		}
+		if (character_buildAt(c, t, x, y))
+			return 1;
 	}
+
+	return 0;
+}
+
+char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
+{
+	if (!world_canBuild(c->world, x, y, t))
+		return 0;
+
+	if (!transform_check(&t->build, &c->inventory))
+		return 0;
+
+	if (c->hasBuilding)
+	{
+		// TODO
+	}
+
+	transform_apply(&t->build, &c->inventory, 1);
+	c->hasBuilding = world_addBuilding(c->world, t, x, y);
+	return 1;
 }

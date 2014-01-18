@@ -295,14 +295,7 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, mouse, g->g->world_view);
 		pos.y += b->height / 2;
 
-		if (!transform_check(&b->build, &g->player->inventory))
-			return 1;
-
-		if (!world_canBuild(g->w, pos.x, pos.y, b))
-			return 1;
-
-		transform_apply(&b->build, &g->player->inventory, 1);
-		world_addBuilding(g->w, b, pos.x, pos.y);
+		character_buildAt(g->player, b, pos.x, pos.y);
 
 		o->selected = NULL;
 		return 1;
