@@ -117,6 +117,9 @@ char ai_gather(character_t* c, int id, float amount)
 		if (tr == NULL)
 			continue;
 
+		if (ai_getreq(c, tr, amount))
+			return 1;
+
 		if (ai_build(c, i))
 			return 1;
 
@@ -124,9 +127,6 @@ char ai_gather(character_t* c, int id, float amount)
 	}
 
 	if (tr == NULL)
-		return 1;
-
-	if (ai_getreq(c, tr, amount))
 		return 1;
 
 	building_t* b = c->hasBuilding;
@@ -153,15 +153,16 @@ char ai_make(character_t* c, int id, float amount)
 		if (tr == NULL)
 			continue;
 
+		if (ai_getreq(c, tr, amount))
+			return 1;
+
 		if (ai_build(c, i))
 			return 1;
+
 		break;
 	}
 
 	if (tr == NULL)
-		return 1;
-
-	if (ai_getreq(c, tr, amount))
 		return 1;
 
 	building_t* b = c->hasBuilding;
