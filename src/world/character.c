@@ -138,6 +138,10 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	else if (o->t == O_BUILDING)
 	{
 		building_t* b = (building_t*) o;
+
+		if (b->owner != c)
+			return;
+
 		kindOf_building_t* t = b->t;
 
 		if (b->build_progress != 1)
@@ -382,6 +386,6 @@ char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 	}
 
 	transform_apply(&t->build, &c->inventory, 1);
-	c->hasBuilding = world_addBuilding(c->world, t, x, y);
+	c->hasBuilding = world_addBuilding(c->world, t, c, x, y);
 	return 1;
 }

@@ -320,7 +320,7 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* b)
 	return 1;
 }
 
-building_t* world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y)
+building_t* world_addBuilding(world_t* w, kindOf_building_t* t, character_t* c, float x, float y)
 {
 	if (w->n_buildings == w->a_buildings)
 	{
@@ -330,6 +330,6 @@ building_t* world_addBuilding(world_t* w, kindOf_building_t* t, float x, float y
 
 	building_t* b = CALLOC(building_t, 1);
 	w->buildings[w->n_buildings++] = b;
-	building_init(b, t, x, y);
+	building_init(b, t, c, x, y);
 	return b;
 }

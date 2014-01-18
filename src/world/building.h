@@ -22,6 +22,7 @@
 typedef struct building building_t;
 
 #include "object.h"
+#include "character.h"
 #include "../universe/building.h"
 
 struct building
@@ -29,6 +30,7 @@ struct building
 	object_t o;
 
 	kindOf_building_t* t;
+	character_t* owner;
 
 	float build_progress;
 
@@ -37,7 +39,7 @@ struct building
 	float  work_progress;
 };
 
-void building_init(building_t* b, kindOf_building_t* t, float x, float y);
+void building_init(building_t* b, kindOf_building_t* t, character_t* owner, float x, float y);
 void building_exit(building_t* b);
 
 void building_work_enqueue(building_t* b, int c);
