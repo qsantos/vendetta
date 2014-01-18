@@ -1,23 +1,24 @@
 CC      = gcc
 CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99
 LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
-TARGETS = ../vendetta
+TARGET  = ../vendetta
 
 SRC = $(wildcard *.c */*.c)
 OBJ = $(SRC:.c=.o)
 HDR = $(wildcard *.h */*.h)
 GCH = $(HDR:.h=.h.gch)
 
-all: $(TARGETS)
+all: $(TARGET)
 
 headers: $(GCH)
 
 %.h.gch: %.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-../vendetta: $(OBJ)
+$(TARGET): $(OBJ)
 	@echo $(CC) [...] $(LDFLAGS) -o $@
 	@$(CC) $^ $(LDFLAGS) -o $@
+
 -include $(OBJ:.o=.d)
 
 %.o: %.c
