@@ -67,11 +67,15 @@ static int draw_buildButton(ov_build_t* o, game_t* g, kindOf_building_t* b, floa
 	int ok = transform_check(&b->build, &g->player->inventory);
 
 	int col = idx % max_cols;
-	int row = 3*(idx / max_cols) + ok;
+	int row = idx / max_cols;
 
+	sfColor enabled  = {255,255,255,255};
+	sfColor disabled = { 95, 95, 95,255};
 	sfIntRect rect = {28*col, 28*row, 28, 28};
+
 	sfSprite_setTextureRect(sprite, rect);
 	sfSprite_setPosition(sprite, (sfVector2f){x,y});
+	sfSprite_setColor(sprite, ok ? enabled : disabled);
 	if (do_draw)
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	else
