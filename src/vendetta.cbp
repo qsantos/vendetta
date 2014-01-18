@@ -18,6 +18,8 @@
 <Unit filename="Makefile" />
 <Unit filename="ai.c" />
 <Unit filename="ai.h" />
+<Unit filename="file.c" />
+<Unit filename="file.h" />
 <Unit filename="game.c" />
 <Unit filename="game.h" />
 <Unit filename="graphics.c" />

@@ -18,34 +18,14 @@
 
 #include "universe.h"
 
-#if defined __WIN32__ && ! defined __MINGW32__
-#define off64_t long long
-#else
-enum
-{
-	DT_UNKNOWN = 0,
-	DT_FIFO = 1,
-	DT_CHR = 2,
-	DT_DIR = 4,
-	DT_BLK = 6,
-	DT_REG = 8,
-	DT_LNK = 10,
-	DT_SOCK = 12,
-	DT_WHT = 14
-};
-#endif
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 
 #include "../mem.h"
 #include "../string.h"
+#include "../file.h"
 #include "ini.h"
-
-#define DIR_CONFIG "cfg/"
 
 void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
@@ -328,32 +308,7 @@ universe_t* universe_init(graphics_t* g)
 	// parse configuration files
 	cfg_ini_t ini;
 	cfg_ini_init(&ini);
-	DIR *dir = opendir("cfg");
-	if (dir == NULL)
-	{
-		fprintf(stderr, "Cannot read 'cfg' folder\n");
-		exit(1);
-	}
-	struct dirent *ent;
-	char path[1024] = DIR_CONFIG;
-	while ((ent = readdir(dir)) != NULL)
-	{
-		strncpy(path+strlen(DIR_CONFIG), ent->d_name, 1024-strlen(DIR_CONFIG));
-#ifdef __WIN32__
-		struct stat info;
-		if (stat(path, &info) < 0)
-		{
-			fprintf(stderr, "Could not stat() file '%s'\n", path);
-			exit(1);
-		}
-		if (S_ISDIR(info.st_mode))
-#else
-		if (ent->d_type == DT_DIR)
-#endif
-			continue;
-		cfg_ini_parse(&ini, path);
-	}
-	closedir(dir);
+	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path););
 
 	// apply configuration
 	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
