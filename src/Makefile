@@ -3,9 +3,9 @@ CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99
 LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
 TARGETS = ../vendetta
 
-SRC = $(shell find -name "*.c")
+SRC = $(wildcard *.c */*.c)
 OBJ = $(SRC:.c=.o)
-HDR = $(shell find -name "*.h")
+HDR = $(wildcard *.h */*.h)
 GCH = $(HDR:.h=.h.gch)
 
 all: $(TARGETS)
