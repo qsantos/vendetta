@@ -131,7 +131,7 @@ void game_loop(game_t* g)
 				{
 					g->o->swbuilding.w.visible ^= 1;
 				}
-				else if (k == sfKeyI)
+				else if (k == sfKeyO)
 				{
 					g->o->switems.w.visible ^= 1;
 				}
@@ -139,7 +139,7 @@ void game_loop(game_t* g)
 				{
 					g->o->swmaterials.w.visible ^= 1;
 				}
-				else if (k == sfKeyS)
+				else if (k == sfKeyC)
 				{
 					g->o->swskills.w.visible ^= 1;
 				}
