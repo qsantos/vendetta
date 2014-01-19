@@ -357,6 +357,8 @@ char character_buildAuto(character_t* c, kindOf_building_t* t)
 	if (!transform_check(&t->build, &c->inventory))
 		return 0;
 
+	character_delHome(c);
+
 	for (float radius = 50; radius < 500; radius += 10)
 	{
 		float x = c->o.x + cfrnd(radius);
