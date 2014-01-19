@@ -225,6 +225,32 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	}
 }
 
+char character_eat(character_t* c, int material)
+{
+	kindOf_material_t* m = &c->universe->materials[material];
+	if (!m->edible)
+		return 0;
+
+	if (c->inventory.materials[material] < 1)
+		return 0;
+
+	c->inventory.materials[material] -= 1;
+	for (int i = 0; i < N_STATUSES; i++)
+		c->statuses[i] += m->eatBonus[i];
+	return 1;
+}
+
+void character_eatFor(character_t* c, int status)
+{
+	universe_t* u = c->universe;
+	for (size_t i = 0; i < u->n_materials; i++)
+	{
+		kindOf_material_t* m = &u->materials[i];
+		if (m->eatBonus[status] > 0 && character_eat(c, i))
+			return;
+	}
+}
+
 void character_doRound(character_t* c, float duration)
 {
 	if (c->ai != NULL)

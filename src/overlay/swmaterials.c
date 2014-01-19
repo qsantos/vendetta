@@ -155,13 +155,6 @@ char swmaterials_catch(swmaterials_t* w, game_t* g, int x, int y, int t)
 	if (i < 0)
 		return subwindow_catch(&w->w, x, y, t);
 
-	kindOf_material_t* m = &g->u->materials[i];
-	if (m->edible)
-	{
-		g->player->inventory.materials[i]--;
-		for (int i = 0; i < N_STATUSES; i++)
-			g->player->statuses[i] += m->eatBonus[i];
-	}
-
+	character_eat(g->player, i);
 	return 1;
 }

@@ -75,6 +75,9 @@ float character_maxOf   (character_t* c, kindOf_material_t* m);
 void  character_workAt  (character_t* c, object_t* o, float duration);
 void  character_doRound (character_t* c, float duration);
 
+char character_eat   (character_t* c, int material);
+void character_eatFor(character_t* c, int status);
+
 void character_setPosition(character_t* c, float x, float y);
 
 void character_goMine   (character_t* c, kindOf_mine_t* t);
