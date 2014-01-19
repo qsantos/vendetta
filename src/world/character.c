@@ -124,6 +124,11 @@ void character_train(character_t* c, int skill, float work)
 	character_weary(c, 0.1 * work);
 }
 
+float character_maxOf(character_t* c, kindOf_material_t* m)
+{
+	return 20 * character_getSkill(c, m->skill);
+}
+
 void character_workAt(character_t* c, object_t* o, float duration)
 {
 	if (o == NULL)
@@ -147,6 +152,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		float work = duration * character_getSkill(c, skill);
 		work *= tr->rate;
+		float avail = character_maxOf(c, t) - c->inventory.materials[id];
+		work = fmin(work, avail/tr->res[0].amount);
 		work = transform_apply(tr, &c->inventory, work);
 		character_train(c, skill, work);
 	}
@@ -205,11 +212,13 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				return;
 
 			int id = tr->res[0].id;
-			kindOf_material_t* m = &u->materials[id];
-			int skill = m->skill;
+			kindOf_material_t* t = &u->materials[id];
+			int skill = t->skill;
 
 			float work = duration * character_getSkill(c, skill);
 			work *= tr->rate;
+			float avail = character_maxOf(c, t) - c->inventory.materials[id];
+			work = fmin(work, avail/tr->res[0].amount);
 			work = transform_apply(tr, &c->inventory, work);
 			character_train(c, skill, work);
 		}
