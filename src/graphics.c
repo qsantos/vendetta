@@ -137,16 +137,19 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 		progress = sfRectangleShape_create();
 	}
 
-	sfColor orange = {255, 42, 42, 255};
-	sfRectangleShape_setOutlineColor(frame, c ? orange : sfWhite);
+	p = fmax(fmin(p, 1), 0);
 
-	sfColor inner = sfBlack;
-	     if (p <= 0.00) p = 0;
-	else if (p <= 0.25) inner = (sfColor){255,  0,  0,127};
-	else if (p <= 0.50) inner = (sfColor){247,173,  0,127};
-	else if (p <= 0.75) inner = (sfColor){170,170, 68,127};
-	else if (p <= 1.00) inner = (sfColor){ 68,255, 68,127};
-	else               {inner = (sfColor){  0,  0,255,127};p=1;}
+	sfColor orange = {255, 42, 42, 255};
+	sfRectangleShape_setOutlineColor(frame, c == 1 ? orange : sfWhite);
+
+	sfColor inner;
+	     if (c < 0)     inner = (sfColor){255,255,255,191};
+	else if (p <= 0.25) inner = (sfColor){255,  0,  0,191};
+	else if (p <= 0.50) inner = (sfColor){247,173,  0,191};
+	else if (p <= 0.75) inner = (sfColor){170,170, 68,191};
+	else if (p <= 1.00) inner = (sfColor){ 68,255, 68,191};
+	else                inner = (sfColor){  0,  0,255,191};
+
 	sfRectangleShape_setFillColor(progress, inner);
 
 	sfVector2f pos = {x+BORDER_SIZE,y+BORDER_SIZE};

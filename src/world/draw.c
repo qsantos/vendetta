@@ -30,8 +30,10 @@ void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
-void draw_character(graphics_t* g, character_t* c)
+void draw_character(graphics_t* g, character_t* player, character_t* c)
 {
+	(void) player;
+
 	if (c == NULL)
 		return;
 
@@ -63,8 +65,10 @@ void draw_character(graphics_t* g, character_t* c)
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
-void draw_mine(graphics_t* g, mine_t* m)
+void draw_mine(graphics_t* g, character_t* player, mine_t* m)
 {
+	(void) player;
+
 	if (m == NULL)
 		return;
 
@@ -81,7 +85,7 @@ void draw_mine(graphics_t* g, mine_t* m)
 	draw_object(g, &m->o, sprite);
 }
 
-void draw_building(graphics_t* g, building_t* b)
+void draw_building(graphics_t* g, character_t* player, building_t* b)
 {
 	if (b == NULL)
 		return;
@@ -101,18 +105,40 @@ void draw_building(graphics_t* g, building_t* b)
 	draw_object(g, &b->o, sprite);
 
 	graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, b->build_progress, 0);
+
+	if (b->owner == player && b->build_progress == 1)
+	{
+		universe_t* u = player->universe;
+		float p;
+		if (b->work_n > 0)
+		{
+			p = b->work_progress;
+		}
+		else
+		{
+			transform_t* tr = &b->t->make;
+
+			if (tr->n_res == 0 || tr->res[0].is_item)
+				return;
+
+			int id = tr->res[0].id;
+			kindOf_material_t* t = &u->materials[id];
+			p = player->inventory.materials[id] / character_maxOf(player, t);
+		}
+		graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y-b->o.h-6, b->o.w, 5, p, -1);
+	}
 }
 
-void draw_world(graphics_t* g, world_t* w)
+void draw_world(graphics_t* g, character_t* player, world_t* w)
 {
 	draw_tilemap(g, w);
 
 	for (size_t i = 0; i < w->n_buildings; i++)
-		draw_building(g, w->buildings[i]);
+		draw_building(g, player, w->buildings[i]);
 
 	for (size_t i = 0; i < w->n_mines; i++)
-		draw_mine(g, &w->mines[i]);
+		draw_mine(g, player, &w->mines[i]);
 
 	for (size_t i = 0; i < w->n_characters; i++)
-		draw_character(g, &w->characters[i]);
+		draw_character(g, player, &w->characters[i]);
 }

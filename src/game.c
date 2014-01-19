@@ -225,7 +225,7 @@ void game_loop(game_t* g)
 		sfView_setCenter(g->g->world_view, pos);
 
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
-		draw_world(g->g, g->w);
+		draw_world(g->g, g->player, g->w);
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g->o, g, 1);
