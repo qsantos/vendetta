@@ -39,7 +39,7 @@ static void usage(const char* name)
 		"  -r, --seed seed   set generation seed\n"
 		"                    if this parameter is omitted, the seed\n"
 		"                    is generated from the current time\n"
-		"  -q, --quickstart  give player 1000 of each material\n"
+		"  -q, --quickstart  give player 20 of each material\n"
 		"  -g, --godmode     give player god-like skills\n"
 		, name
 	);
@@ -128,7 +128,7 @@ int main(int argc, char** argv)
 	{
 		float* m = game.player->inventory.materials;
 		for (size_t i = 0; i < game.u->n_materials; i++)
-			m[i] = 1000;
+			m[i] = 20;
 	}
 	if (god_mode)
 	{
