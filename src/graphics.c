@@ -136,8 +136,6 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 		progress = sfRectangleShape_create();
 	}
 
-	p = fmax(fmin(p, 1), 0);
-
 	sfColor orange = {255, 42, 42, 255};
 	sfRectangleShape_setOutlineColor(frame, c == 1 ? orange : sfWhite);
 
@@ -148,6 +146,8 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 	else if (p <= 0.75) inner = (sfColor){170,170, 68,191};
 	else if (p <= 1.00) inner = (sfColor){ 68,255, 68,191};
 	else                inner = (sfColor){  0,  0,255,191};
+
+	p = fmax(fmin(p, 1), 0);
 
 	sfRectangleShape_setFillColor(progress, inner);
 
