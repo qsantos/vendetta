@@ -128,7 +128,7 @@ static int draw_buildWheel(ov_build_t* o, game_t* g, char do_draw)
 	if (shape == NULL)
 	{
 		shape = sfCircleShape_create();
-		sfCircleShape_setFillColor   (shape, (sfColor){0,0,0,0});
+		sfCircleShape_setFillColor(shape, sfTransparent);
 		sfCircleShape_setOutlineThickness(shape, 5);
 		sfCircleShape_setOutlineColor(shape, (sfColor){255,255,255,127});
 		sfCircleShape_setRadius(shape, radius);
@@ -248,8 +248,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 	if (shape == NULL)
 	{
 		shape = sfRectangleShape_create();
-		sfColor fill = {0, 0, 0, 0};
-		sfRectangleShape_setFillColor(shape, fill);
+		sfRectangleShape_setFillColor(shape, sfTransparent);
 		sfRectangleShape_setOutlineThickness(shape, 1);
 	}
 	sfColor outline = {255*(1-ok), 255*ok, 0, 255};

@@ -130,8 +130,7 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 	if (frame == NULL)
 	{
 		frame = sfRectangleShape_create();
-		sfColor fill = {0, 0, 0, 0};
-		sfRectangleShape_setFillColor(frame, fill);
+		sfRectangleShape_setFillColor(frame, sfTransparent);
 		sfRectangleShape_setOutlineThickness(frame, BORDER_SIZE);
 
 		progress = sfRectangleShape_create();
