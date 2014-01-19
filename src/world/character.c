@@ -94,7 +94,7 @@ void character_weary(character_t* c, float f)
 	c->statuses[ST_MORAL]   = fmax(c->statuses[ST_MORAL]   - f/3, 0);
 }
 
-float character_useSkill(character_t* c, int skill, float duration)
+float character_getSkill(character_t* c, int skill)
 {
 	float ret = c->skills[skill];
 
@@ -115,14 +115,13 @@ float character_useSkill(character_t* c, int skill, float duration)
 			}
 	}
 
-	ret /= 20;
+	return ret / 20;
+}
 
-	// time effects
-	ret *= duration;
-	c->skills[skill] += duration/50;
-	character_weary(c, 0.1 * duration);
-
-	return ret;
+void character_train(character_t* c, int skill, float work)
+{
+	c->skills[skill] += work/50;
+	character_weary(c, 0.1 * work);
 }
 
 void character_workAt(character_t* c, object_t* o, float duration)
@@ -146,9 +145,10 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		kindOf_material_t* t = &u->materials[id];
 		int skill = t->skill;
 
-		float work = character_useSkill(c, skill, duration);
+		float work = duration * character_getSkill(c, skill);
 		work *= tr->rate;
-		transform_apply(tr, &c->inventory, work);
+		work = transform_apply(tr, &c->inventory, work);
+		character_train(c, skill, work);
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -163,9 +163,11 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		{
 			transform_t* tr = &t->build;
 
-			float work = character_useSkill(c, SK_BUILD, duration);
+			float work = duration * character_getSkill(c, SK_BUILD);
 			work *= tr->rate;
 			work = fmin(work, 1 - b->build_progress);
+			character_train(c, SK_BUILD, work);
+
 			b->build_progress += work;
 		}
 		else if (b->work_n > 0)
@@ -181,11 +183,13 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			kindOf_item_t* it = &u->items[id];
 			int skill = it->skill;
 
-			float work = character_useSkill(c, skill, duration);
+			float work = duration * character_getSkill(c, skill);
 			work *= tr->rate;
 			work = fmin(work, 1 - b->work_progress);
-			b->work_progress += transform_apply(tr, &c->inventory, work);
+			work = transform_apply(tr, &c->inventory, work);
+			character_train(c, skill, work);
 
+			b->work_progress += work;
 			if (b->work_progress >= 1)
 			{
 				b->work_progress = 0;
@@ -204,9 +208,10 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			kindOf_material_t* m = &u->materials[id];
 			int skill = m->skill;
 
-			float work = character_useSkill(c, skill, duration);
+			float work = duration * character_getSkill(c, skill);
 			work *= tr->rate;
-			transform_apply(tr, &c->inventory, work);
+			work = transform_apply(tr, &c->inventory, work);
+			character_train(c, skill, work);
 		}
 	}
 }
@@ -262,7 +267,7 @@ void character_doRound(character_t* c, float duration)
 		 dir < M_PI * 7/4 ? D_NORTH :
 		                     D_EAST;
 
-	float distance = character_useSkill(c, SK_WALK, duration);
+	float distance = duration * character_getSkill(c, SK_WALK);
 	distance *= 100;
 
 	c->inWater = 0;
@@ -298,6 +303,8 @@ void character_doRound(character_t* c, float duration)
 	c->step += 0.1 * distance;
 	if (c->step >= 4)
 		c->step = 0;
+
+	character_train(c, SK_WALK, distance / 100);
 }
 
 void character_setPosition(character_t* c, float x, float y)

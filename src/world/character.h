@@ -69,10 +69,10 @@ void character_exit(character_t* c);
 
 float character_vitality(character_t* c);
 void  character_weary   (character_t* c, float f);
-float character_useSkill(character_t* c, int skill, float duration);
-
-void character_workAt  (character_t* c, object_t* o, float duration);
-void character_doRound (character_t* c, float duration);
+float character_getSkill(character_t* c, int skill);
+void  character_train   (character_t* c, int skill, float work);
+void  character_workAt  (character_t* c, object_t* o, float duration);
+void  character_doRound (character_t* c, float duration);
 
 void character_setPosition(character_t* c, float x, float y);
 
