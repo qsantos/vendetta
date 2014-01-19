@@ -1,0 +1,42 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer de la bière.
+Equiper_0
+
+Age_1
+#Fabrique une taverne.
+ChangerMode_1
+Batiment_8
+Travailler
+
+Age_2
+#Fabrique une taverne et s'habille.
+ChangerMode_1
+GagnerArgent_8=220
+Objet_3=1
+Batiment_8
+Travailler
+
+Age_3
+#Fabrique une taverne et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_8=320
+Objet_46=1
+Batiment_8
+Travailler
+
+Age_4
+#Fabrique une taverne et s'équipe.
+ChangerMode_1
+GagnerArgent_8=560
+Objet_2=1
+Batiment_8
+Travailler
+
+Age_5
+#Fabrique une taverne et s'équipe.
+ChangerMode_1
+GagnerArgent_8=560
+Objet_2=1
+Batiment_8
+Travailler
+
+#Fin

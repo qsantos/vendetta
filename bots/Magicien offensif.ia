@@ -1,0 +1,51 @@
+#IA officielle. Un mage offensif qui attaque à coups de golems.
+Equiper_0
+
+Age_1
+#Fait tranquillement un travail de berger. Cela lui permet d'accumuler plus de laine.
+ChangerMode_1
+Ressource_13=20
+Batiment_4
+Travailler
+
+Age_2
+#Travail comme tailleur de pierre pour fabriquer des golems plus vite par la suite.
+ChangerMode_1
+Batiment_18
+Travailler
+
+Age_3
+#Fabrique ses golems et attaque.
+ChangerMode_1
+Objet_31=1
+ChangerMode_2
+Ressource_20=1
+Objet_44=1
+ChangerMode_7
+Attaquer Ennemi
+
+Age_4
+#Fabrique des golems escavateurs.
+ChangerMode_1
+Objet_31=1
+ChangerMode_2
+Objet_215=1
+Ressource_20=1
+Objet_193=1
+ChangerMode_7
+Batiment_38
+Travailler
+
+Age_5
+#Fabrique ses golems et attaque.
+ChangerMode_1
+Objet_31=1
+Objet_215=1
+Ressource_20=1
+Objet_217=1
+ChangerMode_2
+Objet_190=1
+Objet_44=4
+Attaquer Donjon
+
+#Fin

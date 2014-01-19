@@ -1,0 +1,46 @@
+#IA officielle. Un artisan qui produit différents outils.
+Equiper_0
+
+Age_1
+#Fait le travail d'artisan.
+ChangerMode_1
+Batiment_10
+Travailler
+
+Age_2
+#Fait le travail d'artisan.
+ChangerMode_1
+GagnerArgent_10=300
+Objet_1=1
+Batiment_10
+Travailler
+
+Age_3
+#Fait le travail d'artisan.
+ChangerMode_1
+Ressource_11=1
+GagnerArgent_10=300
+Objet_1=1
+Batiment_10
+Travailler
+
+Age_4
+#Fait le travail d'artisan.
+ChangerMode_1
+Ressource_11=1
+GagnerArgent_10=300
+Objet_1=1
+Batiment_10
+Travailler
+
+Age_5
+#Fait le travail d'artisan.
+ChangerMode_1
+Ressource_11=1
+GagnerArgent_10=300
+Objet_1=1
+Objet_228=1
+Batiment_10
+Travailler
+
+#Fin

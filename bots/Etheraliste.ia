@@ -1,0 +1,47 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer de l'ether.
+Equiper_0
+
+Age_1
+#Fabrique une taverne.
+ChangerMode_1
+Objet_231=1
+Ressource_18=20
+Ressource_3=10
+Batiment_8
+Travailler
+
+Age_2
+#Fabrique une taverne.
+ChangerMode_1
+Objet_46=1
+Ressource_18=20
+Batiment_18
+Travailler
+
+Age_3
+#Fabrique un laboratoire d'ether et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_28=404
+Objet_164=1
+Batiment_28
+Travailler
+
+Age_4
+#Fabrique un laboratoire d'ether et s'équipe.
+ChangerMode_1
+Objet_164=1
+GagnerArgent_28=800
+Objet_97=1
+Batiment_28
+Travailler
+
+Age_5
+#Fabrique un laboratoire d'ether et s'équipe.
+ChangerMode_1
+Objet_164=1
+GagnerArgent_28=800
+Objet_97=1
+Batiment_28
+Travailler
+
+#Fin

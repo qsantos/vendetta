@@ -1,0 +1,42 @@
+#IA officielle. C'est le villageois qui construit des marchés.
+Equiper_0
+
+Age_1
+#Gagne de l'argent.
+Ressource_13=20
+Batiment_11
+Travailler
+
+Age_2
+#Gagne de l'argent et construit des tours de défense avec.
+Objet_18=1
+ChangerMode_2
+GagnerArgent_23=1200
+Batiment_TOURDEFENSE
+Patrouiller
+
+Age_3
+#Gagne de l'argent et construit des tours de défense avec.
+Objet_18=1
+ChangerMode_2
+GagnerArgent_23=1200
+Batiment_TOURDEFENSE
+Patrouiller
+
+Age_4
+#Gagne de l'argent et construit des tours de défense avec.
+Objet_18=1
+ChangerMode_2
+GagnerArgent_23=1200
+Batiment_TOURDEFENSE
+Patrouiller
+
+Age_5
+#Gagne de l'argent et construit des tours de défense avec.
+Objet_18=1
+ChangerMode_2
+GagnerArgent_23=1200
+Batiment_TOURDEFENSE
+Patrouiller
+
+#Fin

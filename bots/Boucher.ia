@@ -1,0 +1,47 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer de la viande.
+Equiper_0
+
+Age_1
+#Fabrique une boucherie.
+ChangerMode_1
+Batiment_6
+Travailler
+
+Age_2
+#Fabrique une boucherie et s'habille.
+ChangerMode_1
+GagnerArgent_6=168
+Objet_65=2
+Batiment_6
+Travailler
+
+Age_3
+#Fabrique une boulangerie et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_6=252
+Objet_65=2
+Objet_51=1
+Batiment_6
+Travailler
+
+Age_4
+#Fabrique une boulangerie et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_6=336
+Objet_65=2
+GagnerArgent_6=300
+Objet_1=1
+Batiment_6
+Travailler
+
+Age_5
+#Fabrique une boulangerie et s'équipe avec des habits de luxe.
+ChangerMode_1
+GagnerArgent_6=336
+Objet_65=2
+GagnerArgent_6=300
+Objet_1=1
+Batiment_6
+Travailler
+
+#Fin

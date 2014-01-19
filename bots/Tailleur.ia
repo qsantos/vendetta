@@ -1,0 +1,54 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer des vêtements.
+Equiper_0
+
+Age_1
+#Fabrique un magasin de vêtements et s'habille avec des vêtements de base.
+ChangerMode_1
+Objet_2=1
+Objet_3=1
+GagnerArgent_9=320
+Objet_46=1
+Batiment_9
+Travailler
+
+Age_2
+#Fabrique un magasin de vêtements et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_2=1
+Objet_3=1
+GagnerArgent_9=320
+Objet_46=1
+Batiment_9
+Travailler
+
+Age_3
+#Fabrique un magasin de vêtements et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_2=1
+Objet_3=1
+GagnerArgent_9=320
+Objet_46=1
+Batiment_9
+Travailler
+
+Age_4
+#Fabrique un magasin de vêtements et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_90=1
+Objet_3=1
+GagnerArgent_9=320
+Objet_46=1
+Batiment_9
+Travailler
+
+Age_5
+#Fabrique un magasin de vêtements et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_90=1
+Objet_3=1
+GagnerArgent_9=320
+Objet_46=1
+Batiment_9
+Travailler
+
+#Fin

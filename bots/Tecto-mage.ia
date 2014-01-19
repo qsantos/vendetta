@@ -1,0 +1,53 @@
+#IA officielle. Un tecto-mage qui travaille à son atelier.
+Equiper_0
+
+Age_1
+#Accumule des ressources pour son prochain travail.
+ChangerMode_1
+Objet_231=1
+Ressource_13=20
+Ressource_15=20
+Ressource_18=20
+Ressource_24=20
+Batiment_10
+Travailler
+
+Age_2
+#Accumule des ressources pour son prochain travail.
+ChangerMode_1
+Objet_231=1
+Objet_7=1
+Ressource_13=20
+Ressource_15=20
+Ressource_18=20
+Ressource_24=20
+Batiment_10
+Travailler
+
+Age_3
+#Accumule des ressources pour son prochain travail.
+ChangerMode_1
+Objet_7=1
+Ressource_15=20
+Ressource_18=20
+Ressource_24=20
+Batiment_29
+Travailler
+
+Age_4
+#Fabrique quelques golems et travaille.
+ChangerMode_1
+GagnerArgent_38=190
+Objet_7=1
+Batiment_38
+Travailler
+
+Age_5
+#Fabrique quelques golems et travaille.
+ChangerMode_1
+GagnerArgent_38=190
+Objet_7=1
+Batiment_38
+Travailler
+
+#Fin

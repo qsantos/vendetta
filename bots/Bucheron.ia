@@ -1,0 +1,47 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer des planches.
+Equiper_0
+
+Age_1
+#Fait tranquillement un travail de bucheron.
+ChangerMode_1
+GagnerArgent_3=120
+Objet_4=1
+Batiment_3
+Travailler
+
+Age_2
+#Continue son travail de bucheron.
+ChangerMode_1
+GagnerArgent_3=120
+Objet_4=1
+Batiment_3
+Travailler
+
+Age_3
+#Continue son travail de bucheron.
+ChangerMode_1
+GagnerArgent_3=440
+Objet_40=1
+ChangerMode_2
+Batiment_3
+Travailler
+
+Age_4
+#Continue son travail de bucheron.
+ChangerMode_1
+GagnerArgent_3=880
+Objet_105=1
+ChangerMode_2
+Batiment_3
+Travailler
+
+Age_5
+#Continue son travail de bucheron.
+ChangerMode_1
+GagnerArgent_3=2494
+Objet_212=1
+ChangerMode_2
+Batiment_3
+Travailler
+
+#Fin

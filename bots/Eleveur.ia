@@ -1,0 +1,49 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer du bétail.
+Equiper_0
+
+Age_1
+#Fait simplement un élevage.
+ChangerMode_1
+Objet_9=1
+Batiment_5
+Travailler
+
+Age_2
+#Fabrique une grand élevage.
+ChangerMode_1
+GagnerArgent_5=220
+Objet_9=1
+Objet_45=1
+Batiment_5
+Travailler
+
+Age_3
+#Fabrique une grand élevage et s'équipe avec des habits.
+ChangerMode_1
+GagnerArgent_5=146
+Objet_9=1
+Objet_51=1
+Batiment_5
+Travailler
+
+Age_4
+#Fabrique une grand élevage et s'équipe avec des habits.
+ChangerMode_1
+GagnerArgent_5=146
+Objet_9=1
+GagnerArgent_5=300
+Objet_1=1
+Batiment_5
+Travailler
+
+Age_5
+#Fabrique une grand élevage et s'équipe avec des habits.
+ChangerMode_1
+GagnerArgent_5=146
+Objet_9=1
+GagnerArgent_5=300
+Objet_1=1
+Batiment_5
+Travailler
+
+#Fin

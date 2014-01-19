@@ -34,7 +34,9 @@ struct game
 	world_t*    w;
 
 	character_t* player;
-	ai_t         bots[5];
+
+	size_t n_bots;
+	ai_t*  bots;
 };
 
 void game_init(game_t* g, int w, int h, unsigned int seed);

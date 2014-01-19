@@ -1,0 +1,51 @@
+#IA officielle. Un pyromage qui travaille à sa guilde.
+Equiper_0
+
+Age_1
+#Fait tranquillement un travail de bucheron. Cela lui permet d'accumuler plus de bois.
+ChangerMode_1
+GagnerArgent_3=220
+Objet_45=1
+Batiment_3
+Travailler
+
+Age_2
+#Fait tranquillement un travail de bucheron. Cela lui permet d'accumuler plus de bois.
+ChangerMode_1
+GagnerArgent_3=220
+Objet_45=1
+Ressource_5=12
+Ressource_14=15
+Batiment_3
+Travailler
+
+Age_3
+#Fabrique un équipement de pyromage et travaille.
+ChangerMode_1
+Objet_30=1
+Objet_89=1
+ChangerMode_2
+Batiment_30
+Travailler
+
+Age_4
+#Fabrique un équipement de pyromage et travaille.
+ChangerMode_1
+Objet_30=1
+Objet_89=1
+Objet_215=1
+ChangerMode_2
+Batiment_30
+Travailler
+
+Age_5
+#Fabrique un équipement de pyromage et travaille.
+ChangerMode_1
+Objet_30=1
+Objet_89=1
+Objet_215=1
+ChangerMode_2
+Batiment_30
+Travailler
+
+#Fin

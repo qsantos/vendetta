@@ -1,0 +1,77 @@
+#IA officielle. Un arbalètrier qui produit des armes à distance et s'équipe avec ses meilleurs arbalètes.
+Equiper_0
+
+Age_1
+#S'équipe avec un équipement léger
+ChangerMode_1
+Ressource_1=3
+Objet_75=1
+Objet_38=1
+Ressource_13=8
+Objet_10=1
+ChangerMode_2
+Patrouiller
+
+Age_2
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_3=3
+Objet_19=1
+ChangerMode_2
+Objet_75=1
+Objet_99=1
+Objet_38=1
+Ressource_1=3
+Ressource_2=3
+Batiment_19
+Travailler
+
+Age_3
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_11=1
+Ressource_3=3
+Objet_50=1
+ChangerMode_2
+Objet_75=1
+Objet_47=1
+Objet_99=1
+Objet_38=1
+Ressource_7=3
+Ressource_9=3
+Batiment_19
+Travailler
+
+Age_4
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_11=1
+Ressource_3=3
+Objet_50=1
+ChangerMode_2
+Objet_75=1
+Objet_47=1
+Objet_99=1
+Objet_38=1
+Ressource_7=3
+Ressource_9=3
+Batiment_19
+Travailler
+
+Age_5
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_11=1
+Ressource_3=3
+Objet_209=1
+ChangerMode_2
+Objet_75=1
+Objet_47=1
+Objet_99=1
+Objet_38=1
+Ressource_7=3
+Ressource_9=3
+Batiment_19
+Travailler
+
+#Fin

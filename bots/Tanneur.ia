@@ -1,0 +1,49 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer du cuir.
+Equiper_0
+
+Age_1
+#Fabrique une tannerie.
+ChangerMode_1
+Objet_9=1
+Batiment_12
+Travailler
+
+Age_2
+#Fabrique une tannerie et s'habille.
+ChangerMode_1
+GagnerArgent_12=480
+Objet_11=1
+Batiment_12
+Travailler
+
+Age_3
+#Fabrique une tannerie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_12=220
+Objet_45=1
+GagnerArgent_12=480
+Objet_11=1
+Batiment_12
+Travailler
+
+Age_4
+#Fabrique une tannerie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_12=220
+Objet_45=1
+GagnerArgent_12=480
+Objet_11=1
+Batiment_12
+Travailler
+
+Age_5
+#Fabrique une tannerie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_12=220
+Objet_45=1
+GagnerArgent_12=480
+Objet_11=1
+Batiment_12
+Travailler
+
+#Fin

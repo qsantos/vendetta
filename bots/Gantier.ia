@@ -1,0 +1,51 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer des gants.
+Equiper_0
+
+Age_1
+#Fabrique une ganterie et prend des gants pour lui.
+ChangerMode_1
+Objet_73=1
+Batiment_14
+Travailler
+
+Age_2
+#Fabrique une ganterie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_73=1
+GagnerArgent_14=110
+Objet_3=1
+Batiment_14
+Travailler
+
+Age_3
+#Fabrique une ganterie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_73=1
+GagnerArgent_14=280
+Objet_2=1
+Batiment_14
+Travailler
+
+Age_4
+#Fabrique une ganterie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_73=1
+GagnerArgent_14=110
+Objet_3=1
+GagnerArgent_14=320
+Objet_46=1
+Batiment_14
+Travailler
+
+Age_5
+#Fabrique une ganterie et s'habille avec des vêtements de luxe.
+ChangerMode_1
+Objet_73=1
+GagnerArgent_14=110
+Objet_3=1
+GagnerArgent_14=320
+Objet_46=1
+Batiment_14
+Travailler
+
+#Fin

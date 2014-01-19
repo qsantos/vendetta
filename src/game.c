@@ -23,6 +23,7 @@
 #include <SFML/Graphics.h>
 
 #include "mem.h"
+#include "file.h"
 #include "world/draw.h"
 #include "overlay/overlay.h"
 
@@ -35,21 +36,21 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 
 	g->player = &g->w->characters[g->w->n_characters-1];
 
-	for (size_t i = 0; i < 5; i++)
+	g->n_bots = 0;
+	FOREACH_FILE("bots/", g->n_bots++;);
+	g->bots = CALLOC(ai_t, g->n_bots);
+	for (size_t i = 0; i < g->n_bots; i++)
 		ai_init(&g->bots[i]);
 
-	ai_load(&g->bots[0], "bots/Berger.ia");
-	ai_load(&g->bots[1], "bots/Boulanger.ia");
-	ai_load(&g->bots[2], "bots/Cordonnier.ia");
-	ai_load(&g->bots[3], "bots/Mineur.ia");
-	ai_load(&g->bots[4], "bots/Armurier.ia");
+	size_t i = 0;
+	FOREACH_FILE("bots/", ai_load(&g->bots[i++], path););
 
 	for (size_t i = 0; i < g->w->n_characters; i++)
 	{
 		character_t* c = &g->w->characters[i];
 		if (c == g->player)
 			continue;
-		c->ai = &g->bots[rand() % 5];
+		c->ai = &g->bots[rand() % g->n_bots];
 	}
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
@@ -59,8 +60,9 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 
 void game_exit(game_t* g)
 {
-	for (size_t i = 0; i < 5; i++)
+	for (size_t i = 0; i < g->n_bots; i++)
 		ai_exit(&g->bots[i]);
+	free(g->bots);
 
 	   world_exit(g->w);
 	universe_exit(g->u);

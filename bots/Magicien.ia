@@ -1,0 +1,52 @@
+#IA officielle. Un mage qui travaille à sa guilde.
+Equiper_0
+
+Age_1
+#Fait tranquillement un travail de berger. Cela lui permet d'accumuler plus de laine.
+ChangerMode_1
+GagnerArgent_4=220
+Objet_45=1
+Batiment_4
+Travailler
+
+Age_2
+#Fait tranquillement un travail de berger. Cela lui permet d'accumuler plus de laine.
+ChangerMode_1
+GagnerArgent_4=220
+Objet_45=1
+Batiment_4
+Travailler
+
+Age_3
+#Fabrique quelques golems et travaille.
+ChangerMode_1
+GagnerArgent_29=720
+Objet_31=1
+Objet_44=1
+ChangerMode_2
+Batiment_29
+Travailler
+
+Age_4
+#Fabrique quelques golems et travaille.
+ChangerMode_1
+GagnerArgent_29=720
+Objet_31=1
+Objet_89=1
+Objet_44=1
+ChangerMode_2
+Batiment_29
+Travailler
+
+Age_5
+#Fabrique quelques golems et travaille.
+ChangerMode_1
+GagnerArgent_29=720
+Objet_31=1
+Objet_89=1
+Objet_44=1
+ChangerMode_2
+Batiment_29
+Travailler
+
+#Fin

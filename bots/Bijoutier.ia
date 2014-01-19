@@ -1,0 +1,43 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer des bijoux.
+Equiper_0
+
+Age_1
+#Fabrique un magasin de vêtements et travaille.
+ChangerMode_1
+Ressource_24=20
+Objet_2=1
+Objet_3=1
+Batiment_9
+Travailler
+
+Age_2
+#Fabrique un magasin de vêtements et travail.
+ChangerMode_1
+Objet_7=1
+Ressource_24=20
+Batiment_20
+Travailler
+
+Age_3
+#Fabrique un magasin de vêtements et travaille.
+ChangerMode_1
+Objet_7=1
+Ressource_24=20
+Batiment_24
+Travailler
+
+Age_4
+#Fabrique une bijouterie et s'équipe avec des anneaux.
+ChangerMode_1
+Objet_7=1
+Batiment_36
+Travailler
+
+Age_5
+#Fabrique une bijouterie et s'équipe avec des anneaux.
+ChangerMode_1
+Objet_7=1
+Batiment_36
+Travailler
+
+#Fin

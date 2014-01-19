@@ -1,0 +1,50 @@
+#IA officielle. Un guerrier spécialisé dans la destruction de bâtiments.
+Equiper_0
+
+Age_1
+#S'équipe légèrement et attaque des bâtiments.
+ChangerMode_1
+Objet_8=2
+ChangerMode_2
+Ressource_1=3
+Attaquer Donjon
+
+Age_2
+#S'équipe et attaque des bâtiments.
+ChangerMode_1
+Ressource_11=1
+Objet_39=2
+ChangerMode_2
+Ressource_1=3
+Attaquer Donjon
+
+Age_3
+#Pépare un incendie et attaque des bâtiments.
+ChangerMode_1
+Ressource_11=1
+Objet_30=1
+ChangerMode_2
+Ressource_20=1
+Attaquer Donjon
+
+Age_4
+#Pépare un incendie et attaque des bâtiments.
+ChangerMode_1
+Ressource_11=1
+Objet_32=1
+ChangerMode_2
+Ressource_20=1
+Objet_102=1
+Attaquer Donjon
+
+Age_5
+#Pépare un incendie et attaque des bâtiments.
+ChangerMode_1
+Ressource_11=1
+Objet_210=2
+ChangerMode_2
+Ressource_20=1
+Objet_102=1
+Attaquer Donjon
+
+#Fin

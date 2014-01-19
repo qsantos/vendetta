@@ -1,0 +1,59 @@
+#IA officielle. Un archer qui produit des armes à distance et s'équipe avec ses meilleurs arcs.
+Equiper_0
+
+Age_1
+#S'équipe avec un équipement léger
+ChangerMode_1
+Objet_10=1
+GagnerArgent_11=480
+Ressource_2=1
+ChangerMode_2
+Batiment_11
+Ressource_13=8
+Travailler
+
+Age_2
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_2=1
+Objet_18=1
+ChangerMode_2
+Batiment_22
+Travailler
+
+Age_3
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_2=1
+GagnerArgent_22=220
+Objet_45=1
+Objet_49=1
+ChangerMode_2
+Batiment_22
+Travailler
+
+Age_4
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_2=1
+GagnerArgent_22=480
+Objet_45=1
+Objet_75=1
+Objet_49=1
+ChangerMode_2
+Batiment_22
+Travailler
+
+Age_5
+#S'équipe avec un équipement de tir.
+ChangerMode_1
+Ressource_2=1
+GagnerArgent_22=480
+Objet_45=1
+Objet_75=1
+Objet_208=1
+ChangerMode_2
+Batiment_22
+Travailler
+
+#Fin

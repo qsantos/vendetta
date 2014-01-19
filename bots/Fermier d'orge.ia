@@ -1,0 +1,49 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer de l'orge.
+Equiper_0
+
+Age_1
+#Fait simplement une ferme.
+ChangerMode_1
+Batiment_2
+Ressource_13=6
+Travailler
+
+Age_2
+#Fabrique une grange et quelques outils.
+ChangerMode_1
+GagnerArgent_2=100
+Objet_6=1
+Batiment_2
+Travailler
+
+Age_3
+#Fabrique une grange et s'équipe avec des habits.
+ChangerMode_1
+GagnerArgent_2=100
+Objet_6=1
+GagnerArgent_2=300
+Objet_1=1
+Batiment_2
+Travailler
+
+Age_4
+#Fabrique une grange et s'équipe avec des habits.
+ChangerMode_1
+GagnerArgent_2=300
+Objet_6=1
+Objet_1=1
+Objet_51=1
+Batiment_2
+Travailler
+
+Age_5
+#Fabrique une grange et s'équipe avec des habits.
+ChangerMode_1
+GagnerArgent_2=300
+Objet_6=1
+Objet_1=1
+Objet_51=1
+Batiment_2
+Travailler
+
+#Fin

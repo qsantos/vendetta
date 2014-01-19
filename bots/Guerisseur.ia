@@ -1,0 +1,64 @@
+#IA officielle. Un guerisseur spécialisé dans les ressources qui rendent la vie.
+Equiper_0
+
+Age_1
+#Se contente de travailler dans une boucherie.
+ChangerMode_1
+Ressource_1=20
+GagnerArgent_6=110
+Objet_101=1
+GagnerArgent_6=550
+Objet_231=1
+Batiment_6
+Travailler
+
+Age_2
+#Se contente de travailler dans une boucherie.
+ChangerMode_1
+Ressource_1=20
+GagnerArgent_6=110
+Objet_101=1
+GagnerArgent_6=550
+Objet_231=1
+Batiment_6
+Travailler
+
+Age_3
+#S'équipe avec un sort de guérison et construit un laboratoire.
+ChangerMode_1
+GagnerArgent_27=110
+Objet_101=1
+GagnerArgent_27=900
+Objet_42=1
+Objet_27=1
+Objet_29=1
+Batiment_27
+Travailler
+
+Age_4
+#S'équipe avec un sort de guérison et construit un laboratoire.
+ChangerMode_1
+GagnerArgent_27=110
+Objet_101=1
+GagnerArgent_27=900
+Objet_157=1
+Objet_42=1
+Objet_27=1
+Objet_215=1
+Batiment_27
+Travailler
+
+Age_5
+#S'équipe avec un sort de guérison et construit un laboratoire.
+ChangerMode_1
+GagnerArgent_27=110
+Objet_101=1
+GagnerArgent_27=900
+Objet_157=1
+Objet_42=1
+Objet_27=1
+Objet_215=1
+Batiment_27
+Travailler
+
+#Fin

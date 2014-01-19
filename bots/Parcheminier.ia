@@ -1,0 +1,53 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer du parchemin.
+Equiper_0
+
+Age_1
+#Fabrique un élevage.
+ChangerMode_1
+Batiment_5
+Travailler
+
+Age_2
+#Fabrique une tannerie et s'habille.
+ChangerMode_1
+Objet_231=1
+Batiment_17
+Ressource_3=5
+Ressource_14=9
+Travailler
+
+Age_3
+#Fabrique une parcheminerie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_25=220
+Objet_45=1
+GagnerArgent_25=550
+Objet_231=1
+Batiment_25
+Travailler
+
+Age_4
+#Fabrique une parcheminerie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_25=220
+Objet_45=1
+GagnerArgent_25=550
+Objet_66=1
+GagnerArgent_25=800
+Objet_97=1
+Batiment_25
+Travailler
+
+Age_5
+#Fabrique une parcheminerie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_25=220
+Objet_45=1
+GagnerArgent_25=550
+Objet_66=1
+GagnerArgent_25=800
+Objet_97=1
+Batiment_25
+Travailler
+
+#Fin

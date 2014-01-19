@@ -1,0 +1,41 @@
+#IA officielle. Vue et approuvée par Crom.
+Equiper_0
+
+Age_1
+#Baston !!!
+ChangerMode_2
+Objet_8=1
+Attaquer Ennemi
+
+Age_2
+#Yaaarrrgh !!!
+ChangerMode_2
+Objet_39=1
+Ressource_7=1
+Attaquer Ennemi
+
+Age_3
+#Grosse épée et un casque.
+ChangerMode_2
+Ressource_11=1
+Objet_16=1
+Objet_24=1
+Attaquer Ennemi
+
+Age_4
+#Grosse épée et un casque.
+ChangerMode_2
+Ressource_11=1
+Objet_106=1
+Objet_24=1
+Attaquer Ennemi
+
+Age_5
+#Grosse épée et un casque.
+ChangerMode_2
+Ressource_11=1
+Objet_211=1
+Objet_24=1
+Attaquer Ennemi
+
+#Fin

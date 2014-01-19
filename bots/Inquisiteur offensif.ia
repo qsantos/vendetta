@@ -1,0 +1,65 @@
+#IA officielle. Un inquisiteur offensif.
+Equiper_0
+
+Age_1
+#Fait tranquillement un travail de boucher.
+ChangerMode_1
+Objet_231=1
+Ressource_13=15
+Batiment_6
+Travailler
+
+Age_2
+#Continue son travail de bucheron et prépare des briques pour l'age suivant.
+ChangerMode_1
+Objet_76=1
+Ressource_15=15
+Batiment_18
+Travailler
+
+Age_3
+#Passe au travail d'armurier.
+ChangerMode_1
+Ressource_11=1
+Objet_16=1
+Ressource_1=3
+ChangerMode_2
+Objet_171=1
+Objet_76=1
+Objet_48=1
+Batiment_23
+Travailler
+
+Age_4
+#Passe au travail d'inquisiteur.
+ChangerMode_1
+Ressource_23=1
+Ressource_19=2
+Objet_85=1
+ChangerMode_2
+Ressource_20=2
+Objet_215=1
+Objet_84=1
+Objet_171=1
+Objet_83=2
+ChangerMode_7
+Batiment_40
+Travailler
+
+Age_5
+#Passe au travail d'inquisiteur.
+ChangerMode_1
+Ressource_23=1
+Objet_86=1
+Ressource_20=2
+Ressource_19=2
+Objet_84=1
+Objet_215=1
+Objet_171=1
+ChangerMode_2
+Objet_229=1
+Objet_83=4
+Batiment_19
+Attaquer Donjon
+
+#Fin

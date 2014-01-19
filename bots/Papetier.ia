@@ -1,0 +1,50 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer du papier.
+Equiper_0
+
+Age_1
+#Fabrique une scierie.
+ChangerMode_1
+GagnerArgent_3=120
+Objet_4=1
+Batiment_3
+Travailler
+
+Age_2
+#Fabrique une scierie.
+ChangerMode_1
+GagnerArgent_3=120
+GagnerArgent_1=550
+Objet_231=1
+Ressource_14=8
+Batiment_3
+Travailler
+
+Age_3
+#Fabrique une scierie.
+ChangerMode_1
+GagnerArgent_3=120
+Objet_4=1
+Batiment_3
+Travailler
+
+Age_4
+#Fabrique une papeterie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_33=120
+Objet_4=1
+GagnerArgent_33=550
+Objet_66=1
+Batiment_33
+Travailler
+
+Age_5
+#Fabrique une papeterie et s'équipe avec des habits en cuir.
+ChangerMode_1
+GagnerArgent_33=120
+Objet_4=1
+GagnerArgent_33=550
+Objet_66=1
+Batiment_33
+Travailler
+
+#Fin

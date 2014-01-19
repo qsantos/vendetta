@@ -1,0 +1,63 @@
+#IA officielle. Un commandant qui envoie des soldats à l'attaque.
+Equiper_0
+
+Age_1
+#S'équipe avec un équipement léger
+ChangerMode_1
+Objet_231=1
+Ressource_24=20
+Ressource_15=20
+Objet_74=1
+Ressource_1=3
+Batiment_14
+Travailler
+
+Age_2
+#S'équipe avec un équipement de fer.
+ChangerMode_1
+Ressource_24=20
+Objet_231=1
+Objet_74=1
+Ressource_1=3
+Batiment_23
+Travailler
+
+Age_3
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Objet_16=1
+Objet_171=1
+Objet_21=1
+Objet_25=1
+Ressource_24=20
+ChangerMode_2
+Batiment_19
+Travailler
+
+Age_4
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Ressource_23=1
+Objet_16=1
+Objet_171=1
+Objet_21=1
+Objet_25=1
+Objet_87=2
+ChangerMode_2
+Objet_83=4
+Attaquer Donjon
+
+Age_5
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Ressource_23=1
+Objet_16=1
+Objet_171=1
+Objet_21=1
+Objet_25=1
+Objet_87=2
+ChangerMode_2
+Objet_83=4
+Attaquer Donjon
+
+#Fin

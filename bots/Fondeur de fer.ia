@@ -1,0 +1,49 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer de la fonte.
+Equiper_0
+
+Age_1
+#Récolte du fer avec une pioche et travaille comme artisan.
+ChangerMode_1
+Ressource_15=1
+Batiment_10
+Ressource_13=6
+Travailler
+
+Age_2
+#Fabrique une fonderie et y travaille.
+ChangerMode_1
+GagnerArgent_20=190
+Objet_7=1
+Batiment_20
+Travailler
+
+Age_3
+#Fabrique une fonderie et y travaille.
+ChangerMode_1
+GagnerArgent_20=190
+Objet_7=1
+Objet_1=1
+Batiment_20
+Travailler
+
+Age_4
+#Fabrique une fonderie et y travaille.
+ChangerMode_1
+GagnerArgent_20=190
+Objet_7=1
+GagnerArgent_20=220
+Objet_45=1
+Batiment_20
+Travailler
+
+Age_5
+#Fabrique une fonderie et y travaille.
+ChangerMode_1
+GagnerArgent_20=190
+Objet_7=1
+GagnerArgent_20=220
+Objet_45=1
+Batiment_20
+Travailler
+
+#Fin

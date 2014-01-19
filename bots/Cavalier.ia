@@ -1,0 +1,40 @@
+#IA officielle. C'est le villageois de base élève des chevaux.
+Equiper_0
+
+Age_1
+#Collecte des ressources pour son futur travail.
+ChangerMode_1
+Ressource_8=20
+Ressource_12=10
+Ressource_15=4
+Ressource_13=8
+Ressource_15=20
+Ressource_24=20
+Batiment_12
+Travailler
+
+Age_2
+#Fabrique une écurie.
+ChangerMode_1
+Batiment_17
+Travailler
+
+Age_3
+#Fabrique une écurie.
+ChangerMode_1
+Batiment_17
+Travailler
+
+Age_4
+#Fabrique une écurie.
+ChangerMode_1
+Batiment_17
+Travailler
+
+Age_5
+#Fabrique une écurie.
+ChangerMode_1
+Batiment_17
+Travailler
+
+#Fin

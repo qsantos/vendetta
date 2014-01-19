@@ -1,0 +1,71 @@
+#IA officielle. Le chevalier combat toujours au contact et porte toujours les armures les plus lourdes.
+Equiper_0
+
+Age_1
+#S'équipe avec un équipement léger
+ChangerMode_1
+Objet_9=1
+ChangerMode_2
+Ressource_1=3
+Objet_38=1
+Objet_11=1
+Patrouiller
+
+Age_2
+#S'équipe avec un équipement de fer.
+ChangerMode_1
+Objet_14=1
+ChangerMode_2
+Ressource_1=3
+Objet_74=1
+Objet_20=1
+Batiment_19
+Travailler
+
+Age_3
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Objet_14=1
+Objet_23=1
+ChangerMode_2
+Ressource_11=1
+Objet_171=1
+Objet_25=1
+Objet_21=1
+Ressource_19=3
+Batiment_19
+Attaquer Donjon
+
+Age_4
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Objet_14=1
+Objet_23=1
+ChangerMode_2
+Objet_41=1
+Ressource_11=1
+Objet_171=1
+Objet_25=1
+Objet_84=1
+Objet_100=1
+Ressource_19=3
+Batiment_19
+Attaquer Donjon
+
+Age_5
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Objet_205=1
+Objet_23=1
+Objet_41=1
+ChangerMode_2
+Ressource_11=1
+Objet_171=1
+Objet_25=1
+Objet_84=1
+Objet_100=1
+Ressource_19=3
+Batiment_19
+Attaquer Donjon
+
+#Fin

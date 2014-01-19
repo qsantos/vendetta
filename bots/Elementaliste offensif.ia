@@ -1,0 +1,65 @@
+#IA officielle. Un élémentaliste offensif qui attaque à coups d'élémentaux.
+Equiper_0
+
+Age_1
+#Fait tranquillement un travail de bucheron. Cela lui permet d'accumuler plus de bois.
+ChangerMode_1
+Ressource_5=20
+Ressource_18=20
+Ressource_6=20
+Objet_45=1
+Batiment_3
+Travailler
+
+Age_2
+#Fait tranquillement un travail de bucheron. Cela lui permet d'accumuler plus de bois.
+ChangerMode_1
+Ressource_5=20
+Ressource_18=20
+Ressource_6=20
+Objet_231=1
+Batiment_3
+Travailler
+
+Age_3
+#Fabrique ses élémentaux et attaque.
+ChangerMode_1
+Objet_31=1
+Ressource_20=1
+ChangerMode_2
+Ressource_11=1
+Objet_89=1
+Batiment_19
+Travailler
+
+Age_4
+#Fabrique ses élémentaux et attaque.
+ChangerMode_1
+Objet_31=1
+Ressource_20=1
+ChangerMode_2
+Ressource_23=1
+Objet_89=1
+Objet_215=1
+Objet_147=1
+Objet_33=3
+ChangerMode_7
+Batiment_19
+Attaquer Donjon
+
+Age_5
+#Fabrique ses élémentaux et attaque.
+ChangerMode_1
+Objet_31=1
+Ressource_20=1
+Ressource_23=1
+Objet_89=1
+Objet_215=1
+ChangerMode_2
+Objet_188=1
+Objet_147=1
+Objet_203=1
+Batiment_19
+Attaquer Donjon
+
+#Fin

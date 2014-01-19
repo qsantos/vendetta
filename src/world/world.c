@@ -147,7 +147,7 @@ world_t* world_init(universe_t* u, int _w, int _h, unsigned int seed)
 	// END land type borders
 
 	// BEGIN character generation
-	w->n_characters = 10;
+	w->n_characters = 50;
 	w->characters = CALLOC(character_t, w->n_characters);
 	for (size_t i = 0; i < w->n_characters; i++)
 	{

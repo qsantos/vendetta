@@ -1,0 +1,52 @@
+#IA officielle. C'est le villageois de base qui se contente de fabriquer des élixirs.
+Equiper_0
+
+Age_1
+#Fabrique une boulangerie.
+ChangerMode_1
+Ressource_1=20
+Ressource_18=20
+Ressource_3=5
+GagnerArgent_7=110
+Objet_101=1
+Batiment_7
+Travailler
+
+Age_2
+#Fabrique une boulangerie.
+ChangerMode_1
+Ressource_1=20
+Ressource_18=20
+GagnerArgent_7=220
+Objet_3=1
+Batiment_7
+Travailler
+
+Age_3
+#Fabrique un laboratoire d'ether et s'équipe.
+ChangerMode_1
+Ressource_1=20
+GagnerArgent_28=550
+Objet_231=1
+Ressource_3=16
+Batiment_28
+Travailler
+
+Age_4
+#Fabrique un laboratoire d'ether et s'équipe.
+ChangerMode_1
+GagnerArgent_41=800
+Objet_97=1
+Batiment_41
+Travailler
+
+Age_5
+#Fabrique un laboratoire d'ether et s'équipe.
+ChangerMode_1
+GagnerArgent_41=800
+Objet_97=1
+Objet_66=1
+Batiment_41
+Travailler
+
+#Fin

@@ -1,0 +1,44 @@
+#IA officielle. C'est un villageois défensif qui réssuscite ses alliés.
+Equiper_0
+
+Age_1
+#Joue le rôle de tailleur
+ChangerMode_1
+Objet_46=1
+Ressource_13=8
+Batiment_9
+Travailler
+
+Age_2
+#Joue le rôle de tailleur.
+ChangerMode_1
+Objet_9=1
+Ressource_14=8
+Batiment_9
+Travailler
+
+Age_3
+#Fait office de prêtre.
+ChangerMode_1
+GagnerArgent_26=520
+Objet_27=1
+Batiment_26
+Travailler
+
+Age_4
+#Fait office de prêtre.
+ChangerMode_1
+GagnerArgent_26=520
+Objet_27=1
+Batiment_26
+Travailler
+
+Age_5
+#Fait office de prêtre.
+ChangerMode_1
+GagnerArgent_26=520
+Objet_27=1
+Batiment_26
+Travailler
+
+#Fin

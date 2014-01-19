@@ -1,0 +1,49 @@
+#IA officielle. Un forgeron qui produit des armes de contact et s'équipe avec ses meilleurs armes.
+Equiper_0
+
+Age_1
+#Se prépare à passer à la forge.
+ChangerMode_1
+Ressource_15=20
+Ressource_1=1
+Batiment_11
+Ressource_13=7
+Travailler
+
+Age_2
+#S'équipe avec un équipement de contact.
+ChangerMode_1
+Batiment_21
+Objet_14=2
+Ressource_1=1
+ChangerMode_2
+Travailler
+
+Age_3
+#S'équipe avec un équipement de contact.
+ChangerMode_1
+Batiment_21
+Objet_14=2
+Ressource_1=1
+ChangerMode_2
+Travailler
+
+Age_4
+#S'équipe avec un équipement de contact.
+ChangerMode_1
+Batiment_21
+Objet_14=2
+Ressource_1=1
+ChangerMode_2
+Travailler
+
+Age_5
+#S'équipe avec un équipement de contact.
+ChangerMode_1
+Batiment_21
+Objet_14=2
+Ressource_1=1
+ChangerMode_2
+Travailler
+
+#Fin

@@ -1,0 +1,65 @@
+#IA officielle. Un assassin spécialisé dans les armes qui infliquent d'importants coups critiques.
+Equiper_0
+
+Age_1
+#S'équipe avec un armure légère.
+ChangerMode_1
+Objet_45=1
+Objet_38=1
+Ressource_12=5
+Ressource_13=8
+Ressource_15=4
+Ressource_1=3
+Batiment_6
+Travailler
+
+Age_2
+#S'équipe avec un équipement léger.
+ChangerMode_1
+Ressource_11=1
+Objet_45=1
+Objet_13=1
+ChangerMode_2
+Objet_99=1
+Ressource_1=3
+Batiment_19
+Travailler
+
+Age_3
+#S'équipe avec un équipement léger.
+ChangerMode_1
+Ressource_11=1
+Objet_45=1
+Objet_60=1
+ChangerMode_2
+Objet_99=1
+Ressource_1=3
+Batiment_19
+Travailler
+
+Age_4
+#S'équipe avec un équipement léger.
+ChangerMode_1
+Ressource_11=1
+Objet_45=1
+Objet_60=1
+ChangerMode_2
+Objet_99=1
+Ressource_1=3
+Batiment_19
+Travailler
+
+Age_5
+#S'équipe avec un équipement léger.
+ChangerMode_1
+Ressource_11=1
+Objet_45=1
+Objet_201=1
+Objet_60=1
+ChangerMode_2
+Objet_99=1
+Ressource_1=3
+Batiment_19
+Travailler
+
+#Fin

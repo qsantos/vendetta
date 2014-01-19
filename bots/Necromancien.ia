@@ -1,0 +1,54 @@
+#IA officielle. Un nécromancien défensif.
+Equiper_0
+
+Age_1
+#Fait tranquillement un travail de bucheron. Cela lui permet de s'entraîner à faire du papier.
+ChangerMode_1
+Batiment_3
+Travailler
+
+Age_2
+#Continue son travail de bucheron et prépare des briques pour l'age suivant.
+ChangerMode_1
+GagnerArgent_3=220
+Objet_45=1
+Ressource_14=10
+Batiment_3
+Travailler
+
+Age_3
+#Passe au travail de nécromancien.
+ChangerMode_1
+Ressource_11=1
+Objet_28=1
+Batiment_31
+Travailler
+
+Age_4
+#Passe au travail de nécromancien.
+ChangerMode_1
+Ressource_23=1
+Ressource_1=3
+Objet_45=1
+Objet_28=1
+Objet_215=1
+ChangerMode_2
+GagnerArgent_31=220
+Batiment_31
+Travailler
+
+Age_5
+#Passe au travail de nécromancien.
+ChangerMode_1
+Ressource_23=1
+Objet_34=1
+Ressource_1=3
+Objet_45=1
+Objet_28=1
+Objet_215=1
+ChangerMode_2
+GagnerArgent_31=220
+Batiment_31
+Travailler
+
+#Fin

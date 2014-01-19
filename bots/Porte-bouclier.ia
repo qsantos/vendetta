@@ -1,0 +1,54 @@
+#IA officielle. Le porte bouclier s'équipe toujours avec ce qui offre le plus de défense et protège le village.
+Equiper_0
+
+Age_1
+#S'équipe avec un équipement léger très défensif.
+ChangerMode_1
+Objet_12=2
+ChangerMode_2
+Ressource_1=3
+Patrouiller
+
+Age_2
+#S'équipe avec un équipement de fer défensif.
+ChangerMode_1
+Objet_22=2
+ChangerMode_2
+Ressource_1=3
+Batiment_19
+Patrouiller
+
+Age_3
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Objet_23=2
+ChangerMode_2
+Objet_20=1
+Objet_24=1
+Ressource_1=3
+Batiment_19
+Patrouiller
+
+Age_4
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Objet_23=2
+ChangerMode_2
+Objet_108=1
+Objet_24=1
+Ressource_1=3
+Batiment_19
+Patrouiller
+
+Age_5
+#S'équipe avec de l'équipement en acier.
+ChangerMode_1
+Objet_23=2
+ChangerMode_2
+Objet_223=1
+Objet_24=1
+Ressource_1=3
+Batiment_19
+Patrouiller
+
+#Fin

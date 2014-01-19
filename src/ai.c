@@ -175,7 +175,7 @@ char ai_make(character_t* c, int id, float amount)
 		return 1;
 	}
 
-	if (b->work_n != 0 && b->work_list[0] == id)
+	if (b->work_n != 0)
 		return 1;
 
 	int nth = (tr - b->t->items);
@@ -212,7 +212,7 @@ char ai_do(ai_t* ai, character_t* c)
 	if (ai_getreq(c, tr, 1))
 		return 1;
 
-	if (ai_build(c, ai->building))
+	if (ai->building >= 0 && ai_build(c, ai->building))
 		return 1;
 
 	building_t* b = c->hasBuilding;
