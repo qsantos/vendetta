@@ -80,6 +80,22 @@ void overlay_cursor(overlay_t* o, game_t* g)
 			else if (o->t == O_MINE)
 			{
 				cursor = 1;
+
+				mine_t* m = (mine_t*) o;
+				transform_t* tr = &m->t->harvest;
+
+				if (!(tr->n_res == 0 || tr->res[0].is_item))
+				{
+					int id = tr->res[0].id;
+					kindOf_material_t* t = &g->u->materials[id];
+					int skill = t->skill;
+
+					char buffer[1024];
+					float amount = g->player->inventory.materials[id];
+					float max = character_maxOf(g->player, t);
+					snprintf(buffer, 1024, "%s (%.0f / %0.f)", g->u->skills[skill].name, amount, max);
+					graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
+				}
 			}
 			else if (o->t == O_BUILDING)
 			{
@@ -88,6 +104,8 @@ void overlay_cursor(overlay_t* o, game_t* g)
 					cursor = 7;
 				else
 					cursor = 4;
+
+				graphics_drawTooltip(g->g, mouse.x, mouse.y, b->t->name);
 			}
 		}
 	}
