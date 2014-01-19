@@ -35,6 +35,8 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 	g->w =    world_init(g->u, w, h, seed);
 
 	g->player = &g->w->characters[g->w->n_characters-1];
+	for (size_t i = 0; i < N_STATUSES; i++)
+		g->autoEat[i] = 0;
 
 	g->n_bots = 0;
 	FOREACH_FILE("bots/", g->n_bots++;);
@@ -226,7 +228,7 @@ void game_loop(game_t* g)
 		draw_world(g->g, g->w);
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
-		overlay_draw(g->o, g);
+		overlay_draw(g->o, g, 1);
 		sfRenderWindow_display(g->g->render);
 
 		// check frame duration
@@ -244,6 +246,11 @@ void game_loop(game_t* g)
 			fpscount = 0;
 			fpslast = 0;
 		}
+
+		// check player statuses
+		for (size_t i = 0; i < N_STATUSES; i++)
+			if (g->autoEat[i] && g->player->statuses[i] < 10)
+				character_eatFor(g->player, i);
 
 		// do round
 		world_doRound(g->w, duration);

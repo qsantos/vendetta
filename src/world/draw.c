@@ -100,7 +100,7 @@ void draw_building(graphics_t* g, building_t* b)
 	sfSprite_setTextureRect(sprite, rect);
 	draw_object(g, &b->o, sprite);
 
-	graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, b->build_progress);
+	graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, b->build_progress, 0);
 }
 
 void draw_world(graphics_t* g, world_t* w)

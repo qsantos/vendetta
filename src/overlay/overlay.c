@@ -109,8 +109,15 @@ void overlay_cursor(overlay_t* o, game_t* g)
 	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 }
 
-void overlay_draw(overlay_t* o, game_t* g)
+int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 {
+	sfVector2f mouse;
+	if (!do_draw)
+	{
+		sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
+		mouse = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->overlay_view);
+	}
+
 	// statuses
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -123,16 +130,22 @@ void overlay_draw(overlay_t* o, game_t* g)
 	}
 	sfVector2u size = sfRenderWindow_getSize(g->g->render);
 	float x = 10;
-	float y = size.y - 10 - 30 * N_STATUSES;;
+	float y = size.y - 10 - 30 * N_STATUSES;
 	for (int i = 0; i < N_STATUSES; i++)
 	{
+		if (!do_draw &&
+		    x <= mouse.x && mouse.x <= x + 150 &&
+		    y <= mouse.y && mouse.y <= y + 20)
+			return i;
+
 		float p = g->player->statuses[i] / 20;
-		graphics_drawProgressBar(g->g, x, y, 150, 20, p);
+		graphics_drawProgressBar(g->g, x, y, 150, 20, p, g->autoEat[i]);
 
 		sfText_setUTF8(text, g->u->statuses[i].name); // TODO
 		sfVector2f pos = {x+5, y};
 		sfText_setPosition(text, pos);
-		sfRenderWindow_drawText(g->g->render, text, NULL);
+		if (do_draw)
+			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		char buffer[1024];
 		snprintf(buffer, 1024, "%.0f/%.0f", floor(g->player->statuses[i]), floor(20.));
@@ -140,18 +153,22 @@ void overlay_draw(overlay_t* o, game_t* g)
 		sfFloatRect rect = sfText_getLocalBounds(text);
 		pos.x = x + 140 - rect.width;
 		sfText_setPosition(text, pos);
-		sfRenderWindow_drawText(g->g->render, text, NULL);
+		if (do_draw)
+			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		y += 30;
+
 	}
+
+	if (!do_draw)
+		return -1;
 
 	 swbuilding_draw(&o->swbuilding,  g, 1);
 	    switems_draw(&o->switems,     g, 1);
 	swmaterials_draw(&o->swmaterials, g, 1);
 	   swskills_draw(&o->swskills,    g, 1);
 	swequipment_draw(&o->swequipment, g, 1);
-
-	ov_build_draw(&o->build, g, 1);
+	   ov_build_draw(&o->build,       g, 1);
 
 	overlay_cursor(o, g);
 
@@ -161,10 +178,19 @@ void overlay_draw(overlay_t* o, game_t* g)
 	sfVector2f pos = {size.x - 80, size.y - 30};
 	sfText_setPosition(text, pos);
 	sfRenderWindow_drawText(g->g->render, text, NULL);
+
+	return -1;
 }
 
 int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 {
+	int i = overlay_draw(o, g, 0);
+	if (i >= 0)
+	{
+		g->autoEat[i] ^= 1;
+		return 1;
+	}
+
 	return
 	   ov_build_catch(&o->build,       g, x, y, t) ||
 	 swbuilding_catch(&o->swbuilding,  g, x, y, t) ||

@@ -34,6 +34,7 @@ struct game
 	world_t*    w;
 
 	character_t* player;
+	char         autoEat[N_STATUSES];
 
 	size_t n_bots;
 	ai_t*  bots;

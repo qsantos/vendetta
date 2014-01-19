@@ -48,7 +48,7 @@ void        graphics_exit(graphics_t* g);
 
 int  graphics_spriteForImg(graphics_t* g, const char* filename);
 
-void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h, float p);
+void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h, float p, char c);
 void graphics_drawTooltip    (graphics_t* g, float x, float y, const char* txt);
 void graphics_drawScrollBar  (graphics_t* g, float x, float y, float w, float h, float r, float p);
 
