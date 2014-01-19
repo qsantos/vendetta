@@ -24,7 +24,7 @@
 
 void swbuilding_init(swbuilding_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, "Building", 1024-SW_WIDTH*3, 0);
+	subwindow_init(&w->w, g, "Bâtiment", 1024-SW_WIDTH*3, 0);
 }
 
 void swbuilding_exit(swbuilding_t* w)
@@ -44,13 +44,13 @@ size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr
 	size_t cur = 0;
 
 	// result components
-	cur += snprintf(buffer+cur, n-cur, "make:");
+	cur += snprintf(buffer+cur, n-cur, "Fabrique :");
 	for (int i = 0; i < tr->n_res; i++)
 		cur += component_tooltip(buffer+cur, n-cur, u, &tr->res[i]);
 
 	// required components
 	if (tr->n_req != 0)
-		cur += snprintf(buffer+cur, n-cur, "\n\nneed:");
+		cur += snprintf(buffer+cur, n-cur, "\n\nRequiert :");
 	for (int i = 0; i < tr->n_req; i++)
 		cur += component_tooltip(buffer+cur, n-cur, u, &tr->req[i]);
 
@@ -122,7 +122,7 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 
 		// text
-		const char* action = t->make.n_req == 0 ? "Harvest" : "Transform to";
+		const char* action = t->make.n_req == 0 ? "Récolter :" : "Transformer en :";
 		char buffer[1024];
 		snprintf(buffer, 1024, "%s %s", action, m->name);
 		sfText_setPosition(text, (sfVector2f){x+32,y+6});

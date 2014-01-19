@@ -23,7 +23,7 @@
 
 void swskills_init(swskills_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, "Skills", 1024-SW_WIDTH*1, 0);
+	subwindow_init(&w->w, g, "Compétences", 1024-SW_WIDTH*1, 0);
 }
 
 void swskills_exit(swskills_t* w)

@@ -23,7 +23,7 @@
 
 void switems_init(switems_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, "Items", 1024-SW_WIDTH*2, 0);
+	subwindow_init(&w->w, g, "Objets", 1024-SW_WIDTH*2, 0);
 }
 
 void switems_exit(switems_t* w)

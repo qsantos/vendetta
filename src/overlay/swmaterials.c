@@ -23,7 +23,7 @@
 
 void swmaterials_init(swmaterials_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, "Materials", 1024-SW_WIDTH*2, SW_HEIGHT);
+	subwindow_init(&w->w, g, "Matériaux", 1024-SW_WIDTH*2, SW_HEIGHT);
 }
 
 void swmaterials_exit(swmaterials_t* w)
@@ -40,7 +40,7 @@ size_t swmaterials_materialTooltip(char* buffer, size_t n, universe_t* u, kindOf
 	if (!m->edible)
 		return cur;
 
-	cur += snprintf(buffer+cur, n-cur, "\nedible:");
+	cur += snprintf(buffer+cur, n-cur, "\nComestible");
 	for (int i = 0; i < N_STATUSES; i++)
 	{
 		float b = m->eatBonus[i];

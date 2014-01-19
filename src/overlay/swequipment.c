@@ -20,7 +20,7 @@
 
 void swequipment_init(swequipment_t* w, graphics_t* g)
 {
-	subwindow_init(&w->w, g, "Equipment", 1024-SW_WIDTH*3, SW_HEIGHT);
+	subwindow_init(&w->w, g, "Équipement", 1024-SW_WIDTH*3, SW_HEIGHT);
 }
 
 void swequipment_exit(swequipment_t* w)
