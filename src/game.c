@@ -119,6 +119,10 @@ void game_loop(game_t* g)
 				{
 					g->player->go_o = &g->player->hasBuilding->o;
 				}
+				else if (k == sfKeyDelete)
+				{
+					character_delHome(g->player);
+				}
 				else if (k == sfKeyB)
 				{
 					g->o->swbuilding.w.visible ^= 1;

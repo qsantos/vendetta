@@ -81,5 +81,6 @@ void character_setPosition(character_t* c, float x, float y);
 void character_goMine   (character_t* c, kindOf_mine_t* t);
 char character_buildAuto(character_t* c, kindOf_building_t* t);
 char character_buildAt  (character_t* c, kindOf_building_t* t, float x, float y);
+char character_delHome  (character_t* c);
 
 #endif

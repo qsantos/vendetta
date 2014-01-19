@@ -255,20 +255,13 @@ void character_doRound(character_t* c, float duration)
 
 	duration *= character_vitality(c);
 
-	float dx;
-	float dy;
 	if (c->go_o != NULL)
 	{
-		dx = c->go_o->x;
-		dy = c->go_o->y;
+		c->go_x = c->go_o->x;
+		c->go_y = c->go_o->y;
 	}
-	else
-	{
-		dx = c->go_x;
-		dy = c->go_y;
-	}
-	dx -= c->o.x;
-	dy -= c->o.y;
+	float dx = c->go_x - c->o.x;
+	float dy = c->go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
 	if (remDistance == 0)
@@ -384,15 +377,23 @@ char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 	if (!transform_check(&t->build, &c->inventory))
 		return 0;
 
-	if (c->hasBuilding)
-	{
-		// TODO
-	}
-
-	if (c->hasBuilding)
-		world_delBuilding(c->world, c->hasBuilding);
+	character_delHome(c);
 
 	transform_apply(&t->build, &c->inventory, 1);
 	c->hasBuilding = world_addBuilding(c->world, x, y, t, c);
+	return 1;
+}
+
+char character_delHome(character_t* c)
+{
+	if (c->hasBuilding == NULL)
+		return 0;
+
+	// TODO: there might be other pointers...
+	if (c->go_o == &c->hasBuilding->o)
+		c->go_o = NULL;
+
+	world_delBuilding(c->world, c->hasBuilding);
+	c->hasBuilding = NULL;
 	return 1;
 }
