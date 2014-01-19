@@ -115,6 +115,10 @@ void game_loop(game_t* g)
 					g->player->go_x = g->player->o.x;
 					g->player->go_y = g->player->o.y;
 				}
+				else if (k == sfKeyReturn)
+				{
+					g->player->go_o = &g->player->hasBuilding->o;
+				}
 				else if (k == sfKeyB)
 				{
 					g->o->swbuilding.w.visible ^= 1;
