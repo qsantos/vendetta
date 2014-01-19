@@ -326,16 +326,18 @@ universe_t* universe_init(graphics_t* g)
 	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path););
 
 	// init special skills
+	cfg_group_t*   gr      = cfg_ini_group(&ini, "Competences");
+	cfg_section_t* s       = &gr->sections[0];
+	cfg_array_t*   sskills = cfg_getArray(s, "CompetencesSpeciales");
 	u->n_skills = N_SPECIAL_SKILLS;
 	u->skills   = CALLOC(kindOf_skill_t, u->n_skills);
-	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
-		kindOf_skill_init(&u->skills[i]);
-	cfg_group_t*   gr = cfg_ini_group(&ini, "Competences");
-	cfg_section_t* s  = &gr->sections[0];
-	u->skills[SK_BUILD]   .name = cfg_getString(s, "CompetencesSpeciales1");
-	u->skills[SK_DESTROY] .name = cfg_getString(s, "CompetencesSpeciales2");
-	u->skills[SK_CRITICAL].name = cfg_getString(s, "CompetencesSpeciales3");
-	u->skills[SK_TRADE]   .name = cfg_getString(s, "CompetencesSpeciales4");
+	for (size_t i = 0; i < N_SPECIAL_SKILLS && i < sskills->n; i++)
+	{
+		char* v = sskills->v[i];
+		kindOf_skill_t* k = &u->skills[i];
+		kindOf_skill_init(k);
+		k->name = v == NULL ? NULL : strdup(v);
+	}
 
 	// apply rest of configuration
 	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
