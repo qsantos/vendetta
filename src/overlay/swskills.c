@@ -62,7 +62,7 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 	for (size_t i = 0; i < g->u->n_skills; i++)
 	{
 		skill_t s = g->player->skills[i];
-		if (s == 1)
+		if (s == 20)
 			continue;
 
 		kindOf_skill_t* k = &g->u->skills[i];

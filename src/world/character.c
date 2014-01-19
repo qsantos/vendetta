@@ -51,7 +51,7 @@ void character_init(character_t* c, universe_t* u, world_t* w)
 
 	c->skills = CALLOC(skill_t, u->n_skills);
 	for (size_t i = 0; i < u->n_skills; i++)
-		c->skills[i] = 1;
+		c->skills[i] = 20;
 
 	for (int i = 0; i < N_STATUSES; i++)
 		c->statuses[i] = 20;
@@ -115,10 +115,12 @@ float character_useSkill(character_t* c, int skill, float duration)
 			}
 	}
 
+	ret /= 20;
+
 	// time effects
 	ret *= duration;
-	c->skills[skill] += duration/100;
-	character_weary(c, 0.3 * duration);
+	c->skills[skill] += duration/50;
+	character_weary(c, 0.1 * duration);
 
 	return ret;
 }
