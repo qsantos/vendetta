@@ -22,14 +22,13 @@
 typedef struct kindOf_material kindOf_material_t;
 
 #include "../graphics.h"
-#include "skill.h"
 #include "status.h"
 
 struct kindOf_material
 {
 	char* name;
 
-	kindOf_skill_t skill;
+	int skill;
 
 	char edible;
 	float eatBonus[N_STATUSES];

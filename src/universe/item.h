@@ -22,24 +22,21 @@
 typedef struct kindOf_item kindOf_item_t;
 
 #include "universe.h"
-#include "skill.h"
+#include "effect.h"
 
 struct kindOf_item
 {
 	char* name;
 
-	int skill;
-	int category;
-
-	float  bonus_special[N_SPECIAL_SKILLS];
-	float* bonus_material;
-	float* bonus_item;
+	int      skill;
+	int      category;
+	effect_t effect;
 
 	int icon_sprite;
 	int icon_index;
 };
 
-void kindOf_item_init(kindOf_item_t* i, universe_t* u);
+void kindOf_item_init(kindOf_item_t* i);
 void kindOf_item_exit(kindOf_item_t* i);
 
 void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx);

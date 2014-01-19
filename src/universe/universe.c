@@ -35,6 +35,7 @@ void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 	u->n_materials   = gr->n_sections;
 	u->materials     = CALLOC(kindOf_material_t, u->n_materials);
 	u->tmp_materials = CALLOC(transform_t,       u->n_materials);
+	u->skills = CREALLOC(u->skills, kindOf_skill_t, u->n_skills + u->n_materials);
 	for (size_t i = 0; i < u->n_materials; i++)
 	{
 		cfg_section_t*     s = &gr->sections[i];
@@ -58,12 +59,17 @@ void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			transform_req(t, id, a, 0);
 
 		m->name = cfg_getString(s, "Nom");
-		m->skill.name = cfg_getString(s, "NomCompetence");
 		m->edible     = cfg_getInt(s, "Mangeable");
 		m->eatBonus[ST_HEALTH]  = cfg_getFloat(s, "GainVie");
 		m->eatBonus[ST_STAMINA] = cfg_getFloat(s, "GainEnergie");
 		m->eatBonus[ST_MORAL]   = cfg_getFloat(s, "GainMoral");
 		m->eatBonus[ST_MANA]    = cfg_getFloat(s, "GainMagie");
+
+		size_t skill = u->n_skills++;
+		kindOf_skill_t* k = &u->skills[skill];
+		kindOf_skill_init(k);
+		k->name = cfg_getString(s, "NomCompetence");
+		m->skill = skill;
 
 		char* icon_file  = cfg_getString(s, "Image");
 		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
@@ -108,13 +114,17 @@ void universe_init_iskills(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		return;
 
 	u->n_iskills = gr->n_sections;
-	u->iskills   = CALLOC(kindOf_skill_t, u->n_iskills);
+	u->iskills = CALLOC(int, u->n_iskills);
+	u->skills = CREALLOC(u->skills, kindOf_skill_t, u->n_skills + u->n_iskills);
 	for (size_t i = 0; i < u->n_iskills; i++)
 	{
 		cfg_section_t*  s = &gr->sections[i];
-		kindOf_skill_t* k = &u->iskills[i];
 
+		size_t skill = u->n_skills++;
+		kindOf_skill_t* k = &u->skills[skill];
+		kindOf_skill_init(k);
 		k->name = cfg_getString(s, "NomFR");
+		u->iskills[i] = skill;
 	}
 }
 
@@ -132,12 +142,14 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		kindOf_item_t* it = &u->items[i];
 		transform_t*   t  = &u->tmp_items[i];
 
-		kindOf_item_init(it, u);
+		kindOf_item_init(it);
 		it->name = cfg_getString(s, "Nom");
 		if (it->name == NULL)
 			it->name = cfg_getString(s, "NomFR");
 		it->category = cfg_getInt(s, "Categorie");
-		it->skill    = cfg_getInt(s, "Competence") - 1;
+
+		int iskill = cfg_getInt(s, "Competence") - 1;
+		it->skill = u->iskills[iskill];
 
 		transform_init(t);
 		transform_res(t, i, 1, 1);
@@ -172,7 +184,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 					i, gr->name, s->name);
 				exit(1);
 			}
-			it->bonus_special[i] = atof(v);
+			int skill = i;
+			effect_skill(&it->effect, skill, atof(v));
 		}
 
 		cfg_array_t* mboni = cfg_getArray(s, "BonusCompetencesRessources");
@@ -188,7 +201,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 					i, gr->name, s->name);
 				exit(1);
 			}
-			it->bonus_material[i] = atof(v);
+			int skill = u->materials[i].skill;
+			effect_skill(&it->effect, skill, atof(v));
 		}
 
 		cfg_array_t* iboni = cfg_getArray(s, "BonusCompetencesObjets");
@@ -204,7 +218,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 					i, gr->name, s->name);
 				exit(1);
 			}
-			it->bonus_item[i] = atof(v);
+			int skill = u->iskills[i];
+			effect_skill(&it->effect, skill, atof(v));
 		}
 
 		char* icon_file  = cfg_getString(s, "Image");
@@ -310,22 +325,24 @@ universe_t* universe_init(graphics_t* g)
 	cfg_ini_init(&ini);
 	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path););
 
-	// apply configuration
+	// init special skills
+	u->n_skills = N_SPECIAL_SKILLS;
+	u->skills   = CALLOC(kindOf_skill_t, u->n_skills);
+	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
+		kindOf_skill_init(&u->skills[i]);
+	cfg_group_t*   gr = cfg_ini_group(&ini, "Competences");
+	cfg_section_t* s  = &gr->sections[0];
+	u->skills[SK_BUILD]   .name = cfg_getString(s, "CompetencesSpeciales1");
+	u->skills[SK_DESTROY] .name = cfg_getString(s, "CompetencesSpeciales2");
+	u->skills[SK_CRITICAL].name = cfg_getString(s, "CompetencesSpeciales3");
+	u->skills[SK_TRADE]   .name = cfg_getString(s, "CompetencesSpeciales4");
+
+	// apply rest of configuration
 	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
 	universe_init_mines    (u, g, cfg_ini_group(&ini, "TerrainRessource"));
 	universe_init_iskills  (u, g, cfg_ini_group(&ini, "CompetenceObjet"));
 	universe_init_items    (u, g, cfg_ini_group(&ini, "Objet"));
 	universe_init_buildings(u, g, cfg_ini_group(&ini, "Batiment"));
-
-	// init special skills
-	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
-		kindOf_skill_init(&u->sskills[i]);
-	cfg_group_t*   gr = cfg_ini_group(&ini, "Competences");
-	cfg_section_t* s  = &gr->sections[0];
-	u->sskills[SK_BUILD]   .name = cfg_getString(s, "CompetencesSpeciales1");
-	u->sskills[SK_DESTROY] .name = cfg_getString(s, "CompetencesSpeciales2");
-	u->sskills[SK_CRITICAL].name = cfg_getString(s, "CompetencesSpeciales3");
-	u->sskills[SK_TRADE]   .name = cfg_getString(s, "CompetencesSpeciales4");
 
 	fprintf(stderr, "Loaded %zu materials, %zu mines, %zu items and %zu buildings\n",
 		u->n_materials, u->n_mines, u->n_items, u->n_buildings);
@@ -398,12 +415,9 @@ void universe_exit(universe_t* u)
 		kindOf_status_exit(&u->statuses[i]);
 	*/
 
-	for (size_t i = 0; i < u->n_iskills; i++)
-		kindOf_skill_exit(&u->iskills[i]);
-	free(u->iskills);
-
-	for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
-		kindOf_skill_exit(&u->sskills[i]);
+	for (size_t i = 0; i < u->n_skills; i++)
+		kindOf_skill_exit(&u->skills[i]);
+	free(u->skills);
 
 	for (size_t i = 0; i < u->n_buildings; i++)
 		kindOf_building_exit(&u->buildings[i]);

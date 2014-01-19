@@ -58,10 +58,7 @@ struct character
 	building_t* hasBuilding;
 	building_t* inBuilding;
 
-	skill_t  sskills[N_SPECIAL_SKILLS];
-	skill_t* mskills;
-	skill_t* iskills;
-
+	skill_t* skills;
 	status_t statuses[N_STATUSES];
 
 	int* equipment;
@@ -72,6 +69,7 @@ void character_exit(character_t* c);
 
 float character_vitality(character_t* c);
 void  character_weary   (character_t* c, float f);
+float character_useSkill(character_t* c, int skill, float duration);
 
 void character_workAt  (character_t* c, object_t* o, float duration);
 void character_doRound (character_t* c, float duration);

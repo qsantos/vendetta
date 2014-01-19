@@ -132,14 +132,8 @@ int main(int argc, char** argv)
 	}
 	if (god_mode)
 	{
-		float* s= game.player->sskills;
-		for (size_t i = 0; i < N_SPECIAL_SKILLS; i++)
-			s[i] = 1000;
-		s = game.player->mskills;
-		for (size_t i = 0; i < game.u->n_materials; i++)
-			s[i] = 1000;
-		s = game.player->iskills;
-		for (size_t i = 0; i < game.u->n_iskills; i++)
+		skill_t* s = game.player->skills;
+		for (size_t i = 0; i < game.u->n_skills; i++)
 			s[i] = 1000;
 	}
 

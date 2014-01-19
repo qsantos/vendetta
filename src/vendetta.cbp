@@ -47,6 +47,7 @@
 <Unit filename="string.c" />
 <Unit filename="string.h" />
 <Unit filename="universe/building.c" />
+<Unit filename="universe/effect.c" />
 <Unit filename="universe/universe.c" />
 <Unit filename="universe/mine.c" />
 <Unit filename="universe/equipment.h" />
@@ -63,6 +64,7 @@
 <Unit filename="universe/mine.h" />
 <Unit filename="universe/equipment.c" />
 <Unit filename="universe/skill.c" />
+<Unit filename="universe/effect.h" />
 <Unit filename="universe/universe.h" />
 <Unit filename="universe/status.h" />
 <Unit filename="universe/skill.h" />

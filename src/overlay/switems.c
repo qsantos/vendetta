@@ -37,34 +37,12 @@ size_t switems_itemTooltip(char* buffer, size_t n, universe_t* u, kindOf_item_t*
 
 	cur += snprintf(buffer+cur, n-cur, "%s", it->name);
 
-	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+	effect_t* e = &it->effect;
+	for (size_t i = 0; i < e->n_skills; i++)
 	{
-		float b = it->bonus_special[i];
-		if (b == 0)
-			continue;
-
-		char* name = u->sskills[i].name;
-		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
-	}
-
-	for (size_t i = 0; i < u->n_materials; i++)
-	{
-		float b = it->bonus_material[i];
-		if (b == 0)
-			continue;
-
-		char* name = u->materials[i].skill.name;
-		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
-	}
-
-	for (size_t i = 0; i < u->n_iskills; i++)
-	{
-		float b = it->bonus_item[i];
-		if (b == 0)
-			continue;
-
-		char* name = u->iskills[i].name;
-		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
+		int skill = e->skills[i];
+		kindOf_skill_t* k = &u->skills[skill];
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", e->bonuses[i], k->name);
 	}
 
 	return cur;

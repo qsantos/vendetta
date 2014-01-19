@@ -16,32 +16,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "item.h"
+#ifndef U_EFFECT_H
+#define U_EFFECT_H
 
-#include <stdlib.h>
+typedef struct effect effect_t;
 
-#include "../mem.h"
+#include <sys/types.h>
 
-void kindOf_item_init(kindOf_item_t* i)
+struct effect
 {
-	i->name     = NULL;
-	i->skill    = -1;
-	i->category = -1;
+	size_t n_skills;
+	int*   skills;
+	float* bonuses;
+};
 
-	effect_init(&i->effect);
+void effect_init(effect_t* e);
+void effect_exit(effect_t* e);
 
-	i->icon_sprite = -1;
-	i->icon_index  = 0;
-}
+void effect_skill(effect_t* e, int skill, float bonus);
 
-void kindOf_item_exit(kindOf_item_t* i)
-{
-	effect_exit(&i->effect);
-	free(i->name);
-}
-
-void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx)
-{
-	i->icon_sprite = graphics_spriteForImg(g, filename);
-	i->icon_index  = idx;
-}
+#endif

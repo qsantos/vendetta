@@ -16,32 +16,30 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "item.h"
+#include "effect.h"
 
 #include <stdlib.h>
 
 #include "../mem.h"
 
-void kindOf_item_init(kindOf_item_t* i)
+void effect_init(effect_t* e)
 {
-	i->name     = NULL;
-	i->skill    = -1;
-	i->category = -1;
-
-	effect_init(&i->effect);
-
-	i->icon_sprite = -1;
-	i->icon_index  = 0;
+	e->n_skills = 0;
+	e->skills   = NULL;
+	e->bonuses  = NULL;
 }
 
-void kindOf_item_exit(kindOf_item_t* i)
+void effect_exit(effect_t* e)
 {
-	effect_exit(&i->effect);
-	free(i->name);
+	free(e->bonuses);
+	free(e->skills);
 }
 
-void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx)
+void effect_skill(effect_t* e, int skill, float bonus)
 {
-	i->icon_sprite = graphics_spriteForImg(g, filename);
-	i->icon_index  = idx;
+	e->skills  = CREALLOC(e->skills,  int,   e->n_skills+1);
+	e->bonuses = CREALLOC(e->bonuses, float, e->n_skills+1);
+	e->skills [e->n_skills] = skill;
+	e->bonuses[e->n_skills] = bonus;
+	e->n_skills++;
 }

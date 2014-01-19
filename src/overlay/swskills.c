@@ -59,15 +59,17 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 	char caught = 0;
 
 	char buffer[1024];
-	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
+	for (size_t i = 0; i < g->u->n_skills; i++)
 	{
-		skill_t s = g->player->sskills[i];
+		skill_t s = g->player->skills[i];
 		if (s == 1)
 			continue;
 
+		kindOf_skill_t* k = &g->u->skills[i];
+
 		float level;
 		float progress = 100 * modff(s, &level);
-		snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->sskills[i].name, level, progress);
+		snprintf(buffer, 1024, "%s %.0f (%.0f%%)", k->name, level, progress);
 
 		sfText_setPosition(text, (sfVector2f){x,y});
 		sfText_setUTF8(text, buffer);
@@ -80,53 +82,6 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 
 		if (caught)
 			return i;
-	}
-
-	for (size_t i = 0; i < g->u->n_materials; i++)
-	{
-		skill_t s = g->player->mskills[i];
-		if (s == 1)
-			continue;
-
-		float level;
-		float progress = 100 * modff(s, &level);
-		snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->materials[i].skill.name, level, progress);
-
-		sfText_setPosition(text, (sfVector2f){x,y});
-		sfText_setUTF8(text, buffer);
-		if (do_draw)
-			sfRenderWindow_drawText(g->g->render, text, NULL);
-		else
-			caught = sfText_contains(text, mouse);
-
-		y += 20;
-
-		sfFloatRect rect = sfText_getGlobalBounds(text);
-		if (sfFloatRect_contains(&rect, mouse.x, mouse.y))
-			return N_SPECIAL_SKILLS+i;
-	}
-
-	for (size_t i = 0; i < g->u->n_iskills; i++)
-	{
-		skill_t s = g->player->iskills[i];
-		if (s == 1)
-			continue;
-
-		float level;
-		float progress = 100 * modff(s, &level);
-		snprintf(buffer, 1024, "%s %.0f (%.0f%%)", g->u->iskills[i].name, level, progress);
-
-		sfText_setPosition(text, (sfVector2f){x,y});
-		sfText_setUTF8(text, buffer);
-		if (do_draw)
-			sfRenderWindow_drawText(g->g->render, text, NULL);
-		else
-			caught |= sfText_contains(text, mouse);
-
-		y += 20;
-
-		if (caught)
-			return N_SPECIAL_SKILLS + g->u->n_materials + i;
 	}
 
 	if (do_draw)

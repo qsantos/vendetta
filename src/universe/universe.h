@@ -44,10 +44,12 @@ struct universe
 	size_t n_buildings;
 	kindOf_building_t* buildings;
 
-	kindOf_skill_t sskills[N_SPECIAL_SKILLS];
+	size_t n_skills;
+	kindOf_skill_t* skills;
 
+	// TODO: temporary
 	size_t n_iskills;
-	kindOf_skill_t* iskills;
+	int* iskills;
 
 	kindOf_status_t statuses[N_STATUSES];
 

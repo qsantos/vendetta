@@ -49,16 +49,9 @@ void character_init(character_t* c, universe_t* u, world_t* w)
 	c->hasBuilding = NULL;
 	c->inBuilding  = NULL;
 
-	for (int i = 0; i < N_SPECIAL_SKILLS; i++)
-		c->sskills[i] = 1;
-
-	c->mskills = CALLOC(skill_t, u->n_materials);
-	for (size_t i = 0; i < u->n_materials; i++)
-		c->mskills[i] = 1;
-
-	c->iskills = CALLOC(skill_t, u->n_iskills);
-	for (size_t i = 0; i < u->n_iskills; i++)
-		c->iskills[i] = 1;
+	c->skills = CALLOC(skill_t, u->n_skills);
+	for (size_t i = 0; i < u->n_skills; i++)
+		c->skills[i] = 1;
 
 	for (int i = 0; i < N_STATUSES; i++)
 		c->statuses[i] = 20;
@@ -74,8 +67,7 @@ void character_exit(character_t* c)
 		return;
 
 	free(c->equipment);
-	free(c->iskills);
-	free(c->mskills);
+	free(c->skills);
 	inventory_exit(&c->inventory);
 }
 
@@ -102,6 +94,24 @@ void character_weary(character_t* c, float f)
 	c->statuses[ST_MORAL]   = fmax(c->statuses[ST_MORAL]   - f/3, 0);
 }
 
+float character_useSkill(character_t* c, int skill, float duration)
+{
+	float ret = duration * c->skills[skill];
+	/*
+	universe_t* u = c->universe;
+	for (size_t i = 0; i < u->n_slots; i++)
+	{
+		int item = c->equipment[i];
+		if (item < 0)
+			continue;
+		kindOf_item_t* t = &u->items[item];
+		skill += t->bonus_material[id];
+	}
+	*/
+	c->skills[skill] += duration/100;
+	return ret;
+}
+
 void character_workAt(character_t* c, object_t* o, float duration)
 {
 	if (o == NULL)
@@ -110,6 +120,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		return;
 	}
 
+	universe_t* u = c->universe;
 	if (o->t == O_MINE)
 	{
 		mine_t* m = (mine_t*) o;
@@ -119,24 +130,14 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			return;
 
 		int id = tr->res[0].id;
+		kindOf_material_t* t = &u->materials[id];
+		int skill = t->skill;
 
-		float skill = c->mskills[id];
-		universe_t* u = c->universe;
-		for (size_t i = 0; i < u->n_slots; i++)
-		{
-			int item = c->equipment[i];
-			if (item < 0)
-				continue;
-			kindOf_item_t* t = &u->items[item];
-			skill += t->bonus_material[id];
-		}
+		float work = character_useSkill(c, skill, duration);
+		work *= tr->rate;
 
-		float work = duration * tr->rate;
-		work *= skill;
+		transform_apply(tr, &c->inventory, work);
 
-		transform_apply(&m->t->harvest, &c->inventory, work);
-
-		c->mskills[id] += duration/100;
 		character_weary(c, 0.1 * duration);
 	}
 	else if (o->t == O_BUILDING)
@@ -152,19 +153,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		{
 			transform_t* tr = &t->build;
 
-			float skill = c->sskills[SK_BUILD];
-			universe_t* u = c->universe;
-			for (size_t i = 0; i < u->n_slots; i++)
-			{
-				int item = c->equipment[i];
-				if (item < 0)
-					continue;
-				kindOf_item_t* t = &u->items[item];
-				skill += t->bonus_special[SK_BUILD];
-			}
-
-			float work = duration * tr->rate;
-			work *= skill;
+			float work = character_useSkill(c, SK_BUILD, duration);
+			work *= tr->rate;
 
 			float rem = 1 - b->build_progress;
 			if (work > rem)
@@ -172,7 +162,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			b->build_progress += work;
 
-			c->sskills[SK_BUILD] += duration/100;
 			character_weary(c, 0.3 * duration);
 		}
 		else if (b->work_n > 0)
@@ -184,21 +173,12 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			if (tr->n_res == 0 || !tr->res[0].is_item)
 				return;
 
-			int id = c->universe->items[tr->res[0].id].skill;
+			int id = tr->res[0].id;
+			kindOf_item_t* it = &u->items[id];
+			int skill = it->skill;
 
-			float skill = c->iskills[id];
-			universe_t* u = c->universe;
-			for (size_t i = 0; i < u->n_slots; i++)
-			{
-				int item = c->equipment[i];
-				if (item < 0)
-					continue;
-				kindOf_item_t* t = &u->items[item];
-				skill += t->bonus_item[id];
-			}
-
-			float work = duration * tr->rate;
-			work *= skill;
+			float work = character_useSkill(c, skill, duration);
+			work *= tr->rate;
 
 			float rem  = 1 - b->work_progress;
 			if (work > rem)
@@ -211,7 +191,6 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				building_work_dequeue(b, 0);
 			}
 
-			c->iskills[id] += duration/100;
 			character_weary(c, 0.1 * duration);
 		}
 		else
@@ -223,24 +202,14 @@ void character_workAt(character_t* c, object_t* o, float duration)
 				return;
 
 			int id = tr->res[0].id;
+			kindOf_material_t* m = &u->materials[id];
+			int skill = m->skill;
 
-			float skill = c->mskills[id];
-			universe_t* u = c->universe;
-			for (size_t i = 0; i < u->n_slots; i++)
-			{
-				int item = c->equipment[i];
-				if (item < 0)
-					continue;
-				kindOf_item_t* t = &u->items[item];
-				skill += t->bonus_material[id];
-			}
-
-			float work = duration * tr->rate;
-			work *= skill;
+			float work = character_useSkill(c, skill, duration);
+			work *= tr->rate;
 
 			transform_apply(tr, &c->inventory, work);
 
-			c->mskills[id] += duration/100;
 			character_weary(c, 0.1 * duration);
 		}
 	}
