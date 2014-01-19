@@ -109,6 +109,7 @@ float character_useSkill(character_t* c, int skill, float duration)
 	}
 	*/
 	c->skills[skill] += duration/100;
+	character_weary(c, 0.3 * duration);
 	return ret;
 }
 
@@ -135,10 +136,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		float work = character_useSkill(c, skill, duration);
 		work *= tr->rate;
-
 		transform_apply(tr, &c->inventory, work);
-
-		character_weary(c, 0.1 * duration);
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -155,14 +153,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = character_useSkill(c, SK_BUILD, duration);
 			work *= tr->rate;
-
-			float rem = 1 - b->build_progress;
-			if (work > rem)
-				work = rem;
-
+			work = fmin(work, 1 - b->build_progress);
 			b->build_progress += work;
-
-			character_weary(c, 0.3 * duration);
 		}
 		else if (b->work_n > 0)
 		{
@@ -179,19 +171,14 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = character_useSkill(c, skill, duration);
 			work *= tr->rate;
-
-			float rem  = 1 - b->work_progress;
-			if (work > rem)
-				work = rem;
-
+			work = fmin(work, 1 - b->work_progress);
 			b->work_progress += transform_apply(tr, &c->inventory, work);
+
 			if (b->work_progress >= 1)
 			{
 				b->work_progress = 0;
 				building_work_dequeue(b, 0);
 			}
-
-			character_weary(c, 0.1 * duration);
 		}
 		else
 		{
@@ -207,10 +194,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = character_useSkill(c, skill, duration);
 			work *= tr->rate;
-
 			transform_apply(tr, &c->inventory, work);
-
-			character_weary(c, 0.1 * duration);
 		}
 	}
 }
