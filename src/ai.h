@@ -40,6 +40,6 @@ char ai_gather(character_t* c, int id, float amount);
 char ai_make  (character_t* c, int id, float amount);
 char ai_getreq(character_t* c, transform_t* tr, float amount);
 char ai_build (character_t* c, int id);
-char ai_do  (ai_t* ai, character_t* c);
+char ai_do    (ai_t* ai, character_t* c);
 
 #endif

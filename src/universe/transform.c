@@ -67,6 +67,28 @@ void transform_res(transform_t* t, int id, float a, char is_item)
 	t->res[t->n_res++] = (component_t){id, a, is_item, 0};
 }
 
+void transform_add(transform_t* t, transform_t* a, float r)
+{
+	for (int i = 0; i < a->n_req; i++)
+	{
+		component_t* c = &a->req[i];
+		int j = transform_is_req(t, c->id, c->is_item);
+		if (j >= 0)
+			t->req[j].amount += c->amount * r;
+		else
+			transform_req(t, c->id, c->amount * r, c->is_item);
+	}
+	for (int i = 0; i < a->n_res; i++)
+	{
+		component_t* c = &a->res[i];
+		int j = transform_is_res(t, c->id, c->is_item);
+		if (j >= 0)
+			t->res[j].amount += c->amount * r;
+		else
+			transform_res(t, c->id, c->amount * r, c->is_item);
+	}
+}
+
 int transform_check(transform_t* t, inventory_t* inv)
 {
 	for (int i = 0; i < t->n_req; i++)
@@ -129,25 +151,25 @@ float transform_apply(transform_t* t, inventory_t* inv, float ratio)
 	return ratio;
 }
 
-char transform_is_req(transform_t* t, int id, char is_item)
+int transform_is_req(transform_t* t, int id, char is_item)
 {
 	for (int i = 0; i < t->n_req; i++)
 	{
 		component_t* c = &t->req[i];
 		if (c->id == id && c->is_item == is_item)
-			return 1;
+			return i;
 	}
-	return 0;
+	return -1;
 }
 
-char transform_is_res(transform_t* t, int id, char is_item)
+int transform_is_res(transform_t* t, int id, char is_item)
 {
 	for (int i = 0; i < t->n_res; i++)
 	{
 		component_t* c = &t->res[i];
 		if (c->id == id && c->is_item == is_item)
-			return 1;
+			return i;
 	}
-	return 0;
+	return -1;
 }
 

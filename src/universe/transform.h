@@ -50,12 +50,13 @@ void transform_copy(transform_t* t, transform_t* from);
 
 void transform_req(transform_t* t, int id, float a, char is_item);
 void transform_res(transform_t* t, int id, float a, char is_item);
+void transform_add(transform_t* t, transform_t* a, float r);
 
 int   transform_check(transform_t* t, struct inventory* inv);
 float transform_ratio(transform_t* t, struct inventory* inv, float max_ratio);
 float transform_apply(transform_t* t, struct inventory* inv, float ratio);
 
-char transform_is_req(transform_t* t, int id, char is_item);
-char transform_is_res(transform_t* t, int id, char is_item);
+int transform_is_req(transform_t* t, int id, char is_item);
+int transform_is_res(transform_t* t, int id, char is_item);
 
 #endif

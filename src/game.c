@@ -45,6 +45,8 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 	size_t i = 0;
 	FOREACH_FILE("bots/", ai_load(&g->bots[i++], path););
 
+	printf("Loaded %zu bots\n", g->n_bots);
+
 	for (size_t i = 0; i < g->w->n_characters; i++)
 	{
 		character_t* c = &g->w->characters[i];

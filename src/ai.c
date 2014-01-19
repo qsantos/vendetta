@@ -94,7 +94,6 @@ void ai_load(ai_t* ai, const char* filename)
 	fclose(f);
 }
 
-
 char ai_gather(character_t* c, int id, float amount)
 {
 	amount -= c->inventory.materials[id];
@@ -105,7 +104,7 @@ char ai_gather(character_t* c, int id, float amount)
 	for (size_t i = 0; i < u->n_mines; i++)
 	{
 		kindOf_mine_t* t = &u->mines[i];
-		if (transform_is_res(&t->harvest, id, 0))
+		if (transform_is_res(&t->harvest, id, 0) >= 0)
 		{
 			character_goMine(c, t);
 			return 1;
@@ -120,8 +119,14 @@ char ai_gather(character_t* c, int id, float amount)
 		if (tr == NULL)
 			continue;
 
-		if (ai_getreq(c, tr, amount))
+		transform_t tmp;
+		transform_copy(&tmp, &t->build);
+		transform_add (&tmp, tr, amount);
+
+		if (ai_getreq(c, &tmp, 1))
 			return 1;
+
+		transform_exit(&tmp);
 
 		if (ai_build(c, i))
 			return 1;
@@ -141,6 +146,7 @@ char ai_gather(character_t* c, int id, float amount)
 
 	return 1;
 }
+
 char ai_make(character_t* c, int id, float amount)
 {
 	amount -= c->inventory.items[id];
@@ -156,8 +162,17 @@ char ai_make(character_t* c, int id, float amount)
 		if (tr == NULL)
 			continue;
 
-		if (ai_getreq(c, tr, amount))
+		transform_t tmp;
+		transform_init(&tmp);
+		transform_add(&tmp, tr, amount);
+
+		if (c->hasBuilding == NULL || c->hasBuilding->t != t)
+			transform_add(&tmp, &t->build, 1);
+
+		if (ai_getreq(c, &tmp, 1))
 			return 1;
+
+		transform_exit(&tmp);
 
 		if (ai_build(c, i))
 			return 1;
@@ -182,6 +197,7 @@ char ai_make(character_t* c, int id, float amount)
 	building_work_enqueue(b, nth);
 	return 1;
 }
+
 char ai_getreq(character_t* c, transform_t* tr, float amount)
 {
 	for (int i = 0; i < tr->n_req; i++)
@@ -192,6 +208,7 @@ char ai_getreq(character_t* c, transform_t* tr, float amount)
 	}
 	return 0;
 }
+
 char ai_build(character_t* c, int id)
 {
 	kindOf_building_t* t = &c->universe->buildings[id];
@@ -205,6 +222,7 @@ char ai_build(character_t* c, int id)
 	character_buildAuto(c, t);
 	return 1;
 }
+
 char ai_do(ai_t* ai, character_t* c)
 {
 	transform_t* tr = &ai->inventory;
