@@ -359,7 +359,7 @@ char character_buildAuto(character_t* c, kindOf_building_t* t)
 
 	character_delHome(c);
 
-	for (float radius = 50; radius < 500; radius += 10)
+	for (float radius = 50; radius < c->world->o.w; radius *= 1.5)
 	{
 		float x = c->o.x + cfrnd(radius);
 		float y = c->o.y + cfrnd(radius);
