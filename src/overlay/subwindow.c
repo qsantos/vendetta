@@ -118,6 +118,9 @@ char subwindow_catch(subwindow_t* w, int x, int y, int t)
 
 char subwindow_wheel(subwindow_t* w, int x, int y, int delta)
 {
+	if (!w->visible)
+		return 0;
+
 	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
 	if (!sfFloatRect_contains(&rect, x, y))
 		return 0;
