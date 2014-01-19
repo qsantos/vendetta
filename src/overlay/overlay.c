@@ -209,7 +209,14 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 	int i = overlay_draw(o, g, 0);
 	if (i >= 0)
 	{
-		g->autoEat[i] ^= 1;
+		if (t == sfMouseLeft)
+		{
+			character_eatFor(g->player, i);
+		}
+		else if (t == sfMouseRight)
+		{
+			g->autoEat[i] ^= 1;
+		}
 		return 1;
 	}
 
