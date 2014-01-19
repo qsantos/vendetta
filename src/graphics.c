@@ -177,7 +177,7 @@ void graphics_drawTooltip(graphics_t* g, float x, float y, const char* txt)
 		sfText_setColor        (text, sfBlack);
 
 		frame = sfRectangleShape_create();
-		sfRectangleShape_setFillColor(frame, sfWhite);
+		sfRectangleShape_setFillColor(frame, (sfColor){255,255,255,223});
 		sfRectangleShape_setOutlineColor(frame, sfBlack);
 		sfRectangleShape_setOutlineThickness(frame, 1);
 	}
@@ -204,7 +204,7 @@ void graphics_drawScrollBar(graphics_t* g, float x, float y, float w, float h, f
 	if (cursor == NULL)
 	{
 		cursor = sfRectangleShape_create();
-		sfRectangleShape_setFillColor(cursor, (sfColor){70,70,102,128});
+		sfRectangleShape_setFillColor(cursor, (sfColor){70,70,102,127});
 	}
 
 	r = fmin(r, 1);
