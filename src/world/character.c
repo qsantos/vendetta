@@ -260,7 +260,8 @@ void character_doRound(character_t* c, float duration)
 		 dir < M_PI * 7/4 ? D_NORTH :
 		                     D_EAST;
 
-	float distance = 100 * duration;
+	float distance = character_useSkill(c, SK_WALK, duration);
+	distance *= 100;
 
 	c->inWater = 0;
 	world_t* w = c->world;
@@ -280,8 +281,7 @@ void character_doRound(character_t* c, float duration)
 		}
 	}
 
-	if (distance > remDistance)
-		distance = remDistance;
+	distance = fmin(distance, remDistance);
 
 	c->o.x += distance * cos(dir);
 	c->o.y += distance * sin(dir);
@@ -296,8 +296,6 @@ void character_doRound(character_t* c, float duration)
 	c->step += 0.1 * distance;
 	if (c->step >= 4)
 		c->step = 0;
-
-	character_weary(c, 0.02*duration);
 }
 
 void character_setPosition(character_t* c, float x, float y)

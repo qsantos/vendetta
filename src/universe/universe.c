@@ -188,6 +188,12 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			effect_skill(&it->effect, skill, atof(v));
 		}
 
+		char* walking = cfg_getString(s, "BonusDeplacement");
+		if (walking != NULL)
+		{
+			effect_skill(&it->effect, SK_WALK, atof(walking));
+		}
+
 		cfg_array_t* mboni = cfg_getArray(s, "BonusCompetencesRessources");
 		if (mboni != NULL)
 		for (size_t i = 0; i < mboni->n; i++)

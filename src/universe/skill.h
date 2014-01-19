@@ -27,6 +27,7 @@ typedef enum
 	SK_DESTROY,
 	SK_CRITICAL,
 	SK_TRADE,
+	SK_WALK,
 	N_SPECIAL_SKILLS,
 } specialSkill_t;
 
