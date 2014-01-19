@@ -20,6 +20,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "../mem.h"
 #include "../rand.h"
@@ -405,4 +406,94 @@ char character_delHome(character_t* c)
 	world_delBuilding(c->world, c->hasBuilding);
 	c->hasBuilding = NULL;
 	return 1;
+}
+
+size_t character_currentAction(character_t* c, char* buffer, size_t n)
+{
+	size_t cur = 0;
+
+	if (c->go_o != NULL)
+	{
+		c->go_x = c->go_o->x;
+		c->go_y = c->go_o->y;
+	}
+	float dx = c->go_x - c->o.x;
+	float dy = c->go_y - c->o.y;
+	if (dx != 0 || dy != 0)
+	{
+		cur += snprintf(buffer+cur, n-cur, "Marcher");
+		return cur;
+	}
+
+	object_t* o = c->go_o;
+	if (o == NULL)
+	{
+		cur += snprintf(buffer+cur, n-cur, "Attendre");
+		return cur;
+	}
+
+	universe_t* u = c->universe;
+	if (o->t == O_MINE)
+	{
+		mine_t* m = (mine_t*) o;
+		transform_t* tr = &m->t->harvest;
+
+		if (tr->n_res == 0 || tr->res[0].is_item)
+			return cur;
+
+		int id = tr->res[0].id;
+		kindOf_material_t* t = &u->materials[id];
+		int skill = t->skill;
+
+		float amount = c->inventory.materials[id];
+		float max = character_maxOf(c, t);
+		cur += snprintf(buffer+cur, n-cur, "%s (%.0f / %0.f)", u->skills[skill].name, amount, max);
+	}
+	else if (o->t == O_BUILDING)
+	{
+		building_t* b = (building_t*) o;
+
+		if (b->owner != c)
+			return cur;
+
+		kindOf_building_t* t = b->t;
+
+		if (b->build_progress != 1)
+		{
+			cur += snprintf(buffer+cur, n-cur, "%s", u->skills[SK_BUILD].name);
+		}
+		else if (b->work_n > 0)
+		{
+			transform_t* tr = &t->items[b->work_list[0]];
+
+			if (tr->n_res == 0 || !tr->res[0].is_item)
+				return cur;
+
+			int id = tr->res[0].id;
+			kindOf_item_t* it = &u->items[id];
+
+			cur += snprintf(buffer, 1024, "%s (%i%%)", it->name, (int) floor(100*b->work_progress));
+		}
+		else if (t->make.n_res != 0)
+		{
+			c->inBuilding = b;
+			transform_t* tr = &t->make;
+
+			if (tr->n_res == 0 || tr->res[0].is_item)
+				return cur;
+
+			int id = tr->res[0].id;
+			kindOf_material_t* t = &u->materials[id];
+			int skill = t->skill;
+
+			float amount = c->inventory.materials[id];
+			float max = character_maxOf(c, t);
+			cur += snprintf(buffer+cur, n-cur, "%s (%.0f / %0.f)", u->skills[skill].name, amount, max);
+		}
+	}
+
+	if (cur == 0)
+		cur += snprintf(buffer+cur, n-cur, "Attendre");
+
+	return cur;
 }

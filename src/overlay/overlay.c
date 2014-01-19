@@ -173,10 +173,14 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 	overlay_cursor(o, g);
 
 	char buffer[1024];
+	character_currentAction(g->player, buffer, 1024);
+	sfText_setUTF8(text, buffer);
+	sfText_setPosition(text, (sfVector2f){180, size.y - 30});
+	sfRenderWindow_drawText(g->g->render, text, NULL);
+
 	snprintf(buffer, 1024, "FPS: %.0f", floor(g->g->fps));
 	sfText_setUTF8(text, buffer);
-	sfVector2f pos = {size.x - 80, size.y - 30};
-	sfText_setPosition(text, pos);
+	sfText_setPosition(text, (sfVector2f){size.x - 80, size.y - 30});
 	sfRenderWindow_drawText(g->g->render, text, NULL);
 
 	return -1;
