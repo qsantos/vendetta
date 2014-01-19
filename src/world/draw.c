@@ -59,6 +59,23 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 		pos.y += 12;
 		rect.height -= 12;
 	}
+	else if (c == player)
+	{
+		static sfCircleShape* circle = NULL;
+		static const float radius = 10;
+		static const float scale = 0.75;
+		if (circle == NULL)
+		{
+			circle = sfCircleShape_create();
+			sfCircleShape_setRadius(circle, radius);
+			sfCircleShape_setScale(circle, (sfVector2f){1,scale});
+			sfCircleShape_setFillColor(circle, sfTransparent);
+			sfCircleShape_setOutlineColor(circle, sfWhite);
+			sfCircleShape_setOutlineThickness(circle, 1);
+		}
+		sfCircleShape_setPosition(circle, (sfVector2f){c->o.x-radius, c->o.y-radius*scale});
+		sfRenderWindow_drawCircleShape(g->render, circle, NULL);
+	}
 
 	sfSprite_setTextureRect(sprite, rect);
 	sfSprite_setPosition(sprite, pos);
