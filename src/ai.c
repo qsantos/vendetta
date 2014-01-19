@@ -25,6 +25,7 @@
 
 void ai_init(ai_t* ai)
 {
+	ai->name = NULL;
 	transform_init(&ai->inventory);
 	ai->building = -1;
 }
@@ -32,6 +33,7 @@ void ai_init(ai_t* ai)
 void ai_exit(ai_t* ai)
 {
 	transform_exit(&ai->inventory);
+	free(ai->name);
 }
 
 void ai_load(ai_t* ai, const char* filename)
@@ -44,6 +46,14 @@ void ai_load(ai_t* ai, const char* filename)
 	}
 
 	fprintf(stderr, "Parsing bot '%s'\n", filename);
+
+	char* s = strrchr(filename, '/');
+	char* e = strrchr(filename, '.');
+	if (s != NULL && e != NULL)
+	{
+		*e = 0;
+		ai->name = strdup(s+1);
+	}
 
 	int age = 0;
 

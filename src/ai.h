@@ -25,6 +25,7 @@ typedef struct ai ai_t;
 
 struct ai
 {
+	char*       name;
 	transform_t inventory;
 	int         building;
 };

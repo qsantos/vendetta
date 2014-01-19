@@ -69,8 +69,18 @@ void overlay_cursor(overlay_t* o, game_t* g)
 		object_t* o = world_objectAt(g->w, pos.x, pos.y);
 		if (o != NULL)
 		{
-			if (o->t == O_MINE)
+			if (o->t == O_CHARACTER)
+			{
+				character_t* c = (character_t*) o;
+				if (c->ai != NULL)
+				{
+					graphics_drawTooltip(g->g, mouse.x, mouse.y, c->ai->name);
+				}
+			}
+			else if (o->t == O_MINE)
+			{
 				cursor = 1;
+			}
 			else if (o->t == O_BUILDING)
 			{
 				building_t* b = (building_t*) o;
