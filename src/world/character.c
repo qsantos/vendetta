@@ -96,8 +96,9 @@ void character_weary(character_t* c, float f)
 
 float character_useSkill(character_t* c, int skill, float duration)
 {
-	float ret = duration * c->skills[skill];
-	/*
+	float ret = c->skills[skill];
+
+	// bonuses
 	universe_t* u = c->universe;
 	for (size_t i = 0; i < u->n_slots; i++)
 	{
@@ -105,11 +106,20 @@ float character_useSkill(character_t* c, int skill, float duration)
 		if (item < 0)
 			continue;
 		kindOf_item_t* t = &u->items[item];
-		skill += t->bonus_material[id];
+		effect_t* e = &t->effect;
+		for (size_t j = 0; j < e->n_skills; j++)
+			if (e->skills[j] == skill)
+			{
+				ret += e->bonuses[j];
+				break;
+			}
 	}
-	*/
+
+	// time effects
+	ret *= duration;
 	c->skills[skill] += duration/100;
 	character_weary(c, 0.3 * duration);
+
 	return ret;
 }
 
