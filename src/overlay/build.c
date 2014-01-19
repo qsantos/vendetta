@@ -299,9 +299,8 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, mouse, g->g->world_view);
 		pos.y += b->height / 2;
 
-		character_buildAt(g->player, b, pos.x, pos.y);
-
-		o->selected = NULL;
+		if (character_buildAt(g->player, b, pos.x, pos.y))
+			o->selected = NULL;
 		return 1;
 	}
 
