@@ -241,16 +241,25 @@ int world_landAt(world_t* w, float x, float y)
 object_t* world_objectAt(world_t* w, float x, float y)
 {
 	for (size_t i = 0; i < w->n_buildings; i++)
-		if (object_isAt((object_t*) w->buildings[i], x, y))
-			return (object_t*) w->buildings[i];
+	{
+		building_t* b = w->buildings[i];
+		if (b != NULL && object_isAt(&b->o, x, y))
+			return &b->o;
+	}
 
 	for (size_t i = 0; i < w->n_mines; i++)
-		if (object_isAt((object_t*) &w->mines[i], x, y))
-			return (object_t*) &w->mines[i];
+	{
+		mine_t* m = &w->mines[i];
+		if (object_isAt(&m->o, x, y))
+			return &m->o;
+	}
 
 	for (size_t i = 0; i < w->n_characters; i++)
-		if (object_isAt((object_t*) &w->characters[i], x, y))
-			return (object_t*) &w->characters[i];
+	{
+		character_t* c = &w->characters[i];
+		if (object_isAt(&c->o, x, y))
+			return &c->o;
+	}
 
 	return NULL;
 }
@@ -315,8 +324,11 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 			return 0;
 
 	for (size_t i = 0; i < w->n_buildings; i++)
-		if (object_overlaps(&w->buildings[i]->o, &o))
+	{
+		building_t* b = w->buildings[i];
+		if (b != NULL && object_overlaps(&b->o, &o))
 			return 0;
+	}
 
 	return 1;
 }

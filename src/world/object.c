@@ -25,12 +25,6 @@
 
 char object_overlaps(object_t* o, object_t* a)
 {
-	if (o == NULL)
-		return 0;
-
-	if (a == NULL)
-		return 0;
-
 	float dx = a->x - o->x;
 	float dy = a->y - o->y;
 	char hori = fabs(dx) <= (a->w + o->w)/2;
@@ -40,12 +34,6 @@ char object_overlaps(object_t* o, object_t* a)
 
 char object_contains(object_t* o, object_t* a)
 {
-	if (o == NULL)
-		return 0;
-
-	if (a == NULL)
-		return 0;
-
 	char hori = o->x-o->w/2 <= a->x-a->w/2 && a->x+a->w/2 <= o->x+o->w/2;
 	char vert = o->y-o->h   <= a->y-a->h   && a->y        <= o->y;
 	return hori && vert;
@@ -53,17 +41,11 @@ char object_contains(object_t* o, object_t* a)
 
 char object_isAt(object_t* o, float x, float y)
 {
-	if (o == NULL)
-		return 0;
-
 	return fabs(x - o->x) <= o->w/2 && o->y - o->h <= y && y <= o->y;
 }
 
 float object_distance(object_t* o, float x, float y)
 {
-	if (o == NULL)
-		return 0;
-
 	float dx = x - o->x;
 	float dy = y - o->y;
 	return sqrt(dx*dx + dy*dy);
