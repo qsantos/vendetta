@@ -357,6 +357,8 @@ char character_delHome(character_t* c)
 	// TODO: there might be other pointers...
 	if (c->go_o == &c->hasBuilding->o)
 		c->go_o = NULL;
+	if (c->inBuilding == c->hasBuilding)
+		c->inBuilding = NULL;
 
 	world_delBuilding(c->world, c->hasBuilding);
 	c->hasBuilding = NULL;
