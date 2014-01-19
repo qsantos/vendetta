@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "draw_tilemap.h"
+
 void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 {
 	sfVector2f pos = {o->x - o->w/2, o->y - o->h};
@@ -103,70 +105,7 @@ void draw_building(graphics_t* g, building_t* b)
 
 void draw_world(graphics_t* g, world_t* w)
 {
-	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
-	static sfVertexArray* array = NULL;
-	if (array == NULL)
-	{
-		sfTexture* texture = sfTexture_createFromFile("lands.png", NULL);
-
-		int x = w->rows;
-		int y = w->cols;
-		array = sfVertexArray_create();
-		sfVertexArray_setPrimitiveType(array, sfQuads);
-		sfVertexArray_resize(array, x*y*4);
-
-		for (int i = 0; i < x; i++)
-			for (int j = 0; j < y; j++)
-			{
-				sfVertex* v = sfVertexArray_getVertex(array, (j*x+i)*4);
-
-				float a = (i-x/2)*16;
-				float b = (j-y/2)*16;
-				v[0].position = (sfVector2f){a+ 0,b+ 0};
-				v[1].position = (sfVector2f){a+16,b+ 0};
-				v[2].position = (sfVector2f){a+16,b+16};
-				v[3].position = (sfVector2f){a+ 0,b+16};
-
-				for (int k = 0; k < 4; k++)
-					v[k].color = sfWhite;
-
-				int t = TERRAIN(w,i,j);
-				a = 16*(t%16);
-				b = 16*(t/16);
-				v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
-				v[1].texCoords = (sfVector2f){a+15.99,b+ 0.01};
-				v[2].texCoords = (sfVector2f){a+15.99,b+15.99};
-				v[3].texCoords = (sfVector2f){a+ 0.01,b+15.99};
-			}
-
-		states.texture = texture;
-	}
-	static int water_step = 0;
-	int cur_step = (int)g->step % 4;
-	if (cur_step != water_step)
-	{
-		water_step = cur_step;
-
-		int x = w->rows;
-		int y = w->cols;
-		for (int i = 0; i < x; i++)
-		for (int j = 0; j < y; j++)
-		{
-			int t = TERRAIN(w,i,j);
-			if (!(160 <= t && t < 176))
-				continue;
-			t += 16*(water_step == 3 ? 1 : water_step);
-			float a = 16*(t%16);
-			float b = 16*(t/16);
-			sfVertex* v = sfVertexArray_getVertex(array, (j*x+i)*4);
-			v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
-			v[1].texCoords = (sfVector2f){a+15.99,b+ 0.01};
-			v[2].texCoords = (sfVector2f){a+15.99,b+15.99};
-			v[3].texCoords = (sfVector2f){a+ 0.01,b+15.99};
-		}
-	}
-
-	sfRenderWindow_drawVertexArray(g->render, array, &states);
+	draw_tilemap(g, w);
 
 	for (size_t i = 0; i < w->n_buildings; i++)
 		draw_building(g, w->buildings[i]);
