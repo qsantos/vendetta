@@ -340,9 +340,11 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 
 		char* walking = cfg_getString(s, "BonusDeplacement");
 		if (walking != NULL)
-		{
 			effect_skill(&it->effect, SK_WALK, atof(walking));
-		}
+
+		char* attack = cfg_getString(s, "BonusAttaque");
+		if (attack != NULL)
+			effect_skill(&it->effect, SK_ATTACK, atof(attack));
 
 		cfg_array_t* mboni = cfg_getArray(s, "BonusCompetencesRessources");
 		if (mboni != NULL)
