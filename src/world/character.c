@@ -253,6 +253,29 @@ void character_eatFor(character_t* c, int status)
 	}
 }
 
+
+void character_attack(character_t* c, object_t* o)
+{
+	if (c->statuses[ST_ATTACK] < 7)
+		return;
+	c->statuses[ST_ATTACK] -= 7;
+
+	if (o->t == O_CHARACTER)
+	{
+		character_t* t = (character_t*) o;
+		float work = character_getSkill(c, SK_ATTACK);
+		work = character_attacked(t, work, c);
+		character_train(c, SK_ATTACK, work);
+	}
+	else if (o->t == O_BUILDING)
+	{
+		building_t* t = (building_t*) o;
+		float work = character_getSkill(c, SK_DESTROY);
+		work = building_attacked(t, work, c);
+		character_train(c, SK_DESTROY, work);
+	}
+}
+
 void character_move(character_t* c, float duration, float dx, float dy)
 {
 	c->inBuilding = NULL;
@@ -334,6 +357,8 @@ void character_doRound(character_t* c, float duration)
 
 	duration *= character_vitality(c);
 
+	c->statuses[ST_ATTACK] = fmin(c->statuses[ST_ATTACK] + 7*duration, 20);
+
 	float go_x = c->go_x;
 	float go_y = c->go_y;
 	if (c->go_o != NULL)
@@ -353,23 +378,13 @@ void character_doRound(character_t* c, float duration)
 		{
 			character_t* t = (character_t*) c->go_o;
 			if (t != c)
-			{
-				float work = duration * character_getSkill(c, SK_ATTACK);
-				work = character_attacked(t, work, c);
-				character_train(c, SK_ATTACK, work);
-				return;
-			}
+				character_attack(c, &t->o);
 		}
 		else if (c->go_o->t == O_BUILDING)
 		{
 			building_t* b = (building_t*) c->go_o;
 			if (b->owner != c)
-			{
-				float work = duration * character_getSkill(c, SK_DESTROY);
-				work = building_attacked(b, work, c);
-				character_train(c, SK_DESTROY, work);
-				return;
-			}
+				character_attack(c, &b->o);
 		}
 	}
 

@@ -103,6 +103,7 @@ universe_t* universe_init(graphics_t* g)
 	u->statuses[ST_STAMINA].name = "Énergie";
 	u->statuses[ST_MORAL]  .name = "Moral";
 	u->statuses[ST_MANA]   .name = "Magie";
+	u->statuses[ST_ATTACK] .name = "Attaque";
 
 	u->n_categories = 11;
 	u->categories = CALLOC(kindOf_category_t, u->n_categories);
