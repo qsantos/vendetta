@@ -190,7 +190,7 @@ void game_loop(game_t* g)
 
 				sfVector2i pix = {e->x, e->y};
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
-				object_t* o = world_objectAt(g->w, pos.x, pos.y);
+				object_t* o = world_objectAt(g->w, pos.x, pos.y, &g->player->o);
 
 				g->player->go_x = pos.x;
 				g->player->go_y = pos.y;

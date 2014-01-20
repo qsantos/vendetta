@@ -65,7 +65,7 @@ void world_randMine(world_t* w, mine_t* m);
 void world_doRound(world_t* w, float duration);
 
 int         world_landAt      (world_t* w, float x, float y);
-object_t*   world_objectAt    (world_t* w, float x, float y);
+object_t*   world_objectAt    (world_t* w, float x, float y, object_t* ignore);
 mine_t*     world_findMine    (world_t* w, float x, float y, kindOf_mine_t* t);
 building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* t);
 char        world_canBuild    (world_t* w, float x, float y, kindOf_building_t* t);

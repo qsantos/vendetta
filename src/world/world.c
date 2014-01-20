@@ -245,12 +245,14 @@ int world_landAt(world_t* w, float x, float y)
 	return TERRAIN(w,i,j) / 16;
 }
 
-object_t* world_objectAt(world_t* w, float x, float y)
+object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 {
 	for (size_t i = 0; i < w->n_characters; i++)
 	{
 		character_t* c = &w->characters[i];
 		if (!c->alive)
+			continue;
+		if (&c->o == ignore)
 			continue;
 		if (object_isAt(&c->o, x, y))
 			return &c->o;
@@ -259,6 +261,8 @@ object_t* world_objectAt(world_t* w, float x, float y)
 	for (size_t i = 0; i < w->n_mines; i++)
 	{
 		mine_t* m = &w->mines[i];
+		if (&m->o == ignore)
+			continue;
 		if (object_isAt(&m->o, x, y))
 			return &m->o;
 	}
@@ -266,6 +270,8 @@ object_t* world_objectAt(world_t* w, float x, float y)
 	for (size_t i = 0; i < w->n_buildings; i++)
 	{
 		building_t* b = w->buildings[i];
+		if (&b->o == ignore)
+			continue;
 		if (b != NULL && object_isAt(&b->o, x, y))
 			return &b->o;
 	}
@@ -342,7 +348,7 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 	return 1;
 }
 
-building_t* world_addBuilding (world_t* w, float x, float y, kindOf_building_t* t, character_t* c)
+building_t* world_addBuilding(world_t* w, float x, float y, kindOf_building_t* t, character_t* c)
 {
 	if (w->n_buildings == w->a_buildings)
 	{

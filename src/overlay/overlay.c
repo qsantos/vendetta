@@ -78,7 +78,7 @@ void overlay_cursor(overlay_t* o, game_t* g)
 	else
 	{
 		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, mouse, g->g->world_view);
-		object_t* o = world_objectAt(g->w, pos.x, pos.y);
+		object_t* o = world_objectAt(g->w, pos.x, pos.y, &g->player->o);
 		if (o != NULL)
 		{
 			if (o->t == O_CHARACTER)
