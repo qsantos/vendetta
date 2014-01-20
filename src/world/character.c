@@ -358,7 +358,7 @@ void character_doRound(character_t* c, float duration)
 			if (b->owner != c)
 			{
 				float work = duration * character_getSkill(c, SK_DESTROY);
-				b->life -= work;
+				work = building_attacked(b, work, c);
 				character_train(c, SK_DESTROY, work);
 				return;
 			}

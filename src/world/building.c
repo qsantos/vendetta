@@ -59,6 +59,26 @@ float building_build(building_t* b, float work)
 	return work;
 }
 
+float building_attacked(building_t* b, float work, character_t* a)
+{
+	work = fmin(work, b->life);
+	b->life -= work;
+	if (b->life <= 0)
+	{
+		// TODO: there might be other pointers
+		a->go_o = NULL;
+		character_t* o = b->owner;
+		if (o->inBuilding == b)
+			o->inBuilding = NULL;
+		if (o->hasBuilding == b)
+			o->hasBuilding = NULL;
+
+		world_t* w = a->world;
+		world_delBuilding(w, b);
+	}
+	return work;
+}
+
 void building_work_enqueue(building_t* b, int c)
 {
 	int i = b->work_n++;

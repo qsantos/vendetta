@@ -43,7 +43,8 @@ struct building
 void building_init(building_t* b, kindOf_building_t* t, character_t* owner, float x, float y);
 void building_exit(building_t* b);
 
-float building_build(building_t* b, float work);
+float building_build   (building_t* b, float work);
+float building_attacked(building_t* b, float work, character_t* a);
 
 void building_work_enqueue(building_t* b, int c);
 void building_work_dequeue(building_t* b, size_t n);
