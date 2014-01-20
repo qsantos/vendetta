@@ -21,6 +21,7 @@
 
 typedef struct universe universe_t;
 
+#include "event.h"
 #include "character.h"
 #include "material.h"
 #include "item.h"
@@ -34,6 +35,9 @@ typedef struct universe universe_t;
 
 struct universe
 {
+	size_t n_events;
+	kindOf_event_t* events;
+
 	size_t n_characters;
 	kindOf_character_t* characters;
 
@@ -74,6 +78,7 @@ struct universe
 universe_t* universe_init(graphics_t* g);
 void        universe_exit(universe_t* u);
 
+void universe_init_events   (universe_t* u, graphics_t* g, cfg_group_t* gr);
 void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr);
 void universe_init_mines    (universe_t* u, graphics_t* g, cfg_group_t* gr);
 void universe_init_iskills  (universe_t* u, graphics_t* g, cfg_group_t* gr);

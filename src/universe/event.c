@@ -16,33 +16,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "item.h"
+#include "event.h"
 
-#include <stdlib.h>
+#include <stdio.h>
 
-#include "../mem.h"
-
-void kindOf_item_init(kindOf_item_t* i)
+void kindOf_event_init(kindOf_event_t* e)
 {
-	i->name     = NULL;
-
-	i->skill    = -1;
-	i->category = -1;
-	effect_init(&i->effect);
-	i->event    = -1;
-
-	i->icon_sprite = -1;
-	i->icon_index  = 0;
+	e->sprite = -1;
 }
 
-void kindOf_item_exit(kindOf_item_t* i)
+void kindOf_event_exit(kindOf_event_t* e)
 {
-	effect_exit(&i->effect);
-	free(i->name);
+	(void) e;
 }
 
-void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx)
+void kindOf_event_sprite(kindOf_event_t* e, graphics_t* g, const char* filename)
 {
-	i->icon_sprite = graphics_spriteForImg(g, filename);
-	i->icon_index  = idx;
+	char s[1024];
+	snprintf(s, 1024, "events/%s", filename);
+	e->sprite = graphics_spriteForImg(g, s);
 }

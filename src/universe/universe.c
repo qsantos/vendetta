@@ -77,6 +77,7 @@ universe_t* universe_init(graphics_t* g)
 	}
 
 	// apply rest of configuration
+	universe_init_events   (u, g, cfg_ini_group(&ini, "Effet"));
 	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
 	universe_init_mines    (u, g, cfg_ini_group(&ini, "TerrainRessource"));
 	universe_init_iskills  (u, g, cfg_ini_group(&ini, "CompetenceObjet"));
@@ -176,6 +177,25 @@ void universe_exit(universe_t* u)
 	free(u->materials);
 
 	free(u);
+}
+
+void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
+{
+	if (gr == NULL)
+		return;
+
+	u->n_events = gr->n_sections;
+	u->events   = CALLOC(kindOf_event_t, u->n_events);
+	for (size_t i = 0; i < u->n_events; i++)
+	{
+		cfg_section_t*  s = &gr->sections[i];
+		kindOf_event_t* e = &u->events[i];
+
+		char* image_file = cfg_getString(s, "Fichier");
+		if (image_file != NULL)
+			kindOf_event_sprite(e, g, image_file);
+		free(image_file);
+	}
 }
 
 void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
@@ -301,6 +321,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 
 		int iskill = cfg_getInt(s, "Competence") - 1;
 		it->skill = u->iskills[iskill];
+
+		it->event = cfg_getInt(s, "EffetAttaque") - 1;
 
 		transform_init(t);
 		transform_res(t, i, 1, 1);
