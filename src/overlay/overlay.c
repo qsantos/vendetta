@@ -35,6 +35,8 @@ overlay_t* overlay_init(graphics_t* g)
 	   swskills_init(&o->swskills,    g);
 	swequipment_init(&o->swequipment, g);
 
+	o->selected = -1;
+
 	return o;
 }
 
@@ -204,6 +206,36 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 	return -1;
 }
 
+void overlay_move(overlay_t* o, game_t* g, int x, int y)
+{
+	(void) x;
+	(void) y;
+
+	sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
+	sfVector2f mouse = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->overlay_view);
+
+	subwindow_t* w;
+	switch (o->selected)
+	{
+		case 0:  w=&o->swbuilding .w; break;
+		case 1:  w=&o->switems    .w; break;
+		case 2:  w=&o->swmaterials.w; break;
+		case 3:  w=&o->swskills   .w; break;
+		case 4:  w=&o->swequipment.w; break;
+		default: w=NULL;
+	}
+	if (w != NULL)
+	{
+		float dx = mouse.x - o->lastx;
+		float dy = mouse.y - o->lasty;
+		w->x += dx;
+		w->y += dy;
+	}
+
+	o->lastx = mouse.x;
+	o->lasty = mouse.y;
+}
+
 int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 {
 	int i = overlay_draw(o, g, 0);
@@ -220,14 +252,43 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 		return 1;
 	}
 
-	return
-	   ov_build_catch(&o->build,       g, x, y, t) ||
-	 swbuilding_catch(&o->swbuilding,  g, x, y, t) ||
-	    switems_catch(&o->switems,     g, x, y, t) ||
-	swmaterials_catch(&o->swmaterials, g, x, y, t) ||
-	   swskills_catch(&o->swskills,    g, x, y, t) ||
-	swequipment_catch(&o->swequipment, g, x, y, t) ||
-	0;
+	if (t == sfMouseLeft)
+	{
+		return
+		 swbuilding_catch(&o->swbuilding,  g, x, y, t) ||
+		    switems_catch(&o->switems,     g, x, y, t) ||
+		swmaterials_catch(&o->swmaterials, g, x, y, t) ||
+		   swskills_catch(&o->swskills,    g, x, y, t) ||
+		swequipment_catch(&o->swequipment, g, x, y, t) ||
+		   ov_build_catch(&o->build,       g, x, y, t) ||
+		0;
+	}
+	else if (t == -sfMouseRight)
+	{
+		int id =
+		subwindow_catch(&o->swbuilding.w,  x, y, t) ? 0 :
+		subwindow_catch(&o->switems.w,     x, y, t) ? 1 :
+		subwindow_catch(&o->swmaterials.w, x, y, t) ? 2 :
+		subwindow_catch(&o->swskills.w,    x, y, t) ? 3 :
+		subwindow_catch(&o->swequipment.w, x, y, t) ? 4 :
+		-1;
+
+		if (id >= 0)
+		{
+			o->selected = id;
+			return 1;
+		}
+	}
+	else if (t == sfMouseRight)
+	{
+		if (o->selected >= 0)
+		{
+			o->selected = -1;
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 int overlay_wheel(overlay_t* o, int x, int y, int d)

@@ -184,6 +184,16 @@ void game_loop(game_t* g)
 				g->player->go_y = pos.y;
 				g->player->go_o = o;
 			}
+			else if (event.type == sfEvtMouseButtonPressed)
+			{
+				sfMouseButtonEvent* e = &event.mouseButton;
+				overlay_catch(g->o, g, e->x, e->y, -e->button);
+			}
+			else if (event.type == sfEvtMouseMoved)
+			{
+				sfMouseButtonEvent* e = &event.mouseButton;
+				overlay_move(g->o, g, e->x, e->y);
+			}
 			else if (event.type == sfEvtMouseWheelMoved)
 			{
 				sfMouseWheelEvent* e = &event.mouseWheel;
