@@ -96,7 +96,7 @@ void overlay_cursor(overlay_t* o, game_t* g)
 					int skill = t->skill;
 
 					char buffer[1024];
-					float amount = g->player->inventory.materials[id];
+					float amount = floor(g->player->inventory.materials[id]);
 					float max = character_maxOf(g->player, t);
 					snprintf(buffer, 1024, "%s (%.0f / %0.f)", g->u->skills[skill].name, amount, max);
 					graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
@@ -173,7 +173,8 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		char buffer[1024];
-		snprintf(buffer, 1024, "%.0f/%.0f", floor(g->player->statuses[i]), floor(20.));
+		float amount = floor(g->player->statuses[i]);
+		snprintf(buffer, 1024, "%.0f/%.0f", amount, floor(20.));
 		sfText_setUTF8(text, buffer);
 		sfFloatRect rect = sfText_getLocalBounds(text);
 		pos.x = x + 140 - rect.width;

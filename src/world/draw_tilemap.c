@@ -18,6 +18,8 @@
 
 #include "draw_tilemap.h"
 
+#include <math.h>
+
 sfVertexArray* tilemap_new(world_t* w)
 {
 	sfVertexArray* array = sfVertexArray_create();
@@ -84,7 +86,8 @@ void draw_tilemap(graphics_t* g, world_t* w)
 		tilemap_update(array, w);
 	}
 	static int water_step = 0;
-	int cur_step = (int)g->step % 4;
+	int cur_step = floor(g->step);
+	cur_step %= 4;
 	if (cur_step != water_step)
 	{
 		water_step = cur_step;
