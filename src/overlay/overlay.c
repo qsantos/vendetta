@@ -105,7 +105,9 @@ void overlay_cursor(overlay_t* o, game_t* g)
 			else if (o->t == O_BUILDING)
 			{
 				building_t* b = (building_t*) o;
-				if (b->build_progress == 1)
+				if (b->owner != g->player)
+					cursor = 9;
+				else if (b->build_progress == 1)
 					cursor = 7;
 				else
 					cursor = 4;

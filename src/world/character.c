@@ -339,18 +339,29 @@ void character_doRound(character_t* c, float duration)
 	float dy = c->go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
-	if (c->go_o != NULL && c->go_o->t == O_CHARACTER && remDistance < 20)
+	if (c->go_o != NULL && remDistance < 20)
 	{
-		character_t* t = (character_t*) c->go_o;
-		if (t == c)
+		if (c->go_o->t == O_CHARACTER)
 		{
+			character_t* t = (character_t*) c->go_o;
+			if (t != c)
+			{
+				t->statuses[ST_HEALTH] -= duration;
+				return;
+			}
 		}
-		else
+		else if (c->go_o->t == O_BUILDING)
 		{
-			t->statuses[ST_HEALTH] -= duration;
+			building_t* b = (building_t*) c->go_o;
+			if (b->owner != c)
+			{
+				b->life -= duration;
+				return;
+			}
 		}
 	}
-	else if (remDistance == 0)
+
+	if (remDistance == 0)
 	{
 		c->dir  = D_SOUTH;
 		c->step = 5;
@@ -443,17 +454,18 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 		else if (c->go_o->t == O_CHARACTER)
 		{
 			character_t* t = (character_t*) c->go_o;
+			const char* name = t->ai == NULL ? "ennemi" : t->ai->name;
 			if (t != c)
-			{
-				const char* name = t->ai == NULL ? "ennemi" : t->ai->name;
 				cur += snprintf(buffer+cur, n-cur, "Attaquer %s\n", name);
-			}
 		}
 		else if (c->go_o->t == O_BUILDING)
 		{
 			building_t* b = (building_t*) c->go_o;
 			const char* name = b->t->name;
-			cur += snprintf(buffer+cur, n-cur, "Se diriger vers %s\n", name);
+			if (b->owner == c)
+				cur += snprintf(buffer+cur, n-cur, "Se diriger vers %s\n", name);
+			else
+				cur += snprintf(buffer+cur, n-cur, "Attaquer %s\n", name);
 		}
 		return cur;
 	}
