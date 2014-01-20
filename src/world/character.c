@@ -399,13 +399,19 @@ void character_doRound(character_t* c, float duration)
 		{
 			character_t* t = (character_t*) c->go_o;
 			if (t != c)
+			{
 				character_attack(c, &t->o);
+				return;
+			}
 		}
 		else if (c->go_o->t == O_BUILDING)
 		{
 			building_t* b = (building_t*) c->go_o;
 			if (b->owner != c)
+			{
 				character_attack(c, &b->o);
+				return;
+			}
 		}
 	}
 
