@@ -263,7 +263,22 @@ void character_attack(character_t* c, object_t* o)
 	universe_t* u = c->universe;
 	world_t* w = c->world;
 
-	kindOf_event_t* e = &u->events[0];
+	int evtId = -1;
+	for (size_t i = 0; i < u->n_slots; i++)
+	{
+		int id = c->equipment[i];
+		if (id < 0)
+			continue;
+
+		kindOf_item_t* it = &u->items[id];
+		evtId = it->event;
+		if (evtId >= 0)
+			break;
+	}
+	if (evtId < 0)
+		evtId = 0;
+
+	kindOf_event_t* e = &u->events[evtId];
 	evtList_push(&w->events, e, o->x, o->y - o->h/2);
 
 	if (o->t == O_CHARACTER)
