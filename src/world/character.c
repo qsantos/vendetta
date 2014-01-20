@@ -440,7 +440,23 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 	float dy = c->go_y - c->o.y;
 	if (dx != 0 || dy != 0)
 	{
-		cur += snprintf(buffer+cur, n-cur, "Marcher");
+		if (c->go_o == NULL)
+			cur += snprintf(buffer+cur, n-cur, "Marcher");
+		else if (c->go_o->t == O_CHARACTER)
+		{
+			character_t* t = (character_t*) c->go_o;
+			if (t != c)
+			{
+				const char* name = t->ai == NULL ? "ennemi" : t->ai->name;
+				cur += snprintf(buffer+cur, n-cur, "Attaquer %s\n", name);
+			}
+		}
+		else if (c->go_o->t == O_BUILDING)
+		{
+			building_t* b = (building_t*) c->go_o;
+			const char* name = b->t->name;
+			cur += snprintf(buffer+cur, n-cur, "Se diriger vers %s\n", name);
+		}
 		return cur;
 	}
 
