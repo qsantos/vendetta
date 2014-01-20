@@ -22,9 +22,10 @@
 #include "world.h"
 #include "../graphics.h"
 
-void draw_character(graphics_t* g, character_t* p, character_t* c);
-void draw_mine     (graphics_t* g, character_t* p, mine_t* m);
-void draw_building (graphics_t* g, character_t* p, building_t* b);
-void draw_world    (graphics_t* g, character_t* p, world_t* w);
+void draw_event    (graphics_t* g, character_t* player, event_t* e);
+void draw_character(graphics_t* g, character_t* player, character_t* c);
+void draw_mine     (graphics_t* g, character_t* player, mine_t* m);
+void draw_building (graphics_t* g, character_t* player, building_t* b);
+void draw_world    (graphics_t* g, character_t* player, world_t* w);
 
 #endif

@@ -192,8 +192,9 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		kindOf_event_t* e = &u->events[i];
 
 		char* image_file = cfg_getString(s, "Fichier");
-		if (image_file != NULL)
-			kindOf_event_sprite(e, g, image_file);
+		int n_steps = cfg_getInt(s, "NombreEtapes");
+		if (image_file != NULL && n_steps > 0)
+			kindOf_event_sprite(e, g, image_file, n_steps);
 		free(image_file);
 	}
 }

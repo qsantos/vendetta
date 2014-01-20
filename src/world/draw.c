@@ -23,10 +23,31 @@
 
 #include "draw_tilemap.h"
 
-void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
+static void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 {
 	sfVector2f pos = {o->x - o->w/2, o->y - o->h};
 	sfSprite_setPosition(sprite, pos);
+	sfRenderWindow_drawSprite(g->render, sprite, NULL);
+}
+
+void draw_event(graphics_t* g, character_t* player, event_t* e)
+{
+	universe_t* u = player->universe;
+
+	kindOf_event_t* t = &u->events[e->id];
+
+	if (t->sprite < 0)
+		return;
+
+	sfSprite* sprite = g->sprites[t->sprite];
+
+	sfIntRect rect = {0, 0, t->width, t->height};
+	rect.left = t->width * e->p * t->steps;
+	sfSprite_setTextureRect(sprite, rect);
+
+	sfVector2f pos = {e->x - t->width/2, e->y - t->height/2};
+	sfSprite_setPosition(sprite, pos);
+
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
@@ -169,4 +190,7 @@ void draw_world(graphics_t* g, character_t* player, world_t* w)
 
 	for (ssize_t i = w->n_characters-1; i >= 0; i--)
 		draw_character(g, player, &w->characters[i]);
+
+	for (ssize_t i = w->events.n-1; i >= 0; i--)
+		draw_event(g, player, &w->events.d[i]);
 }

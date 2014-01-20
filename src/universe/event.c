@@ -23,6 +23,9 @@
 void kindOf_event_init(kindOf_event_t* e)
 {
 	e->sprite = -1;
+	e->steps = 0;
+	e->width = 0;
+	e->height = 0;
 }
 
 void kindOf_event_exit(kindOf_event_t* e)
@@ -30,9 +33,16 @@ void kindOf_event_exit(kindOf_event_t* e)
 	(void) e;
 }
 
-void kindOf_event_sprite(kindOf_event_t* e, graphics_t* g, const char* filename)
+void kindOf_event_sprite(kindOf_event_t* e, graphics_t* g, const char* filename, int steps)
 {
 	char s[1024];
 	snprintf(s, 1024, "events/%s", filename);
-	e->sprite = graphics_spriteForImg(g, s);
+	int id = graphics_spriteForImg(g, s);
+
+	e->sprite = id;
+	e->steps = steps;
+
+	sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
+	e->width  = rect.width / steps;
+	e->height = rect.height;
 }

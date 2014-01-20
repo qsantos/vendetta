@@ -26,11 +26,15 @@ typedef struct kindOf_event kindOf_event_t;
 struct kindOf_event
 {
 	int sprite;
+	int steps;
+
+	float width;
+	float height;
 };
 
 void kindOf_event_init(kindOf_event_t* e);
 void kindOf_event_exit(kindOf_event_t* e);
 
-void kindOf_event_sprite(kindOf_event_t* e, graphics_t* g, const char* filename);
+void kindOf_event_sprite(kindOf_event_t* e, graphics_t* g, const char* filename, int steps);
 
 #endif
