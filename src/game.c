@@ -78,6 +78,7 @@ void game_loop(game_t* g)
 {
 	float zoom = 1;
 	sfClock* clock = sfClock_create();
+	sfClock* maintain = sfClock_create();
 	float fpssum = 0;
 	int fpscount = 0;
 	float fpslast = 0;
@@ -198,6 +199,7 @@ void game_loop(game_t* g)
 			}
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
+				sfClock_restart(maintain);
 				sfMouseButtonEvent* e = &event.mouseButton;
 				overlay_catch(g->o, g, e->x, e->y, -e->button-1);
 			}
@@ -234,16 +236,14 @@ void game_loop(game_t* g)
 				g->player->go_o = NULL;
 			}
 
-			if (sfMouse_isButtonPressed(sfMouseLeft))
+			if (sfMouse_isButtonPressed(sfMouseLeft) &&
+			sfTime_asSeconds(sfClock_getElapsedTime(maintain)) > 0.1)
 			{
 				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
-				if (!overlay_catch(g->o, g, pos.x, pos.y, -sfMouseLeft-1))
-				{
-					g->player->go_x = pos.x;
-					g->player->go_y = pos.y;
-					g->player->go_o = NULL;
-				}
+				g->player->go_x = pos.x;
+				g->player->go_y = pos.y;
+				g->player->go_o = NULL;
 			}
 		}
 
@@ -291,5 +291,6 @@ void game_loop(game_t* g)
 	}
 	while (sfRenderWindow_isOpen(g->g->render));
 
+	sfClock_destroy(maintain);
 	sfClock_destroy(clock);
 }
