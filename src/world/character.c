@@ -334,13 +334,17 @@ void character_doRound(character_t* c, float duration)
 
 	duration *= character_vitality(c);
 
+	float go_x = c->go_x;
+	float go_y = c->go_y;
 	if (c->go_o != NULL)
 	{
-		c->go_x = c->go_o->x;
-		c->go_y = c->go_o->y;
+		go_x = c->go_o->x;
+		go_y = c->go_o->y;
+		c->go_x = c->o.x;
+		c->go_y = c->o.y;
 	}
-	float dx = c->go_x - c->o.x;
-	float dy = c->go_y - c->o.y;
+	float dx = go_x - c->o.x;
+	float dy = go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
 	if (c->go_o != NULL && remDistance < 20)
