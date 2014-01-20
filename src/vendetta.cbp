@@ -56,6 +56,7 @@
 <Unit filename="universe/material.c" />
 <Unit filename="universe/building.h" />
 <Unit filename="universe/item.h" />
+<Unit filename="universe/event.h" />
 <Unit filename="universe/status.c" />
 <Unit filename="universe/transform.c" />
 <Unit filename="universe/transform.h" />
@@ -68,6 +69,7 @@
 <Unit filename="universe/skill.c" />
 <Unit filename="universe/effect.h" />
 <Unit filename="universe/universe.h" />
+<Unit filename="universe/event.c" />
 <Unit filename="universe/status.h" />
 <Unit filename="universe/skill.h" />
 <Unit filename="universe/material.h" />

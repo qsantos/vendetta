@@ -339,13 +339,13 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			effect_skill(&it->effect, skill, atof(v));
 		}
 
-		char* walking = cfg_getString(s, "BonusDeplacement");
-		if (walking != NULL)
-			effect_skill(&it->effect, SK_WALK, atof(walking));
+		float walking = cfg_getFloat(s, "BonusDeplacement");
+		if (walking != 0)
+			effect_skill(&it->effect, SK_WALK, walking);
 
-		char* attack = cfg_getString(s, "BonusAttaque");
-		if (attack != NULL)
-			effect_skill(&it->effect, SK_ATTACK, atof(attack));
+		float attack = cfg_getFloat(s, "BonusAttaque");
+		if (attack != 0)
+			effect_skill(&it->effect, SK_ATTACK, attack);
 
 		cfg_array_t* mboni = cfg_getArray(s, "BonusCompetencesRessources");
 		if (mboni != NULL)
