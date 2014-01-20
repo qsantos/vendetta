@@ -129,6 +129,7 @@ int main(int argc, char** argv)
 		skill_t* s = game.player->skills;
 		for (size_t i = 0; i < game.u->n_skills; i++)
 			s[i] = 1000;
+		s[SK_WALK] = 100;
 	}
 	if (quick_start)
 	{
