@@ -32,6 +32,8 @@ struct kindOf_building
 	float height;
 	int   sprite;
 	int   n_sprites;
+	float door_dx;
+	float door_dy;
 
 	int button_sprite;
 	int button_index;

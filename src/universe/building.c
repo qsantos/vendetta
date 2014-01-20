@@ -30,6 +30,8 @@ void kindOf_building_init(kindOf_building_t* b)
 	b->height = 0;
 	b->sprite = 0;
 	b->n_sprites = 0;
+	b->door_dx = 0;
+	b->door_dy = 0;
 
 	b->button_sprite = -1;
 	b->button_index = -1;

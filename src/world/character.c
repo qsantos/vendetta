@@ -388,6 +388,12 @@ void character_doRound(character_t* c, float duration)
 		go_y = c->go_o->y;
 		c->go_x = c->o.x;
 		c->go_y = c->o.y;
+		if (c->go_o->t == O_BUILDING)
+		{
+			building_t* b = (building_t*) c->go_o;
+			go_x += b->t->door_dx;
+			go_y += b->t->door_dy;
+		}
 	}
 	float dx = go_x - c->o.x;
 	float dy = go_y - c->o.y;

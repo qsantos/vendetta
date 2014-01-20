@@ -463,6 +463,9 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			fprintf(stderr, "Missing button for '%s_%s'\n", gr->name, s->name);
 		free(button_file);
 
+		b->door_dx = cfg_getFloat(s, "EntreePositionX");
+		b->door_dy = cfg_getFloat(s, "EntreePositionY") - b->height/2 + 16;
+
 		cfg_array_t* cost = cfg_getArray(s, "PrixRessources");
 		if (cost != NULL)
 		for (size_t i = 0; i < cost->n; i++)
