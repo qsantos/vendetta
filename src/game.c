@@ -233,6 +233,15 @@ void game_loop(game_t* g)
 				g->player->go_y = g->player->o.y + 100 * (down  - 2*up);
 				g->player->go_o = NULL;
 			}
+
+			if (sfMouse_isButtonPressed(sfMouseLeft))
+			{
+				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);
+				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
+				g->player->go_x = pos.x;
+				g->player->go_y = pos.y;
+				g->player->go_o = NULL;
+			}
 		}
 
 		// update display
