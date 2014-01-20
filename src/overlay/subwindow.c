@@ -28,7 +28,7 @@ void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, fl
 	w->name = strdup(name);
 	w->x = x;
 	w->y = y;
-	w->visible = 1;
+	w->visible = 0;
 
 	w->height = 0;
 	w->scrolling = 0;
