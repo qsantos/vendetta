@@ -29,6 +29,7 @@ typedef struct universe universe_t;
 #include "category.h"
 #include "equipment.h"
 #include "../graphics.h"
+#include "ini.h"
 
 struct universe
 {
@@ -69,6 +70,10 @@ struct universe
 universe_t* universe_init(graphics_t* g);
 void        universe_exit(universe_t* u);
 
-void universe_parse(universe_t* u, graphics_t* g, const char* filename);
+void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr);
+void universe_init_mines    (universe_t* u, graphics_t* g, cfg_group_t* gr);
+void universe_init_iskills  (universe_t* u, graphics_t* g, cfg_group_t* gr);
+void universe_init_items    (universe_t* u, graphics_t* g, cfg_group_t* gr);
+void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr);
 
 #endif

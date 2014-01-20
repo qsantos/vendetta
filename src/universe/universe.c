@@ -25,7 +25,133 @@
 #include "../mem.h"
 #include "../string.h"
 #include "../file.h"
-#include "ini.h"
+
+universe_t* universe_init(graphics_t* g)
+{
+	universe_t* u = CALLOC(universe_t, 1);
+
+	u->tmp_materials = NULL;
+	u->tmp_items = NULL;
+
+	// parse configuration files
+	cfg_ini_t ini;
+	cfg_ini_init(&ini);
+	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path););
+
+	// init special skills
+	cfg_group_t*   gr      = cfg_ini_group(&ini, "Competences");
+	cfg_section_t* s       = &gr->sections[0];
+	cfg_array_t*   sskills = cfg_getArray(s, "CompetencesSpeciales");
+	u->n_skills = N_SPECIAL_SKILLS;
+	u->skills   = CALLOC(kindOf_skill_t, u->n_skills);
+	for (size_t i = 0; i < N_SPECIAL_SKILLS && i < sskills->n; i++)
+	{
+		char* v = sskills->v[i];
+		kindOf_skill_t* k = &u->skills[i];
+		kindOf_skill_init(k);
+		k->name = v == NULL ? NULL : strdup(v);
+	}
+
+	// apply rest of configuration
+	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
+	universe_init_mines    (u, g, cfg_ini_group(&ini, "TerrainRessource"));
+	universe_init_iskills  (u, g, cfg_ini_group(&ini, "CompetenceObjet"));
+	universe_init_items    (u, g, cfg_ini_group(&ini, "Objet"));
+	universe_init_buildings(u, g, cfg_ini_group(&ini, "Batiment"));
+
+	fprintf(stderr, "Loaded %zu materials, %zu mines, %zu items and %zu buildings\n",
+		u->n_materials, u->n_mines, u->n_items, u->n_buildings);
+
+	cfg_ini_exit(&ini);
+
+	for (size_t i = 0; i < u->n_items; i++)
+		transform_exit(&u->tmp_items[i]);
+	free(u->tmp_items);
+
+	for (size_t i = 0; i < u->n_materials; i++)
+		transform_exit(&u->tmp_materials[i]);
+	free(u->tmp_materials);
+
+	for (size_t i = 0; i < N_STATUSES; i++)
+		kindOf_status_init(&u->statuses[i]);
+
+	u->statuses[ST_HEALTH] .name = "Santé";
+	u->statuses[ST_STAMINA].name = "Énergie";
+	u->statuses[ST_MORAL]  .name = "Moral";
+	u->statuses[ST_MANA]   .name = "Magie";
+
+	u->n_categories = 11;
+	u->categories = CALLOC(kindOf_category_t, u->n_categories);
+	u->categories[ 0].name = "Arme à une main";
+	u->categories[ 1].name = "Arme à deux mains";
+	u->categories[ 2].name = "Armure";
+	u->categories[ 3].name = "Casque";
+	u->categories[ 4].name = "Chaussures";
+	u->categories[ 5].name = "Dos";
+	u->categories[ 6].name = "Anneau à une main";
+	u->categories[ 7].name = "Anneau à 2 mains";
+	u->categories[ 8].name = "Bras";
+	u->categories[ 9].name = "Colliers";
+	u->categories[10].name = "Monture";
+
+	u->n_slots = 11;
+	u->slots = CALLOC(kindOf_slot_t, u->n_slots);
+	u->slots[ 0] = (kindOf_slot_t){"Main droite",       0};
+	u->slots[ 1] = (kindOf_slot_t){"Main gauche",       0};
+	u->slots[ 2] = (kindOf_slot_t){"Torse",             2};
+	u->slots[ 3] = (kindOf_slot_t){"Tête",              3};
+	u->slots[ 4] = (kindOf_slot_t){"Pieds",             4};
+	u->slots[ 5] = (kindOf_slot_t){"Dos",               5};
+	u->slots[ 6] = (kindOf_slot_t){"Annulaire droit",   6};
+	u->slots[ 7] = (kindOf_slot_t){"Annulaire gauche",  6};
+	u->slots[ 8] = (kindOf_slot_t){"Mains",             8};
+	u->slots[ 9] = (kindOf_slot_t){"Cou",               9};
+	u->slots[10] = (kindOf_slot_t){"Monture",          10};
+
+	return u;
+}
+
+void universe_exit(universe_t* u)
+{
+	/* TODO
+	for (int i = 0; i < u->n_slots; i++)
+		kindOf_slots_exit(&u->slots[i]);
+	*/
+	free(u->slots);
+
+	/* TODO
+	for (int i = 0; i < u->n_categories; i++)
+		kindOf_status_exit(&u->categories[i]);
+	*/
+	free(u->categories);
+
+	/* TODO
+	for (int i = 0; i < N_STATUSES; i++)
+		kindOf_status_exit(&u->statuses[i]);
+	*/
+
+	for (size_t i = 0; i < u->n_skills; i++)
+		kindOf_skill_exit(&u->skills[i]);
+	free(u->skills);
+
+	for (size_t i = 0; i < u->n_buildings; i++)
+		kindOf_building_exit(&u->buildings[i]);
+	free(u->buildings);
+
+	for (size_t i = 0; i < u->n_mines; i++)
+		kindOf_mine_exit(&u->mines[i]);
+	free(u->mines);
+
+	for (size_t i = 0; i < u->n_items; i++)
+		kindOf_item_exit(&u->items[i]);
+	free(u->items);
+
+	for (size_t i = 0; i < u->n_materials; i++)
+		kindOf_material_exit(&u->materials[i]);
+	free(u->materials);
+
+	free(u);
+}
 
 void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 {
@@ -317,131 +443,4 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			transform_copy(&b->items[i], &u->tmp_items[id]);
 		}
 	}
-}
-
-universe_t* universe_init(graphics_t* g)
-{
-	universe_t* u = CALLOC(universe_t, 1);
-
-	u->tmp_materials = NULL;
-	u->tmp_items = NULL;
-
-	// parse configuration files
-	cfg_ini_t ini;
-	cfg_ini_init(&ini);
-	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path););
-
-	// init special skills
-	cfg_group_t*   gr      = cfg_ini_group(&ini, "Competences");
-	cfg_section_t* s       = &gr->sections[0];
-	cfg_array_t*   sskills = cfg_getArray(s, "CompetencesSpeciales");
-	u->n_skills = N_SPECIAL_SKILLS;
-	u->skills   = CALLOC(kindOf_skill_t, u->n_skills);
-	for (size_t i = 0; i < N_SPECIAL_SKILLS && i < sskills->n; i++)
-	{
-		char* v = sskills->v[i];
-		kindOf_skill_t* k = &u->skills[i];
-		kindOf_skill_init(k);
-		k->name = v == NULL ? NULL : strdup(v);
-	}
-
-	// apply rest of configuration
-	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
-	universe_init_mines    (u, g, cfg_ini_group(&ini, "TerrainRessource"));
-	universe_init_iskills  (u, g, cfg_ini_group(&ini, "CompetenceObjet"));
-	universe_init_items    (u, g, cfg_ini_group(&ini, "Objet"));
-	universe_init_buildings(u, g, cfg_ini_group(&ini, "Batiment"));
-
-	fprintf(stderr, "Loaded %zu materials, %zu mines, %zu items and %zu buildings\n",
-		u->n_materials, u->n_mines, u->n_items, u->n_buildings);
-
-	cfg_ini_exit(&ini);
-
-	for (size_t i = 0; i < u->n_items; i++)
-		transform_exit(&u->tmp_items[i]);
-	free(u->tmp_items);
-
-	for (size_t i = 0; i < u->n_materials; i++)
-		transform_exit(&u->tmp_materials[i]);
-	free(u->tmp_materials);
-
-	for (size_t i = 0; i < N_STATUSES; i++)
-		kindOf_status_init(&u->statuses[i]);
-
-	u->statuses[ST_HEALTH] .name = "Santé";
-	u->statuses[ST_STAMINA].name = "Énergie";
-	u->statuses[ST_MORAL]  .name = "Moral";
-	u->statuses[ST_MANA]   .name = "Magie";
-
-	u->n_categories = 11;
-	u->categories = CALLOC(kindOf_category_t, u->n_categories);
-	u->categories[ 0].name = "Arme à une main";
-	u->categories[ 1].name = "Arme à deux mains";
-	u->categories[ 2].name = "Armure";
-	u->categories[ 3].name = "Casque";
-	u->categories[ 4].name = "Chaussures";
-	u->categories[ 5].name = "Dos";
-	u->categories[ 6].name = "Anneau à une main";
-	u->categories[ 7].name = "Anneau à 2 mains";
-	u->categories[ 8].name = "Bras";
-	u->categories[ 9].name = "Colliers";
-	u->categories[10].name = "Monture";
-
-	u->n_slots = 11;
-	u->slots = CALLOC(kindOf_slot_t, u->n_slots);
-	u->slots[ 0] = (kindOf_slot_t){"Main droite",       0};
-	u->slots[ 1] = (kindOf_slot_t){"Main gauche",       0};
-	u->slots[ 2] = (kindOf_slot_t){"Torse",             2};
-	u->slots[ 3] = (kindOf_slot_t){"Tête",              3};
-	u->slots[ 4] = (kindOf_slot_t){"Pieds",             4};
-	u->slots[ 5] = (kindOf_slot_t){"Dos",               5};
-	u->slots[ 6] = (kindOf_slot_t){"Annulaire droit",   6};
-	u->slots[ 7] = (kindOf_slot_t){"Annulaire gauche",  6};
-	u->slots[ 8] = (kindOf_slot_t){"Mains",             8};
-	u->slots[ 9] = (kindOf_slot_t){"Cou",               9};
-	u->slots[10] = (kindOf_slot_t){"Monture",          10};
-
-	return u;
-}
-
-void universe_exit(universe_t* u)
-{
-	/* TODO
-	for (int i = 0; i < u->n_slots; i++)
-		kindOf_slots_exit(&u->slots[i]);
-	*/
-	free(u->slots);
-
-	/* TODO
-	for (int i = 0; i < u->n_categories; i++)
-		kindOf_status_exit(&u->categories[i]);
-	*/
-	free(u->categories);
-
-	/* TODO
-	for (int i = 0; i < N_STATUSES; i++)
-		kindOf_status_exit(&u->statuses[i]);
-	*/
-
-	for (size_t i = 0; i < u->n_skills; i++)
-		kindOf_skill_exit(&u->skills[i]);
-	free(u->skills);
-
-	for (size_t i = 0; i < u->n_buildings; i++)
-		kindOf_building_exit(&u->buildings[i]);
-	free(u->buildings);
-
-	for (size_t i = 0; i < u->n_mines; i++)
-		kindOf_mine_exit(&u->mines[i]);
-	free(u->mines);
-
-	for (size_t i = 0; i < u->n_items; i++)
-		kindOf_item_exit(&u->items[i]);
-	free(u->items);
-
-	for (size_t i = 0; i < u->n_materials; i++)
-		kindOf_material_exit(&u->materials[i]);
-	free(u->materials);
-
-	free(u);
 }

@@ -50,6 +50,7 @@
 <Unit filename="universe/effect.c" />
 <Unit filename="universe/universe.c" />
 <Unit filename="universe/mine.c" />
+<Unit filename="universe/character.c" />
 <Unit filename="universe/equipment.h" />
 <Unit filename="universe/ini.h" />
 <Unit filename="universe/material.c" />
@@ -63,6 +64,7 @@
 <Unit filename="universe/category.h" />
 <Unit filename="universe/mine.h" />
 <Unit filename="universe/equipment.c" />
+<Unit filename="universe/character.h" />
 <Unit filename="universe/skill.c" />
 <Unit filename="universe/effect.h" />
 <Unit filename="universe/universe.h" />
