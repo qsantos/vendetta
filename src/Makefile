@@ -30,7 +30,7 @@ clean:
 	@rm -f $(OBJ) $(OBJ:.o=.d)
 
 destroy: clean
-	rm -f $(TARGETS)
+	rm -f $(TARGET)
 
 cleanall: destroy
 
