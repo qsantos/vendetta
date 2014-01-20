@@ -57,18 +57,17 @@ char isdir(const char* path);
 	while ((__ent = readdir(__dir)) != NULL) \
 	{ \
 		strncpy(path+strlen(p), __ent->d_name, 1024-strlen(p)); \
-		if (isdir(path)) \
+		char __isdir = isdir(path); \
+		if (__isdir) \
 			path[strlen(p)+strlen(__ent->d_name)] = '/'; \
-		DO \
+		if(strcmp(__ent->d_name, ".")  != 0 && \
+		   strcmp(__ent->d_name, "..") != 0) \
+		{ DO; } \
 	} \
 	closedir(__dir); \
 	} while (0)
 
-#define FOREACH_DIR( PATH, DO) FOREACH_ALL(PATH, \
-	if(isdir(path) && \
-	   strcmp(__ent->d_name, ".")  != 0 && \
-	   strcmp(__ent->d_name, "..") != 0) \
-	{DO;})
-#define FOREACH_FILE(PATH, DO) FOREACH_ALL(PATH, if(!isdir(path)){DO;})
+#define FOREACH_DIR( PATH, DO) FOREACH_ALL(PATH, if( __isdir){DO;})
+#define FOREACH_FILE(PATH, DO) FOREACH_ALL(PATH, if(!__isdir){DO;})
 
 #endif
