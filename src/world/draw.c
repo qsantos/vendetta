@@ -176,7 +176,8 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 	}
 
 	p = b->life / 20;
-	graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
+	if (p < 0.99)
+		graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
 }
 
 void draw_world(graphics_t* g, character_t* player, world_t* w)
