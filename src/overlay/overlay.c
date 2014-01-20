@@ -136,7 +136,7 @@ void overlay_cursor(overlay_t* o, game_t* g)
 
 int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 {
-	sfVector2f mouse;
+	sfVector2f mouse = {0,0};
 	if (!do_draw)
 	{
 		sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
