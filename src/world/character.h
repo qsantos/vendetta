@@ -44,6 +44,7 @@ struct character
 	object_t o;
 
 	kindOf_character_t* t;
+	char alive;
 
 	float       go_x;
 	float       go_y;
@@ -82,7 +83,8 @@ void  character_doRound (character_t* c, float duration);
 char character_eat   (character_t* c, int material);
 void character_eatFor(character_t* c, int status);
 
-void character_setPosition(character_t* c, float x, float y);
+void  character_setPosition(character_t* c, float x, float y);
+float character_attacked   (character_t* c, float work, character_t* a);
 
 void character_goMine   (character_t* c, kindOf_mine_t* t);
 char character_buildAuto(character_t* c, kindOf_building_t* t);

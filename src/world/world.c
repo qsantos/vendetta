@@ -244,6 +244,8 @@ object_t* world_objectAt(world_t* w, float x, float y)
 	for (size_t i = 0; i < w->n_characters; i++)
 	{
 		character_t* c = &w->characters[i];
+		if (!c->alive)
+			continue;
 		if (object_isAt(&c->o, x, y))
 			return &c->o;
 	}

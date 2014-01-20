@@ -35,6 +35,7 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 	c->o.h = 32;
 
 	c->t = t;
+	c->alive = 1;
 
 	character_setPosition(c, 0, 0);
 
@@ -323,6 +324,9 @@ void character_move(character_t* c, float duration, float dx, float dy)
 
 void character_doRound(character_t* c, float duration)
 {
+	if (!c->alive)
+		return;
+
 	if (c->ai != NULL)
 	{
 		ai_do(c->ai, c);
@@ -347,7 +351,7 @@ void character_doRound(character_t* c, float duration)
 			if (t != c)
 			{
 				float work = duration * character_getSkill(c, SK_ATTACK);
-				t->statuses[ST_HEALTH] -= work;
+				work = character_attacked(t, work, c);
 				character_train(c, SK_ATTACK, work);
 				return;
 			}
@@ -381,6 +385,18 @@ void character_setPosition(character_t* c, float x, float y)
 	c->o.y = y;
 	c->go_x = x;
 	c->go_y = y;
+}
+
+float character_attacked(character_t* c, float work, character_t* a)
+{
+	work = fmin(work, c->statuses[ST_HEALTH]);
+	c->statuses[ST_HEALTH] -= work;
+	if (c->statuses[ST_HEALTH] <= 0)
+	{
+		c->alive = 0;
+		a->go_o = NULL;
+	}
+	return work;
 }
 
 void character_goMine(character_t* c, kindOf_mine_t* t)

@@ -74,12 +74,19 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 
 	int id = c->t == NULL ? defaultSprite : c->t->sprite;
 	sfSprite* sprite = g->sprites[id];
+
+	sfColor color = c->alive ? sfWhite : (sfColor){255,255,255,127};
+	sfSprite_setColor(sprite, color);
+
 	sfSprite_setTextureRect(sprite, rect);
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 
-	float p = c->statuses[ST_HEALTH] / 20.;
-	graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p, 0);
+	if (c->alive)
+	{
+		float p = c->statuses[ST_HEALTH] / 20.;
+		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p, 0);
+	}
 }
 
 void draw_mine(graphics_t* g, character_t* player, mine_t* m)
