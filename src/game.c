@@ -147,6 +147,18 @@ void game_loop(game_t* g)
 				{
 					g->o->swequipment.w.visible ^= 1;
 				}
+				else if (k == sfKeyX)
+				{
+					character_t* t = world_findEnnemyCharacter(g->w, g->player);
+					if (t != NULL)
+						g->player->go_o = &t->o;
+				}
+				else if (k == sfKeyW)
+				{
+					building_t* t = world_findEnnemyBuilding(g->w, g->player);
+					if (t != NULL)
+						g->player->go_o = &t->o;
+				}
 				else if (k == sfKeySpace)
 				{
 					g->o->swbuilding .w.visible ^= 1;

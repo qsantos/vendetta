@@ -357,3 +357,41 @@ void world_delBuilding(world_t* w, building_t* b)
 			w->buildings[i] = NULL;
 	building_exit(b);
 }
+
+character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
+{
+	character_t* ret = NULL;
+	float min_d = -1;
+	for (size_t i = 0; i < w->n_characters; i++)
+	{
+		character_t* t = &w->characters[i];
+		if (t == c || !t->alive)
+			continue;
+		float d = object_distance(&c->o, t->o.x, t->o.y);
+		if (min_d < 0 || d < min_d)
+		{
+			ret = t;
+			min_d = d;
+		}
+	}
+	return ret;
+}
+
+building_t* world_findEnnemyBuilding (world_t* w, character_t* c)
+{
+	building_t* ret = NULL;
+	float min_d = -1;
+	for (size_t i = 0; i < w->n_buildings; i++)
+	{
+		building_t* t = w->buildings[i];
+		if (t == NULL || t->owner == c)
+			continue;
+		float d = object_distance(&c->o, t->o.x, t->o.y);
+		if (min_d < 0 || d < min_d)
+		{
+			ret = t;
+			min_d = d;
+		}
+	}
+	return ret;
+}
