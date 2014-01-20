@@ -43,7 +43,7 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 	{
-		int id = graphics_spriteForImg(g, "character.png");
+		int id = graphics_spriteForImg(g, "characters/default.png");
 		sprite = g->sprites[id];
 	}
 

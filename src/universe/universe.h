@@ -21,6 +21,7 @@
 
 typedef struct universe universe_t;
 
+#include "character.h"
 #include "material.h"
 #include "item.h"
 #include "mine.h"
@@ -33,6 +34,9 @@ typedef struct universe universe_t;
 
 struct universe
 {
+	size_t n_characters;
+	kindOf_character_t* characters;
+
 	size_t n_materials;
 	kindOf_material_t* materials;
 

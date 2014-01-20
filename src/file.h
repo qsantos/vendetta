@@ -43,21 +43,32 @@ enum
 
 char isdir(const char* path);
 
-#define FOREACH_FILE(PATH, DO) do { \
-	DIR* __dir = opendir(PATH); \
+#define FOREACH_ALL(PATH, DO) do { \
+	const char* p = PATH; \
+	DIR* __dir = opendir(p); \
 	if (__dir == NULL) \
 	{ \
-		fprintf(stderr, "Cannot read '%s' folder\n", PATH); \
+		fprintf(stderr, "Cannot read '%s' folder\n", p); \
 		exit(1); \
 	} \
 	struct dirent* __ent; \
-	char path[1024] = PATH; \
+	char path[1024]; \
+	strncpy(path, p, 1024); \
 	while ((__ent = readdir(__dir)) != NULL) \
 	{ \
-		strncpy(path+strlen(PATH), __ent->d_name, 1024-strlen(PATH)); \
-		if (!isdir(path)) { DO }; \
+		strncpy(path+strlen(p), __ent->d_name, 1024-strlen(p)); \
+		if (isdir(path)) \
+			path[strlen(p)+strlen(__ent->d_name)] = '/'; \
+		DO \
 	} \
 	closedir(__dir); \
 	} while (0)
+
+#define FOREACH_DIR( PATH, DO) FOREACH_ALL(PATH, \
+	if(isdir(path) && \
+	   strcmp(__ent->d_name, ".")  != 0 && \
+	   strcmp(__ent->d_name, "..") != 0) \
+	{DO;})
+#define FOREACH_FILE(PATH, DO) FOREACH_ALL(PATH, if(!isdir(path)){DO;})
 
 #endif

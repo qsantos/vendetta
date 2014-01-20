@@ -26,9 +26,33 @@
 #include "../string.h"
 #include "../file.h"
 
+static void rec_find(universe_t* u, graphics_t* g, const char* path)
+{
+	size_t i = 0;
+	FOREACH_FILE(path, i++);
+
+	if (i != 0)
+	{
+		u->characters = CREALLOC(u->characters, kindOf_character_t, u->n_characters+i);
+		FOREACH_FILE(path,
+			fprintf(stderr, "Loaded '%s'\n", path);
+			kindOf_character_t* c = &u->characters[u->n_characters++];
+			kindOf_character_init(c);
+			c->sprite = graphics_spriteForImg(g, path);
+		);
+	}
+
+	FOREACH_DIR(path, rec_find(u, g, path));
+}
+
 universe_t* universe_init(graphics_t* g)
 {
 	universe_t* u = CALLOC(universe_t, 1);
+
+	// find character types
+	u->n_characters = 0;
+	u->characters = NULL;
+	rec_find(u, g, "characters/");
 
 	u->tmp_materials = NULL;
 	u->tmp_items = NULL;
@@ -36,7 +60,7 @@ universe_t* universe_init(graphics_t* g)
 	// parse configuration files
 	cfg_ini_t ini;
 	cfg_ini_init(&ini);
-	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path););
+	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path));
 
 	// init special skills
 	cfg_group_t*   gr      = cfg_ini_group(&ini, "Competences");

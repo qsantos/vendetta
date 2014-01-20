@@ -39,13 +39,13 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 		g->autoEat[i] = 0;
 
 	g->n_bots = 0;
-	FOREACH_FILE("bots/", g->n_bots++;);
+	FOREACH_FILE("bots/", g->n_bots++);
 	g->bots = CALLOC(ai_t, g->n_bots);
 	for (size_t i = 0; i < g->n_bots; i++)
 		ai_init(&g->bots[i]);
 
 	size_t i = 0;
-	FOREACH_FILE("bots/", ai_load(&g->bots[i++], path););
+	FOREACH_FILE("bots/", ai_load(&g->bots[i++], path));
 
 	printf("Loaded %zu bots\n", g->n_bots);
 
