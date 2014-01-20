@@ -34,7 +34,7 @@ void game_init(game_t* g, int w, int h, unsigned int seed)
 	g->u = universe_init(g->g);
 	g->w =    world_init(g->u, w, h, seed);
 
-	g->player = &g->w->characters[g->w->n_characters-1];
+	g->player = &g->w->characters[0];
 	for (size_t i = 0; i < N_STATUSES; i++)
 		g->autoEat[i] = 0;
 

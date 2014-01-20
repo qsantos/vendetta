@@ -161,12 +161,12 @@ void draw_world(graphics_t* g, character_t* player, world_t* w)
 {
 	draw_tilemap(g, w);
 
-	for (size_t i = 0; i < w->n_buildings; i++)
+	for (ssize_t i = w->n_buildings-1; i >= 0; i--)
 		draw_building(g, player, w->buildings[i]);
 
-	for (size_t i = 0; i < w->n_mines; i++)
+	for (ssize_t i = w->n_mines-1; i >= 0; i--)
 		draw_mine(g, player, &w->mines[i]);
 
-	for (size_t i = 0; i < w->n_characters; i++)
+	for (ssize_t i = w->n_characters-1; i >= 0; i--)
 		draw_character(g, player, &w->characters[i]);
 }
