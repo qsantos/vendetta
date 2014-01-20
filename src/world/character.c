@@ -346,7 +346,9 @@ void character_doRound(character_t* c, float duration)
 			character_t* t = (character_t*) c->go_o;
 			if (t != c)
 			{
-				t->statuses[ST_HEALTH] -= duration;
+				float work = duration * character_getSkill(c, SK_ATTACK);
+				t->statuses[ST_HEALTH] -= work;
+				character_train(c, SK_ATTACK, work);
 				return;
 			}
 		}
@@ -355,7 +357,9 @@ void character_doRound(character_t* c, float duration)
 			building_t* b = (building_t*) c->go_o;
 			if (b->owner != c)
 			{
-				b->life -= duration;
+				float work = duration * character_getSkill(c, SK_DESTROY);
+				b->life -= work;
+				character_train(c, SK_DESTROY, work);
 				return;
 			}
 		}
