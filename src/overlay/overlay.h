@@ -37,6 +37,9 @@ struct overlay
 	swequipment_t swequipment;
 	ov_build_t    build;
 
+	size_t n_subwindows;
+	subwindow_t** sw;
+
 	int selected;
 	float lastx;
 	float lasty;

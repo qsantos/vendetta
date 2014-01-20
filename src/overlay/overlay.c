@@ -35,6 +35,14 @@ overlay_t* overlay_init(graphics_t* g)
 	   swskills_init(&o->swskills,    g);
 	swequipment_init(&o->swequipment, g);
 
+	o->n_subwindows = 5;
+	o->sw = CALLOC(subwindow_t*, o->n_subwindows);
+	o->sw[0] = &o->swbuilding .w;
+	o->sw[1] = &o->swmaterials.w;
+	o->sw[2] = &o->swequipment.w;
+	o->sw[3] = &o->swskills   .w;
+	o->sw[4] = &o->switems    .w;
+
 	o->selected = -1;
 
 	return o;
@@ -42,6 +50,8 @@ overlay_t* overlay_init(graphics_t* g)
 
 void overlay_exit(overlay_t* o)
 {
+	free(o->sw);
+
 	swequipment_exit(&o->swequipment);
 	   swskills_exit(&o->swskills);
 	    switems_exit(&o->switems);
@@ -138,9 +148,31 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 {
 	sfVector2f mouse = {0,0};
 	if (!do_draw)
+		mouse = overlay_mouse(g->g);
+
+	// buttons
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
 	{
-		sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
-		mouse = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->overlay_view);
+		int id = graphics_spriteForImg(g->g, "buttons.png");
+		sprite = g->g->sprites[id];
+	}
+	for (size_t i = 0; i < o->n_subwindows; i++)
+	{
+		subwindow_t* w = o->sw[i];
+
+		sfVector2u size = sfRenderWindow_getSize(g->g->render);
+		sfSprite_setPosition(sprite, (sfVector2f){size.x - 200 + 24*i, 5});
+
+		sfColor color = w->visible ? (sfColor){255,255,255,127} : sfWhite;
+		sfSprite_setColor(sprite, color);
+
+		sfIntRect rect = {24*i, 0, 24, 24};
+		sfSprite_setTextureRect(sprite, rect);
+		if (do_draw)
+			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+		else if (sfSprite_contains(sprite, mouse))
+			return 2*i;
 	}
 
 	// statuses
@@ -161,7 +193,7 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 		if (!do_draw &&
 		    x <= mouse.x && mouse.x <= x + 150 &&
 		    y <= mouse.y && mouse.y <= y + 20)
-			return i;
+			return 2*i+1;
 
 		float p = g->player->statuses[i] / 20;
 		graphics_drawProgressBar(g->g, x, y, 150, 20, p, g->autoEat[i]);
@@ -220,26 +252,17 @@ void overlay_move(overlay_t* o, game_t* g, int x, int y)
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
 	sfVector2f mouse = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->overlay_view);
 
-	subwindow_t* w;
-	switch (o->selected)
-	{
-		case 0:  w=&o->swbuilding .w; break;
-		case 1:  w=&o->switems    .w; break;
-		case 2:  w=&o->swmaterials.w; break;
-		case 3:  w=&o->swskills   .w; break;
-		case 4:  w=&o->swequipment.w; break;
-		default: w=NULL;
-	}
-	if (w != NULL)
-	{
-		float dx = mouse.x - o->lastx;
-		float dy = mouse.y - o->lasty;
-		w->x += dx;
-		w->y += dy;
-	}
-
+	float dx = mouse.x - o->lastx;
+	float dy = mouse.y - o->lasty;
 	o->lastx = mouse.x;
 	o->lasty = mouse.y;
+
+	if (o->selected < 0)
+		return;
+
+	subwindow_t* w = o->sw[o->selected];
+	w->x += dx;
+	w->y += dy;
 }
 
 int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
@@ -247,32 +270,36 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 	int i = overlay_draw(o, g, 0);
 	if (i >= 0)
 	{
-		if (t == sfMouseLeft)
+		if (i % 2 == 0) // buttons
 		{
-			character_eatFor(g->player, i);
+			i /= 2;
+			if (t == sfMouseLeft)
+				o->sw[i]->visible ^= 1;
 		}
-		else if (t == sfMouseRight)
+		else // statuses
 		{
-			g->autoEat[i] ^= 1;
+			i /= 2;
+			if (t == sfMouseLeft)
+			{
+				character_eatFor(g->player, i);
+			}
+			else if (t == sfMouseRight)
+			{
+				g->autoEat[i] ^= 1;
+			}
 		}
 		return 1;
 	}
 
 	if (t == -sfMouseRight-1)
 	{
-		int id =
-		subwindow_catch(&o->swbuilding.w,  x, y, t) ? 0 :
-		subwindow_catch(&o->switems.w,     x, y, t) ? 1 :
-		subwindow_catch(&o->swmaterials.w, x, y, t) ? 2 :
-		subwindow_catch(&o->swskills.w,    x, y, t) ? 3 :
-		subwindow_catch(&o->swequipment.w, x, y, t) ? 4 :
-		-1;
-
-		if (id >= 0)
-		{
-			o->selected = id;
-			return 1;
-		}
+		for (size_t i = 0; i < o->n_subwindows; i++)
+			if (subwindow_catch(o->sw[i], x, y, t))
+			{
+				o->selected = i;
+				break;
+			}
+		return 1;
 	}
 	else if (t == sfMouseRight)
 	{
@@ -295,13 +322,10 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 
 int overlay_wheel(overlay_t* o, int x, int y, int d)
 {
-	return
-	subwindow_wheel(&o->swbuilding.w,  x, y, d) ||
-	subwindow_wheel(&o->switems.w,     x, y, d) ||
-	subwindow_wheel(&o->swmaterials.w, x, y, d) ||
-	subwindow_wheel(&o->swskills.w,    x, y, d) ||
-	subwindow_wheel(&o->swequipment.w, x, y, d) ||
-	0;
+	for (size_t i = 0; i < o->n_subwindows; i++)
+		if (subwindow_wheel(o->sw[i], x, y, d))
+			return 1;
+	return 0;
 }
 
 sfVector2f overlay_mouse(graphics_t* g)
