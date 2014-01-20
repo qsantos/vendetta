@@ -238,9 +238,12 @@ void game_loop(game_t* g)
 			{
 				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
-				g->player->go_x = pos.x;
-				g->player->go_y = pos.y;
-				g->player->go_o = NULL;
+				if (!overlay_catch(g->o, g, pos.x, pos.y, -sfMouseLeft-1))
+				{
+					g->player->go_x = pos.x;
+					g->player->go_y = pos.y;
+					g->player->go_o = NULL;
+				}
 			}
 		}
 
