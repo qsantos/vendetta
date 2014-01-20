@@ -260,6 +260,9 @@ void character_attack(character_t* c, object_t* o)
 		return;
 	c->statuses[ST_ATTACK] -= 7;
 
+	world_t* w = c->world;
+	evtList_push(&w->events, 0, o->x, o->y);
+
 	if (o->t == O_CHARACTER)
 	{
 		character_t* t = (character_t*) o;

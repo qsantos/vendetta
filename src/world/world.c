@@ -146,6 +146,8 @@ world_t* world_init(universe_t* u, int _w, int _h, unsigned int seed)
 	}
 	// END land type borders
 
+	evtList_init(&w->events);
+
 	// BEGIN character generation
 	w->n_characters = 50;
 	w->characters = CALLOC(character_t, w->n_characters);
@@ -203,6 +205,8 @@ void world_exit(world_t* w)
 	for (size_t i = 0; i < w->n_characters; i++)
 		character_exit(&w->characters[i]);
 	free(w->characters);
+
+	evtList_exit(&w->events);
 
 	free(w->terrain);
 	free(w);

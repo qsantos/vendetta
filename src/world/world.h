@@ -22,6 +22,7 @@
 typedef struct world world_t;
 
 #include "../universe/universe.h"
+#include "event.h"
 #include "character.h"
 #include "mine.h"
 #include "object.h"
@@ -41,6 +42,9 @@ struct world
 	int rows;
 	int cols;
 	short* terrain;
+
+	// on-going events
+	evtList_t events;
 
 	size_t n_characters;
 	character_t* characters;
