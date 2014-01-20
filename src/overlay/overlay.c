@@ -257,7 +257,7 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 		return 1;
 	}
 
-	if (t == -sfMouseRight)
+	if (t == -sfMouseRight-1)
 	{
 		int id =
 		subwindow_catch(&o->swbuilding.w,  x, y, t) ? 0 :

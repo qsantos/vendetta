@@ -43,6 +43,6 @@ void ov_build_exit(ov_build_t* o);
 
 int  ov_build_draw  (ov_build_t* o, game_t* g, char do_draw);
 int  ov_build_cursor(ov_build_t* o, game_t* g, float x, float y);
-char ov_build_catch (ov_build_t* o, game_t* g, float x, float y, float t);
+char ov_build_catch (ov_build_t* o, game_t* g, float x, float y, int t);
 
 #endif

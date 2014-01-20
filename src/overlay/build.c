@@ -262,7 +262,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 	return 4;
 }
 
-char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
+char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, int t)
 {
 	if (t == sfMouseRight)
 	{
@@ -276,6 +276,9 @@ char ov_build_catch(ov_build_t* o, game_t* g, float x, float y, float t)
 		}
 		return 1;
 	}
+
+	if (t != sfMouseLeft)
+		return 0;
 
 	int i = ov_build_draw(o, g, 0);
 	if (i >= 0)

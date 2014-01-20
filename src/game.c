@@ -187,7 +187,7 @@ void game_loop(game_t* g)
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
 				sfMouseButtonEvent* e = &event.mouseButton;
-				overlay_catch(g->o, g, e->x, e->y, -e->button);
+				overlay_catch(g->o, g, e->x, e->y, -e->button-1);
 			}
 			else if (event.type == sfEvtMouseMoved)
 			{
