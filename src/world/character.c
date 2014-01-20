@@ -28,11 +28,13 @@
 
 #define M_PI 3.14159265358979323846
 
-void character_init(character_t* c, universe_t* u, world_t* w)
+void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_t* w)
 {
 	c->o.t = O_CHARACTER;
 	c->o.w = 24;
 	c->o.h = 32;
+
+	c->t = t;
 
 	character_setPosition(c, 0, 0);
 

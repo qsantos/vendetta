@@ -152,7 +152,8 @@ world_t* world_init(universe_t* u, int _w, int _h, unsigned int seed)
 	for (size_t i = 0; i < w->n_characters; i++)
 	{
 		character_t* c = &w->characters[i];
-		character_init(c, u, w);
+		int type = rand() % u->n_characters;
+		character_init(c, &u->characters[type], u, w);
 		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
 	}
 	// END character generation

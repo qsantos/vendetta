@@ -40,13 +40,6 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	if (c->inBuilding != NULL)
 		return;
 
-	static sfSprite* sprite = NULL;
-	if (sprite == NULL)
-	{
-		int id = graphics_spriteForImg(g, "characters/default.png");
-		sprite = g->sprites[id];
-	}
-
 	int step = floor(c->step);
 	if (step >= 3)
 		step = 1;
@@ -77,6 +70,12 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 		sfRenderWindow_drawCircleShape(g->render, circle, NULL);
 	}
 
+	static int defaultSprite = -1;
+	if (defaultSprite < 0)
+		defaultSprite = graphics_spriteForImg(g, "characters/default.png");
+
+	int id = c->t == NULL ? defaultSprite : c->t->sprite;
+	sfSprite* sprite = g->sprites[id];
 	sfSprite_setTextureRect(sprite, rect);
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);

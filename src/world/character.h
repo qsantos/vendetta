@@ -27,6 +27,7 @@ typedef struct character character_t;
 #include "skill.h"
 #include "status.h"
 #include "world.h"
+#include "../universe/character.h"
 #include "../universe/universe.h"
 #include "../ai.h"
 
@@ -41,6 +42,8 @@ typedef enum
 struct character
 {
 	object_t o;
+
+	kindOf_character_t* t;
 
 	float       go_x;
 	float       go_y;
@@ -64,7 +67,7 @@ struct character
 	int* equipment;
 };
 
-void character_init(character_t* c, universe_t* u, world_t* w);
+void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_t* w);
 void character_exit(character_t* c);
 
 float character_vitality(character_t* c);
