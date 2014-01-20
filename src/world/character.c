@@ -399,9 +399,9 @@ void character_doRound(character_t* c, float duration)
 	float dy = go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
-	if (c->go_o != NULL && remDistance < 20)
+	if (c->go_o != NULL)
 	{
-		if (c->go_o->t == O_CHARACTER)
+		if (c->go_o->t == O_CHARACTER && remDistance < 20)
 		{
 			character_t* t = (character_t*) c->go_o;
 			if (t != c)
@@ -410,7 +410,7 @@ void character_doRound(character_t* c, float duration)
 				return;
 			}
 		}
-		else if (c->go_o->t == O_BUILDING)
+		else if (c->go_o->t == O_BUILDING && object_overlaps(c->go_o, &c->o))
 		{
 			building_t* b = (building_t*) c->go_o;
 			if (b->owner != c)
