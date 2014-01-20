@@ -196,6 +196,11 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		if (image_file != NULL && n_steps > 0)
 			kindOf_event_sprite(e, g, image_file, n_steps);
 		free(image_file);
+
+		float duration = cfg_getFloat(s, "DureeEtape");
+		duration /= 10;
+		duration *= n_steps;
+		e->duration = duration;
 	}
 }
 

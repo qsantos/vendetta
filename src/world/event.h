@@ -22,18 +22,15 @@
 typedef struct event   event_t;
 typedef struct evtList evtList_t;
 
-#include <sys/types.h>
+#include "../universe/event.h"
 
 struct event
 {
-	int id;
+	kindOf_event_t* t;
 	float x;
 	float y;
 	float p;
 };
-
-void event_init(event_t* e, int id, float x, float y);
-void event_exit(event_t* e);
 
 struct evtList
 {
@@ -44,6 +41,8 @@ struct evtList
 void evtList_init(evtList_t* l);
 void evtList_exit(evtList_t* l);
 
-void evtList_push(evtList_t* l, int id, float x, float y);
+void evtList_push(evtList_t* l, kindOf_event_t* t, float x, float y);
+
+void evtList_doRound(evtList_t* l, float duration);
 
 #endif

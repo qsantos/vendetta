@@ -32,9 +32,9 @@ static void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 
 void draw_event(graphics_t* g, character_t* player, event_t* e)
 {
-	universe_t* u = player->universe;
+	(void) player;
 
-	kindOf_event_t* t = &u->events[e->id];
+	kindOf_event_t* t = e->t;
 
 	if (t->sprite < 0)
 		return;
@@ -42,7 +42,8 @@ void draw_event(graphics_t* g, character_t* player, event_t* e)
 	sfSprite* sprite = g->sprites[t->sprite];
 
 	sfIntRect rect = {0, 0, t->width, t->height};
-	rect.left = t->width * e->p * t->steps;
+	int step = floor(e->p * t->steps);
+	rect.left = t->width * step;
 	sfSprite_setTextureRect(sprite, rect);
 
 	sfVector2f pos = {e->x - t->width/2, e->y - t->height/2};

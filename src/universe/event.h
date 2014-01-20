@@ -27,7 +27,7 @@ struct kindOf_event
 {
 	int sprite;
 	int steps;
-
+	float duration;
 	float width;
 	float height;
 };

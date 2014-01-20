@@ -232,6 +232,8 @@ void world_randMine(world_t* w, mine_t* m)
 
 void world_doRound(world_t* w, float duration)
 {
+	evtList_doRound(&w->events, duration);
+
 	for (size_t i = 0; i < w->n_characters; i++)
 		character_doRound(&w->characters[i], duration);
 }

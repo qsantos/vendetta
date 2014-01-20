@@ -18,19 +18,11 @@
 
 #include "event.h"
 
+#include <sys/types.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../mem.h"
-
-void event_init(event_t* e, int id, float x, float y)
-{
-	*e = (event_t){id, x, y, 0};
-}
-
-void event_exit(event_t* e)
-{
-	(void) e;
-}
 
 void evtList_init(evtList_t* l)
 {
@@ -43,8 +35,24 @@ void evtList_exit(evtList_t* l)
 	free(l->d);
 }
 
-void evtList_push(evtList_t* l, int id, float x, float y)
+void evtList_push(evtList_t* l, kindOf_event_t* t, float x, float y)
 {
 	l->d = CREALLOC(l->d, event_t, l->n+1);
-	event_init(&l->d[l->n++], id, x, y);
+	l->d[l->n++] = (event_t){t, x, y, 0};
+}
+
+void evtList_doRound(evtList_t* l, float duration)
+{
+	for (ssize_t i = 0; i < (ssize_t) l->n; i++)
+	{
+		event_t* e = &l->d[i];
+		e->p += duration / e->t->duration;
+		if (e->p >= 1)
+		{
+			l->n--;
+			if (i != 0)
+				memmove(l->d+i-1, l->d+i, sizeof(event_t)*(l->n-i));
+			i--;
+		}
+	}
 }

@@ -24,6 +24,7 @@ void kindOf_event_init(kindOf_event_t* e)
 {
 	e->sprite = -1;
 	e->steps = 0;
+	e->duration = 1;
 	e->width = 0;
 	e->height = 0;
 }
