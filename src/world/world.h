@@ -57,7 +57,7 @@ struct world
 	building_t** buildings;
 };
 
-world_t* world_init(universe_t* u, int w, int h, unsigned int seed);
+world_t* world_init(universe_t* u, int w, int h, int n_bots, unsigned int seed);
 void     world_exit(world_t* w);
 
 void world_randMine(world_t* w, mine_t* m);

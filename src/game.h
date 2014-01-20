@@ -40,7 +40,7 @@ struct game
 	ai_t*  bots;
 };
 
-void game_init(game_t* g, int w, int h, unsigned int seed);
+void game_init(game_t* g, int w, int h, int n_bots, unsigned int seed);
 void game_exit(game_t* g);
 void game_loop(game_t* g);
 

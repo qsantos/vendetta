@@ -27,7 +27,7 @@
 #include "../rand.h"
 #include "../voronoi/lloyd.h"
 
-world_t* world_init(universe_t* u, int _w, int _h, unsigned int seed)
+world_t* world_init(universe_t* u, int _w, int _h, int n_bots, unsigned int seed)
 {
 	world_t* w = CALLOC(world_t, 1);
 
@@ -149,7 +149,7 @@ world_t* world_init(universe_t* u, int _w, int _h, unsigned int seed)
 	evtList_init(&w->events);
 
 	// BEGIN character generation
-	w->n_characters = 50;
+	w->n_characters = 1 + n_bots;
 	w->characters = CALLOC(character_t, w->n_characters);
 	for (size_t i = 0; i < w->n_characters; i++)
 	{

@@ -35,7 +35,8 @@ static void usage(const char* name)
 		"options:\n"
 		"  -h, --help        print this help\n"
 		"  -V, --version     print version information\n"
-		"  -s, --size W H    set map's size to WxH tiles\n"
+		"  -s, --size W H    set map's size to WxH tiles (>20)\n"
+		"  -b, --bots N      set the number of bots\n"
 		"  -r, --seed seed   set generation seed\n"
 		"                    if this parameter is omitted, the seed\n"
 		"                    is generated from the current time\n"
@@ -54,6 +55,7 @@ int main(int argc, char** argv)
 	char quick_start = 0;
 	int  width  = 100;
 	int  height = 100;
+	int  n_bots = 50;
 	unsigned int seed = time(NULL);
 
 	int curarg = 1;
@@ -95,6 +97,20 @@ int main(int argc, char** argv)
 				usage(argv[0]);
 			}
 		}
+		else if (strcmp(option, "--bots") == 0 || strcmp(option, "-b") == 0)
+		{
+			if (curarg == argc)
+			{
+				fprintf(stderr, "No number was given\n");
+				usage(argv[0]);
+			}
+			n_bots = strtol(argv[curarg++], NULL, 0);
+			if (n_bots < 0)
+			{
+				fprintf(stderr, "Must be a positive number (%i given)\n", n_bots);
+				usage(argv[0]);
+			}
+		}
 		else if (strcmp(option, "--seed") == 0 || strcmp(option, "-r") == 0)
 		{
 			if (curarg == argc)
@@ -122,7 +138,7 @@ int main(int argc, char** argv)
 	fprintf(stderr, "Using seed %#x\n", seed);
 
 	game_t game;
-	game_init(&game, width, height, seed);
+	game_init(&game, width, height, n_bots, seed);
 
 	if (god_mode)
 	{
