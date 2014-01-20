@@ -89,7 +89,7 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 			sfCircleShape_setScale(circle, (sfVector2f){1,scale});
 			sfCircleShape_setFillColor(circle, sfTransparent);
 			sfCircleShape_setOutlineColor(circle, sfWhite);
-			sfCircleShape_setOutlineThickness(circle, 1);
+			sfCircleShape_setOutlineThickness(circle, 2);
 		}
 		sfCircleShape_setPosition(circle, (sfVector2f){c->o.x-radius, c->o.y-radius*scale-2});
 		sfRenderWindow_drawCircleShape(g->render, circle, NULL);
