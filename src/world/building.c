@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "../mem.h"
 
@@ -35,6 +36,7 @@ void building_init(building_t* b, kindOf_building_t* t, character_t* owner, floa
 	b->owner = owner;
 
 	b->build_progress = 0;
+	b->life = 0;
 
 	b->work_n = 0;
 	b->work_list = 0;
@@ -47,6 +49,14 @@ void building_exit(building_t* b)
 		return;
 
 	free(b->work_list);
+}
+
+float building_build(building_t* b, float work)
+{
+	work = fmin(work, 1 - b->build_progress);
+	b->build_progress += work;
+	b->life = fmin(b->life + 20*work, 20);
+	return work;
 }
 
 void building_work_enqueue(building_t* b, int c)

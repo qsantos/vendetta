@@ -33,6 +33,7 @@ struct building
 	character_t* owner;
 
 	float build_progress;
+	float life;
 
 	size_t work_n;
 	int*   work_list;
@@ -41,6 +42,8 @@ struct building
 
 void building_init(building_t* b, kindOf_building_t* t, character_t* owner, float x, float y);
 void building_exit(building_t* b);
+
+float building_build(building_t* b, float work);
 
 void building_work_enqueue(building_t* b, int c);
 void building_work_dequeue(building_t* b, size_t n);

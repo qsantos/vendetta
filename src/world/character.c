@@ -175,10 +175,8 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = duration * character_getSkill(c, SK_BUILD);
 			work *= tr->rate;
-			work = fmin(work, 1 - b->build_progress);
+			work = building_build(b, work);
 			character_train(c, SK_BUILD, work);
-
-			b->build_progress += work;
 		}
 		else if (b->work_n > 0)
 		{
