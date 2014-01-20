@@ -24,7 +24,7 @@
 #include "mem.h"
 #include "string.h"
 
-#define HT_MAX_TEXTURES 128
+#define HT_MAX_TEXTURES (16*1024)
 
 static unsigned int find(graphics_t* g, const char* str);
 
@@ -108,17 +108,24 @@ int graphics_spriteForImg(graphics_t* g, const char* filename)
 
 static unsigned int hash(const char* str)
 {
-   unsigned int h = 0x4e67c6a7;
-   for (; *str; str++)
-      h ^= (h << 5) + (*str) + (h >> 2);
-   return h % HT_MAX_TEXTURES;
+	unsigned int h = 0x4e67c6a7;
+	for (; *str; str++)
+		h ^= (h << 5) + (*str) + (h >> 2);
+	return h % HT_MAX_TEXTURES;
 }
 static unsigned int find(graphics_t* g, const char* str)
 {
-	unsigned int id;
-	for (id = hash(str); g->filenames[id]; id++)
-		if (strcmp(g->filenames[id], str) == 0)
-			return id;
+	unsigned int start = hash(str);
+	unsigned int id = start;
+	while (g->filenames[id] != NULL && strcmp(g->filenames[id], str) != 0)
+	{
+		id = (id+1) % HT_MAX_TEXTURES;
+		if (id == start)
+		{
+			fprintf(stderr, "Too many textures\n");
+			exit(1);
+		}
+	}
 	return id;
 }
 
