@@ -124,17 +124,20 @@ int main(int argc, char** argv)
 	game_t game;
 	game_init(&game, width, height, seed);
 
-	if (quick_start)
-	{
-		float* m = game.player->inventory.materials;
-		for (size_t i = 0; i < game.u->n_materials; i++)
-			m[i] = 20;
-	}
 	if (god_mode)
 	{
 		skill_t* s = game.player->skills;
 		for (size_t i = 0; i < game.u->n_skills; i++)
 			s[i] = 1000;
+	}
+	if (quick_start)
+	{
+		float* m = game.player->inventory.materials;
+		for (size_t i = 0; i < game.u->n_materials; i++)
+		{
+			kindOf_material_t* t = &game.u->materials[i];
+			m[i] = character_maxOf(game.player, t);
+		}
 	}
 
 	game_loop(&game);
