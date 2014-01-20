@@ -74,6 +74,9 @@ void overlay_cursor(overlay_t* o, game_t* g)
 			if (o->t == O_CHARACTER)
 			{
 				character_t* c = (character_t*) o;
+				if (c != g->player)
+					cursor = 9;
+
 				if (c->ai != NULL)
 				{
 					graphics_drawTooltip(g->g, mouse.x, mouse.y, c->ai->name);

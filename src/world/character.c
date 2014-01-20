@@ -254,31 +254,8 @@ void character_eatFor(character_t* c, int status)
 	}
 }
 
-void character_doRound(character_t* c, float duration)
+void character_move(character_t* c, float duration, float dx, float dy)
 {
-	if (c->ai != NULL)
-	{
-		ai_do(c->ai, c);
-	}
-
-	duration *= character_vitality(c);
-
-	if (c->go_o != NULL)
-	{
-		c->go_x = c->go_o->x;
-		c->go_y = c->go_o->y;
-	}
-	float dx = c->go_x - c->o.x;
-	float dy = c->go_y - c->o.y;
-
-	float remDistance = sqrt(dx*dx + dy*dy);
-	if (remDistance == 0)
-	{
-		c->dir  = D_SOUTH;
-		c->step = 5;
-		character_workAt(c, c->go_o, duration);
-		return;
-	}
 	c->inBuilding = NULL;
 
 	float dir;
@@ -326,6 +303,7 @@ void character_doRound(character_t* c, float duration)
 		}
 	}
 
+	float remDistance = sqrt(dx*dx + dy*dy);
 	distance = fmin(distance, remDistance);
 
 	c->o.x += distance * cos(dir);
@@ -343,6 +321,45 @@ void character_doRound(character_t* c, float duration)
 		c->step = 0;
 
 	character_train(c, SK_WALK, distance / 100);
+}
+
+void character_doRound(character_t* c, float duration)
+{
+	if (c->ai != NULL)
+	{
+		ai_do(c->ai, c);
+	}
+
+	duration *= character_vitality(c);
+
+	if (c->go_o != NULL)
+	{
+		c->go_x = c->go_o->x;
+		c->go_y = c->go_o->y;
+	}
+	float dx = c->go_x - c->o.x;
+	float dy = c->go_y - c->o.y;
+
+	float remDistance = sqrt(dx*dx + dy*dy);
+	if (c->go_o != NULL && c->go_o->t == O_CHARACTER && remDistance < 20)
+	{
+		character_t* t = (character_t*) c->go_o;
+		if (t == c)
+		{
+		}
+		else
+		{
+			t->statuses[ST_HEALTH] -= duration;
+		}
+	}
+	else if (remDistance == 0)
+	{
+		c->dir  = D_SOUTH;
+		c->step = 5;
+		character_workAt(c, c->go_o, duration);
+	}
+	else
+		character_move(c, duration, dx, dy);
 }
 
 void character_setPosition(character_t* c, float x, float y)

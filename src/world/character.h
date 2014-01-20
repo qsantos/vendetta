@@ -76,6 +76,7 @@ float character_getSkill(character_t* c, int skill);
 void  character_train   (character_t* c, int skill, float work);
 float character_maxOf   (character_t* c, kindOf_material_t* m);
 void  character_workAt  (character_t* c, object_t* o, float duration);
+void  character_move    (character_t* c, float duration, float dx, float dy);
 void  character_doRound (character_t* c, float duration);
 
 char character_eat   (character_t* c, int material);

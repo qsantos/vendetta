@@ -32,8 +32,6 @@ void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 
 void draw_character(graphics_t* g, character_t* player, character_t* c)
 {
-	(void) player;
-
 	if (c == NULL)
 		return;
 
@@ -56,7 +54,7 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	{
 		static sfCircleShape* circle = NULL;
 		static const float radius = 10;
-		static const float scale = 0.75;
+		static const float scale = 0.5;
 		if (circle == NULL)
 		{
 			circle = sfCircleShape_create();
@@ -79,6 +77,9 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	sfSprite_setTextureRect(sprite, rect);
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
+
+	float p = c->statuses[ST_HEALTH] / 20.;
+	graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p, 0);
 }
 
 void draw_mine(graphics_t* g, character_t* player, mine_t* m)

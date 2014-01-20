@@ -241,11 +241,11 @@ int world_landAt(world_t* w, float x, float y)
 
 object_t* world_objectAt(world_t* w, float x, float y)
 {
-	for (size_t i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < w->n_characters; i++)
 	{
-		building_t* b = w->buildings[i];
-		if (b != NULL && object_isAt(&b->o, x, y))
-			return &b->o;
+		character_t* c = &w->characters[i];
+		if (object_isAt(&c->o, x, y))
+			return &c->o;
 	}
 
 	for (size_t i = 0; i < w->n_mines; i++)
@@ -255,11 +255,11 @@ object_t* world_objectAt(world_t* w, float x, float y)
 			return &m->o;
 	}
 
-	for (size_t i = 0; i < w->n_characters; i++)
+	for (size_t i = 0; i < w->n_buildings; i++)
 	{
-		character_t* c = &w->characters[i];
-		if (object_isAt(&c->o, x, y))
-			return &c->o;
+		building_t* b = w->buildings[i];
+		if (b != NULL && object_isAt(&b->o, x, y))
+			return &b->o;
 	}
 
 	return NULL;
