@@ -51,12 +51,15 @@ int main(int argc, char** argv)
 	setlocale(LC_ALL, "");
 	setlocale(LC_NUMERIC, "C");
 
+	settings_t s =
+	{
+		.seed = time(NULL),
+		.map_width = 100,
+		.map_height = 100,
+		.bots_count = 50,
+	};
 	char god_mode    = 0;
 	char quick_start = 0;
-	int  width  = 100;
-	int  height = 100;
-	int  n_bots = 50;
-	unsigned int seed = time(NULL);
 
 	int curarg = 1;
 	while (curarg < argc)
@@ -79,7 +82,7 @@ int main(int argc, char** argv)
 				fprintf(stderr, "No width given\n");
 				usage(argv[0]);
 			}
-			width = strtol(argv[curarg++], NULL, 0);
+			int width = strtol(argv[curarg++], NULL, 0);
 			if (width < MAP_MIN_WIDTH)
 			{
 				fprintf(stderr, "Width must be at least %i (%i given)\n", MAP_MIN_WIDTH, width);
@@ -90,12 +93,14 @@ int main(int argc, char** argv)
 				fprintf(stderr, "No width given\n");
 				usage(argv[0]);
 			}
-			height = strtol(argv[curarg++], NULL, 0);
+			int height = strtol(argv[curarg++], NULL, 0);
 			if (height < MAP_MIN_HEIGHT)
 			{
 				fprintf(stderr, "Height must be at least %i (%i given)\n", MAP_MIN_HEIGHT, height);
 				usage(argv[0]);
 			}
+			s.map_width  = width;
+			s.map_height = height;
 		}
 		else if (strcmp(option, "--bots") == 0 || strcmp(option, "-b") == 0)
 		{
@@ -104,12 +109,13 @@ int main(int argc, char** argv)
 				fprintf(stderr, "No number was given\n");
 				usage(argv[0]);
 			}
-			n_bots = strtol(argv[curarg++], NULL, 0);
+			int n_bots = strtol(argv[curarg++], NULL, 0);
 			if (n_bots < 0)
 			{
 				fprintf(stderr, "Must be a positive number (%i given)\n", n_bots);
 				usage(argv[0]);
 			}
+			s.bots_count = n_bots;
 		}
 		else if (strcmp(option, "--seed") == 0 || strcmp(option, "-r") == 0)
 		{
@@ -118,7 +124,7 @@ int main(int argc, char** argv)
 				fprintf(stderr, "No seed was given\n");
 				usage(argv[0]);
 			}
-			seed = strtol(argv[curarg++], NULL, 0);
+			s.seed = strtol(argv[curarg++], NULL, 0);
 		}
 		else if (strcmp(option, "--quickstart") == 0 || strcmp(option, "-q") == 0)
 		{
@@ -135,10 +141,10 @@ int main(int argc, char** argv)
 		}
 	}
 
-	fprintf(stderr, "Using seed %#x\n", seed);
+	fprintf(stderr, "Using seed %#x\n", s.seed);
 
 	game_t game;
-	game_init(&game, width, height, n_bots, seed);
+	game_init(&game, &s);
 
 	if (god_mode)
 	{

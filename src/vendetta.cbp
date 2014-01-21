@@ -27,6 +27,8 @@
 <Unit filename="main.c" />
 <Unit filename="mem.c" />
 <Unit filename="mem.h" />
+<Unit filename="menu.c" />
+<Unit filename="menu.h" />
 <Unit filename="overlay/swequipment.h" />
 <Unit filename="overlay/build.h" />
 <Unit filename="overlay/swbuilding.h" />
@@ -44,6 +46,7 @@
 <Unit filename="overlay/switems.c" />
 <Unit filename="overlay/overlay.h" />
 <Unit filename="rand.h" />
+<Unit filename="settings.h" />
 <Unit filename="string.c" />
 <Unit filename="string.h" />
 <Unit filename="universe/building.c" />

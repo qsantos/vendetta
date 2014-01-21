@@ -27,12 +27,12 @@
 #include "world/draw.h"
 #include "overlay/overlay.h"
 
-void game_init(game_t* g, int w, int h, int n_bots, unsigned int seed)
+void game_init(game_t* g, settings_t* s)
 {
 	g->g = graphics_init();
 	g->o =  overlay_init(g->g);
 	g->u = universe_init(g->g);
-	g->w =    world_init(g->u, w, h, n_bots, seed);
+	g->w =    world_init(g->u, s->map_width, s->map_height, s->bots_count, s->seed);
 
 	g->player = &g->w->characters[0];
 	for (size_t i = 0; i < N_STATUSES; i++)

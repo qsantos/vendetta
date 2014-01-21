@@ -16,33 +16,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef GAME_H
-#define GAME_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
-typedef struct game game_t;
+typedef struct settings settings_t;
 
-#include "settings.h"
-#include "graphics.h"
-#include "universe/universe.h"
-#include "world/world.h"
-#include "overlay/overlay.h"
-
-struct game
+struct settings
 {
-	graphics_t* g;
-	overlay_t*  o;
-	universe_t* u;
-	world_t*    w;
+	unsigned int seed;
 
-	character_t* player;
-	char         autoEat[N_STATUSES];
+	int map_width;
+	int map_height;
 
-	size_t n_bots;
-	ai_t*  bots;
+	int bots_count;
 };
-
-void game_init(game_t* g, settings_t* s);
-void game_exit(game_t* g);
-void game_loop(game_t* g);
 
 #endif
