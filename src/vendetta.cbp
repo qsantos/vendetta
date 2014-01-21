@@ -77,6 +77,7 @@
 <Unit filename="universe/skill.h" />
 <Unit filename="universe/material.h" />
 <Unit filename="universe/category.c" />
+<Unit filename="version.h" />
 <Unit filename="voronoi/lloyd.h" />
 <Unit filename="voronoi/lloyd.c" />
 <Unit filename="voronoi/geometry.c" />

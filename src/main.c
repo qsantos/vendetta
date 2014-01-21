@@ -22,6 +22,7 @@
 #include <locale.h>
 #include <time.h>
 
+#include "version.h"
 #include "menu.h"
 
 #define MAP_MIN_WIDTH  20
@@ -77,7 +78,7 @@ int main(int argc, char** argv)
 		}
 		else if (strcmp(option, "--version") == 0 || strcmp(option, "-V") == 0)
 		{
-			fprintf(stderr, "Vendetta version 0.2\n");
+			fprintf(stderr, "Vendetta version " VERSION "\n");
 			fprintf(stderr, "Compiled on %s at %s\n", __DATE__, __TIME__);
 			exit(1);
 		}
