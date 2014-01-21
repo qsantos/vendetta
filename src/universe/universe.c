@@ -152,21 +152,23 @@ universe_t* universe_init(graphics_t* g)
 void universe_exit(universe_t* u)
 {
 	/* TODO
-	for (int i = 0; i < u->n_slots; i++)
-		kindOf_slots_exit(&u->slots[i]);
+	for (size_t i = 0; i < u->n_slots; i++)
+		kindOf_slot_exit(&u->slots[i]);
 	*/
 	free(u->slots);
 
 	/* TODO
-	for (int i = 0; i < u->n_categories; i++)
-		kindOf_status_exit(&u->categories[i]);
-	*/
+	for (size_t i = 0; i < u->n_categories; i++)
+		kindOf_category_exit(&u->categories[i]);
 	free(u->categories);
+	*/
 
 	/* TODO
-	for (int i = 0; i < N_STATUSES; i++)
+	for (size_t i = 0; i < N_STATUSES; i++)
 		kindOf_status_exit(&u->statuses[i]);
 	*/
+
+	free(u->iskills);
 
 	for (size_t i = 0; i < u->n_skills; i++)
 		kindOf_skill_exit(&u->skills[i]);
@@ -187,6 +189,14 @@ void universe_exit(universe_t* u)
 	for (size_t i = 0; i < u->n_materials; i++)
 		kindOf_material_exit(&u->materials[i]);
 	free(u->materials);
+
+	for (size_t i = 0; i < u->n_characters; i++)
+		kindOf_character_exit(&u->characters[i]);
+	free(u->characters);
+
+	for (size_t i = 0; i < u->n_events; i++)
+		kindOf_event_exit(&u->events[i]);
+	free(u->events);
 
 	for (size_t i = 0; i < u->n_bots; i++)
 		ai_exit(&u->bots[i]);
