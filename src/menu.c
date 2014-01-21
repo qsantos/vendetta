@@ -19,6 +19,7 @@
 #include "menu.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "graphics.h"
 #include "game.h"
@@ -28,12 +29,14 @@ static char draw_button(float x, float y, const char* txt, graphics_t* gr, char 
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
 
-	static sfSprite* sprite = NULL;
-	if (sprite == NULL)
+	static sfSprite* normal = NULL;
+	static sfSprite* mini   = NULL;
+	if (normal == NULL)
 	{
-		int id = graphics_spriteForImg(gr, "menubutton.png");
-		sprite = gr->sprites[id];
+		normal = graphics_sprite(gr, "menubutton.png");
+		mini   = graphics_sprite(gr, "mini.png");
 	}
+	sfSprite* sprite = strlen(txt) > 1 ? normal : mini;
 
 	sfFloatRect rect = sfSprite_getGlobalBounds(sprite);
 	sfVector2f pos = {x-rect.width/2, y-rect.height/2};
@@ -60,13 +63,14 @@ static char draw_button(float x, float y, const char* txt, graphics_t* gr, char 
 	rect = sfText_getLocalBounds(text);
 	pos = (sfVector2f){x-rect.width/2-rect.left, y-rect.height/2-rect.top};
 	sfText_setPosition(text, pos);
-	sfText_setOrigin(text, (sfVector2f){0,0});
 	sfRenderWindow_drawText(gr->render, text, NULL);
 
 	return 0;
 }
-static char draw_buttons(graphics_t* gr, char do_draw)
+static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 {
+	(void) s;
+
 	sfVector2u size = sfRenderWindow_getSize(gr->render);
 	float x = size.x / 2;
 	float y = size.y / 2 - 100;
@@ -87,6 +91,62 @@ static char draw_buttons(graphics_t* gr, char do_draw)
 
 	return -1;
 }
+static int draw_scale(graphics_t* gr, float x, float y, int v, char do_draw)
+{
+	if (draw_button(x-100, y, "-", gr, do_draw)) return 0;
+	if (draw_button(x+100, y, "+", gr, do_draw)) return 1;
+
+	static sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont(text, gr->font);
+		sfText_setCharacterSize(text, 20);
+	}
+	char buffer[1024];
+	snprintf(buffer, 1024, "%i", v);
+	sfText_setUTF8(text, buffer);
+	sfFloatRect rect = sfText_getLocalBounds(text);
+	sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+	sfText_setPosition(text, pos);
+	sfRenderWindow_drawText(gr->render, text, NULL);
+
+	return -1;
+}
+static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
+{
+	sfVector2u size = sfRenderWindow_getSize(gr->render);
+	float x = size.x / 2;
+	float y = size.y / 2 - 100;
+
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont(text, gr->font);
+		sfText_setCharacterSize(text, 20);
+	}
+	char buffer[1024];
+	snprintf(buffer, 1024, "Seed: %#x", s->seed);
+	sfText_setUTF8(text, buffer);
+	sfFloatRect rect = sfText_getLocalBounds(text);
+	sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+	sfText_setPosition(text, pos);
+	sfRenderWindow_drawText(gr->render, text, NULL);
+
+	y += 50;
+
+	int r;
+	if ((r = draw_scale(gr, x, y, s->map_width,  do_draw)) >= 0) return 2*1 + r;
+	y += 50;
+	if ((r = draw_scale(gr, x, y, s->map_height, do_draw)) >= 0) return 2*2 + r;
+	y += 50;
+
+	if (draw_button(x, y, "Revenir", gr, do_draw))
+		return 0;
+
+	return -1;
+}
 static void play(settings_t* s, graphics_t* gr)
 {
 	game_t game;
@@ -104,6 +164,7 @@ void menu(settings_t* s)
 	sfSprite* illustration = gr->sprites[id];
 
 	sfRenderWindow* render = gr->render;
+	char inconfig = 0;
 	char stayhere = 1;
 	while (stayhere && sfRenderWindow_isOpen(render))
 	{
@@ -124,28 +185,33 @@ void menu(settings_t* s)
 			else if (event.type == sfEvtKeyReleased)
 			{
 				if (event.key.code == sfKeyEscape)
-				{
 					stayhere = 0;
-				}
 				else if (event.key.code == sfKeyReturn)
-				{
 					play(s, gr);
-				}
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
-				int i = draw_buttons(gr, 0);
-				if (i == 0)
+				if (inconfig)
 				{
-					play(s, gr);
+					int i = configmenu(gr, s, 0);
+					char sign = 2*(i%2) - 1;
+					i /= 2;
+					if (i == 0)
+						inconfig = 0;
+					else if (i == 1)
+						s->map_width  += sign * 100;
+					else if (i == 2)
+						s->map_height += sign * 100;
 				}
-				else if (i == 1)
+				else
 				{
-				}
-				else if (i == 2)
-				{
-					graphics_exit(gr);
-					exit(0);
+					int i = mainmenu(gr, s, 0);
+					if (i == 0)
+						play(s, gr);
+					else if (i == 1)
+						inconfig = 1;
+					else if (i == 2)
+						stayhere = 0;
 				}
 			}
 		}
@@ -158,7 +224,10 @@ void menu(settings_t* s)
 		sfSprite_setPosition(illustration, pos);
 		sfRenderWindow_drawSprite(render, illustration, NULL);
 
-		draw_buttons(gr, 1);
+		if (inconfig)
+			configmenu(gr, s, 1);
+		else
+			mainmenu(gr, s, 1);
 
 		graphics_drawCursor(gr, 0);
 		sfRenderWindow_display(render);

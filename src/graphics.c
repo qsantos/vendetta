@@ -117,6 +117,12 @@ int graphics_spriteForImg(graphics_t* g, const char* filename)
 	return g->n_sprites++;
 }
 
+sfSprite* graphics_sprite(graphics_t* g, const char* filename)
+{
+	int id = graphics_spriteForImg(g, filename);
+	return g->sprites[id];
+}
+
 static unsigned int hash(const char* str)
 {
 	unsigned int h = 0x4e67c6a7;
