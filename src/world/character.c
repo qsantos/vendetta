@@ -44,6 +44,21 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 	c->step = 5; // standing still
 	c->inWater = 0;
 
+	// TODO
+	// quickfix: check if already in water
+	{
+	int t = world_landAt(w, c->o.x, c->o.y);
+	if (t == 10)
+	{
+		float y = c->o.y - 6;
+		if (world_landAt(w, c->o.x-c->o.w/2, y) == t &&
+		    world_landAt(w, c->o.x+c->o.w/2, y) == t)
+		{
+			c->inWater = 1;
+		}
+	}
+	}
+
 	c->ai        = NULL;
 
 	c->universe = u;
