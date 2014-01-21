@@ -21,6 +21,48 @@
 #include <stdlib.h>
 #include <SFML/Graphics.h>
 
+static char draw_button(float x, float y, char* txt, graphics_t* gr, char do_draw)
+{
+	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
+	sfVector2f mouse = {imouse.x, imouse.y};
+
+	sfSprite* sprite = NULL;
+	if (sprite == NULL)
+	{
+		int id = graphics_spriteForImg(gr, "menubutton.png");
+		sprite = gr->sprites[id];
+	}
+
+	sfFloatRect rect = sfSprite_getGlobalBounds(sprite);
+	sfVector2f pos = {x-rect.width/2, y-rect.height/2};
+	sfSprite_setPosition(sprite, pos);
+
+	char is_in = sfSprite_contains(sprite, mouse);
+	sfColor color = is_in ? sfWhite : (sfColor){255,255,255,127};
+	sfSprite_setColor(sprite, color);
+
+	if (do_draw)
+		sfRenderWindow_drawSprite(gr->render, sprite, NULL);
+	else if (is_in)
+		return 1;
+
+	sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont(text, gr->font);
+		sfText_setCharacterSize(text, 25);
+	}
+
+	sfText_setUTF8(text, txt);
+	rect = sfText_getLocalBounds(text);
+	pos = (sfVector2f){x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+	sfText_setPosition(text, pos);
+	sfText_setOrigin(text, (sfVector2f){0,0});
+	sfRenderWindow_drawText(gr->render, text, NULL);
+
+	return 0;
+}
 void menu(settings_t* s, graphics_t* gr)
 {
 	(void) s;
@@ -56,16 +98,23 @@ void menu(settings_t* s, graphics_t* gr)
 				else if (event.key.code == sfKeyReturn)
 					return;
 			}
+			else if (event.type == sfEvtMouseButtonReleased)
+			{
+				sfVector2u size  = sfRenderWindow_getSize(render);
+				if (draw_button(size.x/2, size.y/2, "Jouer !", gr, 0))
+					return;
+			}
 		}
 
 		sfRenderWindow_clear(render, sfBlack);
 
 		sfVector2u size  = sfRenderWindow_getSize(render);
 		sfFloatRect rect = sfSprite_getGlobalBounds(illustration);
-
 		sfVector2f pos = {size.x/2 - rect.width/2, size.y/2-rect.height/2};
 		sfSprite_setPosition(illustration, pos);
 		sfRenderWindow_drawSprite(render, illustration, NULL);
+
+		draw_button(size.x/2, size.y/2, "Jouer !", gr, 1);
 
 		graphics_drawCursor(gr, 0);
 		sfRenderWindow_display(render);
