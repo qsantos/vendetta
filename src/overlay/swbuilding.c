@@ -122,9 +122,18 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 
 		// text
-		const char* action = t->make.n_req == 0 ? "Récolter :" : "Transformer en :";
 		char buffer[1024];
-		snprintf(buffer, 1024, "%s %s", action, m->name);
+		size_t cur = 0;
+		size_t n = 1024;
+		if (t->make.n_req == 0)
+		{
+			cur += snprintf(buffer+cur, n-cur, "Récolter %s", m->name);
+		}
+		else
+		{
+			kindOf_material_t* x = &g->u->materials[t->make.req[0].id];
+			cur += snprintf(buffer+cur, n-cur, "Transformer %s en %s", x->name, m->name);
+		}
 		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
