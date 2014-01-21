@@ -166,7 +166,7 @@ void graphics_drawRoundRect(graphics_t* g, float x, float y, float w, float h)
 		{255, 255, 255, 223},
 		{223, 223, 223, 223},
 	};
-	for (size_t i = 0; i < 4*count; i++)
+	for (int i = 0; i < 4*count; i++)
 	{
 		sfVertex* v = sfVertexArray_getVertex(array, i);
 
