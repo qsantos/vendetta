@@ -19,8 +19,9 @@
 #ifndef FILE_H
 #define FILE_H
 
-#if defined __WIN32__ && ! defined __MINGW32__
-#define off64_t long long
+#if defined __WIN32__
+typedef long off_t;
+typedef long long off64_t;
 #else
 enum
 {
@@ -39,7 +40,6 @@ enum
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
-#include <sys/stat.h>
 
 char isdir(const char* path);
 

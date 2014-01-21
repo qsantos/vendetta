@@ -20,6 +20,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#undef __STRICT_ANSI__
+#include <sys/stat.h>
+#define __STRICT_ANSI__
 
 char isdir(const char* path)
 {
