@@ -65,9 +65,10 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr)
 		}
 	}
 
-	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
-	g->g->overlay_view = sfView_copy(default_view);
-	g->g->world_view = sfView_copy(default_view);
+	sfVector2u size = sfRenderWindow_getSize(g->g->render);
+	sfFloatRect rect = {0,0,size.x,size.y};
+	g->g->overlay_view = sfView_createFromRect(rect);
+	g->g->world_view   = sfView_createFromRect(rect);
 }
 
 void game_exit(game_t* g)
@@ -107,8 +108,8 @@ void game_loop(game_t* g)
 			{
 				sfFloatRect rect = {0,0,event.size.width,event.size.height};
 				sfView_reset(g->g->overlay_view, rect);
-				sfView_reset(g->g->world_view, rect);
-				sfView_zoom(g->g->world_view, zoom);
+				sfView_reset(g->g->world_view,   rect);
+				sfView_zoom (g->g->world_view,   zoom);
 			}
 			else if (event.type == sfEvtKeyPressed)
 			{
