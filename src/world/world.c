@@ -27,26 +27,29 @@
 #include "../rand.h"
 #include "../voronoi/lloyd.h"
 
-world_t* world_init(universe_t* u, int _w, int _h, int n_bots, unsigned int seed)
+world_t* world_init(game_t* g)
 {
 	world_t* w = CALLOC(world_t, 1);
 
+	w->rows = g->s->map_width;
+	w->cols = g->s->map_height;
+
 	w->o.t = O_WORLD;
-	w->o.w = _w * TILE_SIZE;
-	w->o.h = _h * TILE_SIZE;
+	w->o.w = w->rows * TILE_SIZE;
+	w->o.h = w->cols * TILE_SIZE;
 	w->o.x = 0;
 	w->o.y = w->o.h / 2;
 
-	w->universe = u;
+	w->universe = g->u;
 
-	srand(seed);
+	srand(g->s->seed);
 
-	// BEGIN map generation
-	w->rows = _w;
-	w->cols = _h;
+	// BEGIN land generation
 	w->terrain = CALLOC(short, w->rows*w->cols);
 
 	// generate Voronoi diagram
+	if (g->s->verbosity >= 3)
+		fprintf(stderr, "Initialiazing Voronoi diagram\n");
 	vr_diagram_t v;
 	vr_diagram_init(&v, w->rows, w->cols);
 	size_t n_vrPoints = w->rows * w->cols / 50;
@@ -56,9 +59,15 @@ world_t* world_init(universe_t* u, int _w, int _h, int n_bots, unsigned int seed
 		double y = frnd(0, w->cols);
 		vr_diagram_point(&v, (point_t){x,y});
 	}
-	vr_lloyd_relaxation(&v);
-	vr_lloyd_relaxation(&v);
+	for (int i = 1; i < 2; i++)
+	{
+		if (g->s->verbosity >= 3)
+			fprintf(stderr, "Lloyd relexation pass %i\n", i);
+		vr_lloyd_relaxation(&v);
+	}
 	vr_diagram_end(&v);
+	if (g->s->verbosity >= 3)
+		fprintf(stderr, "Finished Voronoi generation\n");
 
 	// assign land types to Voronoi regions
 	static const float land_probas[] = {0.8, 0.05, 0.05, 0.04, 0.01, 0,0,0,0,0,0.05};
@@ -121,9 +130,11 @@ world_t* world_init(universe_t* u, int _w, int _h, int n_bots, unsigned int seed
 	}
 
 	vr_diagram_exit(&v);
-	// END map generation
+	if (g->s->verbosity >= 3)
+		fprintf(stderr, "Rasterization done: lands generated\n");
+	// END land generation
 
-	// BEGIN land type borders
+	// BEGIN region borders
 #define LAND_TYPE(I,J) (TERRAIN(w,I,J) / 16)
 #define LAND_SAME(I,J) ( \
 	((I) < 0 || (I) >= w->rows || (J) < 0 || (J) >= w->cols) ? \
@@ -144,13 +155,16 @@ world_t* world_init(universe_t* u, int _w, int _h, int n_bots, unsigned int seed
 		int neighbor = (top<<3) | (right<<2) | (bottom<<1) | (left<<0);
 		TERRAIN(w,i,j) += type2tile[neighbor];
 	}
-	// END land type borders
+	if (g->s->verbosity >= 3)
+		fprintf(stderr, "Fixed region borders\n");
+	// END region borders
 
 	evtList_init(&w->events);
 
 	// BEGIN character generation
-	w->n_characters = 1 + n_bots;
+	w->n_characters = 1 + g->s->bots_count;
 	w->characters = CALLOC(character_t, w->n_characters);
+	universe_t* u = w->universe;
 	for (size_t i = 0; i < w->n_characters; i++)
 	{
 		character_t* c = &w->characters[i];
@@ -158,6 +172,8 @@ world_t* world_init(universe_t* u, int _w, int _h, int n_bots, unsigned int seed
 		character_init(c, &u->characters[type], u, w);
 		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
 	}
+	if (g->s->verbosity >= 3)
+		fprintf(stderr, "Generated %zu characters\n", w->n_characters);
 	// END character generation
 
 	// BEGIN mine generation
@@ -181,6 +197,8 @@ world_t* world_init(universe_t* u, int _w, int _h, int n_bots, unsigned int seed
 		world_randMine(w, m);
 	}
 	// END mine generation
+	if (g->s->verbosity >= 3)
+		fprintf(stderr, "Generated %zu mines\n", w->n_mines);
 
 	w->n_buildings = 0;
 	w->a_buildings = 0;

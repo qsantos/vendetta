@@ -29,11 +29,12 @@
 
 void game_init(game_t* g, settings_t* s, graphics_t* gr)
 {
+	g->s = s;
 	g->g = gr;
 
-	g->o =  overlay_init(g->g);
-	g->u = universe_init(g->g);
-	g->w =    world_init(g->u, s->map_width, s->map_height, s->bots_count, s->seed);
+	g->o =  overlay_init(g);
+	g->u = universe_init(g);
+	g->w =    world_init(g);
 
 	g->player = &g->w->characters[0];
 

@@ -26,7 +26,7 @@
 #include "../string.h"
 #include "../file.h"
 
-static void rec_find(universe_t* u, graphics_t* g, const char* path)
+static void rec_find(universe_t* u, game_t* g, const char* path)
 {
 	size_t i = 0;
 	FOREACH_FILE(path, i++);
@@ -35,36 +35,43 @@ static void rec_find(universe_t* u, graphics_t* g, const char* path)
 	{
 		u->characters = CREALLOC(u->characters, kindOf_character_t, u->n_characters+i);
 		FOREACH_FILE(path,
-			fprintf(stderr, "Loaded '%s'\n", path);
+			if (g->s->verbosity >= 2)
+				fprintf(stderr, "Loaded '%s'\n", path);
 			kindOf_character_t* c = &u->characters[u->n_characters++];
 			kindOf_character_init(c);
-			c->sprite = graphics_spriteForImg(g, path);
+			c->sprite = graphics_spriteForImg(g->g, path);
 		);
 	}
 
 	FOREACH_DIR(path, rec_find(u, g, path));
 }
 
-universe_t* universe_init(graphics_t* g)
+universe_t* universe_init(game_t* g)
 {
 	universe_t* u = CALLOC(universe_t, 1);
 
-	// find bots
+	// load bots
 	u->n_bots = 0;
 	FOREACH_FILE("bots/", u->n_bots++);
 	u->bots = CALLOC(ai_t, u->n_bots);
 	for (size_t i = 0; i < u->n_bots; i++)
 		ai_init(&u->bots[i]);
-
 	size_t i = 0;
-	FOREACH_FILE("bots/", ai_load(&u->bots[i++], path));
+	FOREACH_FILE("bots/",
+		if (g->s->verbosity >= 2)
+			fprintf(stderr, "Parsing bot '%s'\n", path);
+		ai_load(&u->bots[i++], path)
+	);
 
-	printf("Loaded %zu bots\n", u->n_bots);
+	if (g->s->verbosity >= 1)
+		fprintf(stderr, "Loaded %zu bots\n", u->n_bots);
 
-	// find character types
+	// load characters
 	u->n_characters = 0;
 	u->characters = NULL;
 	rec_find(u, g, "characters/");
+	if (g->s->verbosity >= 1)
+		fprintf(stderr, "Loaded %zu characters\n", u->n_characters);
 
 	u->tmp_materials = NULL;
 	u->tmp_items = NULL;
@@ -72,7 +79,11 @@ universe_t* universe_init(graphics_t* g)
 	// parse configuration files
 	cfg_ini_t ini;
 	cfg_ini_init(&ini);
-	FOREACH_FILE("cfg/", cfg_ini_parse(&ini, path));
+	FOREACH_FILE("cfg/",
+		if (g->s->verbosity >= 2)
+			fprintf(stderr, "Parsing '%s'\n", path);
+		cfg_ini_parse(&ini, path)
+	);
 
 	// init special skills
 	cfg_group_t*   gr      = cfg_ini_group(&ini, "Competences");
@@ -89,15 +100,22 @@ universe_t* universe_init(graphics_t* g)
 	}
 
 	// apply rest of configuration
-	universe_init_events   (u, g, cfg_ini_group(&ini, "Effet"));
-	universe_init_materials(u, g, cfg_ini_group(&ini, "Ressource"));
-	universe_init_mines    (u, g, cfg_ini_group(&ini, "TerrainRessource"));
-	universe_init_iskills  (u, g, cfg_ini_group(&ini, "CompetenceObjet"));
-	universe_init_items    (u, g, cfg_ini_group(&ini, "Objet"));
-	universe_init_buildings(u, g, cfg_ini_group(&ini, "Batiment"));
+	universe_init_events   (u, g->g, cfg_ini_group(&ini, "Effet"));
+	universe_init_materials(u, g->g, cfg_ini_group(&ini, "Ressource"));
+	universe_init_mines    (u, g->g, cfg_ini_group(&ini, "TerrainRessource"));
+	universe_init_iskills  (u, g->g, cfg_ini_group(&ini, "CompetenceObjet"));
+	universe_init_items    (u, g->g, cfg_ini_group(&ini, "Objet"));
+	universe_init_buildings(u, g->g, cfg_ini_group(&ini, "Batiment"));
 
-	fprintf(stderr, "Loaded %zu materials, %zu mines, %zu items and %zu buildings\n",
-		u->n_materials, u->n_mines, u->n_items, u->n_buildings);
+	if (g->s->verbosity >= 1)
+	{
+		fprintf(stderr, "Loaded %zu event\n",       u->n_events);
+		fprintf(stderr, "Loaded %zu materials\n",   u->n_materials);
+		fprintf(stderr, "Loaded %zu mines\n",       u->n_mines);
+		fprintf(stderr, "Loaded %zu items\n",       u->n_items);
+		fprintf(stderr, "Loaded %zu item skills\n", u->n_iskills);
+		fprintf(stderr, "Loaded %zu buildings\n",   u->n_buildings);
+	}
 
 	cfg_ini_exit(&ini);
 

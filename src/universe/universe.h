@@ -31,7 +31,6 @@ typedef struct universe universe_t;
 #include "skill.h"
 #include "category.h"
 #include "equipment.h"
-#include "../graphics.h"
 #include "ini.h"
 
 struct universe
@@ -79,7 +78,9 @@ struct universe
 
 };
 
-universe_t* universe_init(graphics_t* g);
+#include "../game.h"
+
+universe_t* universe_init(game_t* g);
 void        universe_exit(universe_t* u);
 
 void universe_init_events   (universe_t* u, graphics_t* g, cfg_group_t* gr);

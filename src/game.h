@@ -29,7 +29,9 @@ typedef struct game game_t;
 
 struct game
 {
+	settings_t* s;
 	graphics_t* g;
+
 	overlay_t*  o;
 	universe_t* u;
 	world_t*    w;

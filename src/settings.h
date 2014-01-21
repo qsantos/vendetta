@@ -30,6 +30,8 @@ struct settings
 
 	int bots_count;
 
+	char verbosity;
+
 	char godmode;
 	char quickstart;
 };

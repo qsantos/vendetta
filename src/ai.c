@@ -45,8 +45,6 @@ void ai_load(ai_t* ai, const char* filename)
 		exit(1);
 	}
 
-	fprintf(stderr, "Parsing bot '%s'\n", filename);
-
 	char* s = strrchr(filename, '/');
 	char* e = strrchr(filename, '.');
 	if (s != NULL && e != NULL)

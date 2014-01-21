@@ -35,8 +35,13 @@ static void usage(const char* name)
 		"options:\n"
 		"  -h, --help        print this help\n"
 		"  -V, --version     print version information\n"
+		"  -v, --verbose N   sets the verbosity level:\n"
 		"  -s, --size W H    set map's size to WxH tiles (>20)\n"
 		"  -b, --bots N      set the number of bots\n"
+		"                    0 is quiet\n"
+		"                    1 is normal\n"
+		"                    2 is verbose\n"
+		"                    3 is debug\n"
 		"  -r, --seed seed   set generation seed\n"
 		"                    if this parameter is omitted, the seed\n"
 		"                    is generated from the current time\n"
@@ -57,6 +62,7 @@ int main(int argc, char** argv)
 		.map_width  = 100,
 		.map_height = 100,
 		.bots_count = 50,
+		.verbosity  = 1,
 		.godmode    = 0,
 		.quickstart = 0,
 	};
@@ -74,6 +80,21 @@ int main(int argc, char** argv)
 			fprintf(stderr, "Vendetta version 0.2\n");
 			fprintf(stderr, "Compiled on %s at %s\n", __DATE__, __TIME__);
 			exit(1);
+		}
+		else if (strcmp(option, "--verbose") == 0 || strcmp(option, "-v") == 0)
+		{
+			if (curarg == argc)
+			{
+				fprintf(stderr, "Missing verbosity level\n");
+				usage(argv[0]);
+			}
+			int level = strtol(argv[curarg++], NULL, 0);
+			if (!(0 <= level && level <= 3))
+			{
+				fprintf(stderr, "Verbosity level must be between 0 and 3\n");
+				usage(argv[0]);
+			}
+			s.verbosity = level;
 		}
 		else if (strcmp(option, "--size") == 0 || strcmp(option, "-s") == 0)
 		{

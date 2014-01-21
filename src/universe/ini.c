@@ -259,8 +259,6 @@ void cfg_ini_parse(cfg_ini_t* ini, const char* filename)
 		exit(1);
 	}
 
-	fprintf(stderr, "Parsing file '%s'\n", filename);
-
 	char* line = NULL;
 	size_t n_line = 0;
 	while (getline(&line, &n_line, f) > 0)

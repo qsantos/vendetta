@@ -47,7 +47,7 @@ struct overlay
 
 #include "../game.h"
 
-overlay_t* overlay_init(graphics_t* g);
+overlay_t* overlay_init(game_t* g);
 void       overlay_exit(overlay_t* o);
 
 int  overlay_draw  (game_t* g, char do_draw);

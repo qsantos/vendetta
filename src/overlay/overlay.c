@@ -24,16 +24,16 @@
 
 #include "../mem.h"
 
-overlay_t* overlay_init(graphics_t* g)
+overlay_t* overlay_init(game_t* g)
 {
 	overlay_t* o = CALLOC(overlay_t, 1);
 
 	   ov_build_init(&o->build);
-	 swbuilding_init(&o->swbuilding,  g);
-	    switems_init(&o->switems,     g);
-	swmaterials_init(&o->swmaterials, g);
-	   swskills_init(&o->swskills,    g);
-	swequipment_init(&o->swequipment, g);
+	 swbuilding_init(&o->swbuilding,  g->g);
+	    switems_init(&o->switems,     g->g);
+	swmaterials_init(&o->swmaterials, g->g);
+	   swskills_init(&o->swskills,    g->g);
+	swequipment_init(&o->swequipment, g->g);
 
 	o->n_subwindows = 5;
 	o->sw = CALLOC(subwindow_t*, o->n_subwindows);
