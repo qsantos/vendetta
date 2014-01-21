@@ -67,8 +67,22 @@ void overlay_cursor(overlay_t* o, game_t* g)
 	sfVector2i mouse = sfMouse_getPositionRenderWindow(g->g->render);
 	sfIntRect rect = {0, 0, 24, 24};
 
-	int cursor;
-	if (0);
+	int cursor = -1;
+	int i = overlay_draw(o, g, 0);
+	if (i >= 0)
+	{
+		if (i % 2 == 0) // buttons
+		{
+			i /= 2;
+			char buffer[1024];
+			snprintf(buffer, 1024, "Fenêtre: %s", o->sw[i]->name);
+			graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
+		}
+		else // statuses
+		{
+			i /= 2;
+		}
+	}
 	else if ((cursor =    ov_build_cursor(&o->build,       g, mouse.x, mouse.y)) >= 0);
 	else if ((cursor =  swbuilding_cursor(&o->swbuilding,  g, mouse.x, mouse.y)) >= 0);
 	else if ((cursor =     switems_cursor(&o->switems,     g, mouse.x, mouse.y)) >= 0);
@@ -196,7 +210,8 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 			return 2*i+1;
 
 		float p = g->player->statuses[i] / 20;
-		graphics_drawProgressBar(g->g, x, y, 150, 20, p, g->autoEat[i]);
+		if (do_draw)
+			graphics_drawProgressBar(g->g, x, y, 150, 20, p, g->autoEat[i]);
 
 		sfText_setUTF8(text, g->u->statuses[i].name); // TODO
 		sfVector2f pos = {x+5, y};
