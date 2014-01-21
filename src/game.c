@@ -188,7 +188,7 @@ void game_loop(game_t* g)
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				sfMouseButtonEvent* e = &event.mouseButton;
-				if (overlay_catch(g->o, g, e->x, e->y, e->button))
+				if (overlay_catch(g, e->button))
 					continue;
 
 				if (e->button != sfMouseLeft)
@@ -205,25 +205,23 @@ void game_loop(game_t* g)
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
 				sfClock_restart(maintain);
-				sfMouseButtonEvent* e = &event.mouseButton;
-				overlay_catch(g->o, g, e->x, e->y, -e->button-1);
+				overlay_catch(g, -event.mouseButton.button-1);
 			}
 			else if (event.type == sfEvtMouseMoved)
 			{
-				sfMouseButtonEvent* e = &event.mouseButton;
-				overlay_move(g->o, g, e->x, e->y);
+				overlay_move(g);
 			}
 			else if (event.type == sfEvtMouseWheelMoved)
 			{
-				sfMouseWheelEvent* e = &event.mouseWheel;
+				int delta = event.mouseWheel.delta;
 				if (sfKeyboard_isKeyPressed(sfKeyLControl))
 				{
-					float dzoom = pow(1.1, -e->delta);
+					float dzoom = pow(1.1, -delta);
 					sfView_zoom(g->g->world_view, dzoom);
 					zoom *= dzoom;
 				}
 				else
-					overlay_wheel(g->o, e->x, e->y, e->delta);
+					overlay_wheel(g, delta);
 			}
 		}
 
@@ -269,8 +267,8 @@ void game_loop(game_t* g)
 		draw_world(g->g, g->player, g->w);
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
-		overlay_draw(g->o, g, 1);
-		int t = overlay_cursor(g->o, g);
+		overlay_draw(g, 1);
+		int t = overlay_cursor(g);
 		graphics_drawCursor(g->g, t);
 		sfRenderWindow_display(g->g->render);
 

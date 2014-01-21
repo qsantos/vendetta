@@ -50,13 +50,12 @@ struct overlay
 overlay_t* overlay_init(graphics_t* g);
 void       overlay_exit(overlay_t* o);
 
-int overlay_cursor(overlay_t* o, game_t* g);
-int overlay_draw  (overlay_t* o, game_t* g, char do_draw);
+int  overlay_draw  (game_t* g, char do_draw);
+int  overlay_cursor(game_t* g);
+int  overlay_catch (game_t* g, int t);
+int  overlay_wheel (game_t* g, int d);
+void overlay_move  (game_t* g);
 
-void overlay_move  (overlay_t* o, game_t* g, int x, int y);
-int  overlay_catch (overlay_t* o, game_t* g, int x, int y, int t);
-int  overlay_wheel (overlay_t* o, int x, int y, int d);
-
-sfVector2f overlay_mouse(graphics_t* g);
+sfVector2f overlay_mouse(game_t* g);
 
 #endif

@@ -35,6 +35,6 @@ void swmaterials_exit(swmaterials_t* w);
 
 int  swmaterials_draw  (swmaterials_t* w, game_t* g, char do_draw);
 int  swmaterials_cursor(swmaterials_t* w, game_t* g);
-char swmaterials_catch (swmaterials_t* w, game_t* g, int x, int y, int t);
+char swmaterials_catch (swmaterials_t* w, game_t* g, int t);
 
 #endif

@@ -33,9 +33,8 @@ struct swskills
 void swskills_init(swskills_t* w, graphics_t* g);
 void swskills_exit(swskills_t* w);
 
-
 int  swskills_draw  (swskills_t* w, game_t* g, char do_draw);
 int  swskills_cursor(swskills_t* w, game_t* g);
-char swskills_catch (swskills_t* w, game_t* g, int x, int y, int t);
+char swskills_catch (swskills_t* w, game_t* g, int t);
 
 #endif

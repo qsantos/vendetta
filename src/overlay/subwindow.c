@@ -46,8 +46,8 @@ char subwindow_cursor(subwindow_t* w, graphics_t* g)
 	if (!w->visible)
 		return 0;
 
+	sfVector2i mouse = sfMouse_getPosition((sfWindow*) g->render);
 	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
-	sfVector2f mouse = subwindow_mouse(w, g);
 	return sfFloatRect_contains(&rect, mouse.x, mouse.y);
 }
 
@@ -106,24 +106,19 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 	return 1;
 }
 
-char subwindow_catch(subwindow_t* w, int x, int y, int t)
+char subwindow_catch(subwindow_t* w, graphics_t* g, int t)
 {
 	(void) t;
 
-	if (!w->visible)
+	if (!subwindow_cursor(w, g))
 		return 0;
 
-	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
-	return sfFloatRect_contains(&rect, x, y);
+	return 1;
 }
 
-char subwindow_wheel(subwindow_t* w, int x, int y, int delta)
+char subwindow_wheel(subwindow_t* w, graphics_t* g, int delta)
 {
-	if (!w->visible)
-		return 0;
-
-	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
-	if (!sfFloatRect_contains(&rect, x, y))
+	if (!subwindow_cursor(w, g))
 		return 0;
 
 	float min_scrolling = 0;

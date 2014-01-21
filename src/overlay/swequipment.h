@@ -35,6 +35,6 @@ void swequipment_exit(swequipment_t* w);
 
 int  swequipment_draw  (swequipment_t* w, game_t* g, char do_draw);
 int  swequipment_cursor(swequipment_t* w, game_t* g);
-char swequipment_catch (swequipment_t* w, game_t* g, int x, int y, int t);
+char swequipment_catch (swequipment_t* w, game_t* g, int t);
 
 #endif

@@ -215,17 +215,17 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g)
 	return 2;
 }
 
-char swbuilding_catch(swbuilding_t* w, game_t* g, int x, int y, int t)
+char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 {
 	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
 
 	if (t != sfMouseLeft)
-		return subwindow_catch(&w->w, x, y, t);
+		return subwindow_catch(&w->w, g->g, t);
 
 	int i = swbuilding_draw(w, g, 0);
 	if (i < 0)
-		return subwindow_catch(&w->w, x, y, t);
+		return subwindow_catch(&w->w, g->g, t);
 
 	building_t* b = g->player->inBuilding;
 	transform_t* tr = &b->t->items[i];

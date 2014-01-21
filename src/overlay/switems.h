@@ -35,6 +35,6 @@ void switems_exit(switems_t* w);
 
 int  switems_draw  (switems_t* w, game_t* g, char do_draw);
 int  switems_cursor(switems_t* w, game_t* g);
-char switems_catch (switems_t* w, game_t* g, int x, int y, int t);
+char switems_catch (switems_t* w, game_t* g, int t);
 
 #endif
