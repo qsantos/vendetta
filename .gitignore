@@ -2,7 +2,7 @@
 *.d
 *.gch
 *.swp
-*.so
+*.so*
 *.dll
 *.layout
 vendetta
