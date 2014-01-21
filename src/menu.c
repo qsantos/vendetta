@@ -19,7 +19,9 @@
 #include "menu.h"
 
 #include <stdlib.h>
-#include <SFML/Graphics.h>
+
+#include "graphics.h"
+#include "game.h"
 
 static char draw_button(float x, float y, const char* txt, graphics_t* gr, char do_draw)
 {
@@ -85,8 +87,10 @@ static char draw_buttons(graphics_t* gr, char do_draw)
 
 	return -1;
 }
-void menu(settings_t* s, graphics_t* gr)
+void menu(settings_t* s)
 {
+	graphics_t* gr = graphics_init();
+
 	(void) s;
 
 	int id = graphics_spriteForImg(gr, "menu.png");
@@ -124,7 +128,12 @@ void menu(settings_t* s, graphics_t* gr)
 			{
 				int i = draw_buttons(gr, 0);
 				if (i == 0)
-					return;
+				{
+					game_t game;
+					game_init(&game, s, gr);
+					game_loop(&game);
+					game_exit(&game);
+				}
 				else if (i == 1)
 				{
 				}
@@ -149,4 +158,6 @@ void menu(settings_t* s, graphics_t* gr)
 		graphics_drawCursor(gr, 0);
 		sfRenderWindow_display(render);
 	}
+
+	graphics_exit(gr);
 }

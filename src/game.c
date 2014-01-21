@@ -86,7 +86,8 @@ void game_loop(game_t* g)
 	float fpssum = 0;
 	int fpscount = 0;
 	float fpslast = 0;
-	while (sfRenderWindow_isOpen(g->g->render))
+	char playing = 1;
+	while (playing)
 	{
 		// handle user input
 		sfEvent event;
@@ -94,7 +95,7 @@ void game_loop(game_t* g)
 		{
 			if (event.type == sfEvtClosed)
 			{
-				sfRenderWindow_close(g->g->render);
+				playing = 0;
 			}
 			else if (event.type == sfEvtLostFocus)
 			{
@@ -111,15 +112,12 @@ void game_loop(game_t* g)
 				sfView_reset(g->g->world_view,   rect);
 				sfView_zoom (g->g->world_view,   zoom);
 			}
-			else if (event.type == sfEvtKeyPressed)
-			{
-				if (event.key.code == sfKeyEscape)
-					sfRenderWindow_close(g->g->render);
-			}
 			else if (event.type == sfEvtKeyReleased)
 			{
 				sfKeyCode k = event.key.code;
-				if (k == sfKeyUp || k == sfKeyDown || k == sfKeyLeft || k == sfKeyRight)
+				if (k == sfKeyEscape)
+					playing = 0;
+				else if (k == sfKeyUp || k == sfKeyDown || k == sfKeyLeft || k == sfKeyRight)
 				{
 					g->player->go_x = g->player->o.x;
 					g->player->go_y = g->player->o.y;

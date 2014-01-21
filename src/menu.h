@@ -20,8 +20,7 @@
 #define MENU_H
 
 #include "settings.h"
-#include "graphics.h"
 
-void menu(settings_t* s, graphics_t* gr);
+void menu(settings_t* s);
 
 #endif

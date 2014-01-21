@@ -23,7 +23,6 @@
 #include <time.h>
 
 #include "menu.h"
-#include "game.h"
 
 #define MAP_MIN_WIDTH  20
 #define MAP_MIN_HEIGHT 20
@@ -144,15 +143,7 @@ int main(int argc, char** argv)
 
 	fprintf(stderr, "Using seed %#x\n", s.seed);
 
-	graphics_t* gr = graphics_init();
+	menu(&s);
 
-	menu(&s, gr);
-
-	game_t game;
-	game_init(&game, &s, gr);
-	game_loop(&game);
-	game_exit(&game);
-
-	graphics_exit(gr);
 	return 0;
 }
