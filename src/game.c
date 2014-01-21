@@ -27,9 +27,10 @@
 #include "world/draw.h"
 #include "overlay/overlay.h"
 
-void game_init(game_t* g, settings_t* s)
+void game_init(game_t* g, settings_t* s, graphics_t* gr)
 {
-	g->g = graphics_init();
+	g->g = gr;
+
 	g->o =  overlay_init(g->g);
 	g->u = universe_init(g->g);
 	g->w =    world_init(g->u, s->map_width, s->map_height, s->bots_count, s->seed);
@@ -74,7 +75,6 @@ void game_exit(game_t* g)
 	   world_exit(g->w);
 	universe_exit(g->u);
 	 overlay_exit(g->o);
-	graphics_exit(g->g);
 }
 
 void game_loop(game_t* g)
