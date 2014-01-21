@@ -35,27 +35,17 @@ void game_init(game_t* g, settings_t* s)
 	g->w =    world_init(g->u, s->map_width, s->map_height, s->bots_count, s->seed);
 
 	g->player = &g->w->characters[0];
-	for (size_t i = 0; i < N_STATUSES; i++)
-		g->autoEat[i] = 0;
-
-	g->n_bots = 0;
-	FOREACH_FILE("bots/", g->n_bots++);
-	g->bots = CALLOC(ai_t, g->n_bots);
-	for (size_t i = 0; i < g->n_bots; i++)
-		ai_init(&g->bots[i]);
-
-	size_t i = 0;
-	FOREACH_FILE("bots/", ai_load(&g->bots[i++], path));
-
-	printf("Loaded %zu bots\n", g->n_bots);
 
 	for (size_t i = 0; i < g->w->n_characters; i++)
 	{
 		character_t* c = &g->w->characters[i];
 		if (c == g->player)
 			continue;
-		c->ai = &g->bots[rand() % g->n_bots];
+		c->ai = &g->u->bots[rand() % g->u->n_bots];
 	}
+
+	for (size_t i = 0; i < N_STATUSES; i++)
+		g->autoEat[i] = 0;
 
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	g->g->overlay_view = sfView_copy(default_view);
@@ -64,10 +54,6 @@ void game_init(game_t* g, settings_t* s)
 
 void game_exit(game_t* g)
 {
-	for (size_t i = 0; i < g->n_bots; i++)
-		ai_exit(&g->bots[i]);
-	free(g->bots);
-
 	   world_exit(g->w);
 	universe_exit(g->u);
 	 overlay_exit(g->o);

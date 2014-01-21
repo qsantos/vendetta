@@ -21,6 +21,7 @@
 
 typedef struct universe universe_t;
 
+#include "../ai.h"
 #include "event.h"
 #include "character.h"
 #include "material.h"
@@ -35,6 +36,9 @@ typedef struct universe universe_t;
 
 struct universe
 {
+	size_t n_bots;
+	ai_t*  bots;
+
 	size_t n_events;
 	kindOf_event_t* events;
 

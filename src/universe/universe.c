@@ -49,6 +49,18 @@ universe_t* universe_init(graphics_t* g)
 {
 	universe_t* u = CALLOC(universe_t, 1);
 
+	// find bots
+	u->n_bots = 0;
+	FOREACH_FILE("bots/", u->n_bots++);
+	u->bots = CALLOC(ai_t, u->n_bots);
+	for (size_t i = 0; i < u->n_bots; i++)
+		ai_init(&u->bots[i]);
+
+	size_t i = 0;
+	FOREACH_FILE("bots/", ai_load(&u->bots[i++], path));
+
+	printf("Loaded %zu bots\n", u->n_bots);
+
 	// find character types
 	u->n_characters = 0;
 	u->characters = NULL;
@@ -175,6 +187,10 @@ void universe_exit(universe_t* u)
 	for (size_t i = 0; i < u->n_materials; i++)
 		kindOf_material_exit(&u->materials[i]);
 	free(u->materials);
+
+	for (size_t i = 0; i < u->n_bots; i++)
+		ai_exit(&u->bots[i]);
+	free(u->bots);
 
 	free(u);
 }

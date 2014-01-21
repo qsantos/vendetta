@@ -36,9 +36,6 @@ struct game
 
 	character_t* player;
 	char         autoEat[N_STATUSES];
-
-	size_t n_bots;
-	ai_t*  bots;
 };
 
 void game_init(game_t* g, settings_t* s);

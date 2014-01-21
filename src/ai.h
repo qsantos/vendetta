@@ -21,6 +21,7 @@
 
 typedef struct ai ai_t;
 
+#include "universe/transform.h"
 #include "world/character.h"
 
 struct ai

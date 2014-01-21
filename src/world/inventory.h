@@ -21,13 +21,13 @@
 
 typedef struct inventory inventory_t;
 
-#include "../universe/universe.h"
-
 struct inventory
 {
 	float* materials;
 	float* items;
 };
+
+#include "../universe/universe.h"
 
 void inventory_init(inventory_t* i, universe_t* u);
 void inventory_exit(inventory_t* i);

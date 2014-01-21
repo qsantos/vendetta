@@ -28,6 +28,8 @@ typedef struct character character_t;
 #include "status.h"
 #include "world.h"
 #include "../universe/character.h"
+#include "../universe/material.h"
+#include "../universe/mine.h"
 #include "../universe/universe.h"
 #include "../ai.h"
 
