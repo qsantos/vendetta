@@ -87,6 +87,13 @@ static char draw_buttons(graphics_t* gr, char do_draw)
 
 	return -1;
 }
+static void play(settings_t* s, graphics_t* gr)
+{
+	game_t game;
+	game_init(&game, s, gr);
+	game_loop(&game);
+	game_exit(&game);
+}
 void menu(settings_t* s)
 {
 	graphics_t* gr = graphics_init();
@@ -122,17 +129,16 @@ void menu(settings_t* s)
 					exit(0);
 				}
 				else if (event.key.code == sfKeyReturn)
-					return;
+				{
+					play(s, gr);
+				}
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				int i = draw_buttons(gr, 0);
 				if (i == 0)
 				{
-					game_t game;
-					game_init(&game, s, gr);
-					game_loop(&game);
-					game_exit(&game);
+					play(s, gr);
 				}
 				else if (i == 1)
 				{
