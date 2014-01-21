@@ -99,6 +99,7 @@ void ai_load(ai_t* ai, const char* filename)
 		}
 	}
 
+	free(line);
 	fclose(f);
 }
 
@@ -129,12 +130,12 @@ char ai_gather(character_t* c, int id, float amount)
 
 		transform_t tmp;
 		transform_copy(&tmp, &t->build);
-		transform_add (&tmp, tr, amount);
-
-		if (ai_getreq(c, &tmp, 1))
-			return 1;
-
+		transform_add(&tmp, tr, amount);
+		char isreq = ai_getreq(c, &tmp, 1);
 		transform_exit(&tmp);
+
+		if (isreq)
+			return 1;
 
 		if (ai_build(c, i))
 			return 1;
@@ -173,14 +174,13 @@ char ai_make(character_t* c, int id, float amount)
 		transform_t tmp;
 		transform_init(&tmp);
 		transform_add(&tmp, tr, amount);
-
 		if (c->hasBuilding == NULL || c->hasBuilding->t != t)
 			transform_add(&tmp, &t->build, 1);
-
-		if (ai_getreq(c, &tmp, 1))
-			return 1;
-
+		char isreq = ai_getreq(c, &tmp, 1);
 		transform_exit(&tmp);
+
+		if (isreq)
+			return 1;
 
 		if (ai_build(c, i))
 			return 1;

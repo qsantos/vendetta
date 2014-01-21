@@ -38,6 +38,7 @@ void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, fl
 
 void subwindow_exit(subwindow_t* w)
 {
+	sfView_destroy(w->view);
 	free(w->name);
 }
 

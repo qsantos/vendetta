@@ -178,8 +178,8 @@ void universe_exit(universe_t* u)
 	/* TODO
 	for (size_t i = 0; i < u->n_categories; i++)
 		kindOf_category_exit(&u->categories[i]);
-	free(u->categories);
 	*/
+	free(u->categories);
 
 	/* TODO
 	for (size_t i = 0; i < N_STATUSES; i++)

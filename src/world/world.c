@@ -386,6 +386,7 @@ void world_delBuilding(world_t* w, building_t* b)
 		if (w->buildings[i] == b)
 			w->buildings[i] = NULL;
 	building_exit(b);
+	free(b);
 }
 
 character_t* world_findEnnemyCharacter(world_t* w, character_t* c)

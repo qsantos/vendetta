@@ -35,6 +35,7 @@ void cfg_keyval_exit(cfg_keyval_t* kv)
 	{
 		for (size_t i = 0; i < kv->v.array.n; i++)
 			free(kv->v.array.v[i]);
+		free(kv->v.array.v);
 	}
 	else
 	{
@@ -143,6 +144,7 @@ void cfg_section_saveKV(cfg_section_t* sect, char* key, char* val, cfg_group_t* 
 					key, gr->name, sect->name);
 			exit(1);
 		}
+		free(kv->v.val);
 		kv->v.val = strdup(val);
 	}
 }

@@ -1,5 +1,5 @@
 /*\
- *  Role playing, management and strategy game
+ *  Role stayhere, management and strategy game
  *  Copyright (C) 2013-2014 Quentin SANTOS
  *
  *  This program is free software: you can redistribute it and/or modify
@@ -74,6 +74,9 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr)
 
 void game_exit(game_t* g)
 {
+	sfView_destroy(g->g->overlay_view);
+	sfView_destroy(g->g->world_view);
+
 	   world_exit(g->w);
 	universe_exit(g->u);
 	 overlay_exit(g->o);
@@ -87,16 +90,16 @@ void game_loop(game_t* g)
 	float fpssum = 0;
 	int fpscount = 0;
 	float fpslast = 0;
-	char playing = 1;
-	while (playing)
+	char stayhere = 1;
+	while (stayhere && sfRenderWindow_isOpen(g->g->render))
 	{
 		// handle user input
 		sfEvent event;
-		while (sfRenderWindow_pollEvent(g->g->render, &event))
+		while (stayhere && sfRenderWindow_pollEvent(g->g->render, &event))
 		{
 			if (event.type == sfEvtClosed)
 			{
-				playing = 0;
+				stayhere = 0;
 			}
 			else if (event.type == sfEvtLostFocus)
 			{
@@ -117,7 +120,7 @@ void game_loop(game_t* g)
 			{
 				sfKeyCode k = event.key.code;
 				if (k == sfKeyEscape)
-					playing = 0;
+					stayhere = 0;
 				else if (k == sfKeyUp || k == sfKeyDown || k == sfKeyLeft || k == sfKeyRight)
 				{
 					g->player->go_x = g->player->o.x;

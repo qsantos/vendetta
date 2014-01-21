@@ -28,7 +28,7 @@ static char draw_button(float x, float y, const char* txt, graphics_t* gr, char 
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
 
-	sfSprite* sprite = NULL;
+	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 	{
 		int id = graphics_spriteForImg(gr, "menubutton.png");
@@ -48,7 +48,7 @@ static char draw_button(float x, float y, const char* txt, graphics_t* gr, char 
 	else
 		return is_in;
 
-	sfText* text = NULL;
+	static sfText* text = NULL;
 	if (text == NULL)
 	{
 		text = sfText_create();
@@ -104,15 +104,15 @@ void menu(settings_t* s)
 	sfSprite* illustration = gr->sprites[id];
 
 	sfRenderWindow* render = gr->render;
-	while (sfRenderWindow_isOpen(render))
+	char stayhere = 1;
+	while (stayhere && sfRenderWindow_isOpen(render))
 	{
 		sfEvent event;
-		while (sfRenderWindow_pollEvent(render, &event))
+		while (stayhere && sfRenderWindow_pollEvent(render, &event))
 		{
 			if (event.type == sfEvtClosed)
 			{
-				graphics_exit(gr);
-				exit(0);
+				stayhere = 0;
 			}
 			else if (event.type == sfEvtResized)
 			{
@@ -125,8 +125,7 @@ void menu(settings_t* s)
 			{
 				if (event.key.code == sfKeyEscape)
 				{
-					graphics_exit(gr);
-					exit(0);
+					stayhere = 0;
 				}
 				else if (event.key.code == sfKeyReturn)
 				{

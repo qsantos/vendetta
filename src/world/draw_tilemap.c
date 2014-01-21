@@ -81,7 +81,7 @@ void draw_tilemap(graphics_t* g, world_t* w)
 	if (array == NULL)
 	{
 		array = tilemap_new(w);
-		sfTexture* texture = sfTexture_createFromFile("lands.png", NULL);
+		sfTexture* texture = graphics_loadImage(g, "lands.png");
 		states.texture = texture;
 		tilemap_update(array, w);
 	}

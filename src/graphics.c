@@ -64,26 +64,28 @@ graphics_t* graphics_init(void)
 void graphics_exit(graphics_t* g)
 {
 	for (size_t i = 0; i < g->n_sprites; i++)
-	{
 		sfSprite_destroy(g->sprites[i]);
-	}
+	free(g->sprites);
+
 	for (size_t i = 0; i < HT_MAX_TEXTURES; i++)
 	{
 		sfTexture_destroy(g->textures[i]);
 		free(g->filenames[i]);
 	}
+	free(g->textures);
+	free(g->filenames);
+
+	sfFont_destroy(g->font);
 
 	sfRenderWindow_destroy(g->render);
 	free(g);
 }
 
-int graphics_spriteForImg(graphics_t* g, const char* filename)
+sfTexture* graphics_loadImage(graphics_t* g, const char* filename)
 {
 	int id = find(g, filename);
 	if (g->filenames[id] == NULL)
 	{
-		g->filenames[id] = strdup(filename);
-
 		sfTexture* texture = sfTexture_createFromFile(filename, NULL);
 		if (texture == NULL)
 		{
@@ -91,11 +93,19 @@ int graphics_spriteForImg(graphics_t* g, const char* filename)
 			exit(1);
 		}
 
-		g->textures[id] = texture;
+		g->filenames[id] = strdup(filename);
+		g->textures [id] = texture;
 	}
+	return g->textures[id];
+
+}
+
+int graphics_spriteForImg(graphics_t* g, const char* filename)
+{
+	sfTexture* texture = graphics_loadImage(g, filename);
 
 	sfSprite* sprite = sfSprite_create();
-	sfSprite_setTexture(sprite, g->textures[id], sfTrue);
+	sfSprite_setTexture(sprite, texture, sfTrue);
 
 	if (g->n_sprites == g->a_sprites)
 	{

@@ -46,7 +46,9 @@ struct graphics
 graphics_t* graphics_init(void);
 void        graphics_exit(graphics_t* g);
 
-int  graphics_spriteForImg(graphics_t* g, const char* filename);
+sfTexture* graphics_loadImage(graphics_t* g, const char* filename);
+
+int graphics_spriteForImg(graphics_t* g, const char* filename);
 
 void graphics_drawCursor     (graphics_t* g, int t);
 void graphics_drawTooltip    (graphics_t* g, const char* txt);
