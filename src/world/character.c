@@ -551,7 +551,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 		character_t* t = (character_t*) o;
 		const char* name = t->ai == NULL ? "ennemi" : t->ai->name;
 		if (t != c)
-			cur += snprintf(buffer+cur, n-cur, "Attaquer %s\n", name);
+			cur += snprintf(buffer+cur, n-cur, "Attaquer %s", name);
 		else
 			cur += snprintf(buffer+cur, n-cur, "S'admirer");
 	}
@@ -562,11 +562,11 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 		const char* name = t->name;
 		if (b->owner != c)
 		{
-			cur += snprintf(buffer+cur, n-cur, "Attaquer %s\n", name);
+			cur += snprintf(buffer+cur, n-cur, "Attaquer %s", name);
 		}
 		else if (moving)
 		{
-			cur += snprintf(buffer+cur, n-cur, "Se diriger vers %s\n", name);
+			cur += snprintf(buffer+cur, n-cur, "Se diriger vers %s", name);
 		}
 		else if (b->build_progress != 1)
 		{
@@ -582,7 +582,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			int id = tr->res[0].id;
 			kindOf_item_t* it = &u->items[id];
 
-			cur += snprintf(buffer, 1024, "%s (%i%%)", it->name, (int) floor(100*b->work_progress));
+			cur += snprintf(buffer+cur, 1024-cur, "%s (%i%%)", it->name, (int) floor(100*b->work_progress));
 		}
 		else if (t->make.n_res != 0)
 		{
@@ -599,6 +599,8 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			float max = character_maxOf(c, t);
 			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%0.f)", u->skills[skill].name, amount, max);
 		}
+		else
+			cur += snprintf(buffer+cur, n-cur, "Se tourner les pources");
 	}
 
 	return cur;
