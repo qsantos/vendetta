@@ -129,6 +129,71 @@ static unsigned int find(graphics_t* g, const char* str)
 	return id;
 }
 
+void graphics_drawCursor(graphics_t* g, int t)
+{
+	sfVector2i imouse = sfMouse_getPositionRenderWindow(g->render);
+	sfVector2f mouse = {imouse.x, imouse.y};
+
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
+	{
+		int id = graphics_spriteForImg(g, "cursors.png");
+		sprite = g->sprites[id];
+	}
+
+	sfIntRect rect = {24*t, 0, 24, 24};
+	sfSprite_setTextureRect(sprite, rect);
+
+	sfSprite_setPosition(sprite, mouse);
+	sfRenderWindow_drawSprite(g->render, sprite, NULL);
+}
+
+void graphics_drawTooltip(graphics_t* g, const char* txt)
+{
+	sfVector2i imouse = sfMouse_getPositionRenderWindow(g->render);
+	sfVector2f mouse = {imouse.x, imouse.y};
+
+	static sfText* text = NULL;
+	static sfRectangleShape* frame = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, g->font);
+		sfText_setCharacterSize(text, 15);
+		sfText_setColor        (text, sfBlack);
+
+		frame = sfRectangleShape_create();
+		sfRectangleShape_setFillColor(frame, (sfColor){255,255,255,223});
+		sfRectangleShape_setOutlineColor(frame, sfBlack);
+		sfRectangleShape_setOutlineThickness(frame, 1);
+	}
+
+	sfVector2f pos = {mouse.x + 24, mouse.y + 24};
+	sfText_setPosition(text, pos);
+	sfText_setUTF8(text, txt);
+
+	sfFloatRect rect = sfText_getGlobalBounds(text);
+	rect.left   -= 3;
+	rect.top    -= 3;
+	rect.width  += 8;
+	rect.height += 8;
+
+	sfVector2u size = sfRenderWindow_getSize(g->render);
+	float dx = fmin(0, size.x - (rect.left+rect.width ));
+	float dy = fmin(0, size.y - (rect.top +rect.height));
+	pos.x += dx;
+	pos.y += dy;
+	rect.left += dx;
+	rect.top  += dy;
+	sfText_setPosition(text, pos);
+
+	sfRectangleShape_setPosition(frame, (sfVector2f){rect.left,rect.top});
+	sfRectangleShape_setSize    (frame, (sfVector2f){rect.width,rect.height});
+	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
+
+	sfRenderWindow_drawText(g->render, text, NULL);
+}
+
 void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h, float p, char c)
 {
 	static sfRectangleShape* frame    = NULL;
@@ -169,49 +234,6 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 	sfRectangleShape_setSize(progress, size);
 	sfRenderWindow_drawRectangleShape(g->render, progress, NULL);
 	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
-}
-
-void graphics_drawTooltip(graphics_t* g, float x, float y, const char* txt)
-{
-	static sfText* text = NULL;
-	static sfRectangleShape* frame = NULL;
-	if (text == NULL)
-	{
-		text = sfText_create();
-		sfText_setFont         (text, g->font);
-		sfText_setCharacterSize(text, 15);
-		sfText_setColor        (text, sfBlack);
-
-		frame = sfRectangleShape_create();
-		sfRectangleShape_setFillColor(frame, (sfColor){255,255,255,223});
-		sfRectangleShape_setOutlineColor(frame, sfBlack);
-		sfRectangleShape_setOutlineThickness(frame, 1);
-	}
-
-	sfVector2f pos = {x + 24, y + 24};
-	sfText_setPosition(text, pos);
-	sfText_setUTF8(text, txt);
-
-	sfFloatRect rect = sfText_getGlobalBounds(text);
-	rect.left   -= 3;
-	rect.top    -= 3;
-	rect.width  += 8;
-	rect.height += 8;
-
-	sfVector2u size = sfRenderWindow_getSize(g->render);
-	float dx = fmin(0, size.x - (rect.left+rect.width ));
-	float dy = fmin(0, size.y - (rect.top +rect.height));
-	pos.x += dx;
-	pos.y += dy;
-	rect.left += dx;
-	rect.top  += dy;
-	sfText_setPosition(text, pos);
-
-	sfRectangleShape_setPosition(frame, (sfVector2f){rect.left,rect.top});
-	sfRectangleShape_setSize    (frame, (sfVector2f){rect.width,rect.height});
-	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
-
-	sfRenderWindow_drawText(g->render, text, NULL);
 }
 
 void graphics_drawScrollBar(graphics_t* g, float x, float y, float w, float h, float r, float p)

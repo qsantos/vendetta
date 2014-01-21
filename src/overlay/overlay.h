@@ -50,8 +50,8 @@ struct overlay
 overlay_t* overlay_init(graphics_t* g);
 void       overlay_exit(overlay_t* o);
 
-void overlay_cursor(overlay_t* o, game_t* g);
-int  overlay_draw  (overlay_t* o, game_t* g, char do_draw);
+int overlay_cursor(overlay_t* o, game_t* g);
+int overlay_draw  (overlay_t* o, game_t* g, char do_draw);
 
 void overlay_move  (overlay_t* o, game_t* g, int x, int y);
 int  overlay_catch (overlay_t* o, game_t* g, int x, int y, int t);

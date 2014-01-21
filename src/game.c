@@ -270,6 +270,8 @@ void game_loop(game_t* g)
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g->o, g, 1);
+		int t = overlay_cursor(g->o, g);
+		graphics_drawCursor(g->g, t);
 		sfRenderWindow_display(g->g->render);
 
 		// check frame duration

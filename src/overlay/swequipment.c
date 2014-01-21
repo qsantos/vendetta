@@ -123,9 +123,9 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 	return -1;
 }
 
-int swequipment_cursor(swequipment_t* w, game_t* g, int x, int y)
+int swequipment_cursor(swequipment_t* w, game_t* g)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return -1;
 
 	int i = swequipment_draw(w, g, 0);
@@ -137,7 +137,7 @@ int swequipment_cursor(swequipment_t* w, game_t* g, int x, int y)
 
 char swequipment_catch(swequipment_t* w, game_t* g, int x, int y, int t)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
 
 	if (t != sfMouseLeft)

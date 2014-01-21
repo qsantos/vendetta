@@ -34,7 +34,7 @@ void swbuilding_init(swbuilding_t* w, graphics_t* g);
 void swbuilding_exit(swbuilding_t* w);
 
 int  swbuilding_draw  (swbuilding_t* w, game_t* g, char do_draw);
-int  swbuilding_cursor(swbuilding_t* w, game_t* g, int x, int y);
+int  swbuilding_cursor(swbuilding_t* w, game_t* g);
 char swbuilding_catch (swbuilding_t* w, game_t* g, int x, int y, int t);
 
 #endif

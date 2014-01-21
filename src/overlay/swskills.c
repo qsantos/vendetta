@@ -91,22 +91,18 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 	return -1;
 }
 
-int swskills_cursor(swskills_t* w, game_t* g, int x, int y)
+int swskills_cursor(swskills_t* w, game_t* g)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return -1;
-
-	(void) g;
 
 	return 0;
 }
 
 char swskills_catch(swskills_t* w, game_t* g, int x, int y, int t)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
-
-	(void) g;
 
 	return subwindow_catch(&w->w, x, y, t);
 }

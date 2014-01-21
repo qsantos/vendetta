@@ -62,11 +62,8 @@ void overlay_exit(overlay_t* o)
 	free(o);
 }
 
-void overlay_cursor(overlay_t* o, game_t* g)
+int overlay_cursor(overlay_t* o, game_t* g)
 {
-	sfVector2i mouse = sfMouse_getPositionRenderWindow(g->g->render);
-	sfIntRect rect = {0, 0, 24, 24};
-
 	int cursor = -1;
 	int i = overlay_draw(o, g, 0);
 	if (i >= 0)
@@ -77,7 +74,7 @@ void overlay_cursor(overlay_t* o, game_t* g)
 		{
 			char buffer[1024];
 			snprintf(buffer, 1024, "Fenêtre: %s", o->sw[i]->name);
-			graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
+			graphics_drawTooltip(g->g, buffer);
 		}
 		else if (w == 1) // orders
 		{
@@ -106,21 +103,22 @@ void overlay_cursor(overlay_t* o, game_t* g)
 				cur += snprintf(buffer+cur, n-cur, "Attaquer bâtiment proche");
 			}
 			if (cur != 0)
-				graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
+				graphics_drawTooltip(g->g, buffer);
 		}
 		else if (w == 2) // statuses
 		{
 		}
 	}
-	else if ((cursor =    ov_build_cursor(&o->build,       g, mouse.x, mouse.y)) >= 0);
-	else if ((cursor =  swbuilding_cursor(&o->swbuilding,  g, mouse.x, mouse.y)) >= 0);
-	else if ((cursor =     switems_cursor(&o->switems,     g, mouse.x, mouse.y)) >= 0);
-	else if ((cursor = swmaterials_cursor(&o->swmaterials, g, mouse.x, mouse.y)) >= 0);
-	else if ((cursor =    swskills_cursor(&o->swskills,    g, mouse.x, mouse.y)) >= 0);
-	else if ((cursor = swequipment_cursor(&o->swequipment, g, mouse.x, mouse.y)) >= 0);
+	else if ((cursor =    ov_build_cursor(&o->build,       g)) >= 0);
+	else if ((cursor =  swbuilding_cursor(&o->swbuilding,  g)) >= 0);
+	else if ((cursor =     switems_cursor(&o->switems,     g)) >= 0);
+	else if ((cursor = swmaterials_cursor(&o->swmaterials, g)) >= 0);
+	else if ((cursor =    swskills_cursor(&o->swskills,    g)) >= 0);
+	else if ((cursor = swequipment_cursor(&o->swequipment, g)) >= 0);
 	else
 	{
-		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, mouse, g->g->world_view);
+		sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
+		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->world_view);
 		object_t* o = world_objectAt(g->w, pos.x, pos.y, &g->player->o);
 		if (o != NULL)
 		{
@@ -132,7 +130,7 @@ void overlay_cursor(overlay_t* o, game_t* g)
 
 				if (c->ai != NULL)
 				{
-					graphics_drawTooltip(g->g, mouse.x, mouse.y, c->ai->name);
+					graphics_drawTooltip(g->g, c->ai->name);
 				}
 			}
 			else if (o->t == O_MINE)
@@ -152,7 +150,7 @@ void overlay_cursor(overlay_t* o, game_t* g)
 					float amount = floor(g->player->inventory.materials[id]);
 					float max = character_maxOf(g->player, t);
 					snprintf(buffer, 1024, "%s (%.0f/%0.f)", g->u->skills[skill].name, amount, max);
-					graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
+					graphics_drawTooltip(g->g, buffer);
 				}
 			}
 			else if (o->t == O_BUILDING)
@@ -165,26 +163,12 @@ void overlay_cursor(overlay_t* o, game_t* g)
 				else
 					cursor = 4;
 
-				graphics_drawTooltip(g->g, mouse.x, mouse.y, b->t->name);
+				graphics_drawTooltip(g->g, b->t->name);
 			}
 		}
 	}
 
-	if (cursor < 0)
-		cursor = 0;
-	rect.left = 24 * cursor;
-
-	static sfSprite* sprite = NULL;
-	if (sprite == NULL)
-	{
-		int id = graphics_spriteForImg(g->g, "cursors.png");
-		sprite = g->g->sprites[id];
-	}
-
-	sfSprite_setTextureRect(sprite, rect);
-
-	sfSprite_setPosition(sprite, (sfVector2f){mouse.x, mouse.y});
-	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+	return cursor < 0 ? 0 : cursor;
 }
 
 static int overlay_buttons(overlay_t* o, game_t* g, char do_draw)
@@ -327,8 +311,6 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 	swmaterials_draw(&o->swmaterials, g, 1);
 	    switems_draw(&o->switems,     g, 1);
 	 swbuilding_draw(&o->swbuilding,  g, 1);
-
-	overlay_cursor(o, g);
 
 	static sfText* text = NULL;
 	if (text == NULL)

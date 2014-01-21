@@ -198,9 +198,9 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 	return -1;
 }
 
-int swbuilding_cursor(swbuilding_t* w, game_t* g, int x, int y)
+int swbuilding_cursor(swbuilding_t* w, game_t* g)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return -1;
 
 	int i = swbuilding_draw(w, g, 0);
@@ -211,13 +211,13 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g, int x, int y)
 	building_t* b = g->player->inBuilding;
 	transform_t* tr = &b->t->items[i];
 	swbuilding_tooltip(buffer, 1024, g->u, tr);
-	graphics_drawTooltip(g->g, x, y, buffer);
+	graphics_drawTooltip(g->g, buffer);
 	return 2;
 }
 
 char swbuilding_catch(swbuilding_t* w, game_t* g, int x, int y, int t)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
 
 	if (t != sfMouseLeft)

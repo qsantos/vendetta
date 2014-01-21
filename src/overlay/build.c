@@ -215,7 +215,7 @@ void ov_build_tooltip(char* buffer, size_t n, game_t* g, kindOf_building_t* b)
 	}
 }
 
-int ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
+int ov_build_cursor(ov_build_t* o, game_t* g)
 {
 	char caught = 0;
 
@@ -226,7 +226,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 		kindOf_building_t* b = &g->u->buildings[i];
 		char buffer[1024];
 		ov_build_tooltip(buffer, 1024, g, b);
-		graphics_drawTooltip(g->g, x, y, buffer);
+		graphics_drawTooltip(g->g, buffer);
 		caught = 1;
 	}
 
@@ -238,7 +238,8 @@ int ov_build_cursor(ov_build_t* o, game_t* g, float x, float y)
 
 	sfRenderWindow_setView(g->g->render, g->g->world_view);
 
-	sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, (sfVector2i){x,y}, g->g->world_view);
+	sfVector2i imouse = sfMouse_getPositionRenderWindow(g->g->render);
+	sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->world_view);
 
 	int ok = world_canBuild(g->w, pos.x, pos.y + b->height/2, b);
 

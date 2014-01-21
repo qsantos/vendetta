@@ -120,9 +120,9 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 	return -1;
 }
 
-int switems_cursor(switems_t* w, game_t* g, int x, int y)
+int switems_cursor(switems_t* w, game_t* g)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return -1;
 
 	int i = switems_draw(w, g, 0);
@@ -131,14 +131,14 @@ int switems_cursor(switems_t* w, game_t* g, int x, int y)
 
 	char buffer[1024];
 	switems_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
-	graphics_drawTooltip(g->g, x, y, buffer);
+	graphics_drawTooltip(g->g, buffer);
 
 	return 12;
 }
 
 char switems_catch(switems_t* w, game_t* g, int x, int y, int t)
 {
-	if (!subwindow_cursor(&w->w, x, y))
+	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
 
 	if (t != sfMouseLeft)

@@ -41,13 +41,14 @@ void subwindow_exit(subwindow_t* w)
 	free(w->name);
 }
 
-char subwindow_cursor(subwindow_t* w, int x, int y)
+char subwindow_cursor(subwindow_t* w, graphics_t* g)
 {
 	if (!w->visible)
 		return 0;
 
 	sfFloatRect rect = {w->x, w->y, SW_WIDTH, SW_HEIGHT};
-	return sfFloatRect_contains(&rect, x, y);
+	sfVector2f mouse = subwindow_mouse(w, g);
+	return sfFloatRect_contains(&rect, mouse.x, mouse.y);
 }
 
 char subwindow_draw(subwindow_t* w, graphics_t* g)

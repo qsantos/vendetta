@@ -67,6 +67,7 @@ void menu(settings_t* s, graphics_t* gr)
 		sfSprite_setPosition(illustration, pos);
 		sfRenderWindow_drawSprite(render, illustration, NULL);
 
+		graphics_drawCursor(gr, 0);
 		sfRenderWindow_display(render);
 	}
 }
