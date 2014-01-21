@@ -122,7 +122,8 @@ void game_loop(game_t* g)
 				}
 				else if (k == sfKeyReturn)
 				{
-					g->player->go_o = &g->player->hasBuilding->o;
+					if (g->player->hasBuilding != NULL)
+						g->player->go_o = &g->player->hasBuilding->o;
 				}
 				else if (k == sfKeyDelete)
 				{

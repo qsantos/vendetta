@@ -71,16 +71,45 @@ void overlay_cursor(overlay_t* o, game_t* g)
 	int i = overlay_draw(o, g, 0);
 	if (i >= 0)
 	{
-		if (i % 2 == 0) // buttons
+		char w = i % 3;
+		i /= 3;
+		if (w == 0) // buttons
 		{
-			i /= 2;
 			char buffer[1024];
 			snprintf(buffer, 1024, "Fenêtre: %s", o->sw[i]->name);
 			graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
 		}
-		else // statuses
+		else if (w == 1) // orders
 		{
-			i /= 2;
+			char buffer[1024];
+			size_t n = 1024;
+			size_t cur = 0;
+			if (i == 0)
+			{
+			}
+			else if (i == 1)
+			{
+				cur += snprintf(buffer+cur, n-cur, "Rentrer à la maison");
+			}
+			else if (i <= 9)
+			{
+				i -= 2;
+				kindOf_mine_t* t = &g->u->mines[i];
+				cur += snprintf(buffer+cur, n-cur, "Aller à %s", t->name);
+			}
+			else if (i == 10)
+			{
+				cur += snprintf(buffer+cur, n-cur, "Attaquer ennemi proche");
+			}
+			else if (i == 11)
+			{
+				cur += snprintf(buffer+cur, n-cur, "Attaquer bâtiment proche");
+			}
+			if (cur != 0)
+				graphics_drawTooltip(g->g, mouse.x, mouse.y, buffer);
+		}
+		else if (w == 2) // statuses
+		{
 		}
 	}
 	else if ((cursor =    ov_build_cursor(&o->build,       g, mouse.x, mouse.y)) >= 0);
@@ -158,13 +187,12 @@ void overlay_cursor(overlay_t* o, game_t* g)
 	sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 }
 
-int overlay_draw(overlay_t* o, game_t* g, char do_draw)
+static int overlay_buttons(overlay_t* o, game_t* g, char do_draw)
 {
 	sfVector2f mouse = {0,0};
 	if (!do_draw)
 		mouse = overlay_mouse(g->g);
 
-	// buttons
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 	{
@@ -186,10 +214,52 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 		if (do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 		else if (sfSprite_contains(sprite, mouse))
-			return 2*i;
+			return i;
+	}
+	return -1;
+}
+static int overlay_orders(overlay_t* o, game_t* g, char do_draw)
+{
+	(void) o;
+
+	sfVector2f mouse = {0,0};
+	if (!do_draw)
+		mouse = overlay_mouse(g->g);
+
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
+	{
+		int id = graphics_spriteForImg(g->g, "orders.png");
+		sprite = g->g->sprites[id];
 	}
 
-	// statuses
+	float x = 100;
+	float y = 0;
+	for (size_t i = 1; i < 12; i++)
+	{
+		sfVector2f pos = {x, y};
+		sfSprite_setPosition(sprite, pos);
+
+		sfIntRect rect = {28*i, 0, 28, 28};
+		sfSprite_setTextureRect(sprite, rect);
+
+		if (do_draw)
+			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+		else if (sfSprite_contains(sprite, mouse))
+			return i;
+
+		x += 28;
+	}
+	return -1;
+}
+static int overlay_statuses(overlay_t* o, game_t* g, char do_draw)
+{
+	(void) o;
+
+	sfVector2f mouse = {0,0};
+	if (!do_draw)
+		mouse = overlay_mouse(g->g);
+
 	static sfText* text = NULL;
 	if (text == NULL)
 	{
@@ -199,6 +269,7 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 		sfText_setFont(text, g->g->font);
 		sfText_setCharacterSize(text, 15);
 	}
+
 	sfVector2u size = sfRenderWindow_getSize(g->g->render);
 	float x = 10;
 	float y = size.y - 10 - 30 * N_STATUSES;
@@ -207,7 +278,7 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 		if (!do_draw &&
 		    x <= mouse.x && mouse.x <= x + 150 &&
 		    y <= mouse.y && mouse.y <= y + 20)
-			return 2*i+1;
+			return i;
 
 		float p = g->player->statuses[i] / 20;
 		if (do_draw)
@@ -230,8 +301,22 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		y += 30;
-
 	}
+	return -1;
+}
+int overlay_draw(overlay_t* o, game_t* g, char do_draw)
+{
+	int i = overlay_buttons(o, g, do_draw);
+	if (i >= 0)
+		return 3*i+0;
+
+	i = overlay_orders(o, g, do_draw);
+	if (i >= 0)
+		return 3*i+1;
+
+	i = overlay_statuses(o, g, do_draw);
+	if (i >= 0)
+		return 3*i+2;
 
 	if (!do_draw)
 		return -1;
@@ -244,6 +329,18 @@ int overlay_draw(overlay_t* o, game_t* g, char do_draw)
 	 swbuilding_draw(&o->swbuilding,  g, 1);
 
 	overlay_cursor(o, g);
+
+	static sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfColor col = {255, 255, 255, 255};
+		sfText_setColor(text, col);
+		sfText_setFont(text, g->g->font);
+		sfText_setCharacterSize(text, 15);
+	}
+
+	sfVector2u size = sfRenderWindow_getSize(g->g->render);
 
 	char buffer[1024];
 	character_currentAction(g->player, buffer, 1024);
@@ -285,15 +382,46 @@ int overlay_catch(overlay_t* o, game_t* g, int x, int y, int t)
 	int i = overlay_draw(o, g, 0);
 	if (i >= 0)
 	{
-		if (i % 2 == 0) // buttons
+		char w = i % 3;
+		i /= 3;
+		if (w == 0) // buttons
 		{
-			i /= 2;
 			if (t == sfMouseLeft)
 				o->sw[i]->visible ^= 1;
 		}
-		else // statuses
+		else if (w == 1) // orders
 		{
-			i /= 2;
+			if (i == 0)
+			{
+			}
+			else if (i == 1)
+			{
+				if (g->player->hasBuilding != NULL)
+					g->player->go_o = &g->player->hasBuilding->o;
+			}
+			else if (i <= 9)
+			{
+				i -= 2;
+				kindOf_mine_t* t = &g->u->mines[i];
+				mine_t* m = world_findMine(g->w, g->player->o.x, g->player->o.y, t);
+				if (m != NULL)
+					g->player->go_o = (object_t*) m;
+			}
+			else if (i == 10)
+			{
+				character_t* t = world_findEnnemyCharacter(g->w, g->player);
+				if (t != NULL)
+					g->player->go_o = &t->o;
+			}
+			else if (i == 11)
+			{
+				building_t* t = world_findEnnemyBuilding(g->w, g->player);
+				if (t != NULL)
+					g->player->go_o = &t->o;
+			}
+		}
+		else if (w == 2) // statuses
+		{
 			if (t == sfMouseLeft)
 			{
 				character_eatFor(g->player, i);
