@@ -53,13 +53,13 @@ int main(int argc, char** argv)
 
 	settings_t s =
 	{
-		.seed = time(NULL),
-		.map_width = 100,
+		.seed       = time(NULL),
+		.map_width  = 100,
 		.map_height = 100,
 		.bots_count = 50,
+		.godmode    = 0,
+		.quickstart = 0,
 	};
-	char god_mode    = 0;
-	char quick_start = 0;
 
 	int curarg = 1;
 	while (curarg < argc)
@@ -128,11 +128,11 @@ int main(int argc, char** argv)
 		}
 		else if (strcmp(option, "--quickstart") == 0 || strcmp(option, "-q") == 0)
 		{
-			quick_start = 1;
+			s.quickstart = 1;
 		}
 		else if (strcmp(option, "--godmode") == 0 || strcmp(option, "-g") == 0)
 		{
-			god_mode = 1;
+			s.godmode = 1;
 		}
 		else
 		{
@@ -145,24 +145,6 @@ int main(int argc, char** argv)
 
 	game_t game;
 	game_init(&game, &s);
-
-	if (god_mode)
-	{
-		skill_t* s = game.player->skills;
-		for (size_t i = 0; i < game.u->n_skills; i++)
-			s[i] = 1000;
-		s[SK_WALK] = 100;
-	}
-	if (quick_start)
-	{
-		float* m = game.player->inventory.materials;
-		for (size_t i = 0; i < game.u->n_materials; i++)
-		{
-			kindOf_material_t* t = &game.u->materials[i];
-			m[i] = character_maxOf(game.player, t);
-		}
-	}
-
 	game_loop(&game);
 	game_exit(&game);
 	return 0;

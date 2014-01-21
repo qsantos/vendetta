@@ -47,6 +47,23 @@ void game_init(game_t* g, settings_t* s)
 	for (size_t i = 0; i < N_STATUSES; i++)
 		g->autoEat[i] = 0;
 
+	if (s->godmode)
+	{
+		skill_t* s = g->player->skills;
+		for (size_t i = 0; i < g->u->n_skills; i++)
+			s[i] = 1000;
+		s[SK_WALK] = 100;
+	}
+	if (s->quickstart)
+	{
+		float* m = g->player->inventory.materials;
+		for (size_t i = 0; i < g->u->n_materials; i++)
+		{
+			kindOf_material_t* t = &g->u->materials[i];
+			m[i] = character_maxOf(g->player, t);
+		}
+	}
+
 	const sfView* default_view = sfRenderWindow_getDefaultView(g->g->render);
 	g->g->overlay_view = sfView_copy(default_view);
 	g->g->world_view = sfView_copy(default_view);

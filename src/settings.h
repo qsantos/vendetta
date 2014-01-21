@@ -29,6 +29,9 @@ struct settings
 	int map_height;
 
 	int bots_count;
+
+	char godmode;
+	char quickstart;
 };
 
 #endif
