@@ -27,6 +27,8 @@ struct ov_build
 {
 	kindOf_building_t* selected;
 
+	char retracted;
+
 	// quick access
 	char  active;
 	float x;

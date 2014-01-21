@@ -32,6 +32,8 @@ void ov_build_init(ov_build_t* o)
 {
 	o->selected = NULL;
 
+	o->retracted = 1;
+
 	o->active = 0;
 	o->x = 0;
 	o->y = 0;
@@ -94,6 +96,12 @@ static int draw_buildPanel(ov_build_t* o, game_t* g, char do_draw)
 	float y = 100;
 	char caught = 0;
 
+	if (do_draw)
+	{
+		o->retracted  = draw_buildPanel(o, g, 0) < 0;
+		o->retracted &= draw_buildPanel(o, g, 0) < 0;
+	}
+
 	for (size_t i = 0; i < g->u->n_buildings; i++)
 	{
 		kindOf_building_t* b = &g->u->buildings[i];
@@ -101,7 +109,7 @@ static int draw_buildPanel(ov_build_t* o, game_t* g, char do_draw)
 			continue;
 
 		// building button
-		caught |= draw_buildButton(o, g, b, x, y, do_draw);
+		caught |= draw_buildButton(o, g, b, o->retracted ? x - 80 : x, y, do_draw);
 
 		x += 28;
 		if (x >= 28*PANEL_N_COLS)
