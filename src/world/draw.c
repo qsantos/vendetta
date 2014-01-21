@@ -95,12 +95,11 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 		sfRenderWindow_drawCircleShape(g->render, circle, NULL);
 	}
 
-	static int defaultSprite = -1;
-	if (defaultSprite < 0)
-		defaultSprite = graphics_spriteForImg(g, "characters/default.png");
+	static sfSprite* defaultSprite = NULL;
+	if (defaultSprite == NULL)
+		defaultSprite = graphics_sprite(g, "characters/default.png");
 
-	int id = c->t == NULL ? defaultSprite : c->t->sprite;
-	sfSprite* sprite = g->sprites[id];
+	sfSprite*sprite = c->t == NULL ? defaultSprite : g->sprites[c->t->sprite];
 
 	sfColor color = c->alive ? sfWhite : (sfColor){255,255,255,127};
 	sfSprite_setColor(sprite, color);
@@ -123,10 +122,7 @@ void draw_mine(graphics_t* g, character_t* player, mine_t* m)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-	{
-		int id = graphics_spriteForImg(g, "mines.png");
-		sprite = g->sprites[id];
-	}
+		sprite = graphics_sprite(g, "mines.png");
 
 	int t = m->t->id;
 	sfIntRect rect = {32*t, 32*0, 32, 32};

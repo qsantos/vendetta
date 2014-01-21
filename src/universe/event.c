@@ -38,7 +38,7 @@ void kindOf_event_sprite(kindOf_event_t* e, graphics_t* g, const char* filename,
 {
 	char s[1024];
 	snprintf(s, 1024, "events/%s", filename);
-	int id = graphics_spriteForImg(g, s);
+	int id = graphics_spriteId(g, s);
 
 	e->sprite = id;
 	e->steps = steps;

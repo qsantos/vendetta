@@ -39,7 +39,7 @@ static void rec_find(universe_t* u, game_t* g, const char* path)
 				fprintf(stderr, "Loaded '%s'\n", path);
 			kindOf_character_t* c = &u->characters[u->n_characters++];
 			kindOf_character_init(c);
-			c->sprite = graphics_spriteForImg(g->g, path);
+			c->sprite = graphics_spriteId(g->g, path);
 		);
 	}
 

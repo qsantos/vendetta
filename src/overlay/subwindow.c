@@ -61,10 +61,7 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-	{
-		int id = graphics_spriteForImg(g, "subwindow.png");
-		sprite = g->sprites[id];
-	}
+		sprite = graphics_sprite(g, "subwindow.png");
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 

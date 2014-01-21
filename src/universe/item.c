@@ -43,6 +43,6 @@ void kindOf_item_exit(kindOf_item_t* i)
 
 void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx)
 {
-	i->icon_sprite = graphics_spriteForImg(g, filename);
+	i->icon_sprite = graphics_spriteId(g, filename);
 	i->icon_index  = idx;
 }

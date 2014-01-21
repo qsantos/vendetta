@@ -36,6 +36,6 @@ void kindOf_material_exit(kindOf_material_t* m)
 
 void kindOf_material_icon(kindOf_material_t* m, graphics_t* g, const char* filename, int idx)
 {
-	m->icon_sprite = graphics_spriteForImg(g, filename);
+	m->icon_sprite = graphics_spriteId(g, filename);
 	m->icon_index  = idx;
 }

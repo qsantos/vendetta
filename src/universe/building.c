@@ -57,7 +57,7 @@ void kindOf_building_sprite(kindOf_building_t* b, graphics_t* g, const char* fil
 {
 	char s[1024];
 	snprintf(s, 1024, "buildings/%s", filename);
-	int id = graphics_spriteForImg(g, s);
+	int id = graphics_spriteId(g, s);
 
 	b->sprite = id;
 	b->n_sprites = n_sprites;
@@ -69,7 +69,7 @@ void kindOf_building_sprite(kindOf_building_t* b, graphics_t* g, const char* fil
 
 void kindOf_building_button(kindOf_building_t* b, graphics_t* g, const char* filename, int idx)
 {
-	int id = graphics_spriteForImg(g, filename);
+	int id = graphics_spriteId(g, filename);
 
 	b->button_sprite = id;
 	b->button_index = idx;

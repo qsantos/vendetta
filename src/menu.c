@@ -158,10 +158,7 @@ void menu(settings_t* s)
 {
 	graphics_t* gr = graphics_init();
 
-	(void) s;
-
-	int id = graphics_spriteForImg(gr, "menu.png");
-	sfSprite* illustration = gr->sprites[id];
+	sfSprite* illustration = graphics_sprite(gr, "menu.png");
 
 	sfRenderWindow* render = gr->render;
 	char inconfig = 0;

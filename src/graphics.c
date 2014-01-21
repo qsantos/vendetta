@@ -100,7 +100,7 @@ sfTexture* graphics_loadImage(graphics_t* g, const char* filename)
 
 }
 
-int graphics_spriteForImg(graphics_t* g, const char* filename)
+int graphics_spriteId(graphics_t* g, const char* filename)
 {
 	sfTexture* texture = graphics_loadImage(g, filename);
 
@@ -119,7 +119,7 @@ int graphics_spriteForImg(graphics_t* g, const char* filename)
 
 sfSprite* graphics_sprite(graphics_t* g, const char* filename)
 {
-	int id = graphics_spriteForImg(g, filename);
+	int id = graphics_spriteId(g, filename);
 	return g->sprites[id];
 }
 
@@ -153,14 +153,9 @@ void graphics_drawCursor(graphics_t* g, int t)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-	{
-		int id = graphics_spriteForImg(g, "cursors.png");
-		sprite = g->sprites[id];
-	}
-
+		sprite = graphics_sprite(g, "cursors.png");
 	sfIntRect rect = {24*t, 0, 24, 24};
 	sfSprite_setTextureRect(sprite, rect);
-
 	sfSprite_setPosition(sprite, mouse);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
