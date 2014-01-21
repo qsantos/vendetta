@@ -25,6 +25,9 @@ void menu(settings_t* s, graphics_t* gr)
 {
 	(void) s;
 
+	int id = graphics_spriteForImg(gr, "menu.png");
+	sfSprite* illustration = gr->sprites[id];
+
 	sfRenderWindow* render = gr->render;
 	while (sfRenderWindow_isOpen(render))
 	{
@@ -36,13 +39,34 @@ void menu(settings_t* s, graphics_t* gr)
 				graphics_exit(gr);
 				exit(0);
 			}
+			else if (event.type == sfEvtResized)
+			{
+				sfFloatRect rect = {0,0,event.size.width,event.size.height};
+				sfView* view = sfView_createFromRect(rect);
+				sfRenderWindow_setView(render, view);
+				sfView_destroy(view);
+			}
 			else if (event.type == sfEvtKeyReleased)
 			{
-				return;
+				if (event.key.code == sfKeyEscape)
+				{
+					graphics_exit(gr);
+					exit(0);
+				}
+				else if (event.key.code == sfKeyReturn)
+					return;
 			}
 		}
 
 		sfRenderWindow_clear(render, sfBlack);
+
+		sfVector2u size  = sfRenderWindow_getSize(render);
+		sfFloatRect rect = sfSprite_getGlobalBounds(illustration);
+
+		sfVector2f pos = {size.x/2 - rect.width/2, size.y/2-rect.height/2};
+		sfSprite_setPosition(illustration, pos);
+		sfRenderWindow_drawSprite(render, illustration, NULL);
+
 		sfRenderWindow_display(render);
 	}
 }
