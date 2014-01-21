@@ -237,7 +237,9 @@ void game_loop(game_t* g)
 			}
 
 			if (sfMouse_isButtonPressed(sfMouseLeft) &&
-			sfTime_asSeconds(sfClock_getElapsedTime(maintain)) > 0.1)
+			(sfKeyboard_isKeyPressed(sfKeyLShift) ||
+			sfTime_asSeconds(sfClock_getElapsedTime(maintain)) > 0.5
+			))
 			{
 				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
