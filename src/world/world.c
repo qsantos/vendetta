@@ -173,7 +173,7 @@ world_t* world_init(game_t* g)
 		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
 	}
 	if (g->s->verbosity >= 3)
-		fprintf(stderr, "Generated %zu characters\n", w->n_characters);
+		fprintf(stderr, "Generated %u characters\n", (unsigned) w->n_characters);
 	// END character generation
 
 	// BEGIN mine generation
@@ -198,7 +198,7 @@ world_t* world_init(game_t* g)
 	}
 	// END mine generation
 	if (g->s->verbosity >= 3)
-		fprintf(stderr, "Generated %zu mines\n", w->n_mines);
+		fprintf(stderr, "Generated %u mines\n", (unsigned) w->n_mines);
 
 	w->n_buildings = 0;
 	w->a_buildings = 0;

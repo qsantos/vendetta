@@ -64,14 +64,14 @@ universe_t* universe_init(game_t* g)
 	);
 
 	if (g->s->verbosity >= 1)
-		fprintf(stderr, "Loaded %zu bots\n", u->n_bots);
+		fprintf(stderr, "Loaded %u bots\n", (unsigned) u->n_bots);
 
 	// load characters
 	u->n_characters = 0;
 	u->characters = NULL;
 	rec_find(u, g, "characters/");
 	if (g->s->verbosity >= 1)
-		fprintf(stderr, "Loaded %zu characters\n", u->n_characters);
+		fprintf(stderr, "Loaded %u characters\n", (unsigned) u->n_characters);
 
 	u->tmp_materials = NULL;
 	u->tmp_items = NULL;
@@ -109,12 +109,12 @@ universe_t* universe_init(game_t* g)
 
 	if (g->s->verbosity >= 1)
 	{
-		fprintf(stderr, "Loaded %zu event\n",       u->n_events);
-		fprintf(stderr, "Loaded %zu materials\n",   u->n_materials);
-		fprintf(stderr, "Loaded %zu mines\n",       u->n_mines);
-		fprintf(stderr, "Loaded %zu items\n",       u->n_items);
-		fprintf(stderr, "Loaded %zu item skills\n", u->n_iskills);
-		fprintf(stderr, "Loaded %zu buildings\n",   u->n_buildings);
+		fprintf(stderr, "Loaded %u event\n",       (unsigned) u->n_events);
+		fprintf(stderr, "Loaded %u materials\n",   (unsigned) u->n_materials);
+		fprintf(stderr, "Loaded %u mines\n",       (unsigned) u->n_mines);
+		fprintf(stderr, "Loaded %u items\n",       (unsigned) u->n_items);
+		fprintf(stderr, "Loaded %u item skills\n", (unsigned) u->n_iskills);
+		fprintf(stderr, "Loaded %u buildings\n",   (unsigned) u->n_buildings);
 	}
 
 	cfg_ini_exit(&ini);
@@ -387,8 +387,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 				continue;
 			if (i >= u->n_materials)
 			{
-				fprintf(stderr, "Invalid requisite material id '%zu' at '%s_%s'\n",
-					i, gr->name, s->name);
+				fprintf(stderr, "Invalid requisite material id '%u' at '%s_%s'\n",
+					(unsigned) i, gr->name, s->name);
 				exit(1);
 			}
 			transform_req(t, i, atof(v), 0);
@@ -403,8 +403,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 				continue;
 			if (i >= N_SPECIAL_SKILLS)
 			{
-				fprintf(stderr, "Invalid special skill id '%zu' at '%s_%s'\n",
-					i, gr->name, s->name);
+				fprintf(stderr, "Invalid special skill id '%u' at '%s_%s'\n",
+					(unsigned) i, gr->name, s->name);
 				exit(1);
 			}
 			int skill = i;
@@ -428,8 +428,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 				continue;
 			if (i >= u->n_materials)
 			{
-				fprintf(stderr, "Invalid material skill id '%zu' at '%s_%s'\n",
-					i, gr->name, s->name);
+				fprintf(stderr, "Invalid material skill id '%u' at '%s_%s'\n",
+					(unsigned) i, gr->name, s->name);
 				exit(1);
 			}
 			int skill = u->materials[i].skill;
@@ -445,8 +445,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 				continue;
 			if (i >= u->n_iskills)
 			{
-				fprintf(stderr, "Invalid item skill id '%zu' at '%s_%s'\n",
-					i, gr->name, s->name);
+				fprintf(stderr, "Invalid item skill id '%u' at '%s_%s'\n",
+					(unsigned) i, gr->name, s->name);
 				exit(1);
 			}
 			int skill = u->iskills[i];
@@ -519,8 +519,8 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 				continue;
 			if (i >= u->n_materials)
 			{
-				fprintf(stderr, "Invalid requisite material id '%zu' at '%s_%s'\n",
-					i, gr->name, s->name);
+				fprintf(stderr, "Invalid requisite material id '%u' at '%s_%s'\n",
+					(unsigned) i, gr->name, s->name);
 				exit(1);
 			}
 			transform_req(&b->build, i, atof(v), 0);
