@@ -103,7 +103,7 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 		// text
 		float max = floor(character_maxOf(g->player, m));
 		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f / %.0f", m->name, amount, max);
+		snprintf(buffer, 1024, "%s: %.0f/%.0f", m->name, amount, max);
 		sfText_setPosition(text, (sfVector2f){x+32, y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
