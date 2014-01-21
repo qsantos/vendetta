@@ -191,12 +191,22 @@ void graphics_drawTooltip(graphics_t* g, float x, float y, const char* txt)
 	sfVector2f pos = {x + 24, y + 24};
 	sfText_setPosition(text, pos);
 	sfText_setUTF8(text, txt);
-	sfFloatRect rect = sfText_getGlobalBounds(text);
 
-	rect.top    -= 3;
+	sfFloatRect rect = sfText_getGlobalBounds(text);
 	rect.left   -= 3;
+	rect.top    -= 3;
 	rect.width  += 8;
 	rect.height += 8;
+
+	sfVector2u size = sfRenderWindow_getSize(g->render);
+	float dx = fmin(0, size.x - (rect.left+rect.width ));
+	float dy = fmin(0, size.y - (rect.top +rect.height));
+	pos.x += dx;
+	pos.y += dy;
+	rect.left += dx;
+	rect.top  += dy;
+	sfText_setPosition(text, pos);
+
 	sfRectangleShape_setPosition(frame, (sfVector2f){rect.left,rect.top});
 	sfRectangleShape_setSize    (frame, (sfVector2f){rect.width,rect.height});
 	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
