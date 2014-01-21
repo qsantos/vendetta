@@ -146,6 +146,47 @@ static unsigned int find(graphics_t* g, const char* str)
 	return id;
 }
 
+// inspired from https://github.com/LaurentGomila/SFML/wiki/Source%3A-Draw-Rounded-Rectangle
+void graphics_drawRoundRect(graphics_t* g, float x, float y, float w, float h)
+{
+	static sfVertexArray* array = NULL;
+	static const int count = 8;
+	static const float radius = 5;
+#define M_PI 3.14159265358979323846
+	if (array == NULL)
+	{
+		array = sfVertexArray_create();
+		sfVertexArray_setPrimitiveType(array, sfTrianglesFan);
+		sfVertexArray_resize(array, 4*count);
+	}
+	sfColor corners[4] =
+	{
+		{191, 191, 191, 223},
+		{223, 223, 223, 223},
+		{255, 255, 255, 223},
+		{223, 223, 223, 223},
+	};
+	for (size_t i = 0; i < 4*count; i++)
+	{
+		sfVertex* v = sfVertexArray_getVertex(array, i);
+
+		float deltaAngle = (M_PI/2.)/(count-1);
+		int centerIndex = i / count;
+		sfVector2f center =
+		centerIndex == 0 ? (sfVector2f){w - radius,     radius} :
+		centerIndex == 1 ? (sfVector2f){    radius,     radius} :
+		centerIndex == 2 ? (sfVector2f){    radius, h - radius} :
+		centerIndex == 3 ? (sfVector2f){w - radius, h - radius} :
+		(sfVector2f){0,0};
+
+		v->position.x = x+radius*cos(deltaAngle*(i-centerIndex)) + center.x;
+		v->position.y = y+radius*sin(deltaAngle*(i-centerIndex)) - center.y + h;
+
+		v->color = corners[centerIndex];
+	}
+	sfRenderWindow_drawVertexArray(g->render, array, NULL);
+}
+
 void graphics_drawCursor(graphics_t* g, int t)
 {
 	sfVector2i imouse = sfMouse_getPositionRenderWindow(g->render);
@@ -166,18 +207,12 @@ void graphics_drawTooltip(graphics_t* g, const char* txt)
 	sfVector2f mouse = {imouse.x, imouse.y};
 
 	static sfText* text = NULL;
-	static sfRectangleShape* frame = NULL;
 	if (text == NULL)
 	{
 		text = sfText_create();
 		sfText_setFont         (text, g->font);
 		sfText_setCharacterSize(text, 15);
 		sfText_setColor        (text, sfBlack);
-
-		frame = sfRectangleShape_create();
-		sfRectangleShape_setFillColor(frame, (sfColor){255,255,255,223});
-		sfRectangleShape_setOutlineColor(frame, sfBlack);
-		sfRectangleShape_setOutlineThickness(frame, 1);
 	}
 
 	sfVector2f pos = {mouse.x + 24, mouse.y + 24};
@@ -199,9 +234,7 @@ void graphics_drawTooltip(graphics_t* g, const char* txt)
 	rect.top  += dy;
 	sfText_setPosition(text, pos);
 
-	sfRectangleShape_setPosition(frame, (sfVector2f){rect.left,rect.top});
-	sfRectangleShape_setSize    (frame, (sfVector2f){rect.width,rect.height});
-	sfRenderWindow_drawRectangleShape(g->render, frame, NULL);
+	graphics_drawRoundRect(g, rect.left, rect.top, rect.width, rect.height);
 
 	sfRenderWindow_drawText(g->render, text, NULL);
 }
