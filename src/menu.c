@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <SFML/Graphics.h>
 
-static char draw_button(float x, float y, char* txt, graphics_t* gr, char do_draw)
+static char draw_button(float x, float y, const char* txt, graphics_t* gr, char do_draw)
 {
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -43,8 +43,8 @@ static char draw_button(float x, float y, char* txt, graphics_t* gr, char do_dra
 
 	if (do_draw)
 		sfRenderWindow_drawSprite(gr->render, sprite, NULL);
-	else if (is_in)
-		return 1;
+	else
+		return is_in;
 
 	sfText* text = NULL;
 	if (text == NULL)
@@ -62,6 +62,28 @@ static char draw_button(float x, float y, char* txt, graphics_t* gr, char do_dra
 	sfRenderWindow_drawText(gr->render, text, NULL);
 
 	return 0;
+}
+static char draw_buttons(graphics_t* gr, char do_draw)
+{
+	sfVector2u size = sfRenderWindow_getSize(gr->render);
+	float x = size.x / 2;
+	float y = size.y / 2 - 100;
+	const char* labels[] =
+	{
+		"Jouer !",
+		"Configurer",
+		"Quitter",
+	};
+
+	for (size_t i = 0; i < sizeof(labels)/sizeof(labels[0]); i++)
+	{
+		if (draw_button(x, y, labels[i], gr, do_draw))
+			return i;
+
+		y += 50;
+	}
+
+	return -1;
 }
 void menu(settings_t* s, graphics_t* gr)
 {
@@ -100,9 +122,17 @@ void menu(settings_t* s, graphics_t* gr)
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
-				sfVector2u size  = sfRenderWindow_getSize(render);
-				if (draw_button(size.x/2, size.y/2, "Jouer !", gr, 0))
+				int i = draw_buttons(gr, 0);
+				if (i == 0)
 					return;
+				else if (i == 1)
+				{
+				}
+				else if (i == 2)
+				{
+					graphics_exit(gr);
+					exit(0);
+				}
 			}
 		}
 
@@ -114,7 +144,7 @@ void menu(settings_t* s, graphics_t* gr)
 		sfSprite_setPosition(illustration, pos);
 		sfRenderWindow_drawSprite(render, illustration, NULL);
 
-		draw_button(size.x/2, size.y/2, "Jouer !", gr, 1);
+		draw_buttons(gr, 1);
 
 		graphics_drawCursor(gr, 0);
 		sfRenderWindow_display(render);
