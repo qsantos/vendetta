@@ -68,7 +68,7 @@ void game_loop(game_t* g)
 	float fpssum = 0;
 	int fpscount = 0;
 	float fpslast = 0;
-	do
+	while (sfRenderWindow_isOpen(g->g->render))
 	{
 		// handle user input
 		sfEvent event;
@@ -278,7 +278,6 @@ void game_loop(game_t* g)
 		// do round
 		world_doRound(g->w, duration);
 	}
-	while (sfRenderWindow_isOpen(g->g->render));
 
 	sfClock_destroy(maintain);
 	sfClock_destroy(clock);
