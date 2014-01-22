@@ -40,7 +40,7 @@ struct game
 	char         autoEat[N_STATUSES];
 };
 
-void game_init(game_t* g, settings_t* s, graphics_t* gr);
+void game_init(game_t* g, settings_t* s, graphics_t* gr, char load);
 void game_exit(game_t* g);
 void game_loop(game_t* g);
 

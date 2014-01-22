@@ -78,6 +78,7 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 	{
 		"Jouer !",
 		"Configurer",
+		"Charger",
 		"Quitter",
 	};
 
@@ -147,10 +148,10 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	return -1;
 }
-static void play(settings_t* s, graphics_t* gr)
+static void play(settings_t* s, graphics_t* gr, char load)
 {
 	game_t game;
-	game_init(&game, s, gr);
+	game_init(&game, s, gr, load);
 	game_loop(&game);
 	game_exit(&game);
 }
@@ -186,7 +187,7 @@ void menu(settings_t* s)
 				if (event.key.code == sfKeyEscape)
 					stayhere = 0;
 				else if (event.key.code == sfKeyReturn)
-					play(s, gr);
+					play(s, gr, 0);
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
@@ -206,10 +207,12 @@ void menu(settings_t* s)
 				{
 					int i = mainmenu(gr, s, 0);
 					if (i == 0)
-						play(s, gr);
+						play(s, gr, 0);
 					else if (i == 1)
 						inconfig = 1;
 					else if (i == 2)
+						play(s, gr, 1);
+					else if (i == 3)
 						stayhere = 0;
 				}
 			}

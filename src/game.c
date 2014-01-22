@@ -27,7 +27,7 @@
 #include "world/draw.h"
 #include "overlay/overlay.h"
 
-void game_init(game_t* g, settings_t* s, graphics_t* gr)
+void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 {
 	g->s = s;
 	g->g = gr;
@@ -40,8 +40,28 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr)
 	universe_init(g->u, g);
 	   world_init(g->w, g);
 
-	world_genmap(g->w, s->seed);
-	world_start(g->w);
+	if (load)
+	{
+		const char* filename = "game.save";
+		FILE* f = fopen(filename, "r");
+		if (f == NULL)
+		{
+			fprintf(stderr, "Could not load game\n");
+			exit(1);
+		}
+		world_load(g->w, f);
+		fclose(f);
+	}
+	else
+	{
+		world_genmap(g->w, s->seed);
+		world_start(g->w);
+	}
+
+	sfVector2u size = sfRenderWindow_getSize(g->g->render);
+	sfFloatRect rect = {0,0,size.x,size.y};
+	g->g->overlay_view = sfView_createFromRect(rect);
+	g->g->world_view   = sfView_createFromRect(rect);
 
 	g->player = &g->w->characters[0];
 
@@ -72,11 +92,6 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr)
 			m[i] = character_maxOf(g->player, t);
 		}
 	}
-
-	sfVector2u size = sfRenderWindow_getSize(g->g->render);
-	sfFloatRect rect = {0,0,size.x,size.y};
-	g->g->overlay_view = sfView_createFromRect(rect);
-	g->g->world_view   = sfView_createFromRect(rect);
 }
 
 void game_exit(game_t* g)
