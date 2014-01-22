@@ -47,12 +47,12 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 	// TODO
 	// quickfix: check if already in water
 	{
-	int t = world_landAt(w, c->o.x, c->o.y);
-	if (t == 10)
+	short l = world_getLandXY(w, c->o.x, c->o.y)/16;
+	if (l == 10)
 	{
 		float y = c->o.y - 6;
-		if (world_landAt(w, c->o.x-c->o.w/2, y) == t &&
-		    world_landAt(w, c->o.x+c->o.w/2, y) == t)
+		if (world_getLandXY(w, c->o.x-c->o.w/2, y)/16 == l &&
+		    world_getLandXY(w, c->o.x+c->o.w/2, y)/16 == l)
 		{
 			c->inWater = 1;
 		}
@@ -345,7 +345,7 @@ void character_move(character_t* c, float duration, float dx, float dy)
 
 	c->inWater = 0;
 	world_t* w = c->world;
-	int t = world_landAt(w, c->o.x, c->o.y);
+	int t = world_getLandXY(w, c->o.x, c->o.y)/16;
 	if (t == 4) // mountains
 	{
 		distance /= 3;
@@ -353,8 +353,8 @@ void character_move(character_t* c, float duration, float dx, float dy)
 	else if (t == 10) // water
 	{
 		float y = c->o.y - 6;
-		if (world_landAt(w, c->o.x-c->o.w/2, y) == t &&
-		    world_landAt(w, c->o.x+c->o.w/2, y) == t)
+		if (world_getLandXY(w, c->o.x-c->o.w/2, y)/16 == t &&
+		    world_getLandXY(w, c->o.x+c->o.w/2, y)/16 == t)
 		{
 			distance /= 1.5;
 			c->inWater = 1;

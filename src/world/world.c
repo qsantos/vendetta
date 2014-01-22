@@ -140,7 +140,7 @@ void world_init(world_t* w, game_t* g)
 
 			// set this portion to proper type
 			for (int i = mini; i <= maxi; i++)
-				world_setLand(w, i, j, t);
+				world_setLandIJ(w, i, j, t);
 		}
 	}
 
@@ -150,7 +150,7 @@ void world_init(world_t* w, game_t* g)
 	// END land generation
 
 	// BEGIN region borders
-#define LAND_TYPE(I,J) (world_getLand(w,I,J) / 16)
+#define LAND_TYPE(I,J) (world_getLandIJ(w,I,J) / 16)
 #define LAND_SAME(I,J) ( \
 	((I) < 0 || (I) >= tot_rows || (J) < 0 || (J) >= tot_cols) ? \
 	1 : \
@@ -168,7 +168,7 @@ void world_init(world_t* w, game_t* g)
 		char bottom = LAND_SAME(i,j+1);
 		char left   = LAND_SAME(i-1,j);
 		int neighbor = (top<<3) | (right<<2) | (bottom<<1) | (left<<0);
-		world_setLand(w, i, j, 16*t + type2tile[neighbor]);
+		world_setLandIJ(w, i, j, 16*t + type2tile[neighbor]);
 	}
 	if (g->s->verbosity >= 3)
 		fprintf(stderr, "Fixed region borders\n");
@@ -249,10 +249,8 @@ void world_exit(world_t* w)
 	evtList_exit(&w->events);
 }
 
-void world_setLand(world_t* w, int i, int j, short t)
+short* world_landXY(world_t* w, float x, float y)
 {
-	float x = i*TILE_SIZE - w->o.w/2 + 0.01;
-	float y = j*TILE_SIZE - w->o.h/2 + 0.01;
 	object_t o = {O_NONE, x, y, 0, 0};
 	for (size_t i = 0; i < w->n_chunks; i++)
 	{
@@ -263,30 +261,43 @@ void world_setLand(world_t* w, int i, int j, short t)
 		int ci = floor((o.x - (c->o.x-c->o.w/2)) / TILE_SIZE);
 		int cj = floor((o.y - (c->o.y-c->o.h  )) / TILE_SIZE);
 
-		TERRAIN(c, ci, cj) = t;
-		break;
+		return &TERRAIN(c, ci, cj);
 	}
+	return NULL;
 }
 
-short world_getLand(world_t* w, int i, int j)
+short world_getLandXY(world_t* w, float x, float y)
+{
+	short* land = world_landXY(w, x, y);
+	return land != NULL ? *land : 0;
+}
+
+void world_setLandXY(world_t* w, float x, float y, short l)
+{
+	short* land = world_landXY(w, x, y);
+	if (land != NULL)
+		*land = l;
+}
+
+short* world_landIJ(world_t* w, int i, int j)
 {
 	float x = i*TILE_SIZE - w->o.w/2 + 0.01;
 	float y = j*TILE_SIZE - w->o.h/2 + 0.01;
-	object_t o = {O_NONE, x, y, 0, 0};
-	for (size_t i = 0; i < w->n_chunks; i++)
-	{
-		chunk_t* c = &w->chunks[i];
-		if (!object_overlaps(&c->o, &o))
-			continue;
-
-		int ci = floor((o.x - (c->o.x-c->o.w/2)) / TILE_SIZE);
-		int cj = floor((o.y - (c->o.y-c->o.h  )) / TILE_SIZE);
-
-		return TERRAIN(c, ci, cj);
-	}
-	return 0;
+	return world_landXY(w, x, y);
 }
 
+short world_getLandIJ(world_t* w, int i, int j)
+{
+	short* land = world_landIJ(w, i, j);
+	return land != NULL ? *land : 0;
+}
+
+void world_setLandIJ(world_t* w, int i, int j, short l)
+{
+	short* land = world_landIJ(w, i, j);
+	if (land != NULL)
+		*land = l;
+}
 
 void world_randMine(world_t* w, mine_t* m)
 {
@@ -295,7 +306,7 @@ void world_randMine(world_t* w, mine_t* m)
 	{
 		m->o.x = cfrnd(w->o.w - 32);
 		m->o.y = cfrnd(w->o.h - 32) + 16;
-		t = world_landAt(w, m->o.x, m->o.y);
+		t = world_getLandXY(w, m->o.x, m->o.y);
 
 		for (size_t i = 0; i < w->n_mines && &w->mines[i] < m; i++)
 			if (object_overlaps(&w->mines[i].o, &m->o))
@@ -312,19 +323,6 @@ void world_doRound(world_t* w, float duration)
 
 	for (size_t i = 0; i < w->n_characters; i++)
 		character_doRound(&w->characters[i], duration);
-}
-
-int world_landAt(world_t* w, float x, float y)
-{
-	(void) w;
-	(void) x;
-	(void) y;
-	return 0;
-	/* TODO
-	int i = TERRAINI(w,x);
-	int j = TERRAINJ(w,y);
-	return TERRAIN(w,i,j) / 16;
-	*/
 }
 
 object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
