@@ -405,16 +405,14 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 	if (!object_contains(&w->o, &o))
 		return 0;
 
-/* TODO
-	int mini = TERRAINI(w, x-t->width/2);
-	int maxi = TERRAINI(w, x+t->width/2);
-	int minj = TERRAINJ(w, y-t->height);
-	int maxj = TERRAINJ(w, y);
-	for (int i = mini; i <= maxi; i++)
-		for (int j = minj; j <= maxj; j++)
-			if (TERRAIN(w,i,j) / 16 != 0)
+	float minx = o.x - o.w/2;
+	float maxx = minx + o.w;
+	float miny = o.y - o.h;
+	float maxy = o.y;
+	for (float x = minx; x <= maxx; x += TILE_SIZE)
+		for (float y = miny; y <= maxy; y += TILE_SIZE)
+			if (world_getLandXY(w, x, y)/16 != 0)
 				return 0;
-*/
 
 	for (size_t i = 0; i < w->n_mines; i++)
 		if (object_overlaps(&w->mines[i].o, &o))
