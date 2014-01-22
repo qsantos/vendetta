@@ -351,6 +351,50 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 	return NULL;
 }
 
+mine_t* findMine_chunk(chunk_t* c, float x, float y, kindOf_mine_t* t)
+{
+	mine_t* ret = NULL;
+	float min_d = -1;
+	for (size_t i = 0; i < c->n_mines; i++)
+	{
+		mine_t* m = &c->mines[i];
+		if (m->t != t)
+			continue;
+		float d = object_distance(&m->o, x, y);
+		if (d < min_d || min_d < 0)
+		{
+			ret = m;
+			min_d = d;
+		}
+	}
+	return ret;
+}
+#define CHECK(I,J) do { \
+	if (!(0 <= (I) && (I) < w->chunk_rows && 0 <= (J) && (J) < w->chunk_cols)) \
+		continue; \
+	mine_t* m = findMine_chunk(CHUNK(w, I, J), x, y, t); \
+	if (m == NULL) \
+		continue; \
+	float d = object_distance(&m->o, x, y); \
+	if (d < min_d || min_d < 0) \
+	{ \
+		ret = m; \
+		min_d = d; \
+	}\
+} while(0)
+mine_t* findMine_radius(world_t* w, float x, float y, kindOf_mine_t* t, int i, int j, int radius)
+{
+	mine_t* ret = NULL;
+	float min_d = -1;
+	for (int a = -radius; a <= radius; a++)
+	{
+		CHECK(i-radius, j+a);
+		CHECK(i+radius, j+a);
+		CHECK(i+a, j-radius);
+		CHECK(i+a, j+radius);
+	}
+	return ret;
+}
 mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 {
 	int i = (x + w->o.w/2)/TILE_SIZE;
@@ -362,20 +406,18 @@ mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 	i /= ch;
 	j /= cw;
 
-	chunk_t* c = CHUNK(w, i, j);
 	mine_t* ret = NULL;
-	int min_d = -1;
-	for (size_t i = 0; i < c->n_mines; i++)
+	float min_d = -1;
+	for (int radius = 0; ret == NULL || 1.4142*min_d >= (radius-1)*ch*TILE_SIZE; radius++)
 	{
-		mine_t* m = &c->mines[i];
-		if (t == NULL || m->t == t)
+		mine_t* m = findMine_radius(w, x, y, t, i, j, radius);
+		if (m == NULL)
+			continue;
+		float d = object_distance(&m->o, x, y);
+		if (d < min_d || min_d < 0)
 		{
-			float d = object_distance(&m->o, x, y);
-			if (min_d < 0 || d < min_d)
-			{
-				ret = m;
-				min_d = d;
-			}
+			ret = m;
+			min_d = d;
 		}
 	}
 	return ret;
