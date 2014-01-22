@@ -21,6 +21,7 @@
 
 typedef enum
 {
+	O_NONE,
 	O_CHARACTER,
 	O_MINE,
 	O_BUILDING,

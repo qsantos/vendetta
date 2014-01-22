@@ -44,8 +44,17 @@ void world_init(world_t* w, game_t* g)
 
 	for (int i = 0; i < MAX_CHUNKS; i++)
 		w->chunks[i] = NULL;
-	w->chunks[0] = CALLOC(chunk_t, 1);
-	chunk_init(w->chunks[0], w->rows, w->cols);
+
+	float cw = w->rows * TILE_SIZE;
+	float ch = w->cols * TILE_SIZE;
+	int k = 0;
+	for (int i = 0; i < 10; i++)
+		for (int j = 0; j < 10; j++)
+		{
+			chunk_t* c = CALLOC(chunk_t, 1);
+			w->chunks[k++] = c;
+			chunk_init(c, cw*(i-5), ch*(j-5), w->rows, w->cols);
+		}
 
 	// BEGIN land generation
 	/*

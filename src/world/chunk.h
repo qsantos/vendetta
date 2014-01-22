@@ -41,7 +41,7 @@ struct chunk
 	sfVertexArray* array; // TODO :(
 };
 
-void chunk_init(chunk_t* c, int rows, int cols);
+void chunk_init(chunk_t* c, float x, float y, int rows, int cols);
 void chunk_exit(chunk_t* c);
 
 #endif

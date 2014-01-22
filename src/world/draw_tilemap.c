@@ -35,8 +35,8 @@ void tilemap_update(sfVertexArray* array, chunk_t* c)
 		{
 			sfVertex* v = sfVertexArray_getVertex(array, (j*c->rows+i)*4);
 
-			float a = (i-c->rows/2)*16;
-			float b = (j-c->cols/2)*16;
+			float a = c->o.x + (i-c->rows/2)*16;
+			float b = c->o.y + (j-c->cols/2)*16 - c->o.h/2;
 			v[0].position = (sfVector2f){a+ 0,b+ 0};
 			v[1].position = (sfVector2f){a+16,b+ 0};
 			v[2].position = (sfVector2f){a+16,b+16};
@@ -76,12 +76,17 @@ void tilemap_water(sfVertexArray* array, chunk_t* c, int step)
 
 void draw_chunk(graphics_t* g, chunk_t* c)
 {
+	sfVector2f x = sfView_getCenter(g->world_view);
+	sfVector2f s = sfView_getSize(g->world_view);
+	object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
+	if (!object_overlaps(&c->o, &o))
+		return;
+
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
 	if (states.texture == NULL)
 		states.texture = graphics_loadImage(g, "lands.png");
 
 	sfVertexArray* array = c->array;
-	tilemap_update(array, c);
 	static int water_step = 0;
 	int cur_step = floor(g->step);
 	cur_step %= 4;
@@ -96,7 +101,6 @@ void draw_chunk(graphics_t* g, chunk_t* c)
 
 void draw_tilemap(graphics_t* g, world_t* w)
 {
-	for (size_t i = 0; i < MAX_CHUNKS; i++)
-		if (w->chunks[i])
-			draw_chunk(g, w->chunks[i]);
+	for (size_t i = 0; i < MAX_CHUNKS && w->chunks[i]; i++)
+		draw_chunk(g, w->chunks[i]);
 }

@@ -29,7 +29,7 @@ typedef struct world world_t;
 #include "object.h"
 #include "building.h"
 
-#define MAX_CHUNKS 10
+#define MAX_CHUNKS 100
 
 struct world
 {

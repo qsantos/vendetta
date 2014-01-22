@@ -22,10 +22,13 @@
 
 #include "../mem.h"
 #include "../rand.h"
+#include "draw_tilemap.h"
 
-void chunk_init(chunk_t* c, int rows, int cols)
+void chunk_init(chunk_t* c, float x, float y, int rows, int cols)
 {
 	c->o.t = O_CHUNK;
+	c->o.x = x;
+	c->o.y = y;
 	c->o.w = rows * TILE_SIZE;
 	c->o.h = cols * TILE_SIZE;
 
@@ -41,6 +44,8 @@ void chunk_init(chunk_t* c, int rows, int cols)
 	c->array = sfVertexArray_create();
 	sfVertexArray_setPrimitiveType(c->array, sfQuads);
 	sfVertexArray_resize(c->array, rows*cols*4);
+
+	tilemap_update(c->array, c);
 }
 
 void chunk_exit(chunk_t* c)

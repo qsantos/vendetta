@@ -27,7 +27,7 @@ char object_overlaps(object_t* o, object_t* a)
 {
 	float dx = a->x - o->x;
 	float dy = a->y - o->y;
-	char hori = fabs(dx) <= (a->w + o->w)/2;
+	char hori = fabs(dx) < (a->w + o->w)/2;
 	char vert = -o->h <= dy && dy < a->h;
 	return hori && vert;
 }
