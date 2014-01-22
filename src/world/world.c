@@ -330,6 +330,7 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 	}
 
 	chunk_t* c = world_chunkXY(w, x, y);
+	if (c != NULL)
 	for (size_t i = 0; i < c->n_mines; i++)
 	{
 		mine_t* m = &c->mines[i];
