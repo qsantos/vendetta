@@ -36,20 +36,18 @@ void chunk_init(chunk_t* c, float x, float y, int rows, int cols)
 	c->cols = cols;
 	c->lands = CALLOC(short, rows*cols);
 
-	static const float land_probas[] = {0.8, 0.05, 0.05, 0.04, 0.01, 0,0,0,0,0,0.05};
-	for (int i = 0; i < rows; i++)
-		for (int j = 0; j < cols; j++)
-			TERRAIN(c, i, j) = 16 * rnd_pick(land_probas);
-
 	c->array = sfVertexArray_create();
 	sfVertexArray_setPrimitiveType(c->array, sfQuads);
 	sfVertexArray_resize(c->array, rows*cols*4);
-
-	tilemap_update(c->array, c);
 }
 
 void chunk_exit(chunk_t* c)
 {
 	sfVertexArray_destroy(c->array);
 	free(c->lands);
+}
+
+void chunk_update(chunk_t* c)
+{
+	tilemap_update(c->array, c);
 }

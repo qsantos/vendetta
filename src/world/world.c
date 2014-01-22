@@ -60,17 +60,18 @@ void world_init(world_t* w, game_t* g)
 	w->o.y = w->o.h/2;
 
 	// BEGIN land generation
-	/*
+	int tot_cols = cc * cw;
+	int tot_rows = cr * ch;
 	// generate Voronoi diagram
 	if (g->s->verbosity >= 3)
 		fprintf(stderr, "Initialiazing Voronoi diagram\n");
 	vr_diagram_t v;
-	vr_diagram_init(&v, w->rows, w->cols);
-	size_t n_vrPoints = w->rows * w->cols / 50;
+	vr_diagram_init(&v, tot_cols, tot_rows);
+	size_t n_vrPoints = tot_cols * tot_rows / 50;
 	for (size_t i = 0; i < n_vrPoints; i++)
 	{
-		double x = frnd(0, w->rows);
-		double y = frnd(0, w->cols);
+		double x = frnd(0, tot_cols);
+		double y = frnd(0, tot_rows);
 		vr_diagram_point(&v, (point_t){x,y});
 	}
 	for (int i = 1; i <= 2; i++)
@@ -94,7 +95,6 @@ void world_init(world_t* w, game_t* g)
 	// yes, I know, this is the single most ugly and horrible
 	// batch of code of this project; however, getting pixels
 	// from a polygon is not totally trivial; to be cleaned later
-	w->terrain = CALLOC(short, w->rows*w->cols);
 	for (size_t i = 0; i < v.n_regions; i++)
 	{
 		short t = region_types[i];
@@ -103,7 +103,7 @@ void world_init(world_t* w, game_t* g)
 
 		// first, get vertical bounds on the region
 		vr_region_t* r = v.regions[i];
-		int minj = w->cols;
+		int minj = tot_cols;
 		int maxj = 0;
 		for (size_t k = 0; k < r->n_edges; k++)
 		{
@@ -113,14 +113,14 @@ void world_init(world_t* w, game_t* g)
 			if (s->b->y < minj) minj = floor(s->b->y);
 			if (s->b->y > maxj) maxj = floor(s->b->y);
 		}
-		if (maxj >= w->cols)
-			maxj = w->cols - 1;
+		if (maxj >= tot_cols)
+			maxj = tot_cols - 1;
 
 		// then, consider each so-selected slide row
 		for (int j = minj; j <= maxj; j++)
 		{
 			// find the portion of the row in the region
-			int mini = w->rows;
+			int mini = tot_rows;
 			int maxi = 0;
 			point_t a = {mini, j};
 			point_t b = {maxi, j};
@@ -135,12 +135,12 @@ void world_init(world_t* w, game_t* g)
 				if (p.x > maxi)
 					maxi = floor(p.x);
 			}
-			if (maxi >= w->rows)
-				maxi = w->rows - 1;
+			if (maxi >= tot_rows)
+				maxi = tot_rows - 1;
 
 			// set this portion to proper type
 			for (int i = mini; i <= maxi; i++)
-				TERRAIN(w,i,j) = t;
+				world_setLand(w, i, j, t);
 		}
 	}
 
@@ -150,15 +150,15 @@ void world_init(world_t* w, game_t* g)
 	// END land generation
 
 	// BEGIN region borders
-#define LAND_TYPE(I,J) (TERRAIN(w,I,J) / 16)
+#define LAND_TYPE(I,J) (world_getLand(w,I,J) / 16)
 #define LAND_SAME(I,J) ( \
-	((I) < 0 || (I) >= w->rows || (J) < 0 || (J) >= w->cols) ? \
+	((I) < 0 || (I) >= tot_rows || (J) < 0 || (J) >= tot_cols) ? \
 	1 : \
 	t == LAND_TYPE(I,J) \
 )
 	static const char type2tile[16] = {0,5,2,13,4,7,12,8,3,15,6,11,14,9,10,1};
-	for (int i = 0; i < w->rows; i++)
-	for (int j = 0; j < w->cols; j++)
+	for (int i = 0; i < tot_rows; i++)
+	for (int j = 0; j < tot_cols; j++)
 	{
 		int t = LAND_TYPE(i,j);
 		if (t == 0)
@@ -168,12 +168,16 @@ void world_init(world_t* w, game_t* g)
 		char bottom = LAND_SAME(i,j+1);
 		char left   = LAND_SAME(i-1,j);
 		int neighbor = (top<<3) | (right<<2) | (bottom<<1) | (left<<0);
-		TERRAIN(w,i,j) += type2tile[neighbor];
+		world_setLand(w, i, j, 16*t + type2tile[neighbor]);
 	}
 	if (g->s->verbosity >= 3)
 		fprintf(stderr, "Fixed region borders\n");
-	*/
 	// END region borders
+
+	for (size_t i = 0; i < w->n_chunks; i++)
+		chunk_update(&w->chunks[i]);
+	if (g->s->verbosity >= 3)
+		fprintf(stderr, "Chunk generated\n");
 
 	evtList_init(&w->events);
 
@@ -244,6 +248,45 @@ void world_exit(world_t* w)
 
 	evtList_exit(&w->events);
 }
+
+void world_setLand(world_t* w, int i, int j, short t)
+{
+	float x = i*TILE_SIZE - w->o.w/2 + 0.01;
+	float y = j*TILE_SIZE - w->o.h/2 + 0.01;
+	object_t o = {O_NONE, x, y, 0, 0};
+	for (size_t i = 0; i < w->n_chunks; i++)
+	{
+		chunk_t* c = &w->chunks[i];
+		if (!object_overlaps(&c->o, &o))
+			continue;
+
+		int ci = floor((o.x - (c->o.x-c->o.w/2)) / TILE_SIZE);
+		int cj = floor((o.y - (c->o.y-c->o.h  )) / TILE_SIZE);
+
+		TERRAIN(c, ci, cj) = t;
+		break;
+	}
+}
+
+short world_getLand(world_t* w, int i, int j)
+{
+	float x = i*TILE_SIZE - w->o.w/2 + 0.01;
+	float y = j*TILE_SIZE - w->o.h/2 + 0.01;
+	object_t o = {O_NONE, x, y, 0, 0};
+	for (size_t i = 0; i < w->n_chunks; i++)
+	{
+		chunk_t* c = &w->chunks[i];
+		if (!object_overlaps(&c->o, &o))
+			continue;
+
+		int ci = floor((o.x - (c->o.x-c->o.w/2)) / TILE_SIZE);
+		int cj = floor((o.y - (c->o.y-c->o.h  )) / TILE_SIZE);
+
+		return TERRAIN(c, ci, cj);
+	}
+	return 0;
+}
+
 
 void world_randMine(world_t* w, mine_t* m)
 {

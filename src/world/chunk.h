@@ -44,4 +44,6 @@ struct chunk
 void chunk_init(chunk_t* c, float x, float y, int rows, int cols);
 void chunk_exit(chunk_t* c);
 
+void chunk_update(chunk_t* c);
+
 #endif

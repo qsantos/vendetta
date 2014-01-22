@@ -57,9 +57,12 @@ struct world
 void world_init(world_t* w, game_t* g);
 void world_exit(world_t* w);
 
-void world_randMine(world_t* w, mine_t* m);
+void  world_setLand (world_t* w, int i, int j, short t);
+short world_getLand (world_t* w, int i, int j);
+void  world_randMine(world_t* w, mine_t* m);
 
 void world_doRound(world_t* w, float duration);
+
 
 int         world_landAt      (world_t* w, float x, float y);
 object_t*   world_objectAt    (world_t* w, float x, float y, object_t* ignore);
