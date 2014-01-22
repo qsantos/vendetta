@@ -556,7 +556,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			int skill = t->skill;
 
 			float amount = floor(c->inventory.materials[id]);
-			float max = character_maxOf(c, t);
+			float max = floor(character_maxOf(c, t));
 			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%0.f)", u->skills[skill].name, amount, max);
 		}
 	}
@@ -610,7 +610,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			int skill = t->skill;
 
 			float amount = floor(c->inventory.materials[id]);
-			float max = character_maxOf(c, t);
+			float max = floor(character_maxOf(c, t));
 			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%0.f)", u->skills[skill].name, amount, max);
 		}
 		else
