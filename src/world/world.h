@@ -56,10 +56,14 @@ struct world
 	building_t** buildings;
 };
 
+#include <stdio.h>
+
 #include "../game.h"
 
 void world_init(world_t* w, game_t* g);
 void world_exit(world_t* w);
+
+void world_save(world_t* w, FILE* f);
 
 chunk_t* world_chunkXY(world_t* w, float x, float y);
 

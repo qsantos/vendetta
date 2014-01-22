@@ -235,6 +235,40 @@ void world_exit(world_t* w)
 	evtList_exit(&w->events);
 }
 
+static void save_object(object_t* o, FILE* f)
+{
+	fprintf(f, "%f %f %f %f", o->x, o->y, o->w, o->h);
+}
+void world_save(world_t* w, FILE* f)
+{
+	// seed
+	fprintf(f, "seed = %#x\n", w->settings->seed);
+
+	// characters
+	fprintf(f, "%u characters\n", (unsigned) w->n_characters);
+	for (size_t i = 0; i < w->n_characters; i++)
+	{
+		character_t* c = &w->characters[i];
+		save_object(&c->o, f);
+		fprintf(f, " %i %f %f\n", c->alive, c->go_x, c->go_y);
+	}
+
+	// buildings
+	size_t n_buildings = 0;
+	for (size_t i = 0; i < w->n_buildings; i++)
+		if (w->buildings[i])
+			n_buildings++;
+	fprintf(f, "%u buildings\n", (unsigned) n_buildings);
+	for (size_t i = 0; i < w->n_buildings; i++)
+	{
+		building_t* b = w->buildings[i];
+		if (b == NULL)
+			continue;
+		save_object(&b->o, f);
+		fprintf(f, " %f %f\n", b->build_progress, b->life);
+	}
+}
+
 chunk_t* world_chunkXY(world_t* w, float x, float y)
 {
 	int i = (x + w->o.w/2)/TILE_SIZE;
