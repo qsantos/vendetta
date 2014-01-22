@@ -37,7 +37,7 @@ void tilemap_update(sfVertexArray* array, chunk_t* c)
 			for (int k = 0; k < 4; k++)
 				v[k].color = sfWhite;
 
-			int t = TERRAIN(c,i,j);
+			int t = LAND(c,i,j);
 			a = 16*(t%16);
 			b = 16*(t/16);
 			v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
@@ -53,7 +53,7 @@ void tilemap_water(sfVertexArray* array, chunk_t* c)
 	for (int i = 0; i < c->rows; i++)
 		for (int j = 0; j < c->cols; j++)
 		{
-			int t = TERRAIN(c,i,j);
+			int t = LAND(c,i,j);
 			if (!(160 <= t && t < 176))
 				continue;
 			t += 16*step;

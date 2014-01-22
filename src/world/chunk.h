@@ -26,9 +26,7 @@ typedef struct chunk chunk_t;
 #include "object.h"
 
 #define TILE_SIZE 16
-#define TERRAIN(C,I,J) ((C)->lands[(J)*(C)->rows + (I)])
-#define TERRAINI(C,X)  ((int)floor((X) / TILE_SIZE + 0.5*(C)->rows))
-#define TERRAINJ(C,Y)  ((int)floor((Y) / TILE_SIZE + 0.5*(C)->cols))
+#define LAND(C,I,J) ((C)->lands[(J)*(C)->rows + (I)])
 
 struct chunk
 {

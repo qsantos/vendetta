@@ -261,7 +261,7 @@ short* world_landXY(world_t* w, float x, float y)
 		int ci = floor((o.x - (c->o.x-c->o.w/2)) / TILE_SIZE);
 		int cj = floor((o.y - (c->o.y-c->o.h  )) / TILE_SIZE);
 
-		return &TERRAIN(c, ci, cj);
+		return &LAND(c, ci, cj);
 	}
 	return NULL;
 }
