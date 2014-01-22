@@ -32,9 +32,13 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr)
 	g->s = s;
 	g->g = gr;
 
-	g->o =  overlay_init(g);
-	g->u = universe_init(g);
-	g->w =    world_init(g);
+	g->o = CALLOC( overlay_t, 1);
+	g->u = CALLOC(universe_t, 1);
+	g->w = CALLOC(   world_t, 1);
+
+	 overlay_init(g->o, g);
+	universe_init(g->u, g);
+	   world_init(g->w, g);
 
 	g->player = &g->w->characters[0];
 
@@ -80,6 +84,10 @@ void game_exit(game_t* g)
 	   world_exit(g->w);
 	universe_exit(g->u);
 	 overlay_exit(g->o);
+
+	free(g->w);
+	free(g->u);
+	free(g->o);
 }
 
 void game_loop(game_t* g)

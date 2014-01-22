@@ -156,7 +156,9 @@ static void play(settings_t* s, graphics_t* gr)
 }
 void menu(settings_t* s)
 {
-	graphics_t* gr = graphics_init();
+	graphics_t graphics;
+	graphics_t* gr = &graphics;
+	graphics_init(gr);
 
 	sfSprite* illustration = graphics_sprite(gr, "menu.png");
 

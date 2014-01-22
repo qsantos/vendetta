@@ -80,8 +80,8 @@ struct universe
 
 #include "../game.h"
 
-universe_t* universe_init(game_t* g);
-void        universe_exit(universe_t* u);
+void universe_init(universe_t* u, game_t* g);
+void universe_exit(universe_t* u);
 
 void universe_init_events   (universe_t* u, graphics_t* g, cfg_group_t* gr);
 void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr);

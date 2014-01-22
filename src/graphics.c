@@ -29,10 +29,8 @@
 
 static unsigned int find(graphics_t* g, const char* str);
 
-graphics_t* graphics_init(void)
+void graphics_init(graphics_t* g)
 {
-	graphics_t* g = CALLOC(graphics_t, 1);
-
 	sfVideoMode mode = {1024, 768, 32};
 	g->render = sfRenderWindow_create(mode, "Vendetta " VERSION, sfResize | sfClose, NULL);
 	if (g->render == NULL)
@@ -57,8 +55,6 @@ graphics_t* graphics_init(void)
 
 	g->step = 0;
 	g->fps  = 0;
-
-	return g;
 }
 
 void graphics_exit(graphics_t* g)
@@ -78,7 +74,6 @@ void graphics_exit(graphics_t* g)
 	sfFont_destroy(g->font);
 
 	sfRenderWindow_destroy(g->render);
-	free(g);
 }
 
 sfTexture* graphics_loadImage(graphics_t* g, const char* filename)

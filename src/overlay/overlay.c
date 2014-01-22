@@ -24,10 +24,8 @@
 
 #include "../mem.h"
 
-overlay_t* overlay_init(game_t* g)
+void overlay_init(overlay_t* o, game_t* g)
 {
-	overlay_t* o = CALLOC(overlay_t, 1);
-
 	   ov_build_init(&o->build);
 	 swbuilding_init(&o->swbuilding,  g->g);
 	    switems_init(&o->switems,     g->g);
@@ -44,8 +42,6 @@ overlay_t* overlay_init(game_t* g)
 	o->sw[4] = &o->switems    .w;
 
 	o->selected = -1;
-
-	return o;
 }
 
 void overlay_exit(overlay_t* o)
@@ -58,8 +54,6 @@ void overlay_exit(overlay_t* o)
 	swmaterials_exit(&o->swmaterials);
 	 swbuilding_exit(&o->swbuilding);
 	   ov_build_exit(&o->build);
-
-	free(o);
 }
 
 static int overlay_buttons(game_t* g, char do_draw)

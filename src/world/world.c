@@ -27,10 +27,8 @@
 #include "../rand.h"
 #include "../voronoi/lloyd.h"
 
-world_t* world_init(game_t* g)
+void world_init(world_t* w, game_t* g)
 {
-	world_t* w = CALLOC(world_t, 1);
-
 	w->rows = g->s->map_width;
 	w->cols = g->s->map_height;
 
@@ -203,8 +201,6 @@ world_t* world_init(game_t* g)
 	w->n_buildings = 0;
 	w->a_buildings = 0;
 	w->buildings = NULL;
-
-	return w;
 }
 
 void world_exit(world_t* w)
@@ -227,7 +223,6 @@ void world_exit(world_t* w)
 	evtList_exit(&w->events);
 
 	free(w->terrain);
-	free(w);
 }
 
 void world_randMine(world_t* w, mine_t* m)

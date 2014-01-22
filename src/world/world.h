@@ -59,8 +59,8 @@ struct world
 
 #include "../game.h"
 
-world_t* world_init(game_t* g);
-void     world_exit(world_t* w);
+void world_init(world_t* w, game_t* g);
+void world_exit(world_t* w);
 
 void world_randMine(world_t* w, mine_t* m);
 

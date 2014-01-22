@@ -43,8 +43,8 @@ struct graphics
 	float fps;
 };
 
-graphics_t* graphics_init(void);
-void        graphics_exit(graphics_t* g);
+void graphics_init(graphics_t* g);
+void graphics_exit(graphics_t* g);
 
 sfTexture* graphics_loadImage(graphics_t* g, const char* filename);
 int        graphics_spriteId (graphics_t* g, const char* filename);

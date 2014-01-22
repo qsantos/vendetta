@@ -46,10 +46,8 @@ static void rec_find(universe_t* u, game_t* g, const char* path)
 	FOREACH_DIR(path, rec_find(u, g, path));
 }
 
-universe_t* universe_init(game_t* g)
+void universe_init(universe_t* u, game_t* g)
 {
-	universe_t* u = CALLOC(universe_t, 1);
-
 	// load bots
 	u->n_bots = 0;
 	FOREACH_FILE("bots/", u->n_bots++);
@@ -163,8 +161,6 @@ universe_t* universe_init(game_t* g)
 	u->slots[ 8] = (kindOf_slot_t){"Mains",             8};
 	u->slots[ 9] = (kindOf_slot_t){"Cou",               9};
 	u->slots[10] = (kindOf_slot_t){"Monture",          10};
-
-	return u;
 }
 
 void universe_exit(universe_t* u)
@@ -219,8 +215,6 @@ void universe_exit(universe_t* u)
 	for (size_t i = 0; i < u->n_bots; i++)
 		ai_exit(&u->bots[i]);
 	free(u->bots);
-
-	free(u);
 }
 
 void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
