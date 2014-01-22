@@ -16,15 +16,32 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef W_DRAW_TILEMAP_H
-#define W_DRAW_TILEMAP_H
+#ifndef W_CHUNK_H
+#define W_CHUNK_H
 
-#include "world.h"
+typedef struct chunk chunk_t;
 
-void tilemap_update(sfVertexArray* array, chunk_t* c);
-void tilemap_water (sfVertexArray* array, chunk_t* c, int step);
+#include <SFML/Graphics.h>
 
-void draw_chunk  (graphics_t* g, chunk_t* c);
-void draw_tilemap(graphics_t* g, world_t* w);
+#include "object.h"
+
+#define TILE_SIZE 16
+#define TERRAIN(C,I,J) ((C)->lands[(J)*(C)->rows + (I)])
+#define TERRAINI(C,X)  ((int)floor((X) / TILE_SIZE + 0.5*(C)->rows))
+#define TERRAINJ(C,Y)  ((int)floor((Y) / TILE_SIZE + 0.5*(C)->cols))
+
+struct chunk
+{
+	object_t o;
+
+	int rows;
+	int cols;
+	short* lands;
+
+	sfVertexArray* array; // TODO :(
+};
+
+void chunk_init(chunk_t* c, int rows, int cols);
+void chunk_exit(chunk_t* c);
 
 #endif

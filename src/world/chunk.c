@@ -16,15 +16,35 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef W_DRAW_TILEMAP_H
-#define W_DRAW_TILEMAP_H
+#include "chunk.h"
 
-#include "world.h"
+#include <stdlib.h>
 
-void tilemap_update(sfVertexArray* array, chunk_t* c);
-void tilemap_water (sfVertexArray* array, chunk_t* c, int step);
+#include "../mem.h"
+#include "../rand.h"
 
-void draw_chunk  (graphics_t* g, chunk_t* c);
-void draw_tilemap(graphics_t* g, world_t* w);
+void chunk_init(chunk_t* c, int rows, int cols)
+{
+	c->o.t = O_CHUNK;
+	c->o.w = rows * TILE_SIZE;
+	c->o.h = cols * TILE_SIZE;
 
-#endif
+	c->rows = rows;
+	c->cols = cols;
+	c->lands = CALLOC(short, rows*cols);
+
+	static const float land_probas[] = {0.8, 0.05, 0.05, 0.04, 0.01, 0,0,0,0,0,0.05};
+	for (int i = 0; i < rows; i++)
+		for (int j = 0; j < cols; j++)
+			TERRAIN(c, i, j) = 16 * rnd_pick(land_probas);
+
+	c->array = sfVertexArray_create();
+	sfVertexArray_setPrimitiveType(c->array, sfQuads);
+	sfVertexArray_resize(c->array, rows*cols*4);
+}
+
+void chunk_exit(chunk_t* c)
+{
+	sfVertexArray_destroy(c->array);
+	free(c->lands);
+}

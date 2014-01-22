@@ -42,9 +42,13 @@ void world_init(world_t* w, game_t* g)
 
 	srand(g->s->seed);
 
-	// BEGIN land generation
-	w->terrain = CALLOC(short, w->rows*w->cols);
+	for (int i = 0; i < MAX_CHUNKS; i++)
+		w->chunks[i] = NULL;
+	w->chunks[0] = CALLOC(chunk_t, 1);
+	chunk_init(w->chunks[0], w->rows, w->cols);
 
+	// BEGIN land generation
+	/*
 	// generate Voronoi diagram
 	if (g->s->verbosity >= 3)
 		fprintf(stderr, "Initialiazing Voronoi diagram\n");
@@ -78,6 +82,7 @@ void world_init(world_t* w, game_t* g)
 	// yes, I know, this is the single most ugly and horrible
 	// batch of code of this project; however, getting pixels
 	// from a polygon is not totally trivial; to be cleaned later
+	w->terrain = CALLOC(short, w->rows*w->cols);
 	for (size_t i = 0; i < v.n_regions; i++)
 	{
 		short t = region_types[i];
@@ -155,6 +160,7 @@ void world_init(world_t* w, game_t* g)
 	}
 	if (g->s->verbosity >= 3)
 		fprintf(stderr, "Fixed region borders\n");
+	*/
 	// END region borders
 
 	evtList_init(&w->events);
@@ -220,9 +226,11 @@ void world_exit(world_t* w)
 		character_exit(&w->characters[i]);
 	free(w->characters);
 
-	evtList_exit(&w->events);
+	for (size_t i = 0; i < MAX_CHUNKS; i++)
+		if (w->chunks[i] != NULL)
+			chunk_exit(w->chunks[i]);
 
-	free(w->terrain);
+	evtList_exit(&w->events);
 }
 
 void world_randMine(world_t* w, mine_t* m)
@@ -253,9 +261,15 @@ void world_doRound(world_t* w, float duration)
 
 int world_landAt(world_t* w, float x, float y)
 {
+	(void) w;
+	(void) x;
+	(void) y;
+	return 0;
+	/* TODO
 	int i = TERRAINI(w,x);
 	int j = TERRAINJ(w,y);
 	return TERRAIN(w,i,j) / 16;
+	*/
 }
 
 object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
@@ -338,6 +352,7 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 	if (!object_contains(&w->o, &o))
 		return 0;
 
+/* TODO
 	int mini = TERRAINI(w, x-t->width/2);
 	int maxi = TERRAINI(w, x+t->width/2);
 	int minj = TERRAINJ(w, y-t->height);
@@ -346,6 +361,7 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 		for (int j = minj; j <= maxj; j++)
 			if (TERRAIN(w,i,j) / 16 != 0)
 				return 0;
+*/
 
 	for (size_t i = 0; i < w->n_mines; i++)
 		if (object_overlaps(&w->mines[i].o, &o))

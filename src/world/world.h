@@ -22,16 +22,14 @@
 typedef struct world world_t;
 
 #include "../universe/universe.h"
+#include "chunk.h"
 #include "event.h"
 #include "character.h"
 #include "mine.h"
 #include "object.h"
 #include "building.h"
 
-#define TILE_SIZE 16
-#define TERRAIN(W,I,J) ((W)->terrain[(J)*(W)->rows + (I)])
-#define TERRAINI(W,X)  ((int)floor((X) / TILE_SIZE + 0.5*(W)->rows))
-#define TERRAINJ(W,Y)  ((int)floor((Y) / TILE_SIZE + 0.5*(W)->cols))
+#define MAX_CHUNKS 10
 
 struct world
 {
@@ -41,7 +39,7 @@ struct world
 
 	int rows;
 	int cols;
-	short* terrain;
+	chunk_t* chunks[MAX_CHUNKS];
 
 	// on-going events
 	evtList_t events;

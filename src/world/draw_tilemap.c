@@ -28,15 +28,15 @@ sfVertexArray* tilemap_new(world_t* w)
 	return array;
 }
 
-void tilemap_update(sfVertexArray* array, world_t* w)
+void tilemap_update(sfVertexArray* array, chunk_t* c)
 {
-	for (int i = 0; i < w->rows; i++)
-		for (int j = 0; j < w->cols; j++)
+	for (int i = 0; i < c->rows; i++)
+		for (int j = 0; j < c->cols; j++)
 		{
-			sfVertex* v = sfVertexArray_getVertex(array, (j*w->rows+i)*4);
+			sfVertex* v = sfVertexArray_getVertex(array, (j*c->rows+i)*4);
 
-			float a = (i-w->rows/2)*16;
-			float b = (j-w->cols/2)*16;
+			float a = (i-c->rows/2)*16;
+			float b = (j-c->cols/2)*16;
 			v[0].position = (sfVector2f){a+ 0,b+ 0};
 			v[1].position = (sfVector2f){a+16,b+ 0};
 			v[2].position = (sfVector2f){a+16,b+16};
@@ -45,7 +45,7 @@ void tilemap_update(sfVertexArray* array, world_t* w)
 			for (int k = 0; k < 4; k++)
 				v[k].color = sfWhite;
 
-			int t = TERRAIN(w,i,j);
+			int t = TERRAIN(c,i,j);
 			a = 16*(t%16);
 			b = 16*(t/16);
 			v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
@@ -55,18 +55,18 @@ void tilemap_update(sfVertexArray* array, world_t* w)
 		}
 }
 
-void tilemap_water(sfVertexArray* array, world_t* w, int step)
+void tilemap_water(sfVertexArray* array, chunk_t* c, int step)
 {
-	for (int i = 0; i < w->rows; i++)
-		for (int j = 0; j < w->cols; j++)
+	for (int i = 0; i < c->rows; i++)
+		for (int j = 0; j < c->cols; j++)
 		{
-			int t = TERRAIN(w,i,j);
+			int t = TERRAIN(c,i,j);
 			if (!(160 <= t && t < 176))
 				continue;
 			t += 16*(step == 3 ? 1 : step);
 			float a = 16*(t%16);
 			float b = 16*(t/16);
-			sfVertex* v = sfVertexArray_getVertex(array, (j*w->rows+i)*4);
+			sfVertex* v = sfVertexArray_getVertex(array, (j*c->rows+i)*4);
 			v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
 			v[1].texCoords = (sfVector2f){a+15.99,b+ 0.01};
 			v[2].texCoords = (sfVector2f){a+15.99,b+15.99};
@@ -74,25 +74,29 @@ void tilemap_water(sfVertexArray* array, world_t* w, int step)
 		}
 }
 
-void draw_tilemap(graphics_t* g, world_t* w)
+void draw_chunk(graphics_t* g, chunk_t* c)
 {
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
-	static sfVertexArray* array = NULL;
-	if (array == NULL)
-	{
-		array = tilemap_new(w);
-		sfTexture* texture = graphics_loadImage(g, "lands.png");
-		states.texture = texture;
-		tilemap_update(array, w);
-	}
+	if (states.texture == NULL)
+		states.texture = graphics_loadImage(g, "lands.png");
+
+	sfVertexArray* array = c->array;
+	tilemap_update(array, c);
 	static int water_step = 0;
 	int cur_step = floor(g->step);
 	cur_step %= 4;
 	if (cur_step != water_step)
 	{
 		water_step = cur_step;
-		tilemap_water(array, w, water_step);
+		tilemap_water(array, c, water_step);
 	}
 
 	sfRenderWindow_drawVertexArray(g->render, array, &states);
+}
+
+void draw_tilemap(graphics_t* g, world_t* w)
+{
+	for (size_t i = 0; i < MAX_CHUNKS; i++)
+		if (w->chunks[i])
+			draw_chunk(g, w->chunks[i]);
 }

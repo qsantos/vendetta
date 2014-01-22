@@ -24,6 +24,7 @@ typedef enum
 	O_CHARACTER,
 	O_MINE,
 	O_BUILDING,
+	O_CHUNK,
 	O_WORLD,
 } otype_t;
 
