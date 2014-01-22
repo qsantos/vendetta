@@ -21,6 +21,7 @@
 
 typedef struct world world_t;
 
+#include "../settings.h"
 #include "../universe/universe.h"
 #include "chunk.h"
 #include "event.h"
@@ -34,6 +35,7 @@ struct world
 {
 	object_t o;
 
+	settings_t* settings;
 	universe_t* universe;
 
 	int cols;

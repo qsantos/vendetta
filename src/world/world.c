@@ -29,11 +29,12 @@
 
 void world_init(world_t* w, game_t* g)
 {
+	w->settings = g->s;
 	w->universe = g->u;
 
 	srand(g->s->seed);
 
-	if (g->s->verbosity >= 1)
+	if (w->settings->verbosity >= 1)
 		fprintf(stderr, "Proceeding to land generation\n");
 	int cw = 64;
 	int ch = 64;
@@ -49,7 +50,7 @@ void world_init(world_t* w, game_t* g)
 			float y = TILE_SIZE*ch*(j-w->chunk_rows/2+.5+.5);
 			chunk_init(c, x, y, cw, ch);
 		}
-	if (g->s->verbosity >= 1)
+	if (w->settings->verbosity >= 1)
 		fprintf(stderr, "Land generation done\n");
 
 	w->cols = w->chunk_cols * cw;
@@ -63,7 +64,7 @@ void world_init(world_t* w, game_t* g)
 
 	// BEGIN land generation
 	// generate Voronoi diagram
-	if (g->s->verbosity >= 3)
+	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Initialiazing Voronoi diagram\n");
 	vr_diagram_t v;
 	vr_diagram_init(&v, w->cols, w->rows);
@@ -76,12 +77,12 @@ void world_init(world_t* w, game_t* g)
 	}
 	for (int i = 1; i <= 2; i++)
 	{
-		if (g->s->verbosity >= 3)
+		if (w->settings->verbosity >= 3)
 			fprintf(stderr, "Lloyd relexation pass %i\n", i);
 		vr_lloyd_relaxation(&v);
 	}
 	vr_diagram_end(&v);
-	if (g->s->verbosity >= 3)
+	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Finished Voronoi generation\n");
 
 	// assign land types to Voronoi regions
@@ -145,7 +146,7 @@ void world_init(world_t* w, game_t* g)
 	}
 
 	vr_diagram_exit(&v);
-	if (g->s->verbosity >= 3)
+	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Rasterization done: lands generated\n");
 	// END land generation
 
@@ -170,13 +171,13 @@ void world_init(world_t* w, game_t* g)
 		int neighbor = (top<<3) | (right<<2) | (bottom<<1) | (left<<0);
 		world_setLandIJ(w, i, j, 16*t + type2tile[neighbor]);
 	}
-	if (g->s->verbosity >= 3)
+	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Fixed region borders\n");
 	// END region borders
 
 	for (size_t i = 0; i < w->n_chunks; i++)
 		chunk_update(&w->chunks[i]);
-	if (g->s->verbosity >= 3)
+	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Chunk generated\n");
 
 	evtList_init(&w->events);
@@ -192,7 +193,7 @@ void world_init(world_t* w, game_t* g)
 		character_init(c, &u->characters[type], u, w);
 		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
 	}
-	if (g->s->verbosity >= 3)
+	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Generated %u characters\n", (unsigned) w->n_characters);
 	// END character generation
 
@@ -206,7 +207,7 @@ void world_init(world_t* w, game_t* g)
 	for (size_t i = u->n_mines; i < n_mines; i++)
 		world_randMine(w, rnd_pick(mine_probas));
 	// END mine generation
-	if (g->s->verbosity >= 3)
+	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Generated %u mines\n", (unsigned) n_mines);
 
 	w->n_buildings = 0;
