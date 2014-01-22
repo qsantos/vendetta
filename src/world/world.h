@@ -25,7 +25,6 @@ typedef struct world world_t;
 #include "chunk.h"
 #include "event.h"
 #include "character.h"
-#include "mine.h"
 #include "object.h"
 #include "building.h"
 
@@ -50,9 +49,6 @@ struct world
 	size_t n_characters;
 	character_t* characters;
 
-	size_t n_mines;
-	mine_t* mines;
-
 	size_t n_buildings;
 	size_t a_buildings;
 	building_t** buildings;
@@ -63,6 +59,8 @@ struct world
 void world_init(world_t* w, game_t* g);
 void world_exit(world_t* w);
 
+chunk_t* world_chunkXY(world_t* w, float x, float y);
+
 short* world_landXY   (world_t* w, float x, float y);
 short  world_getLandXY(world_t* w, float x, float y);
 void   world_setLandXY(world_t* w, float x, float y, short l);
@@ -70,7 +68,7 @@ short* world_landIJ   (world_t* w, int i, int j);
 short  world_getLandIJ(world_t* w, int i, int j);
 void   world_setLandIJ(world_t* w, int i, int j, short l);
 
-void  world_randMine(world_t* w, mine_t* m);
+void  world_randMine(world_t* w, int type);
 
 void world_doRound(world_t* w, float duration);
 

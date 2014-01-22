@@ -197,28 +197,17 @@ void world_init(world_t* w, game_t* g)
 	// END character generation
 
 	// BEGIN mine generation
-	w->n_mines = w->o.w*w->o.h / 100000;
-	if (w->n_mines < u->n_mines)
-		w->n_mines = u->n_mines;
-	w->mines = CALLOC(mine_t, w->n_mines);
+	size_t n_mines = w->o.w*w->o.h / 100000;
+	if (n_mines < u->n_mines)
+		n_mines = u->n_mines;
 	static const float mine_probas[] = {0.22,0.22,0.20,0.10,0.08,0.06,0.06,0.06};
 	for (size_t i = 0; i < u->n_mines; i++) // ensure there is at least one of each
-	{
-		mine_t* m = &w->mines[i];
-		int type = i;
-		mine_init(m, &u->mines[type]);
-		world_randMine(w, m);
-	}
-	for (size_t i = u->n_mines; i < w->n_mines; i++)
-	{
-		mine_t* m = &w->mines[i];
-		int type = rnd_pick(mine_probas);
-		mine_init(m, &u->mines[type]);
-		world_randMine(w, m);
-	}
+		world_randMine(w, i);
+	for (size_t i = u->n_mines; i < n_mines; i++)
+		world_randMine(w, rnd_pick(mine_probas));
 	// END mine generation
 	if (g->s->verbosity >= 3)
-		fprintf(stderr, "Generated %u mines\n", (unsigned) w->n_mines);
+		fprintf(stderr, "Generated %u mines\n", (unsigned) n_mines);
 
 	w->n_buildings = 0;
 	w->a_buildings = 0;
@@ -234,10 +223,6 @@ void world_exit(world_t* w)
 	}
 	free(w->buildings);
 
-	for (size_t i = 0; i < w->n_mines; i++)
-		mine_exit(&w->mines[i]);
-	free(w->mines);
-
 	for (size_t i = 0; i < w->n_characters; i++)
 		character_exit(&w->characters[i]);
 	free(w->characters);
@@ -247,6 +232,17 @@ void world_exit(world_t* w)
 	free(w->chunks);
 
 	evtList_exit(&w->events);
+}
+
+chunk_t* world_chunkXY(world_t* w, float x, float y)
+{
+	int i = (x + w->o.w/2)/TILE_SIZE;
+	int j = (y + w->o.h/2)/TILE_SIZE;
+	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
+		return NULL;
+	int ch = w->chunks[0].rows;
+	int cw = w->chunks[0].cols;
+	return CHUNK(w, i/ch, j/cw);
 }
 
 short* world_landXY(world_t* w, float x, float y)
@@ -271,12 +267,12 @@ void world_setLandXY(world_t* w, float x, float y, short l)
 
 short* world_landIJ(world_t* w, int i, int j)
 {
-	int cw = w->chunks[0].cols;
-	int ch = w->chunks[0].rows;
 	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
 		return NULL;
-	chunk_t* c = CHUNK(w, i/cw, j/ch);
-	return &LAND(c, i%cw, j%ch);
+	int cw = w->chunks[0].cols;
+	int ch = w->chunks[0].rows;
+	chunk_t* c = CHUNK(w, i/ch, j/cw);
+	return &LAND(c, i%ch, j%cw);
 }
 
 short world_getLandIJ(world_t* w, int i, int j)
@@ -292,22 +288,24 @@ void world_setLandIJ(world_t* w, int i, int j, short l)
 		*land = l;
 }
 
-void world_randMine(world_t* w, mine_t* m)
+void world_randMine(world_t* w, int type)
 {
-	int t;
-	do
+	mine_t m;
+	mine_init(&m, &w->universe->mines[type]);
+	while (1)
 	{
-		m->o.x = cfrnd(w->o.w - 32);
-		m->o.y = cfrnd(w->o.h - 32) + 16;
-		t = world_getLandXY(w, m->o.x, m->o.y);
+		float x = cfrnd(w->o.w - 32);
+		float y = cfrnd(w->o.h - 32) + 16;
+		int t = world_getLandXY(w, x, y) / 16;
+		if (t == 4 || t == 10)
+			continue;
 
-		for (size_t i = 0; i < w->n_mines && &w->mines[i] < m; i++)
-			if (object_overlaps(&w->mines[i].o, &m->o))
-			{
-				t = 4;
-				break;
-			}
-	} while (t == 4 || t == 10);
+		chunk_t* c = world_chunkXY(w, x, y);
+		m.o.x = x;
+		m.o.y = y;
+		chunk_pushMine(c, &m);
+		break;
+	}
 }
 
 void world_doRound(world_t* w, float duration)
@@ -331,9 +329,10 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 			return &c->o;
 	}
 
-	for (size_t i = 0; i < w->n_mines; i++)
+	chunk_t* c = world_chunkXY(w, x, y);
+	for (size_t i = 0; i < c->n_mines; i++)
 	{
-		mine_t* m = &w->mines[i];
+		mine_t* m = &c->mines[i];
 		if (&m->o == ignore)
 			continue;
 		if (object_isAt(&m->o, x, y))
@@ -354,11 +353,21 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 
 mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 {
+	int i = (x + w->o.w/2)/TILE_SIZE;
+	int j = (y + w->o.h/2)/TILE_SIZE;
+	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
+		return NULL;
+	int ch = w->chunks[0].rows;
+	int cw = w->chunks[0].cols;
+	i /= ch;
+	j /= cw;
+
+	chunk_t* c = CHUNK(w, i, j);
 	mine_t* ret = NULL;
-	float min_d = -1;
-	for (size_t i = 0; i < w->n_mines; i++)
+	int min_d = -1;
+	for (size_t i = 0; i < c->n_mines; i++)
 	{
-		mine_t* m = &w->mines[i];
+		mine_t* m = &c->mines[i];
 		if (t == NULL || m->t == t)
 		{
 			float d = object_distance(&m->o, x, y);
@@ -392,6 +401,16 @@ building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* 
 	return ret;
 }
 
+static char canBuild_aux(chunk_t* c, float x, float y, kindOf_building_t* t)
+{
+	object_t o = {O_BUILDING, x, y, t->width, t->height};
+	if (c == NULL)
+		return 0;
+	for (size_t i = 0; i < c->n_mines; i++)
+		if (object_overlaps(&c->mines[i].o, &o))
+			return 0;
+	return 1;
+}
 char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 {
 	object_t o = {O_BUILDING, x, y, t->width, t->height};
@@ -407,9 +426,10 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 			if (world_getLandXY(w, x, y)/16 != 0)
 				return 0;
 
-	for (size_t i = 0; i < w->n_mines; i++)
-		if (object_overlaps(&w->mines[i].o, &o))
-			return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y-o.h), x, y, t)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y    ), x, y, t)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y-o.h), x, y, t)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y    ), x, y, t)) return 0;
 
 	for (size_t i = 0; i < w->n_buildings; i++)
 	{

@@ -104,8 +104,6 @@
 <Unit filename="world/event.h" />
 <Unit filename="world/draw.c" />
 <Unit filename="world/mine.h" />
-<Unit filename="world/draw_tilemap.h" />
-<Unit filename="world/draw_tilemap.c" />
 <Unit filename="world/character.h" />
 <Unit filename="world/draw.h" />
 <Unit filename="world/event.c" />

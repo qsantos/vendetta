@@ -23,7 +23,7 @@ typedef struct chunk chunk_t;
 
 #include <SFML/Graphics.h>
 
-#include "object.h"
+#include "mine.h"
 
 #define TILE_SIZE 16
 #define LAND(C,I,J) ((C)->lands[(I)*(C)->cols + (J)])
@@ -38,11 +38,17 @@ struct chunk
 
 	int water_step;
 	sfVertexArray* array; // TODO :(
+
+	size_t n_mines;
+	mine_t* mines;
 };
 
 void chunk_init(chunk_t* c, float x, float y, int rows, int cols);
 void chunk_exit(chunk_t* c);
 
 void chunk_update(chunk_t* c);
+void chunk_updwtr(chunk_t* c);
+
+void chunk_pushMine(chunk_t* c, mine_t* m);
 
 #endif

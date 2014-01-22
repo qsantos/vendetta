@@ -21,8 +21,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "draw_tilemap.h"
-
 static void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 {
 	sfVector2f pos = {o->x - o->w/2, o->y - o->h};
@@ -176,15 +174,52 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 		graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
 }
 
+void draw_chunk(graphics_t* g, character_t* player, chunk_t* c)
+{
+	(void) player;
+
+	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
+	if (states.texture == NULL)
+		states.texture = graphics_loadImage(g, "lands.png");
+
+	sfVertexArray* array = c->array;
+	int cur_step = floor(g->step);
+	cur_step %= 4;
+	if (cur_step != c->water_step)
+	{
+		c->water_step = cur_step;
+		chunk_updwtr(c);
+	}
+
+	sfRenderWindow_drawVertexArray(g->render, array, &states);
+
+	for (ssize_t i = c->n_mines-1; i >= 0; i--)
+		draw_mine(g, player, &c->mines[i]);
+}
+
+void draw_chunks(graphics_t* g, character_t* player, world_t* w)
+{
+	sfVector2f x = sfView_getCenter(g->world_view);
+	sfVector2f s = sfView_getSize(g->world_view);
+	object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
+
+	for (size_t i = 0; i < w->n_chunks; i++)
+	{
+		chunk_t* c = &w->chunks[i];
+
+		if (!object_overlaps(&c->o, &o))
+			continue;
+
+		draw_chunk(g, player, c);
+	}
+}
+
 void draw_world(graphics_t* g, character_t* player, world_t* w)
 {
-	draw_tilemap(g, w);
+	draw_chunks(g, player, w);
 
 	for (ssize_t i = w->n_buildings-1; i >= 0; i--)
 		draw_building(g, player, w->buildings[i]);
-
-	for (ssize_t i = w->n_mines-1; i >= 0; i--)
-		draw_mine(g, player, &w->mines[i]);
 
 	for (ssize_t i = w->n_characters-1; i >= 0; i--)
 		draw_character(g, player, &w->characters[i]);
