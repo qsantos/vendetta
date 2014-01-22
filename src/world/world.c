@@ -32,14 +32,52 @@ void world_init(world_t* w, game_t* g)
 	w->settings = g->s;
 	w->universe = g->u;
 
-	srand(g->s->seed);
+	w->cols = 0;
+	w->rows = 0;
+	w->chunk_cols = 0;
+	w->chunk_rows = 0;
+	w->n_chunks = 0;
+	w->chunks = NULL;
+
+	w->n_characters = 0;
+	w->characters = NULL;
+
+	w->n_buildings = 0;
+	w->a_buildings = 0;
+	w->buildings = NULL;
+}
+
+void world_exit(world_t* w)
+{
+	for (size_t i = 0; i < w->n_buildings; i++)
+	{
+		building_exit(w->buildings[i]);
+		free(w->buildings[i]);
+	}
+	free(w->buildings);
+
+	for (size_t i = 0; i < w->n_characters; i++)
+		character_exit(&w->characters[i]);
+	free(w->characters);
+
+	for (size_t i = 0; i < w->n_chunks; i++)
+		chunk_exit(&w->chunks[i]);
+	free(w->chunks);
+
+	evtList_exit(&w->events);
+}
+
+void world_genmap(world_t* w, unsigned int seed)
+{
+	universe_t* u = w->universe;
+	srand(seed);
 
 	if (w->settings->verbosity >= 1)
 		fprintf(stderr, "Proceeding to land generation\n");
 	int cw = 64;
 	int ch = 64;
-	w->chunk_cols = ceil((float)g->s->map_width  / cw);
-	w->chunk_rows = ceil((float)g->s->map_height / ch);
+	w->chunk_cols = ceil((float)w->settings->map_width  / cw);
+	w->chunk_rows = ceil((float)w->settings->map_height / ch);
 	w->n_chunks = w->chunk_cols*w->chunk_rows;
 	w->chunks = CALLOC(chunk_t, w->n_chunks);
 	for (int i = 0; i < w->chunk_rows; i++)
@@ -182,21 +220,6 @@ void world_init(world_t* w, game_t* g)
 
 	evtList_init(&w->events);
 
-	// BEGIN character generation
-	w->n_characters = 1 + g->s->bots_count;
-	w->characters = CALLOC(character_t, w->n_characters);
-	universe_t* u = w->universe;
-	for (size_t i = 0; i < w->n_characters; i++)
-	{
-		character_t* c = &w->characters[i];
-		int type = rand() % u->n_characters;
-		character_init(c, &u->characters[type], u, w);
-		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
-	}
-	if (w->settings->verbosity >= 3)
-		fprintf(stderr, "Generated %u characters\n", (unsigned) w->n_characters);
-	// END character generation
-
 	// BEGIN mine generation
 	size_t n_mines = w->o.w*w->o.h / 100000;
 	if (n_mines < u->n_mines)
@@ -209,30 +232,25 @@ void world_init(world_t* w, game_t* g)
 	// END mine generation
 	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Generated %u mines\n", (unsigned) n_mines);
-
-	w->n_buildings = 0;
-	w->a_buildings = 0;
-	w->buildings = NULL;
 }
 
-void world_exit(world_t* w)
+void world_start(world_t* w)
 {
-	for (size_t i = 0; i < w->n_buildings; i++)
-	{
-		building_exit(w->buildings[i]);
-		free(w->buildings[i]);
-	}
-	free(w->buildings);
+	universe_t* u = w->universe;
 
+	// BEGIN character generation
+	w->n_characters = 1 + w->settings->bots_count;
+	w->characters = CALLOC(character_t, w->n_characters);
 	for (size_t i = 0; i < w->n_characters; i++)
-		character_exit(&w->characters[i]);
-	free(w->characters);
-
-	for (size_t i = 0; i < w->n_chunks; i++)
-		chunk_exit(&w->chunks[i]);
-	free(w->chunks);
-
-	evtList_exit(&w->events);
+	{
+		character_t* c = &w->characters[i];
+		int type = rand() % u->n_characters;
+		character_init(c, &u->characters[type], u, w);
+		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
+	}
+	if (w->settings->verbosity >= 3)
+		fprintf(stderr, "Generated %u characters\n", (unsigned) w->n_characters);
+	// END character generation
 }
 
 static void save_object(object_t* o, FILE* f)

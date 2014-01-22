@@ -40,6 +40,9 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr)
 	universe_init(g->u, g);
 	   world_init(g->w, g);
 
+	world_genmap(g->w, s->seed);
+	world_start(g->w);
+
 	g->player = &g->w->characters[0];
 
 	for (size_t i = 0; i < g->w->n_characters; i++)
