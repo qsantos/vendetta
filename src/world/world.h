@@ -29,8 +29,6 @@ typedef struct world world_t;
 #include "object.h"
 #include "building.h"
 
-#define MAX_CHUNKS 100
-
 struct world
 {
 	object_t o;
@@ -39,7 +37,8 @@ struct world
 
 	int rows;
 	int cols;
-	chunk_t* chunks[MAX_CHUNKS];
+	size_t n_chunks;
+	chunk_t* chunks;
 
 	// on-going events
 	evtList_t events;

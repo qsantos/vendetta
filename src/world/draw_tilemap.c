@@ -101,6 +101,6 @@ void draw_chunk(graphics_t* g, chunk_t* c)
 
 void draw_tilemap(graphics_t* g, world_t* w)
 {
-	for (size_t i = 0; i < MAX_CHUNKS && w->chunks[i]; i++)
-		draw_chunk(g, w->chunks[i]);
+	for (size_t i = 0; i < w->n_chunks; i++)
+		draw_chunk(g, &w->chunks[i]);
 }

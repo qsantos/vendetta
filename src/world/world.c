@@ -42,19 +42,25 @@ void world_init(world_t* w, game_t* g)
 
 	srand(g->s->seed);
 
-	for (int i = 0; i < MAX_CHUNKS; i++)
-		w->chunks[i] = NULL;
-
-	float cw = w->rows * TILE_SIZE;
-	float ch = w->cols * TILE_SIZE;
+	if (g->s->verbosity >= 1)
+		fprintf(stderr, "Proceeding to land generation\n");
+	int cw = 64;
+	int ch = 64;
+	int cc = w->cols / cw;
+	int cr = w->rows / ch;
+	w->n_chunks = cc*cr;
+	w->chunks = CALLOC(chunk_t, w->n_chunks);
 	int k = 0;
-	for (int i = 0; i < 10; i++)
-		for (int j = 0; j < 10; j++)
+	for (int j = 0; j < cr; j++)
+		for (int i = 0; i < cc; i++)
 		{
-			chunk_t* c = CALLOC(chunk_t, 1);
-			w->chunks[k++] = c;
-			chunk_init(c, cw*(i-5), ch*(j-5), w->rows, w->cols);
+			chunk_t* c = &w->chunks[k++];
+			float x = TILE_SIZE*cw*(i-cc/2);
+			float y = TILE_SIZE*ch*(j-cr/2);
+			chunk_init(c, x, y, cw, ch);
 		}
+	if (g->s->verbosity >= 1)
+		fprintf(stderr, "Land generation done\n");
 
 	// BEGIN land generation
 	/*
@@ -235,9 +241,9 @@ void world_exit(world_t* w)
 		character_exit(&w->characters[i]);
 	free(w->characters);
 
-	for (size_t i = 0; i < MAX_CHUNKS; i++)
-		if (w->chunks[i] != NULL)
-			chunk_exit(w->chunks[i]);
+	for (size_t i = 0; i < w->n_chunks; i++)
+		chunk_exit(&w->chunks[i]);
+	free(w->chunks);
 
 	evtList_exit(&w->events);
 }
