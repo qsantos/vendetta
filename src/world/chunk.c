@@ -36,6 +36,7 @@ void chunk_init(chunk_t* c, float x, float y, int rows, int cols)
 	c->cols = cols;
 	c->lands = CALLOC(short, rows*cols);
 
+	c->water_step = 0;
 	c->array = sfVertexArray_create();
 	sfVertexArray_setPrimitiveType(c->array, sfQuads);
 	sfVertexArray_resize(c->array, rows*cols*4);

@@ -22,7 +22,7 @@
 #include "world.h"
 
 void tilemap_update(sfVertexArray* array, chunk_t* c);
-void tilemap_water (sfVertexArray* array, chunk_t* c, int step);
+void tilemap_water (sfVertexArray* array, chunk_t* c);
 
 void draw_tilemap(graphics_t* g, world_t* w);
 

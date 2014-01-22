@@ -47,15 +47,16 @@ void tilemap_update(sfVertexArray* array, chunk_t* c)
 		}
 }
 
-void tilemap_water(sfVertexArray* array, chunk_t* c, int step)
+void tilemap_water(sfVertexArray* array, chunk_t* c)
 {
+	int step = c->water_step == 3 ? 1 : c->water_step;
 	for (int i = 0; i < c->rows; i++)
 		for (int j = 0; j < c->cols; j++)
 		{
 			int t = TERRAIN(c,i,j);
 			if (!(160 <= t && t < 176))
 				continue;
-			t += 16*(step == 3 ? 1 : step);
+			t += 16*step;
 			float a = 16*(t%16);
 			float b = 16*(t/16);
 			sfVertex* v = sfVertexArray_getVertex(array, (j*c->rows+i)*4);
@@ -84,13 +85,12 @@ void draw_tilemap(graphics_t* g, world_t* w)
 			continue;
 
 		sfVertexArray* array = c->array;
-		static int water_step = 0;
 		int cur_step = floor(g->step);
 		cur_step %= 4;
-		if (cur_step != water_step)
+		if (cur_step != c->water_step)
 		{
-			water_step = cur_step;
-			tilemap_water(array, c, water_step);
+			c->water_step = cur_step;
+			tilemap_water(array, c);
 		}
 
 		sfRenderWindow_drawVertexArray(g->render, array, &states);

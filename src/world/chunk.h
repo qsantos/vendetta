@@ -38,6 +38,7 @@ struct chunk
 	int cols;
 	short* lands;
 
+	int water_step;
 	sfVertexArray* array; // TODO :(
 };
 
