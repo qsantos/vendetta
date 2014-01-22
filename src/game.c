@@ -1,5 +1,5 @@
 /*\
- *  Role stayhere, management and strategy game
+ *  Role playing, management and strategy game
  *  Copyright (C) 2013-2014 Quentin SANTOS
  *
  *  This program is free software: you can redistribute it and/or modify

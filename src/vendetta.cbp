@@ -93,9 +93,11 @@
 <Unit filename="voronoi/binbeach.h" />
 <Unit filename="world/world.c" />
 <Unit filename="world/building.c" />
+<Unit filename="world/chunk.c" />
 <Unit filename="world/mine.c" />
 <Unit filename="world/world.h" />
 <Unit filename="world/character.c" />
+<Unit filename="world/chunk.h" />
 <Unit filename="world/building.h" />
 <Unit filename="world/inventory.c" />
 <Unit filename="world/object.h" />
