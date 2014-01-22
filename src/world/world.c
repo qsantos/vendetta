@@ -57,7 +57,7 @@ void world_init(world_t* w, game_t* g)
 		double y = frnd(0, w->cols);
 		vr_diagram_point(&v, (point_t){x,y});
 	}
-	for (int i = 1; i < 2; i++)
+	for (int i = 1; i <= 2; i++)
 	{
 		if (g->s->verbosity >= 3)
 			fprintf(stderr, "Lloyd relexation pass %i\n", i);
