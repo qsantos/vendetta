@@ -29,15 +29,6 @@
 
 void world_init(world_t* w, game_t* g)
 {
-	w->rows = g->s->map_width;
-	w->cols = g->s->map_height;
-
-	w->o.t = O_WORLD;
-	w->o.w = w->rows * TILE_SIZE;
-	w->o.h = w->cols * TILE_SIZE;
-	w->o.x = 0;
-	w->o.y = w->o.h / 2;
-
 	w->universe = g->u;
 
 	srand(g->s->seed);
@@ -46,8 +37,8 @@ void world_init(world_t* w, game_t* g)
 		fprintf(stderr, "Proceeding to land generation\n");
 	int cw = 64;
 	int ch = 64;
-	int cc = w->cols / cw;
-	int cr = w->rows / ch;
+	float cc = ceil((float)g->s->map_width  / cw);
+	float cr = ceil((float)g->s->map_height / ch);
 	w->n_chunks = cc*cr;
 	w->chunks = CALLOC(chunk_t, w->n_chunks);
 	int k = 0;
@@ -55,12 +46,18 @@ void world_init(world_t* w, game_t* g)
 		for (int i = 0; i < cc; i++)
 		{
 			chunk_t* c = &w->chunks[k++];
-			float x = TILE_SIZE*cw*(i-cc/2);
-			float y = TILE_SIZE*ch*(j-cr/2);
+			float x = TILE_SIZE*cw*(i-cc/2+.5);
+			float y = TILE_SIZE*ch*(j-cr/2+.5+.5);
 			chunk_init(c, x, y, cw, ch);
 		}
 	if (g->s->verbosity >= 1)
 		fprintf(stderr, "Land generation done\n");
+
+	w->o.t = O_WORLD;
+	w->o.w = cc * cw * TILE_SIZE;
+	w->o.h = cr * ch * TILE_SIZE;
+	w->o.x = 0;
+	w->o.y = w->o.h/2;
 
 	// BEGIN land generation
 	/*
@@ -196,7 +193,7 @@ void world_init(world_t* w, game_t* g)
 	// END character generation
 
 	// BEGIN mine generation
-	w->n_mines = w->rows*w->cols / 400;
+	w->n_mines = w->o.w*w->o.h / 100000;
 	if (w->n_mines < u->n_mines)
 		w->n_mines = u->n_mines;
 	w->mines = CALLOC(mine_t, w->n_mines);

@@ -35,8 +35,6 @@ struct world
 
 	universe_t* universe;
 
-	int rows;
-	int cols;
 	size_t n_chunks;
 	chunk_t* chunks;
 

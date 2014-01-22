@@ -20,14 +20,6 @@
 
 #include <math.h>
 
-sfVertexArray* tilemap_new(world_t* w)
-{
-	sfVertexArray* array = sfVertexArray_create();
-	sfVertexArray_setPrimitiveType(array, sfQuads);
-	sfVertexArray_resize(array, w->rows*w->cols*4);
-	return array;
-}
-
 void tilemap_update(sfVertexArray* array, chunk_t* c)
 {
 	for (int i = 0; i < c->rows; i++)
@@ -36,7 +28,7 @@ void tilemap_update(sfVertexArray* array, chunk_t* c)
 			sfVertex* v = sfVertexArray_getVertex(array, (j*c->rows+i)*4);
 
 			float a = c->o.x + (i-c->rows/2)*16;
-			float b = c->o.y + (j-c->cols/2)*16 - c->o.h/2;
+			float b = c->o.y + (j-c->cols  )*16;
 			v[0].position = (sfVector2f){a+ 0,b+ 0};
 			v[1].position = (sfVector2f){a+16,b+ 0};
 			v[2].position = (sfVector2f){a+16,b+16};
@@ -74,33 +66,33 @@ void tilemap_water(sfVertexArray* array, chunk_t* c, int step)
 		}
 }
 
-void draw_chunk(graphics_t* g, chunk_t* c)
+void draw_tilemap(graphics_t* g, world_t* w)
 {
-	sfVector2f x = sfView_getCenter(g->world_view);
-	sfVector2f s = sfView_getSize(g->world_view);
-	object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
-	if (!object_overlaps(&c->o, &o))
-		return;
-
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
 	if (states.texture == NULL)
 		states.texture = graphics_loadImage(g, "lands.png");
 
-	sfVertexArray* array = c->array;
-	static int water_step = 0;
-	int cur_step = floor(g->step);
-	cur_step %= 4;
-	if (cur_step != water_step)
-	{
-		water_step = cur_step;
-		tilemap_water(array, c, water_step);
-	}
-
-	sfRenderWindow_drawVertexArray(g->render, array, &states);
-}
-
-void draw_tilemap(graphics_t* g, world_t* w)
-{
 	for (size_t i = 0; i < w->n_chunks; i++)
-		draw_chunk(g, &w->chunks[i]);
+	{
+		chunk_t* c = &w->chunks[i];
+
+		sfVector2f x = sfView_getCenter(g->world_view);
+		sfVector2f s = sfView_getSize(g->world_view);
+		object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
+
+		if (!object_overlaps(&c->o, &o))
+			continue;
+
+		sfVertexArray* array = c->array;
+		static int water_step = 0;
+		int cur_step = floor(g->step);
+		cur_step %= 4;
+		if (cur_step != water_step)
+		{
+			water_step = cur_step;
+			tilemap_water(array, c, water_step);
+		}
+
+		sfRenderWindow_drawVertexArray(g->render, array, &states);
+	}
 }
