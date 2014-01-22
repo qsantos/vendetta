@@ -73,13 +73,13 @@ void draw_tilemap(graphics_t* g, world_t* w)
 	if (states.texture == NULL)
 		states.texture = graphics_loadImage(g, "lands.png");
 
+	sfVector2f x = sfView_getCenter(g->world_view);
+	sfVector2f s = sfView_getSize(g->world_view);
+	object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
+
 	for (size_t i = 0; i < w->n_chunks; i++)
 	{
 		chunk_t* c = &w->chunks[i];
-
-		sfVector2f x = sfView_getCenter(g->world_view);
-		sfVector2f s = sfView_getSize(g->world_view);
-		object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
 
 		if (!object_overlaps(&c->o, &o))
 			continue;

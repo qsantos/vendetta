@@ -37,41 +37,41 @@ void world_init(world_t* w, game_t* g)
 		fprintf(stderr, "Proceeding to land generation\n");
 	int cw = 64;
 	int ch = 64;
-	float cc = ceil((float)g->s->map_width  / cw);
-	float cr = ceil((float)g->s->map_height / ch);
-	w->n_chunks = cc*cr;
+	w->chunk_cols = ceil((float)g->s->map_width  / cw);
+	w->chunk_rows = ceil((float)g->s->map_height / ch);
+	w->n_chunks = w->chunk_cols*w->chunk_rows;
 	w->chunks = CALLOC(chunk_t, w->n_chunks);
-	int k = 0;
-	for (int j = 0; j < cr; j++)
-		for (int i = 0; i < cc; i++)
+	for (int i = 0; i < w->chunk_rows; i++)
+		for (int j = 0; j < w->chunk_cols; j++)
 		{
-			chunk_t* c = &w->chunks[k++];
-			float x = TILE_SIZE*cw*(i-cc/2+.5);
-			float y = TILE_SIZE*ch*(j-cr/2+.5+.5);
+			chunk_t* c = CHUNK(w, i, j);
+			float x = TILE_SIZE*cw*(i-w->chunk_cols/2+.5);
+			float y = TILE_SIZE*ch*(j-w->chunk_rows/2+.5+.5);
 			chunk_init(c, x, y, cw, ch);
 		}
 	if (g->s->verbosity >= 1)
 		fprintf(stderr, "Land generation done\n");
 
+	w->cols = w->chunk_cols * cw;
+	w->rows = w->chunk_rows * ch;
+
 	w->o.t = O_WORLD;
-	w->o.w = cc * cw * TILE_SIZE;
-	w->o.h = cr * ch * TILE_SIZE;
+	w->o.w = w->cols * TILE_SIZE;
+	w->o.h = w->rows * TILE_SIZE;
 	w->o.x = 0;
 	w->o.y = w->o.h/2;
 
 	// BEGIN land generation
-	int tot_cols = cc * cw;
-	int tot_rows = cr * ch;
 	// generate Voronoi diagram
 	if (g->s->verbosity >= 3)
 		fprintf(stderr, "Initialiazing Voronoi diagram\n");
 	vr_diagram_t v;
-	vr_diagram_init(&v, tot_cols, tot_rows);
-	size_t n_vrPoints = tot_cols * tot_rows / 50;
+	vr_diagram_init(&v, w->cols, w->rows);
+	size_t n_vrPoints = w->cols * w->rows / 50;
 	for (size_t i = 0; i < n_vrPoints; i++)
 	{
-		double x = frnd(0, tot_cols);
-		double y = frnd(0, tot_rows);
+		double x = frnd(0, w->cols);
+		double y = frnd(0, w->rows);
 		vr_diagram_point(&v, (point_t){x,y});
 	}
 	for (int i = 1; i <= 2; i++)
@@ -103,7 +103,7 @@ void world_init(world_t* w, game_t* g)
 
 		// first, get vertical bounds on the region
 		vr_region_t* r = v.regions[i];
-		int minj = tot_cols;
+		int minj = w->cols;
 		int maxj = 0;
 		for (size_t k = 0; k < r->n_edges; k++)
 		{
@@ -113,14 +113,14 @@ void world_init(world_t* w, game_t* g)
 			if (s->b->y < minj) minj = floor(s->b->y);
 			if (s->b->y > maxj) maxj = floor(s->b->y);
 		}
-		if (maxj >= tot_cols)
-			maxj = tot_cols - 1;
+		if (maxj >= w->cols)
+			maxj = w->cols - 1;
 
 		// then, consider each so-selected slide row
 		for (int j = minj; j <= maxj; j++)
 		{
 			// find the portion of the row in the region
-			int mini = tot_rows;
+			int mini = w->rows;
 			int maxi = 0;
 			point_t a = {mini, j};
 			point_t b = {maxi, j};
@@ -135,8 +135,8 @@ void world_init(world_t* w, game_t* g)
 				if (p.x > maxi)
 					maxi = floor(p.x);
 			}
-			if (maxi >= tot_rows)
-				maxi = tot_rows - 1;
+			if (maxi >= w->rows)
+				maxi = w->rows - 1;
 
 			// set this portion to proper type
 			for (int i = mini; i <= maxi; i++)
@@ -152,13 +152,13 @@ void world_init(world_t* w, game_t* g)
 	// BEGIN region borders
 #define LAND_TYPE(I,J) (world_getLandIJ(w,I,J) / 16)
 #define LAND_SAME(I,J) ( \
-	((I) < 0 || (I) >= tot_rows || (J) < 0 || (J) >= tot_cols) ? \
+	((I) < 0 || (I) >= w->rows || (J) < 0 || (J) >= w->cols) ? \
 	1 : \
 	t == LAND_TYPE(I,J) \
 )
 	static const char type2tile[16] = {0,5,2,13,4,7,12,8,3,15,6,11,14,9,10,1};
-	for (int i = 0; i < tot_rows; i++)
-	for (int j = 0; j < tot_cols; j++)
+	for (int i = 0; i < w->rows; i++)
+	for (int j = 0; j < w->cols; j++)
 	{
 		int t = LAND_TYPE(i,j);
 		if (t == 0)
@@ -251,19 +251,9 @@ void world_exit(world_t* w)
 
 short* world_landXY(world_t* w, float x, float y)
 {
-	object_t o = {O_NONE, x, y, 0, 0};
-	for (size_t i = 0; i < w->n_chunks; i++)
-	{
-		chunk_t* c = &w->chunks[i];
-		if (!object_overlaps(&c->o, &o))
-			continue;
-
-		int ci = floor((o.x - (c->o.x-c->o.w/2)) / TILE_SIZE);
-		int cj = floor((o.y - (c->o.y-c->o.h  )) / TILE_SIZE);
-
-		return &LAND(c, ci, cj);
-	}
-	return NULL;
+	int i = (x + w->o.w/2)/TILE_SIZE;
+	int j = (y + w->o.h/2)/TILE_SIZE;
+	return world_landIJ(w, i, j);
 }
 
 short world_getLandXY(world_t* w, float x, float y)
@@ -281,9 +271,12 @@ void world_setLandXY(world_t* w, float x, float y, short l)
 
 short* world_landIJ(world_t* w, int i, int j)
 {
-	float x = i*TILE_SIZE - w->o.w/2 + 0.01;
-	float y = j*TILE_SIZE - w->o.h/2 + 0.01;
-	return world_landXY(w, x, y);
+	int cw = w->chunks[0].cols;
+	int ch = w->chunks[0].rows;
+	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
+		return NULL;
+	chunk_t* c = CHUNK(w, i/cw, j/ch);
+	return &LAND(c, i%cw, j%ch);
 }
 
 short world_getLandIJ(world_t* w, int i, int j)

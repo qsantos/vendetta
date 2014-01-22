@@ -29,12 +29,18 @@ typedef struct world world_t;
 #include "object.h"
 #include "building.h"
 
+#define CHUNK(W,I,J) (&(W)->chunks[(I)*(W)->chunk_cols+(J)])
+
 struct world
 {
 	object_t o;
 
 	universe_t* universe;
 
+	int cols;
+	int rows;
+	int chunk_cols;
+	int chunk_rows;
 	size_t n_chunks;
 	chunk_t* chunks;
 
