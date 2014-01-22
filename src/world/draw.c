@@ -176,8 +176,6 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 
 void draw_chunk(graphics_t* g, character_t* player, chunk_t* c)
 {
-	(void) player;
-
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
 	if (states.texture == NULL)
 		states.texture = graphics_loadImage(g, "lands.png");
@@ -201,8 +199,12 @@ void draw_chunks(graphics_t* g, character_t* player, world_t* w)
 {
 	sfVector2f x = sfView_getCenter(g->world_view);
 	sfVector2f s = sfView_getSize(g->world_view);
-	object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
 
+	// quickfix: force chunks with jutting potential mines
+	s.x += 64;
+	s.y += 64;
+
+	object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
 	for (size_t i = 0; i < w->n_chunks; i++)
 	{
 		chunk_t* c = &w->chunks[i];
