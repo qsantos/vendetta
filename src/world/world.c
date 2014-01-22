@@ -287,6 +287,46 @@ void world_save(world_t* w, FILE* f)
 	}
 }
 
+#define CLINE(...) do { \
+	if (fscanf(f, __VA_ARGS__) < 0){ \
+		fprintf(stderr, "Missing line in save\n"); \
+		exit(1); \
+	} \
+	}while (0);
+void world_load(world_t* w, FILE* f)
+{
+	universe_t* u = w->universe;
+
+	// seed
+	unsigned int seed;
+	CLINE("seed = %x\n", &seed);
+	world_genmap(w, seed);
+
+	unsigned n_characters;
+	CLINE("%u characters\n", &n_characters);
+	w->n_characters = n_characters;
+	w->characters = CALLOC(character_t, n_characters);
+	for (size_t i = 0; i < n_characters; i++)
+	{
+		character_t* c = &w->characters[i];
+		character_init(c, &u->characters[0], u, w);
+		CLINE("%f %f %f %f %c %f %f\n", &c->o.x, &c->o.y, &c->o.w, &c->o.h, &c->alive, &c->go_x, &c->go_y);
+	}
+
+	return;
+	unsigned n_buildings;
+	CLINE("%u buildings\n", &n_buildings);
+	w->n_buildings = n_buildings;
+	w->a_buildings = n_buildings;
+	w->buildings = CALLOC(building_t*, n_buildings);
+	for (size_t i = 0; i < n_buildings; i++)
+	{
+		building_t* b = CALLOC(building_t, 1);
+		building_init(b, NULL, NULL, 0, 0);
+		CLINE("%f %f %f %f %f %f\n", &b->o.x, &b->o.y, &b->o.w, &b->o.h, &b->build_progress, &b->life);
+	}
+}
+
 chunk_t* world_chunkXY(world_t* w, float x, float y)
 {
 	int i = (x + w->o.w/2)/TILE_SIZE;

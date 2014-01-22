@@ -66,6 +66,7 @@ void world_exit(world_t* w);
 void world_genmap(world_t* w, unsigned int seed);
 void world_start (world_t* w);
 void world_save  (world_t* w, FILE* f);
+void world_load  (world_t* w, FILE* f);
 
 chunk_t* world_chunkXY(world_t* w, float x, float y);
 
