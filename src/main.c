@@ -52,8 +52,37 @@ static void usage(const char* name)
 	);
 	exit(1);
 }
+
+#ifdef __WIN32__
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#include <windows.h>
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+{
+	(void) hInstance;
+	(void) hPrevInstance;
+	(void) lpCmdLine;
+	(void) nCmdShow;
+	if (AttachConsole(ATTACH_PARENT_PROCESS))
+	{
+		freopen("CONOUT$","wb",stdout);
+		freopen("CONOUT$","wb",stderr);
+	}
+	int argc;
+	LPWSTR* argvw = CommandLineToArgvW(GetCommandLineW(), &argc);
+	char** argv = malloc(sizeof(char)*(argc+1));
+	for (int i = 0; i < argc; i++)
+	{
+		size_t n =
+		WideCharToMultiByte(CP_UTF8, 0, argvw[i], -1,    NULL, 0, NULL, NULL);argv[i] = malloc(n);
+		WideCharToMultiByte(CP_UTF8, 0, argvw[i], -1, argv[i], n, NULL, NULL);
+	}
+	argv[argc] = NULL;
+	LocalFree(argvw);
+#else
 int main(int argc, char** argv)
 {
+#endif
 	setlocale(LC_ALL, "");
 	setlocale(LC_NUMERIC, "C");
 
@@ -162,6 +191,11 @@ int main(int argc, char** argv)
 			usage(argv[0]);
 		}
 	}
+#ifdef __WIN32__
+	for (int i = 0; i < argc; i++)
+		free(argv[i]);
+	free(argv);
+#endif
 
 	fprintf(stderr, "Using seed %#x\n", s.seed);
 
