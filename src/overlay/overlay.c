@@ -82,6 +82,15 @@ static int overlay_buttons(game_t* g, char do_draw)
 		else if (sfSprite_contains(sprite, mouse))
 			return i;
 	}
+	size_t i = 7;
+	sfVector2u size = sfRenderWindow_getSize(g->g->render);
+	sfSprite_setPosition(sprite, (sfVector2f){size.x - 200 + 24*g->o->n_subwindows, 5});
+	sfIntRect rect = {24*i, 0, 24, 24};
+	sfSprite_setTextureRect(sprite, rect);
+	if (do_draw)
+		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+	else if (sfSprite_contains(sprite, mouse))
+		return i;
 	return -1;
 }
 static int overlay_orders(game_t* g, char do_draw)
@@ -223,9 +232,14 @@ int overlay_cursor(game_t* g)
 		i /= 3;
 		if (w == 0) // buttons
 		{
+			size_t cur = 0;
 			char buffer[1024];
-			snprintf(buffer, 1024, "Fenêtre: %s", g->o->sw[i]->name);
-			graphics_drawTooltip(g->g, buffer);
+			if (0 <= i && i <= 5)
+				cur += snprintf(buffer+cur, 1024-cur, "Fenêtre: %s", g->o->sw[i]->name);
+			else if (i == 7)
+				cur += snprintf(buffer+cur, 1024-cur, "Sauvegarder");
+			if (cur != 0)
+				graphics_drawTooltip(g->g, buffer);
 		}
 		else if (w == 1) // orders
 		{
@@ -331,8 +345,23 @@ int overlay_catch(game_t* g, int t)
 		i /= 3;
 		if (w == 0) // buttons
 		{
-			if (t == sfMouseLeft)
-				g->o->sw[i]->visible ^= 1;
+			if (0 <= i && i <= 5)
+			{
+				if (t == sfMouseLeft)
+					g->o->sw[i]->visible ^= 1;
+			}
+			else if (i == 7)
+			{
+				const char* filename = "game.save";
+				FILE* f = fopen(filename, "w");
+				if (f == NULL)
+				{
+					fprintf(stderr, "Could not open '%s' for writing\n", filename);
+					exit(1);
+				}
+				world_save(g->w, f);
+				fclose(f);
+			}
 		}
 		else if (w == 1) // orders
 		{
