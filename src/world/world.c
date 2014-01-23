@@ -74,6 +74,7 @@ void world_genmap(world_t* w, unsigned int seed)
 
 	if (w->settings->verbosity >= 1)
 		fprintf(stderr, "Proceeding to land generation\n");
+
 	int cw = 64;
 	int ch = 64;
 	w->chunk_cols = ceil((float)w->settings->map_width  / cw);
@@ -88,8 +89,9 @@ void world_genmap(world_t* w, unsigned int seed)
 			float y = TILE_SIZE*ch*(j-w->chunk_rows/2+.5+.5);
 			chunk_init(c, x, y, cw, ch);
 		}
+
 	if (w->settings->verbosity >= 1)
-		fprintf(stderr, "Land generation done\n");
+		fprintf(stderr, "Prepared chunks\n");
 
 	w->cols = w->chunk_cols * cw;
 	w->rows = w->chunk_rows * ch;
@@ -185,7 +187,7 @@ void world_genmap(world_t* w, unsigned int seed)
 
 	vr_diagram_exit(&v);
 	if (w->settings->verbosity >= 3)
-		fprintf(stderr, "Rasterization done: lands generated\n");
+		fprintf(stderr, "Rasterization done\n");
 	// END land generation
 
 	// BEGIN region borders
@@ -215,6 +217,7 @@ void world_genmap(world_t* w, unsigned int seed)
 
 	for (size_t i = 0; i < w->n_chunks; i++)
 		chunk_update(&w->chunks[i]);
+
 	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Chunk generated\n");
 
@@ -232,6 +235,9 @@ void world_genmap(world_t* w, unsigned int seed)
 	// END mine generation
 	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Generated %u mines\n", (unsigned) n_mines);
+
+	if (w->settings->verbosity >= 1)
+		fprintf(stderr, "Map is ready\n");
 }
 
 void world_start(world_t* w)
