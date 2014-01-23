@@ -543,13 +543,12 @@ building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* 
 	return ret;
 }
 
-static char canBuild_aux(chunk_t* c, float x, float y, kindOf_building_t* t)
+static char canBuild_aux(chunk_t* c, object_t* o)
 {
-	object_t o = {O_BUILDING, x, y, t->width, t->height};
 	if (c == NULL)
 		return 0;
 	for (size_t i = 0; i < c->n_mines; i++)
-		if (object_overlaps(&c->mines[i].o, &o))
+		if (object_overlaps(&c->mines[i].o, o))
 			return 0;
 	return 1;
 }
@@ -568,10 +567,10 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 			if (world_getLandXY(w, x, y)/16 != 0)
 				return 0;
 
-	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y-o.h), x, y, t)) return 0;
-	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y    ), x, y, t)) return 0;
-	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y-o.h), x, y, t)) return 0;
-	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y    ), x, y, t)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y-o.h), &o)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y    ), &o)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y-o.h), &o)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y    ), &o)) return 0;
 
 	for (size_t i = 0; i < w->n_buildings; i++)
 	{
