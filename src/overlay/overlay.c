@@ -321,7 +321,7 @@ int overlay_cursor(game_t* g)
 			else if (o->t == O_BUILDING)
 			{
 				building_t* b = (building_t*) o;
-				if (b->owner != g->player)
+				if (b->owner != g->player->o.uuid)
 					cursor = 9;
 				else if (b->build_progress == 1)
 					cursor = 7;

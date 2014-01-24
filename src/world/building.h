@@ -30,7 +30,7 @@ struct building
 	object_t o;
 
 	kindOf_building_t* t;
-	character_t* owner;
+	uuid_t owner;
 
 	float build_progress;
 	float life;

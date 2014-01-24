@@ -163,7 +163,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 	{
 		building_t* b = (building_t*) o;
 
-		if (b->owner != c)
+		if (b->owner != c->o.uuid)
 			return;
 
 		kindOf_building_t* t = b->t;
@@ -411,7 +411,7 @@ void character_doRound(character_t* c, float duration)
 		else if (c->go_o->t == O_BUILDING && object_overlaps(c->go_o, &c->o))
 		{
 			building_t* b = (building_t*) c->go_o;
-			if (b->owner != c)
+			if (b->owner != c->o.uuid)
 			{
 				character_attack(c, &b->o);
 				return;
@@ -574,7 +574,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 		building_t* b = (building_t*) o;
 		kindOf_building_t* t = b->t;
 		const char* name = t->name;
-		if (b->owner != c)
+		if (b->owner != c->o.uuid)
 		{
 			cur += snprintf(buffer+cur, n-cur, "Attaquer %s", name);
 		}

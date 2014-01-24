@@ -30,7 +30,7 @@ typedef enum
 } otype_t;
 
 typedef struct object object_t;
-typedef unsigned long uuid_t;
+typedef signed long   uuid_t;
 
 #include <sys/types.h>
 

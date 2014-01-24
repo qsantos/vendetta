@@ -271,7 +271,7 @@ void world_start(world_t* w)
 
 static void save_object(object_t* o, FILE* f)
 {
-	fprintf(f, "%#lx %f %f %f %f", o->uuid, o->x, o->y, o->w, o->h);
+	fprintf(f, "%li %f %f %f %f", o->uuid, o->x, o->y, o->w, o->h);
 }
 void world_save(world_t* w, FILE* f)
 {
@@ -336,11 +336,11 @@ void world_load(world_t* w, FILE* f)
 		char alive;
 		float go_x;
 		float go_y;
-		CLINE("%lx %f %f %f %f %c %f %f\n", &o.uuid, &o.x, &o.y, &o.w, &o.h, &alive, &go_x, &go_y);
+		CLINE("%li %f %f %f %f %c %f %f\n", &o.uuid, &o.x, &o.y, &o.w, &o.h, &alive, &go_x, &go_y);
 
-		if (o.uuid != i)
+		if (o.uuid != (ssize_t) i)
 		{
-			fprintf(stderr, "Character %#lx was not expected\n", o.uuid);
+			fprintf(stderr, "Character %li was not expected\n", o.uuid);
 			exit(1);
 		}
 		pool_new(p, sizeof(character_t)); // uuid = i
@@ -353,7 +353,6 @@ void world_load(world_t* w, FILE* f)
 		c->go_y = go_y;
 	}
 
-	return;
 	unsigned n_buildings;
 	CLINE("%u buildings\n", &n_buildings);
 	w->n_buildings = n_buildings;
@@ -361,9 +360,22 @@ void world_load(world_t* w, FILE* f)
 	w->buildings = CALLOC(building_t*, n_buildings);
 	for (size_t i = 0; i < n_buildings; i++)
 	{
+		object_t o;
+		float build_progress;
+		float life;
+		CLINE("%li %f %f %f %f %f %f\n", &o.uuid, &o.x, &o.y, &o.w, &o.h, &build_progress, &life);
+
+		if (o.uuid != (ssize_t) i)
+		{
+			fprintf(stderr, "Building %li was not expected\n", o.uuid);
+			exit(1);
+		}
+
 		building_t* b = CALLOC(building_t, 1);
 		building_init(b, NULL, NULL, 0, 0);
-		CLINE("%f %f %f %f %f %f\n", &b->o.x, &b->o.y, &b->o.w, &b->o.h, &b->build_progress, &b->life);
+		b->o = o;
+		b->build_progress = build_progress;
+		b->life = life;
 	}
 }
 
@@ -681,7 +693,7 @@ building_t* world_findEnnemyBuilding (world_t* w, character_t* c)
 	for (size_t i = 0; i < w->n_buildings; i++)
 	{
 		building_t* t = w->buildings[i];
-		if (t == NULL || t->owner == c)
+		if (t == NULL || t->owner == c->o.uuid)
 			continue;
 		float d = object_distance(&c->o, t->o.x, t->o.y);
 		if (min_d < 0 || d < min_d)

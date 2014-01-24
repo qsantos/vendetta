@@ -51,7 +51,7 @@ uuid_t pool_new(pool_t* p, size_t size)
 
 object_t* pool_get(pool_t* p, uuid_t uuid)
 {
-	if (uuid >= p->n_objects)
+	if (!(0 <= uuid && uuid < (ssize_t) p->n_objects))
 		return NULL;
 	return p->objects[uuid];
 }

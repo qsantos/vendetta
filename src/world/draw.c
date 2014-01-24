@@ -147,7 +147,7 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 	sfSprite_setTextureRect(sprite, rect);
 	draw_object(g, &b->o, sprite);
 
-	if (b->owner == player && p == 1)
+	if (b->owner == player->o.uuid && p == 1)
 	{
 		universe_t* u = player->universe;
 		float p;

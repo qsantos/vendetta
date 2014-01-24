@@ -33,7 +33,7 @@ void building_init(building_t* b, kindOf_building_t* t, character_t* owner, floa
 	b->o.h = t->height;
 
 	b->t = t;
-	b->owner = owner;
+	b->owner = owner->o.uuid;
 
 	b->build_progress = 0;
 	b->life = 0;
@@ -67,11 +67,13 @@ float building_attacked(building_t* b, float work, character_t* a)
 	{
 		// TODO: there might be other pointers
 		a->go_o = NULL;
+		/*
 		character_t* o = b->owner;
 		if (o->inBuilding == b)
 			o->inBuilding = NULL;
 		if (o->hasBuilding == b)
 			o->hasBuilding = NULL;
+		*/
 
 		world_t* w = a->world;
 		world_delBuilding(w, b);
