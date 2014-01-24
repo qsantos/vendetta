@@ -554,7 +554,7 @@ static char canBuild_aux(chunk_t* c, object_t* o)
 }
 char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 {
-	object_t o = {O_BUILDING, x, y, t->width, t->height};
+	object_t o = {O_BUILDING, 0, x, y, t->width, t->height};
 	if (!object_contains(&w->o, &o))
 		return 0;
 

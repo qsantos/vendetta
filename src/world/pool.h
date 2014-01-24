@@ -16,38 +16,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef W_OBJECT_H
-#define W_OBJECT_H
+#ifndef W_POOL_H
+#define W_POOL_H
 
-typedef enum
+typedef struct pool pool_t;
+
+#include "object.h"
+
+struct pool
 {
-	O_NONE,
-	O_CHARACTER,
-	O_MINE,
-	O_BUILDING,
-	O_CHUNK,
-	O_WORLD,
-} otype_t;
-
-typedef struct object object_t;
-typedef unsigned long uuid_t;
-
-#include <sys/types.h>
-
-struct object
-{
-	otype_t t;
-	uuid_t uuid;
-
-	float x;
-	float y;
-	float w;
-	float h;
+	size_t n_objects;
+	size_t a_objects;
+	object_t** objects;
 };
 
-char  object_overlaps(object_t* o, object_t* a);
-char  object_contains(object_t* o, object_t* a);
-char  object_isAt    (object_t* o, float x, float y);
-float object_distance(object_t* o, float x, float y);
+void pool_init(pool_t* p);
+void pool_exit(pool_t* p);
+
+uuid_t    pool_new(pool_t* p, size_t size);
+object_t* pool_get(pool_t* p, uuid_t uuid);
+void      pool_del(pool_t* p, object_t* a);
 
 #endif

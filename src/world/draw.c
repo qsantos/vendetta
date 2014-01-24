@@ -204,7 +204,7 @@ void draw_chunks(graphics_t* g, character_t* player, world_t* w)
 	s.x += 64;
 	s.y += 64;
 
-	object_t o = {O_NONE, x.x, x.y+s.y/2, s.x, s.y};
+	object_t o = {O_NONE, 0, x.x, x.y+s.y/2, s.x, s.y};
 	for (size_t i = 0; i < w->n_chunks; i++)
 	{
 		chunk_t* c = &w->chunks[i];
