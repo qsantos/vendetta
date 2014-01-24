@@ -40,29 +40,32 @@ void world_init(world_t* w, game_t* g)
 	w->chunks = NULL;
 
 	pool_init(&w->characters);
-
-	w->n_buildings = 0;
-	w->a_buildings = 0;
-	w->buildings = NULL;
+	pool_init(&w->buildings);
 }
 
 void world_exit(world_t* w)
 {
-	for (size_t i = 0; i < w->n_buildings; i++)
+	pool_t* p = &w->buildings;
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		building_exit(w->buildings[i]);
-		free(w->buildings[i]);
-	}
-	free(w->buildings);
+		building_t* b = (building_t*) pool_get(p, i);
+		if (b == NULL)
+			continue;
 
-	for (size_t i = 0; i < w->characters.n_objects; i++)
+		building_exit(b);
+	}
+	pool_exit(p);
+
+	p = &w->characters;
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = (character_t*) pool_get(&w->characters, i);
+		character_t* c = (character_t*) pool_get(p, i);
 		if (c == NULL)
 			continue;
+
 		character_exit(c);
 	}
-	pool_exit(&w->characters);
+	pool_exit(p);
 
 	for (size_t i = 0; i < w->n_chunks; i++)
 		chunk_exit(&w->chunks[i]);
@@ -296,16 +299,18 @@ void world_save(world_t* w, FILE* f)
 	}
 
 	// buildings
+	p = &w->buildings;
 	size_t n_buildings = 0;
-	for (size_t i = 0; i < w->n_buildings; i++)
-		if (w->buildings[i])
+	for (size_t i = 0; i < p->n_objects; i++)
+		if (pool_get(p, i) != NULL)
 			n_buildings++;
 	fprintf(f, "%u buildings\n", (unsigned) n_buildings);
-	for (size_t i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		building_t* b = w->buildings[i];
+		building_t* b = (building_t*) pool_get(p, i);
 		if (b == NULL)
 			continue;
+
 		save_object(&b->o, f);
 		fprintf(f, " %f %f\n", b->build_progress, b->life);
 	}
@@ -353,11 +358,9 @@ void world_load(world_t* w, FILE* f)
 		c->go_y = go_y;
 	}
 
+	p = &w->buildings;
 	unsigned n_buildings;
 	CLINE("%u buildings\n", &n_buildings);
-	w->n_buildings = n_buildings;
-	w->a_buildings = n_buildings;
-	w->buildings = CALLOC(building_t*, n_buildings);
 	for (size_t i = 0; i < n_buildings; i++)
 	{
 		object_t o;
@@ -370,8 +373,12 @@ void world_load(world_t* w, FILE* f)
 			fprintf(stderr, "Building %li was not expected\n", o.uuid);
 			exit(1);
 		}
+		pool_new(p, sizeof(building_t)); // uuid = i
 
-		building_t* b = CALLOC(building_t, 1);
+		building_t* b = (building_t*) pool_get(p, o.uuid);
+		if (b == NULL)
+			continue;
+
 		building_init(b, NULL, NULL, 0, 0);
 		b->o = o;
 		b->build_progress = build_progress;
@@ -496,9 +503,13 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 			return &m->o;
 	}
 
-	for (size_t i = 0; i < w->n_buildings; i++)
+	p = &w->buildings;
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		building_t* b = w->buildings[i];
+		building_t* b = (building_t*) pool_get(p, i);
+		if (b == NULL)
+			continue;
+
 		if (&b->o == ignore)
 			continue;
 		if (b != NULL && object_isAt(&b->o, x, y))
@@ -582,11 +593,15 @@ mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 
 building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* t)
 {
+	pool_t* p = &w->buildings;
 	building_t* ret = NULL;
 	float min_d = -1;
-	for (size_t i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		building_t* m = w->buildings[i];
+		building_t* m = (building_t*) pool_get(p, i);
+		if (m == NULL)
+			continue;
+
 		if (t == NULL || m->t == t)
 		{
 			float d = object_distance(&m->o, x, y);
@@ -629,10 +644,14 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y-o.h), &o)) return 0;
 	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y    ), &o)) return 0;
 
-	for (size_t i = 0; i < w->n_buildings; i++)
+	pool_t* p = &w->buildings;
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		building_t* b = w->buildings[i];
-		if (b != NULL && object_overlaps(&b->o, &o))
+		building_t* b = (building_t*) pool_get(p, i);
+		if (b == NULL)
+			continue;
+
+		if (object_overlaps(&b->o, &o))
 			return 0;
 	}
 
@@ -641,25 +660,22 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 
 building_t* world_addBuilding(world_t* w, float x, float y, kindOf_building_t* t, character_t* c)
 {
-	if (w->n_buildings == w->a_buildings)
-	{
-		w->a_buildings = w->a_buildings ? 2*w->a_buildings : 1;
-		w->buildings = CREALLOC(w->buildings, building_t*, w->a_buildings);
-	}
+	pool_t* p = &w->buildings;
+	uuid_t uuid = pool_new(p, sizeof(building_t));
+	building_t* b = (building_t*) pool_get(p, uuid);
+	if (b == NULL)
+		return NULL;
 
-	building_t* b = CALLOC(building_t, 1);
-	w->buildings[w->n_buildings++] = b;
 	building_init(b, t, c, x, y);
+	b->o.uuid = uuid;
 	return b;
 }
 
 void world_delBuilding(world_t* w, building_t* b)
 {
-	for (size_t i = 0; i < w->n_buildings; i++)
-		if (w->buildings[i] == b)
-			w->buildings[i] = NULL;
 	building_exit(b);
-	free(b);
+	pool_t* p = &w->buildings;
+	pool_del(p, &b->o);
 }
 
 character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
@@ -688,17 +704,22 @@ character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
 
 building_t* world_findEnnemyBuilding (world_t* w, character_t* c)
 {
+	pool_t* p = &w->buildings;
 	building_t* ret = NULL;
 	float min_d = -1;
-	for (size_t i = 0; i < w->n_buildings; i++)
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		building_t* t = w->buildings[i];
-		if (t == NULL || t->owner == c->o.uuid)
+		building_t* b = (building_t*) pool_get(p, i);
+		if (b == NULL)
 			continue;
-		float d = object_distance(&c->o, t->o.x, t->o.y);
+
+		if (b->owner == c->o.uuid)
+			continue;
+
+		float d = object_distance(&c->o, b->o.x, b->o.y);
 		if (min_d < 0 || d < min_d)
 		{
-			ret = t;
+			ret = b;
 			min_d = d;
 		}
 	}

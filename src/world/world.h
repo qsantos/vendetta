@@ -50,10 +50,7 @@ struct world
 	evtList_t events;
 
 	pool_t characters;
-
-	size_t n_buildings;
-	size_t a_buildings;
-	building_t** buildings;
+	pool_t buildings;
 };
 
 #include <stdio.h>
