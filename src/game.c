@@ -63,13 +63,14 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 	g->g->overlay_view = sfView_createFromRect(rect);
 	g->g->world_view   = sfView_createFromRect(rect);
 
-	g->player = &g->w->characters[0];
-
-	for (size_t i = 0; i < g->w->n_characters; i++)
+	pool_t* p = &g->w->characters;
+	g->player = (character_t*) pool_get(p, 0);
+	for (size_t i = 1; i < p->n_objects; i++)
 	{
-		character_t* c = &g->w->characters[i];
-		if (c == g->player)
+		character_t* c = (character_t*) pool_get(p, i);
+		if (c == NULL)
 			continue;
+
 		c->ai = &g->u->bots[rand() % g->u->n_bots];
 	}
 

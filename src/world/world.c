@@ -39,8 +39,7 @@ void world_init(world_t* w, game_t* g)
 	w->n_chunks = 0;
 	w->chunks = NULL;
 
-	w->n_characters = 0;
-	w->characters = NULL;
+	pool_init(&w->characters);
 
 	w->n_buildings = 0;
 	w->a_buildings = 0;
@@ -56,9 +55,14 @@ void world_exit(world_t* w)
 	}
 	free(w->buildings);
 
-	for (size_t i = 0; i < w->n_characters; i++)
-		character_exit(&w->characters[i]);
-	free(w->characters);
+	for (size_t i = 0; i < w->characters.n_objects; i++)
+	{
+		character_t* c = (character_t*) pool_get(&w->characters, i);
+		if (c == NULL)
+			continue;
+		character_exit(c);
+	}
+	pool_exit(&w->characters);
 
 	for (size_t i = 0; i < w->n_chunks; i++)
 		chunk_exit(&w->chunks[i]);
@@ -245,23 +249,29 @@ void world_start(world_t* w)
 	universe_t* u = w->universe;
 
 	// BEGIN character generation
-	w->n_characters = 1 + w->settings->bots_count;
-	w->characters = CALLOC(character_t, w->n_characters);
-	for (size_t i = 0; i < w->n_characters; i++)
+	pool_t* p = &w->characters;
+	pool_init(p);
+	size_t n_characters = 1 + w->settings->bots_count;
+	for (size_t i = 0; i < n_characters; i++)
 	{
-		character_t* c = &w->characters[i];
+		uuid_t uuid = pool_new(p, sizeof(character_t));
+		character_t* c = (character_t*) pool_get(p, uuid);
+		if (c == NULL)
+			continue;
+
 		int type = rand() % u->n_characters;
 		character_init(c, &u->characters[type], u, w);
+		c->o.uuid = uuid;
 		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
 	}
 	if (w->settings->verbosity >= 3)
-		fprintf(stderr, "Generated %u characters\n", (unsigned) w->n_characters);
+		fprintf(stderr, "Generated %u characters\n", (unsigned) n_characters);
 	// END character generation
 }
 
 static void save_object(object_t* o, FILE* f)
 {
-	fprintf(f, "%f %f %f %f", o->x, o->y, o->w, o->h);
+	fprintf(f, "%#lx %f %f %f %f", o->uuid, o->x, o->y, o->w, o->h);
 }
 void world_save(world_t* w, FILE* f)
 {
@@ -269,10 +279,18 @@ void world_save(world_t* w, FILE* f)
 	fprintf(f, "seed = %#x\n", w->settings->seed);
 
 	// characters
-	fprintf(f, "%u characters\n", (unsigned) w->n_characters);
-	for (size_t i = 0; i < w->n_characters; i++)
+	pool_t* p = &w->characters;
+	size_t n_characters = 0;
+	for (size_t i = 0; i < p->n_objects; i++)
+		if (pool_get(p, i) != NULL)
+			n_characters++;
+	fprintf(f, "%u characters\n", (unsigned) n_characters);
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = &w->characters[i];
+		character_t* c = (character_t*) pool_get(p, i);
+		if (c == NULL)
+			continue;
+
 		save_object(&c->o, f);
 		fprintf(f, " %i %f %f\n", c->alive, c->go_x, c->go_y);
 	}
@@ -308,15 +326,31 @@ void world_load(world_t* w, FILE* f)
 	CLINE("seed = %x\n", &seed);
 	world_genmap(w, seed);
 
+	// characters
+	pool_t* p = &w->characters;
 	unsigned n_characters;
 	CLINE("%u characters\n", &n_characters);
-	w->n_characters = n_characters;
-	w->characters = CALLOC(character_t, n_characters);
 	for (size_t i = 0; i < n_characters; i++)
 	{
-		character_t* c = &w->characters[i];
+		object_t o;
+		char alive;
+		float go_x;
+		float go_y;
+		CLINE("%lx %f %f %f %f %c %f %f\n", &o.uuid, &o.x, &o.y, &o.w, &o.h, &alive, &go_x, &go_y);
+
+		if (o.uuid != i)
+		{
+			fprintf(stderr, "Character %#lx was not expected\n", o.uuid);
+			exit(1);
+		}
+		pool_new(p, sizeof(character_t)); // uuid = i
+
+		character_t* c = (character_t*) pool_get(p, o.uuid);
 		character_init(c, &u->characters[0], u, w);
-		CLINE("%f %f %f %f %c %f %f\n", &c->o.x, &c->o.y, &c->o.w, &c->o.h, &c->alive, &c->go_x, &c->go_y);
+		c->o = o;
+		c->alive = alive;
+		c->go_x = go_x;
+		c->go_y = go_y;
 	}
 
 	return;
@@ -411,15 +445,26 @@ void world_doRound(world_t* w, float duration)
 {
 	evtList_doRound(&w->events, duration);
 
-	for (size_t i = 0; i < w->n_characters; i++)
-		character_doRound(&w->characters[i], duration);
+	pool_t* p = &w->characters;
+	for (size_t i = 0; i < p->n_objects; i++)
+	{
+		character_t* c = (character_t*) pool_get(p, i);
+		if (c == NULL)
+			continue;
+
+		character_doRound(c, duration);
+	}
 }
 
 object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 {
-	for (size_t i = 0; i < w->n_characters; i++)
+	pool_t* p = &w->characters;
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = &w->characters[i];
+		character_t* c = (character_t*) pool_get(p, i);
+		if (c == NULL)
+			continue;
+
 		if (!c->alive)
 			continue;
 		if (&c->o == ignore)
@@ -607,11 +652,16 @@ void world_delBuilding(world_t* w, building_t* b)
 
 character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
 {
+	pool_t* p = &w->characters;
+
 	character_t* ret = NULL;
 	float min_d = -1;
-	for (size_t i = 0; i < w->n_characters; i++)
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* t = &w->characters[i];
+		character_t* t = (character_t*) pool_get(p, i);
+		if (t == NULL)
+			continue;
+
 		if (t == c || !t->alive)
 			continue;
 		float d = object_distance(&c->o, t->o.x, t->o.y);

@@ -28,6 +28,7 @@ typedef struct world world_t;
 #include "character.h"
 #include "object.h"
 #include "building.h"
+#include "pool.h"
 
 #define CHUNK(W,I,J) (&(W)->chunks[(I)*(W)->chunk_cols+(J)])
 
@@ -48,8 +49,7 @@ struct world
 	// on-going events
 	evtList_t events;
 
-	size_t n_characters;
-	character_t* characters;
+	pool_t characters;
 
 	size_t n_buildings;
 	size_t a_buildings;

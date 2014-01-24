@@ -223,8 +223,15 @@ void draw_world(graphics_t* g, character_t* player, world_t* w)
 	for (ssize_t i = w->n_buildings-1; i >= 0; i--)
 		draw_building(g, player, w->buildings[i]);
 
-	for (ssize_t i = w->n_characters-1; i >= 0; i--)
-		draw_character(g, player, &w->characters[i]);
+	pool_t* p = &w->characters;
+	for (ssize_t i = p->n_objects-1; i >= 0; i--)
+	{
+		character_t* c = (character_t*) pool_get(p, i);
+		if (c == NULL)
+			continue;
+
+		draw_character(g, player, c);
+	}
 
 	for (ssize_t i = w->events.n-1; i >= 0; i--)
 		draw_event(g, player, &w->events.d[i]);
