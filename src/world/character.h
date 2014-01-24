@@ -61,8 +61,8 @@ struct character
 	world_t*    world;
 
 	inventory_t inventory;
-	building_t* hasBuilding;
-	building_t* inBuilding;
+	uuid_t hasBuilding;
+	uuid_t inBuilding;
 
 	skill_t* skills;
 	status_t statuses[N_STATUSES];

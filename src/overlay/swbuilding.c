@@ -69,7 +69,7 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 	if (!do_draw)
 		mouse = subwindow_mouse(&w->w, g->g);
 
-	building_t* b = g->player->inBuilding;
+	building_t* b = (building_t*) pool_get(&g->w->buildings, g->player->inBuilding);
 	if (b == NULL)
 	{
 		if (do_draw)
@@ -208,7 +208,7 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g)
 		return 0;
 
 	char buffer[1024];
-	building_t* b = g->player->inBuilding;
+	building_t* b = (building_t*) pool_get(&g->w->buildings, g->player->inBuilding);
 	transform_t* tr = &b->t->items[i];
 	swbuilding_tooltip(buffer, 1024, g->u, tr);
 	graphics_drawTooltip(g->g, buffer);
@@ -227,7 +227,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 	if (i < 0)
 		return subwindow_catch(&w->w, g->g, t);
 
-	building_t* b = g->player->inBuilding;
+	building_t* b = (building_t*) pool_get(&g->w->buildings, g->player->inBuilding);
 	transform_t* tr = &b->t->items[i];
 	if (transform_check(tr, &g->player->inventory))
 		building_work_enqueue(b, i);

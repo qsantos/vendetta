@@ -48,8 +48,8 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 	c->world    = w;
 
 	inventory_init(&c->inventory, u);
-	c->hasBuilding = NULL;
-	c->inBuilding  = NULL;
+	c->hasBuilding = -1;
+	c->inBuilding  = -1;
 
 	c->skills = CALLOC(skill_t, u->n_skills);
 	for (size_t i = 0; i < u->n_skills; i++)
@@ -179,7 +179,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		}
 		else if (b->work_n > 0)
 		{
-			c->inBuilding = b;
+			c->inBuilding = b->o.uuid;
 
 			transform_t* tr = &t->items[b->work_list[0]];
 
@@ -205,7 +205,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		}
 		else
 		{
-			c->inBuilding = b;
+			c->inBuilding = b->o.uuid;
 			transform_t* tr = &t->make;
 
 			if (tr->n_res == 0 || tr->res[0].is_item)
@@ -297,7 +297,7 @@ void character_attack(character_t* c, object_t* o)
 
 void character_move(character_t* c, float duration, float dx, float dy)
 {
-	c->inBuilding = NULL;
+	c->inBuilding = -1;
 
 	float dir;
 	if (dx > 0)
@@ -502,23 +502,22 @@ char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 	character_delHome(c);
 
 	transform_apply(&t->build, &c->inventory, 1);
-	c->hasBuilding = world_addBuilding(c->world, x, y, t, c);
+	building_t* b = world_addBuilding(c->world, x, y, t, c);
+	c->hasBuilding = b->o.uuid;
 	return 1;
 }
 
 char character_delHome(character_t* c)
 {
-	if (c->hasBuilding == NULL)
+	building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
+	if (b == NULL)
+	{
+		c->hasBuilding = -1;
 		return 0;
+	}
 
-	// TODO: there might be other pointers...
-	if (c->go_o == &c->hasBuilding->o)
-		c->go_o = NULL;
-	if (c->inBuilding == c->hasBuilding)
-		c->inBuilding = NULL;
-
-	world_delBuilding(c->world, c->hasBuilding);
-	c->hasBuilding = NULL;
+	world_delBuilding(c->world, b);
+	c->hasBuilding = -1;
 	return 1;
 }
 

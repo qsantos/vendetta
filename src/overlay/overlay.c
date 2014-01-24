@@ -370,8 +370,9 @@ int overlay_catch(game_t* g, int t)
 			}
 			else if (i == 1)
 			{
-				if (g->player->hasBuilding != NULL)
-					g->player->go_o = &g->player->hasBuilding->o;
+				building_t* b = (building_t*) pool_get(&g->w->buildings, g->player->hasBuilding);
+				if (b != NULL)
+					g->player->go_o = &b->o;
 			}
 			else if (i <= 9)
 			{

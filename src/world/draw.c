@@ -55,7 +55,7 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	if (c == NULL)
 		return;
 
-	if (c->inBuilding != NULL)
+	if (c->inBuilding >= 0)
 	{
 		float p = c->statuses[ST_HEALTH] / 20.;
 		if (p != 0 && p != 1)

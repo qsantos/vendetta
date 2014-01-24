@@ -155,8 +155,9 @@ void game_loop(game_t* g)
 				}
 				else if (k == sfKeyReturn)
 				{
-					if (g->player->hasBuilding != NULL)
-						g->player->go_o = &g->player->hasBuilding->o;
+					building_t* b = (building_t*) pool_get(&g->w->buildings, g->player->hasBuilding);
+					if (b != NULL)
+						g->player->go_o = &b->o;
 				}
 				else if (k == sfKeyDelete)
 				{
