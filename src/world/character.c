@@ -37,7 +37,7 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 	c->t = t;
 	c->alive = 1;
 
-	c->go_o = NULL;
+	c->go_o = -1;
 	c->dir  = D_SOUTH;
 	c->step = 5; // standing still
 	c->inWater = 0;
@@ -380,15 +380,16 @@ void character_doRound(character_t* c, float duration)
 
 	float go_x = c->go_x;
 	float go_y = c->go_y;
-	if (c->go_o != NULL)
+	object_t* o = pool_get(&c->world->objects, c->go_o);
+	if (o != NULL)
 	{
-		go_x = c->go_o->x;
-		go_y = c->go_o->y;
+		go_x = o->x;
+		go_y = o->y;
 		c->go_x = c->o.x;
 		c->go_y = c->o.y;
-		if (c->go_o->t == O_BUILDING)
+		if (o->t == O_BUILDING)
 		{
-			building_t* b = (building_t*) c->go_o;
+			building_t* b = (building_t*) o;
 			go_x += b->t->door_dx;
 			go_y += b->t->door_dy;
 		}
@@ -397,20 +398,20 @@ void character_doRound(character_t* c, float duration)
 	float dy = go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
-	if (c->go_o != NULL)
+	if (o != NULL)
 	{
-		if (c->go_o->t == O_CHARACTER && remDistance < 20)
+		if (o->t == O_CHARACTER && remDistance < 20)
 		{
-			character_t* t = (character_t*) c->go_o;
+			character_t* t = (character_t*) o;
 			if (t != c)
 			{
 				character_attack(c, &t->o);
 				return;
 			}
 		}
-		else if (c->go_o->t == O_BUILDING && object_overlaps(c->go_o, &c->o))
+		else if (o->t == O_BUILDING && object_overlaps(o, &c->o))
 		{
-			building_t* b = (building_t*) c->go_o;
+			building_t* b = (building_t*) o;
 			if (b->owner != c->o.uuid)
 			{
 				character_attack(c, &b->o);
@@ -423,7 +424,7 @@ void character_doRound(character_t* c, float duration)
 	{
 		c->dir  = D_SOUTH;
 		c->step = 5;
-		character_workAt(c, c->go_o, duration);
+		character_workAt(c, o, duration);
 	}
 	else
 		character_move(c, duration, dx, dy);
@@ -460,7 +461,7 @@ float character_attacked(character_t* c, float work, character_t* a)
 	if (c->statuses[ST_HEALTH] <= 0)
 	{
 		c->alive = 0;
-		a->go_o = NULL;
+		a->go_o = -1;
 	}
 	return work;
 }
@@ -469,7 +470,7 @@ void character_goMine(character_t* c, kindOf_mine_t* t)
 {
 	mine_t* m = world_findMine(c->world, c->o.x, c->o.y, t);
 	if (m != NULL)
-		c->go_o = &m->o;
+		c->go_o = m->o.uuid;
 }
 
 char character_buildAuto(character_t* c, kindOf_building_t* t)
@@ -525,7 +526,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 {
 	size_t cur = 0;
 
-	object_t* o = c->go_o;
+	object_t* o = pool_get(&c->world->objects, c->go_o);
 	universe_t* u = c->universe;
 	char moving = c->go_x != c->o.x || c->go_y != c->o.y;
 	if (o == NULL)

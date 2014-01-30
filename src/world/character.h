@@ -48,9 +48,10 @@ struct character
 	kindOf_character_t* t;
 	char alive;
 
-	float       go_x;
-	float       go_y;
-	object_t*   go_o;
+	float  go_x;
+	float  go_y;
+	uuid_t go_o;
+
 	direction_t dir;
 	float       step;
 	char        inWater;

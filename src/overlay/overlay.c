@@ -372,7 +372,7 @@ int overlay_catch(game_t* g, int t)
 			{
 				building_t* b = building_get(&g->w->objects, g->player->hasBuilding);
 				if (b != NULL)
-					g->player->go_o = &b->o;
+					g->player->go_o = b->o.uuid;
 			}
 			else if (i <= 9)
 			{
@@ -380,19 +380,19 @@ int overlay_catch(game_t* g, int t)
 				kindOf_mine_t* t = &g->u->mines[i];
 				mine_t* m = world_findMine(g->w, g->player->o.x, g->player->o.y, t);
 				if (m != NULL)
-					g->player->go_o = (object_t*) m;
+					g->player->go_o = m->o.uuid;
 			}
 			else if (i == 10)
 			{
 				character_t* t = world_findEnnemyCharacter(g->w, g->player);
 				if (t != NULL)
-					g->player->go_o = &t->o;
+					g->player->go_o = t->o.uuid;
 			}
 			else if (i == 11)
 			{
 				building_t* t = world_findEnnemyBuilding(g->w, g->player);
 				if (t != NULL)
-					g->player->go_o = &t->o;
+					g->player->go_o = t->o.uuid;
 			}
 		}
 		else if (w == 2) // statuses

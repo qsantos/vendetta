@@ -160,7 +160,7 @@ void game_loop(game_t* g)
 				{
 					building_t* b = building_get(&g->w->objects, g->player->hasBuilding);
 					if (b != NULL)
-						g->player->go_o = &b->o;
+						g->player->go_o = b->o.uuid;
 				}
 				else if (k == sfKeyDelete)
 				{
@@ -190,13 +190,13 @@ void game_loop(game_t* g)
 				{
 					character_t* t = world_findEnnemyCharacter(g->w, g->player);
 					if (t != NULL)
-						g->player->go_o = &t->o;
+						g->player->go_o = t->o.uuid;
 				}
 				else if (k == sfKeyW)
 				{
 					building_t* t = world_findEnnemyBuilding(g->w, g->player);
 					if (t != NULL)
-						g->player->go_o = &t->o;
+						g->player->go_o = t->o.uuid;
 				}
 				else if (k == sfKeySpace)
 				{
@@ -214,7 +214,7 @@ void game_loop(game_t* g)
 						kindOf_mine_t* t = &g->u->mines[id];
 						mine_t* m = world_findMine(g->w, g->player->o.x, g->player->o.y, t);
 						if (m != NULL)
-							g->player->go_o = (object_t*) m;
+							g->player->go_o = m->o.uuid;
 					}
 				}
 			}
@@ -233,7 +233,10 @@ void game_loop(game_t* g)
 
 				g->player->go_x = pos.x;
 				g->player->go_y = pos.y;
-				g->player->go_o = o;
+				if (o == NULL)
+					g->player->go_o = -1;
+				else
+					g->player->go_o = o->uuid;
 			}
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
@@ -269,7 +272,7 @@ void game_loop(game_t* g)
 			{
 				g->player->go_x = g->player->o.x + 100 * (right - 2*left);
 				g->player->go_y = g->player->o.y + 100 * (down  - 2*up);
-				g->player->go_o = NULL;
+				g->player->go_o = -1;
 			}
 
 			if (sfMouse_isButtonPressed(sfMouseLeft) &&
@@ -281,7 +284,7 @@ void game_loop(game_t* g)
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
 				g->player->go_x = pos.x;
 				g->player->go_y = pos.y;
-				g->player->go_o = NULL;
+				g->player->go_o = -1;
 			}
 		}
 

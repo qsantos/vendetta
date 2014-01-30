@@ -150,7 +150,7 @@ char ai_gather(character_t* c, int id, float amount)
 	{
 		building_t* b = building_get(&c->world->objects, c->hasBuilding);
 		if (b != NULL)
-			c->go_o = &b->o;
+			c->go_o = b->o.uuid;
 		return 1;
 	}
 
@@ -198,7 +198,7 @@ char ai_make(character_t* c, int id, float amount)
 	{
 		building_t* b = building_get(&c->world->objects, c->hasBuilding);
 		if (b != NULL)
-			c->go_o = &b->o;
+			c->go_o = b->o.uuid;
 		return 1;
 	}
 
@@ -254,7 +254,7 @@ char ai_do(ai_t* ai, character_t* c)
 	{
 		building_t* b = building_get(&c->world->objects, c->hasBuilding);
 		if (b != NULL)
-			c->go_o = &b->o;
+			c->go_o = b->o.uuid;
 		return 1;
 	}
 
