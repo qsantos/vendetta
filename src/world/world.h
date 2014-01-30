@@ -59,11 +59,6 @@ struct world
 void world_init(world_t* w, game_t* g);
 void world_exit(world_t* w);
 
-void world_genmap(world_t* w, unsigned int seed);
-void world_start (world_t* w);
-void world_save  (world_t* w, FILE* f);
-void world_load  (world_t* w, FILE* f);
-
 chunk_t* world_chunkXY(world_t* w, float x, float y);
 
 short* world_landXY   (world_t* w, float x, float y);
@@ -72,8 +67,6 @@ void   world_setLandXY(world_t* w, float x, float y, short l);
 short* world_landIJ   (world_t* w, int i, int j);
 short  world_getLandIJ(world_t* w, int i, int j);
 void   world_setLandIJ(world_t* w, int i, int j, short l);
-
-void  world_randMine(world_t* w, int type);
 
 void world_doRound(world_t* w, float duration);
 

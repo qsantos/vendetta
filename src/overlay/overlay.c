@@ -23,6 +23,7 @@
 #include <math.h>
 
 #include "../mem.h"
+#include "../world/world_save.h"
 
 void overlay_init(overlay_t* o, game_t* g)
 {

@@ -24,6 +24,8 @@
 
 #include "mem.h"
 #include "file.h"
+#include "world/world_save.h"
+#include "world/world_gen.h"
 #include "world/draw.h"
 #include "overlay/overlay.h"
 
