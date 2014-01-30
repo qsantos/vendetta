@@ -45,7 +45,9 @@ uuid_t pool_new(pool_t* p, size_t size)
 	}
 
 	uuid_t uuid = p->n_objects++;
-	p->objects[uuid] = (object_t*) CALLOC(char, size);
+	object_t* o = (object_t*) CALLOC(char, size);
+	o->uuid = uuid;
+	p->objects[uuid] = o;
 	return uuid;
 }
 
@@ -63,3 +65,19 @@ void pool_del(pool_t* p, object_t* a)
 	p->objects[a->uuid] = NULL;
 	free(a);
 }
+
+#define SPECIALIZED(T,K) \
+T##_t* T##_new(pool_t* p) \
+{ \
+	uuid_t uuid = pool_new(p, sizeof(T##_t)); \
+	return (T##_t*) pool_get(p, uuid); \
+} \
+T##_t* T##_get(pool_t* p, uuid_t uuid) \
+{ \
+	T##_t* r = (T##_t*) pool_get(p, uuid); \
+	if (r == NULL || r->o.t != K) return NULL; \
+	return r; \
+}
+
+SPECIALIZED(character, O_CHARACTER)
+SPECIALIZED(building,  O_BUILDING)
