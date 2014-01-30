@@ -192,7 +192,7 @@ void draw_chunk(graphics_t* g, character_t* player, chunk_t* c)
 	sfRenderWindow_drawVertexArray(g->render, array, &states);
 
 	for (ssize_t i = c->n_mines-1; i >= 0; i--)
-		draw_mine(g, player, &c->mines[i]);
+		draw_mine(g, player, c->mines[i]);
 }
 
 void draw_chunks(graphics_t* g, character_t* player, world_t* w)

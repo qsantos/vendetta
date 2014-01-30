@@ -53,6 +53,8 @@ void world_exit(world_t* w)
 
 		if (o->t == O_CHARACTER)
 			character_exit((character_t*) o);
+		else if (o->t == O_MINE)
+			mine_exit((mine_t*) o);
 		else if (o->t == O_BUILDING)
 			building_exit((building_t*) o);
 	}
@@ -420,8 +422,8 @@ void world_setLandIJ(world_t* w, int i, int j, short l)
 
 void world_randMine(world_t* w, int type)
 {
-	mine_t m;
-	mine_init(&m, &w->universe->mines[type]);
+	mine_t* m = mine_new(&w->objects);
+	mine_init(m, &w->universe->mines[type]);
 	while (1)
 	{
 		float x = cfrnd(w->o.w - 32);
@@ -431,9 +433,9 @@ void world_randMine(world_t* w, int type)
 			continue;
 
 		chunk_t* c = world_chunkXY(w, x, y);
-		m.o.x = x;
-		m.o.y = y;
-		chunk_pushMine(c, &m);
+		m->o.x = x;
+		m->o.y = y;
+		chunk_pushMine(c, m);
 		break;
 	}
 }
@@ -474,7 +476,7 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 	if (c != NULL)
 	for (size_t i = 0; i < c->n_mines; i++)
 	{
-		mine_t* m = &c->mines[i];
+		mine_t* m = c->mines[i];
 		if (&m->o == ignore)
 			continue;
 		if (object_isAt(&m->o, x, y))
@@ -502,7 +504,7 @@ mine_t* findMine_chunk(chunk_t* c, float x, float y, kindOf_mine_t* t)
 	float min_d = -1;
 	for (size_t i = 0; i < c->n_mines; i++)
 	{
-		mine_t* m = &c->mines[i];
+		mine_t* m = c->mines[i];
 		if (m->t != t)
 			continue;
 		float d = object_distance(&m->o, x, y);
@@ -597,7 +599,7 @@ static char canBuild_aux(chunk_t* c, object_t* o)
 	if (c == NULL)
 		return 0;
 	for (size_t i = 0; i < c->n_mines; i++)
-		if (object_overlaps(&c->mines[i].o, o))
+		if (object_overlaps(&c->mines[i]->o, o))
 			return 0;
 	return 1;
 }

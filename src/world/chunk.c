@@ -46,10 +46,7 @@ void chunk_init(chunk_t* c, float x, float y, int rows, int cols)
 
 void chunk_exit(chunk_t* c)
 {
-	for (size_t i = 0; i < c->n_mines; i++)
-		mine_exit(&c->mines[i]);
 	free(c->mines);
-
 	sfVertexArray_destroy(c->array);
 	free(c->lands);
 }
@@ -103,6 +100,6 @@ void chunk_updwtr(chunk_t* c)
 
 void chunk_pushMine(chunk_t* c, mine_t* m)
 {
-	c->mines = CREALLOC(c->mines, mine_t, c->n_mines+1);
-	c->mines[c->n_mines++] = *m;
+	c->mines = CREALLOC(c->mines, mine_t*, c->n_mines+1);
+	c->mines[c->n_mines++] = m;
 }

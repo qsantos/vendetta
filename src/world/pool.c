@@ -80,4 +80,5 @@ T##_t* T##_get(pool_t* p, uuid_t uuid) \
 }
 
 SPECIALIZED(character, O_CHARACTER)
+SPECIALIZED(mine,      O_MINE)
 SPECIALIZED(building,  O_BUILDING)

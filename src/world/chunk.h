@@ -40,7 +40,7 @@ struct chunk
 	sfVertexArray* array; // TODO :(
 
 	size_t n_mines;
-	mine_t* mines;
+	mine_t** mines;
 };
 
 void chunk_init(chunk_t* c, float x, float y, int rows, int cols);

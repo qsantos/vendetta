@@ -43,6 +43,9 @@ void      pool_del(pool_t* p, object_t* a);
 character_t* character_new(pool_t* p);
 character_t* character_get(pool_t* p, uuid_t uuid);
 
+mine_t* mine_new(pool_t* p);
+mine_t* mine_get(pool_t* p, uuid_t uuid);
+
 building_t* building_new(pool_t* p);
 building_t* building_get(pool_t* p, uuid_t uuid);
 
