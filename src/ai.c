@@ -148,8 +148,9 @@ char ai_gather(character_t* c, int id, float amount)
 
 	if (c->inBuilding != c->hasBuilding)
 	{
-		building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
-		c->go_o = &b->o;
+		building_t* b = building_get(&c->world->objects, c->hasBuilding);
+		if (b != NULL)
+			c->go_o = &b->o;
 		return 1;
 	}
 
@@ -171,7 +172,7 @@ char ai_make(character_t* c, int id, float amount)
 		if (tr == NULL)
 			continue;
 
-		building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
+		building_t* b = building_get(&c->world->objects, c->hasBuilding);
 
 		transform_t tmp;
 		transform_init(&tmp);
@@ -195,12 +196,16 @@ char ai_make(character_t* c, int id, float amount)
 
 	if (c->inBuilding != c->hasBuilding)
 	{
-		building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
-		c->go_o = &b->o;
+		building_t* b = building_get(&c->world->objects, c->hasBuilding);
+		if (b != NULL)
+			c->go_o = &b->o;
 		return 1;
 	}
 
-	building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
+	building_t* b = building_get(&c->world->objects, c->hasBuilding);
+	if (b == NULL)
+		return 1;
+
 	if (b->work_n != 0)
 		return 1;
 
@@ -224,7 +229,7 @@ char ai_build(character_t* c, int id)
 {
 	kindOf_building_t* t = &c->universe->buildings[id];
 
-	building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
+	building_t* b = building_get(&c->world->objects, c->hasBuilding);
 	if (b != NULL && b->t == t)
 		return 0;
 
@@ -247,8 +252,9 @@ char ai_do(ai_t* ai, character_t* c)
 
 	if (c->inBuilding != c->hasBuilding)
 	{
-		building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
-		c->go_o = &b->o;
+		building_t* b = building_get(&c->world->objects, c->hasBuilding);
+		if (b != NULL)
+			c->go_o = &b->o;
 		return 1;
 	}
 

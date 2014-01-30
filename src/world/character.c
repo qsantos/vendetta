@@ -509,7 +509,7 @@ char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 
 char character_delHome(character_t* c)
 {
-	building_t* b = (building_t*) pool_get(&c->world->buildings, c->hasBuilding);
+	building_t* b = building_get(&c->world->objects, c->hasBuilding);
 	if (b == NULL)
 	{
 		c->hasBuilding = -1;

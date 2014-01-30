@@ -63,15 +63,18 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 	g->g->overlay_view = sfView_createFromRect(rect);
 	g->g->world_view   = sfView_createFromRect(rect);
 
-	pool_t* p = &g->w->characters;
-	g->player = (character_t*) pool_get(p, 0);
-	for (size_t i = 1; i < p->n_objects; i++)
+	g->player = NULL;
+	pool_t* p = &g->w->objects;
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = (character_t*) pool_get(p, i);
+		character_t* c = character_get(&g->w->objects, i);
 		if (c == NULL)
 			continue;
 
-		c->ai = &g->u->bots[rand() % g->u->n_bots];
+		if (g->player == NULL)
+			g->player = c;
+		else
+			c->ai = &g->u->bots[rand() % g->u->n_bots];
 	}
 
 	for (size_t i = 0; i < N_STATUSES; i++)
@@ -155,7 +158,7 @@ void game_loop(game_t* g)
 				}
 				else if (k == sfKeyReturn)
 				{
-					building_t* b = (building_t*) pool_get(&g->w->buildings, g->player->hasBuilding);
+					building_t* b = building_get(&g->w->objects, g->player->hasBuilding);
 					if (b != NULL)
 						g->player->go_o = &b->o;
 				}

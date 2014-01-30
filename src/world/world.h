@@ -49,8 +49,7 @@ struct world
 	// on-going events
 	evtList_t events;
 
-	pool_t characters;
-	pool_t buildings;
+	pool_t objects;
 };
 
 #include <stdio.h>

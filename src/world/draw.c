@@ -220,20 +220,19 @@ void draw_world(graphics_t* g, character_t* player, world_t* w)
 {
 	draw_chunks(g, player, w);
 
-	pool_t* p = &w->buildings;
+	pool_t* p = &w->objects;
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
 	{
-		building_t* b = (building_t*) pool_get(p, i);
+		building_t* b = building_get(p, i);
 		if (b == NULL)
 			continue;
 
 		draw_building(g, player, b);
 	}
 
-	p = &w->characters;
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
 	{
-		character_t* c = (character_t*) pool_get(p, i);
+		character_t* c = character_get(p, i);
 		if (c == NULL)
 			continue;
 
