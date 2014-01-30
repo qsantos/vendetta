@@ -35,20 +35,32 @@ void pool_exit(pool_t* p)
 	free(p->objects);
 }
 
-uuid_t pool_new(pool_t* p, size_t size)
+object_t* pool_new(pool_t* p, uuid_t uuid, size_t size)
 {
-	if (p->n_objects >= p->a_objects)
+	if (uuid < 0)
+		uuid = p->n_objects + 1;
+
+	if (uuid >= (ssize_t) p->a_objects)
 	{
-		p->a_objects = p->a_objects == 0 ? 1 : 2*p->a_objects;
+		while (uuid >= (ssize_t) p->a_objects)
+			p->a_objects = p->a_objects == 0 ? 1 : 2*p->a_objects;
 		p->objects = CREALLOC(p->objects, object_t*, p->a_objects);
 		memset(p->objects + p->n_objects, 0, (p->a_objects - p->n_objects)*sizeof(object_t*));
 	}
 
-	uuid_t uuid = p->n_objects++;
+	if (uuid >= (ssize_t) p->n_objects)
+		p->n_objects = uuid+1;
+
+	if (p->objects[uuid] != NULL)
+	{
+		fprintf(stderr, "Trying to re-initate object %li\n", uuid);
+		exit(1);
+	}
+
 	object_t* o = (object_t*) CALLOC(char, size);
 	o->uuid = uuid;
 	p->objects[uuid] = o;
-	return uuid;
+	return o;
 }
 
 object_t* pool_get(pool_t* p, uuid_t uuid)
@@ -67,10 +79,9 @@ void pool_del(pool_t* p, object_t* a)
 }
 
 #define SPECIALIZED(T,K) \
-T##_t* T##_new(pool_t* p) \
+T##_t* T##_new(pool_t* p, uuid_t uuid) \
 { \
-	uuid_t uuid = pool_new(p, sizeof(T##_t)); \
-	return (T##_t*) pool_get(p, uuid); \
+	return (T##_t*) pool_new(p, uuid, sizeof(T##_t)); \
 } \
 T##_t* T##_get(pool_t* p, uuid_t uuid) \
 { \

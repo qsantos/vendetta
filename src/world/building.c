@@ -24,7 +24,7 @@
 
 #include "../mem.h"
 
-void building_init(building_t* b, kindOf_building_t* t, character_t* owner, float x, float y)
+void building_init(building_t* b, kindOf_building_t* t, uuid_t owner, float x, float y)
 {
 	b->o.t = O_BUILDING;
 	b->o.x = x;
@@ -33,7 +33,7 @@ void building_init(building_t* b, kindOf_building_t* t, character_t* owner, floa
 	b->o.h = t->height;
 
 	b->t = t;
-	b->owner = owner->o.uuid;
+	b->owner = owner;
 
 	b->build_progress = 0;
 	b->life = 0;

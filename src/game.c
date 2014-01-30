@@ -78,6 +78,11 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 		else
 			c->ai = &g->u->bots[rand() % g->u->n_bots];
 	}
+	if (g->player == NULL)
+	{
+		fprintf(stderr, "No character\n");
+		exit(1);
+	}
 
 	for (size_t i = 0; i < N_STATUSES; i++)
 		g->autoEat[i] = 0;
