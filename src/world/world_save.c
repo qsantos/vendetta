@@ -67,8 +67,11 @@ void world_save(world_t* w, FILE* f)
 		if (b == NULL)
 			continue;
 
+		int t = b->t - u->buildings;
+
 		save_object(&b->o, f);
-		fprintf(f, " %li %f %f\n",
+		fprintf(f, " %i %li %f %f\n",
+			t,
 			b->owner, b->build_progress, b->life);
 	}
 }
@@ -126,16 +129,18 @@ void world_load(world_t* w, FILE* f)
 	for (size_t i = 0; i < n_buildings; i++)
 	{
 		object_t o;
+		int t;
 		uuid_t owner;
 		float build_progress;
 		float life;
 		o.t = O_BUILDING;
-		CLINE("%li %f %f %f %f %li %f %f\n",
+		CLINE("%li %f %f %f %f %i %li %f %f\n",
 			&o.uuid, &o.x, &o.y, &o.w, &o.h,
+			&t,
 			&owner, &build_progress, &life);
 
 		building_t* b = building_new(p, o.uuid);
-		building_init(b, NULL, owner, 0, 0);
+		building_init(b, &u->buildings[t], owner, 0, 0);
 		b->o = o;
 		b->build_progress = build_progress;
 		b->life = life;
