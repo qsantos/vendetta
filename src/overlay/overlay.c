@@ -83,9 +83,11 @@ static int overlay_buttons(game_t* g, char do_draw)
 		else if (sfSprite_contains(sprite, mouse))
 			return i;
 	}
+
 	size_t i = 7;
 	sfVector2u size = sfRenderWindow_getSize(g->g->render);
 	sfSprite_setPosition(sprite, (sfVector2f){size.x - 200 + 24*g->o->n_subwindows, 5});
+	sfSprite_setColor(sprite, sfWhite);
 	sfIntRect rect = {24*i, 0, 24, 24};
 	sfSprite_setTextureRect(sprite, rect);
 	if (do_draw)
