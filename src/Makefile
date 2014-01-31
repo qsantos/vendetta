@@ -1,5 +1,5 @@
 CC      = gcc
-CFLAGS  = -Wall -Wextra -Werror -pedantic -ansi -O3 -std=c99
+CFLAGS  = -std=c99 -Wall -Wextra -Werror -pedantic -O3
 LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
 TARGET  = ../vendetta
 
