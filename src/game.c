@@ -75,7 +75,7 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 
 		if (g->player == NULL)
 			g->player = c;
-		else
+		else if (!load)
 			c->ai = &g->u->bots[rand() % g->u->n_bots];
 	}
 	if (g->player == NULL)
