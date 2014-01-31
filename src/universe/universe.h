@@ -75,7 +75,6 @@ struct universe
 	// and fabrication information
 	transform_t* tmp_materials;
 	transform_t* tmp_items;
-
 };
 
 #include "../game.h"

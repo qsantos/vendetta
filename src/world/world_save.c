@@ -28,6 +28,8 @@ static void save_object(object_t* o, FILE* f)
 }
 void world_save(world_t* w, FILE* f)
 {
+	universe_t* u = w->universe;
+
 	// seed
 	fprintf(f, "seed = %#x\n", w->settings->seed);
 
@@ -44,8 +46,11 @@ void world_save(world_t* w, FILE* f)
 		if (c == NULL)
 			continue;
 
+		int t = c->t - u->characters;
+
 		save_object(&c->o, f);
-		fprintf(f, " %hhi %f %f %li %li %li\n",
+		fprintf(f, " %i %hhi %f %f %li %li %li\n",
+			t,
 			c->alive, c->go_x, c->go_y, c->go_o,
 			c->hasBuilding, c->inBuilding);
 	}
@@ -90,6 +95,7 @@ void world_load(world_t* w, FILE* f)
 	for (size_t i = 0; i < n_characters; i++)
 	{
 		object_t o;
+		int t;
 		signed char alive;
 		float go_x;
 		float go_y;
@@ -97,14 +103,15 @@ void world_load(world_t* w, FILE* f)
 		uuid_t hasBuilding;
 		uuid_t inBuilding;
 		o.t = O_CHARACTER;
-		CLINE("%li %f %f %f %f %hhi %f %f %li %li %li\n",
+		CLINE("%li %f %f %f %f %i %hhi %f %f %li %li %li\n",
 			&o.uuid, &o.x, &o.y, &o.w, &o.h,
+			&t,
 			&alive, &go_x, &go_y, &go_o,
 			&hasBuilding, &inBuilding);
 
 		// uuid = i
 		character_t* c = character_new(p, o.uuid);
-		character_init(c, &u->characters[0], u, w);
+		character_init(c, &u->characters[t], u, w);
 		c->o = o;
 		c->alive = alive;
 		c->go_x = go_x;
