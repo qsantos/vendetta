@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 #include "world_gen.h"
+#include "../mem.h"
 
 static void save_object(object_t* o, FILE* f)
 {
@@ -77,9 +78,13 @@ void world_save(world_t* w, FILE* f)
 		int t = b->t - u->buildings;
 
 		save_object(&b->o, f);
-		fprintf(f, " %i %li %f %f\n",
+		fprintf(f, " %i %li %f %f %f %u\n",
 			t,
-			b->owner, b->build_progress, b->life);
+			b->owner, b->build_progress, b->life,
+			b->work_progress, (unsigned) b->work_n);
+		for (size_t i = 0; i < b->work_n; i++)
+			fprintf(f, "%i,", b->work_list[i]);
+		fprintf(f, "\n");
 	}
 }
 
@@ -149,16 +154,26 @@ void world_load(world_t* w, FILE* f)
 		uuid_t owner;
 		float build_progress;
 		float life;
+		float work_progress;
+		unsigned work_n;
 		o.t = O_BUILDING;
-		CLINE("%li %f %f %f %f %i %li %f %f\n",
+		CLINE("%li %f %f %f %f %i %li %f %f %f %u\n",
 			&o.uuid, &o.x, &o.y, &o.w, &o.h,
 			&t,
-			&owner, &build_progress, &life);
+			&owner, &build_progress, &life,
+			&work_progress, &work_n);
 
 		building_t* b = building_new(p, o.uuid);
 		building_init(b, &u->buildings[t], owner, 0, 0);
 		b->o = o;
 		b->build_progress = build_progress;
 		b->life = life;
+		b->work_progress = work_progress;
+		b->work_n = work_n;
+
+		b->work_list = CALLOC(int, work_n);
+		for (size_t i = 0; i < work_n; i++)
+			CLINE("%i,", &b->work_list[i]);
+		CLINE("\n");
 	}
 }
