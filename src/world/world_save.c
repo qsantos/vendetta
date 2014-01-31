@@ -69,6 +69,11 @@ void world_save(world_t* w, FILE* f)
 			fprintf(f, "%f,", c->skills[i]);
 		fprintf(f, "\n");
 
+		// statuses
+		for (size_t i = 0; i < N_STATUSES; i++)
+			fprintf(f, "%f,", c->statuses[i]);
+		fprintf(f, "\n");
+
 		// equipment
 		for (size_t i = 0; i < u->n_slots; i++)
 			fprintf(f, "%i,", c->equipment[i]);
@@ -160,6 +165,11 @@ void world_load(world_t* w, FILE* f)
 		// skills
 		for (size_t i = 0; i < u->n_skills; i++)
 			CLINE("%f,", &c->skills[i]);
+		CLINE("\n");
+
+		// statuses
+		for (size_t i = 0; i < N_STATUSES; i++)
+			CLINE("%f,", &c->statuses[i]);
 		CLINE("\n");
 
 		// equipment
