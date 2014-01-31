@@ -54,6 +54,12 @@ void world_save(world_t* w, FILE* f)
 			t, ai,
 			c->alive, c->go_x, c->go_y, c->go_o,
 			c->hasBuilding, c->inBuilding);
+		for (size_t i = 0; i < u->n_materials; i++)
+			fprintf(f, "%f,", c->inventory.materials[i]);
+		fprintf(f, "\n");
+		for (size_t i = 0; i < u->n_items; i++)
+			fprintf(f, "%f,", c->inventory.items[i]);
+		fprintf(f, "\n");
 	}
 
 	// buildings
@@ -125,6 +131,13 @@ void world_load(world_t* w, FILE* f)
 		c->go_o = go_o;
 		c->hasBuilding = hasBuilding;
 		c->inBuilding = inBuilding;
+
+		for (size_t i = 0; i < u->n_materials; i++)
+			CLINE("%f,", &c->inventory.materials[i]);
+		CLINE("\n");
+		for (size_t i = 0; i < u->n_items; i++)
+			CLINE("%f,", &c->inventory.items[i]);
+		CLINE("\n");
 	}
 
 	unsigned n_buildings;
