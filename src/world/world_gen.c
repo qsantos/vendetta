@@ -42,8 +42,8 @@ void world_genmap(world_t* w, unsigned int seed)
 		for (int j = 0; j < w->chunk_cols; j++)
 		{
 			chunk_t* c = CHUNK(w, i, j);
-			float x = TILE_SIZE*cw*(i-w->chunk_cols/2+.5);
-			float y = TILE_SIZE*ch*(j-w->chunk_rows/2+.5+.5);
+			float x = TILE_SIZE*cw*(i-.5*w->chunk_cols+.5);
+			float y = TILE_SIZE*ch*(j-.5*w->chunk_rows+.5+.5);
 			chunk_init(c, x, y, cw, ch);
 		}
 
