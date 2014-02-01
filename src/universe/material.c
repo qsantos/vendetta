@@ -19,6 +19,7 @@
 #include "material.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 void kindOf_material_init(kindOf_material_t* m)
 {
@@ -36,6 +37,10 @@ void kindOf_material_exit(kindOf_material_t* m)
 
 void kindOf_material_icon(kindOf_material_t* m, graphics_t* g, const char* filename, int idx)
 {
-	m->icon_sprite = graphics_spriteId(g, filename);
+	char s[1024];
+	snprintf(s, 1024, "data/%s", filename);
+	int id = graphics_spriteId(g, s);
+
+	m->icon_sprite = id;
 	m->icon_index  = idx;
 }

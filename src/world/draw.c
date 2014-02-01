@@ -95,7 +95,7 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 
 	static sfSprite* defaultSprite = NULL;
 	if (defaultSprite == NULL)
-		defaultSprite = graphics_sprite(g, "characters/default.png");
+		defaultSprite = graphics_sprite(g, "data/characters/default.png");
 
 	sfSprite*sprite = c->t == NULL ? defaultSprite : g->sprites[c->t->sprite];
 
@@ -120,7 +120,7 @@ void draw_mine(graphics_t* g, character_t* player, mine_t* m)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g, "mines.png");
+		sprite = graphics_sprite(g, "data/mines.png");
 
 	int t = m->t->id;
 	sfIntRect rect = {32*t, 32*0, 32, 32};
@@ -178,7 +178,7 @@ void draw_chunk(graphics_t* g, character_t* player, chunk_t* c)
 {
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
 	if (states.texture == NULL)
-		states.texture = graphics_loadImage(g, "lands.png");
+		states.texture = graphics_loadImage(g, "data/lands.png");
 
 	sfVertexArray* array = c->array;
 	int cur_step = floor(g->step);

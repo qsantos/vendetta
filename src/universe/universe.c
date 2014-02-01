@@ -50,12 +50,12 @@ void universe_init(universe_t* u, game_t* g)
 {
 	// load bots
 	u->n_bots = 0;
-	FOREACH_FILE("bots/", u->n_bots++);
+	FOREACH_FILE("data/bots/", u->n_bots++);
 	u->bots = CALLOC(ai_t, u->n_bots);
 	for (size_t i = 0; i < u->n_bots; i++)
 		ai_init(&u->bots[i]);
 	size_t i = 0;
-	FOREACH_FILE("bots/",
+	FOREACH_FILE("data/bots/",
 		if (g->s->verbosity >= 2)
 			fprintf(stderr, "Parsing bot '%s'\n", path);
 		ai_load(&u->bots[i++], path)
@@ -67,7 +67,7 @@ void universe_init(universe_t* u, game_t* g)
 	// load characters
 	u->n_characters = 0;
 	u->characters = NULL;
-	rec_find(u, g, "characters/");
+	rec_find(u, g, "data/characters/");
 	if (g->s->verbosity >= 1)
 		fprintf(stderr, "Loaded %u characters\n", (unsigned) u->n_characters);
 
@@ -77,7 +77,7 @@ void universe_init(universe_t* u, game_t* g)
 	// parse configuration files
 	cfg_ini_t ini;
 	cfg_ini_init(&ini);
-	FOREACH_FILE("cfg/",
+	FOREACH_FILE("data/cfg/",
 		if (g->s->verbosity >= 2)
 			fprintf(stderr, "Parsing '%s'\n", path);
 		cfg_ini_parse(&ini, path)

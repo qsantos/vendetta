@@ -65,7 +65,7 @@ static int overlay_buttons(game_t* g, char do_draw)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g->g, "buttons.png");
+		sprite = graphics_sprite(g->g, "data/buttons.png");
 	for (size_t i = 0; i < g->o->n_subwindows; i++)
 	{
 		subwindow_t* w = g->o->sw[i];
@@ -104,7 +104,7 @@ static int overlay_orders(game_t* g, char do_draw)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g->g, "orders.png");
+		sprite = graphics_sprite(g->g, "data/orders.png");
 
 	float x = 100;
 	float y = 0;

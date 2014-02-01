@@ -11,14 +11,15 @@ cd $(dirname $0)
 name="vendetta"
 version=$1
 
-time make -j 4 -C src rebuild
+time make -j 4 -C src rebuild CC=gcc
 OS="linux-64bits"
 release="$name-$version-$OS"
 archive=${release}.tgz
 ln -s . $release
-(git ls-files; ls start.sh lib/* vendetta) | sed "s/^/$release\//" | xargs -d $'\n' tar zcf $archive
+mv deps/lin64/*.so* .
+(ls -d data vendetta *.so* start.sh) | sed "s/^/$release\//" | xargs -d $'\n' tar zcf $archive
+mv *.so* deps/lin64/
 rm $release
-scp $archive micronos:servers/www/vendetta/dl/ &
 
 time make -j 4 -C src rebuild CC=i586-mingw32msvc-gcc
 mv vendetta vendetta.exe
@@ -26,12 +27,11 @@ OS="windows-32bits"
 release="$name-$version-$OS"
 archive=${release}.zip
 ln -s . $release
-mv win32/*.dll .
-(git ls-files; ls *.dll vendetta.exe) | sed "s/^/$release\//" | xargs -d $'\n' zip -qr $archive
-mv *.dll win32/
+mv deps/win32/*.dll .
+(ls -d data vendetta.exe *.dll debug.bat) | sed "s/^/$release\//" | xargs -d $'\n' zip -qr $archive
+mv *.dll deps/win32/
 rm $release
 mv vendetta.exe vendetta
-scp $archive micronos:servers/www/vendetta/dl/ &
 
 time make -j 4 -C src rebuild CC=x86_64-w64-mingw32-gcc
 mv vendetta vendetta.exe
@@ -39,9 +39,8 @@ OS="windows-64bits"
 release="$name-$version-$OS"
 archive=${release}.zip
 ln -s . $release
-mv win64/*.dll .
-(git ls-files; ls *.dll vendetta.exe) | sed "s/^/$release\//" | xargs -d $'\n' zip -qr $archive
-mv *.dll win64/
+mv deps/win64/*.dll .
+(ls -d data vendetta.exe *.dll debug.bat) | sed "s/^/$release\//" | xargs -d $'\n' zip -qr $archive
+mv *.dll deps/win64/
 rm $release
 mv vendetta.exe vendetta
-scp $archive micronos:servers/www/vendetta/dl/ &

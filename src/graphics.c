@@ -39,7 +39,7 @@ void graphics_init(graphics_t* g)
 
 	g->hasFocus = sfTrue;
 
-	g->font = sfFont_createFromFile("DejaVuSans.ttf");
+	g->font = sfFont_createFromFile("data/DejaVuSans.ttf");
 	if (g->font == NULL)
 		exit(1);
 
@@ -189,7 +189,7 @@ void graphics_drawCursor(graphics_t* g, int t)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g, "cursors.png");
+		sprite = graphics_sprite(g, "data/cursors.png");
 	sfIntRect rect = {24*t, 0, 24, 24};
 	sfSprite_setTextureRect(sprite, rect);
 	sfSprite_setPosition(sprite, mouse);

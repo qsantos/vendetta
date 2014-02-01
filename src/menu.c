@@ -33,8 +33,8 @@ static char draw_button(float x, float y, const char* txt, graphics_t* gr, char 
 	static sfSprite* mini   = NULL;
 	if (normal == NULL)
 	{
-		normal = graphics_sprite(gr, "menubutton.png");
-		mini   = graphics_sprite(gr, "mini.png");
+		normal = graphics_sprite(gr, "data/menubutton.png");
+		mini   = graphics_sprite(gr, "data/mini.png");
 	}
 	sfSprite* sprite = strlen(txt) > 1 ? normal : mini;
 
@@ -161,7 +161,7 @@ void menu(settings_t* s)
 	graphics_t* gr = &graphics;
 	graphics_init(gr);
 
-	sfSprite* illustration = graphics_sprite(gr, "menu.png");
+	sfSprite* illustration = graphics_sprite(gr, "data/menu.png");
 
 	sfRenderWindow* render = gr->render;
 	char inconfig = 0;
