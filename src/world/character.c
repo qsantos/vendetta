@@ -281,6 +281,12 @@ void character_attack(character_t* c, object_t* o)
 	if (o->t == O_CHARACTER)
 	{
 		character_t* t = (character_t*) o;
+		if (!t->alive || t->inBuilding >= 0)
+		{
+			c->go_o = -1;
+			return;
+		}
+
 		float work = character_getSkill(c, SK_ATTACK);
 		work = character_attacked(t, work, c);
 		character_train(c, SK_ATTACK, work);
@@ -383,10 +389,15 @@ void character_doRound(character_t* c, float duration)
 	float remDistance = sqrt(dx*dx + dy*dy);
 	if (o != NULL)
 	{
-		if (o->t == O_CHARACTER && remDistance < 20)
+		if (o->t == O_CHARACTER)
 		{
 			character_t* t = (character_t*) o;
-			if (t != c)
+			if (!t->alive || t->inBuilding >= 0)
+			{
+				c->go_o = -1;
+				return;
+			}
+			else if (remDistance < 20 && t != c)
 			{
 				character_attack(c, &t->o);
 				return;

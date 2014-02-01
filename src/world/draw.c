@@ -56,12 +56,7 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 		return;
 
 	if (c->inBuilding >= 0)
-	{
-		float p = c->statuses[ST_HEALTH] / 20.;
-		if (p != 0 && p != 1)
-			graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p, 0);
 		return;
-	}
 
 	int step = floor(c->step);
 	if (step >= 3)

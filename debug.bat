@@ -1,3 +1,3 @@
 @echo off
-./vendetta -v 3
+vendetta -v 3
 pause
