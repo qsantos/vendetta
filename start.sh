@@ -1,2 +1,2 @@
 #!/bin/bash
-LD_LIBRARY_PATH=./lib ./vendetta
+LD_LIBRARY_PATH=. ./vendetta
