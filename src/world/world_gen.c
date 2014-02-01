@@ -232,8 +232,7 @@ void world_randMine(world_t* w, int type)
 		chunk_t* c = world_chunkXY(w, x, y);
 		m->o.x = x;
 		m->o.y = y;
-		chunk_pushMine(c, m);
-		break;
+		if (chunk_pushMine(c, m))
+			break;
 	}
 }
-

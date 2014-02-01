@@ -49,6 +49,6 @@ void chunk_exit(chunk_t* c);
 void chunk_update(chunk_t* c);
 void chunk_updwtr(chunk_t* c);
 
-void chunk_pushMine(chunk_t* c, mine_t* m);
+char chunk_pushMine(chunk_t* c, mine_t* m);
 
 #endif
