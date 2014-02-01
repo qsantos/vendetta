@@ -35,11 +35,14 @@ static void rec_find(universe_t* u, game_t* g, const char* path)
 	{
 		u->characters = CREALLOC(u->characters, kindOf_character_t, u->n_characters+i);
 		FOREACH_FILE(path,
-			if (g->s->verbosity >= 2)
-				fprintf(stderr, "Loaded '%s'\n", path);
+			size_t len = strlen(path);
+			if (len < 4 || strcmp(path+len-4, ".png"))
+				continue;
 			kindOf_character_t* c = &u->characters[u->n_characters++];
 			kindOf_character_init(c);
 			c->sprite = graphics_spriteId(g->g, path);
+			if (g->s->verbosity >= 2)
+				fprintf(stderr, "Loaded '%s'\n", path);
 		);
 	}
 
