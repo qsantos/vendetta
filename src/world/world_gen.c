@@ -42,8 +42,8 @@ void world_genmap(world_t* w, unsigned int seed)
 		for (int j = 0; j < w->chunk_cols; j++)
 		{
 			chunk_t* c = CHUNK(w, i, j);
-			float x = TILE_SIZE*cw*(i-.5*w->chunk_cols+.5);
-			float y = TILE_SIZE*ch*(j-.5*w->chunk_rows+.5+.5);
+			float x = TILE_SIZE*cw*(j-.5*w->chunk_cols+.5);
+			float y = TILE_SIZE*ch*(i-.5*w->chunk_rows+.5+.5);
 			chunk_init(c, x, y, cw, ch);
 		}
 
@@ -64,13 +64,13 @@ void world_genmap(world_t* w, unsigned int seed)
 	if (w->settings->verbosity >= 3)
 		fprintf(stderr, "Initialiazing Voronoi diagram\n");
 	vr_diagram_t v;
-	vr_diagram_init(&v, w->cols, w->rows);
-	size_t n_vrPoints = w->cols * w->rows / 50;
+	vr_diagram_init(&v, w->rows, w->cols);
+	size_t n_vrPoints = w->rows * w->cols / 50;
 	for (size_t i = 0; i < n_vrPoints; i++)
 	{
-		double x = frnd(0, w->cols);
-		double y = frnd(0, w->rows);
-		vr_diagram_point(&v, (point_t){x,y});
+		double i = frnd(0, w->rows);
+		double j = frnd(0, w->cols);
+		vr_diagram_point(&v, (point_t){i,j});
 	}
 	for (int i = 1; i <= 2; i++)
 	{
@@ -161,10 +161,10 @@ void world_genmap(world_t* w, unsigned int seed)
 		int t = LAND_TYPE(i,j);
 		if (t == 0)
 			continue;
-		char top    = LAND_SAME(i,j-1);
-		char right  = LAND_SAME(i+1,j);
-		char bottom = LAND_SAME(i,j+1);
-		char left   = LAND_SAME(i-1,j);
+		char top    = LAND_SAME(i-1,j);
+		char right  = LAND_SAME(i,j+1);
+		char bottom = LAND_SAME(i+1,j);
+		char left   = LAND_SAME(i,j-1);
 		int neighbor = (top<<3) | (right<<2) | (bottom<<1) | (left<<0);
 		world_setLandIJ(w, i, j, 16*t + type2tile[neighbor]);
 	}

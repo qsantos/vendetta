@@ -56,10 +56,10 @@ void chunk_update(chunk_t* c)
 	for (int i = 0; i < c->rows; i++)
 		for (int j = 0; j < c->cols; j++)
 		{
-			sfVertex* v = sfVertexArray_getVertex(c->array, (j*c->rows+i)*4);
+			sfVertex* v = sfVertexArray_getVertex(c->array, (i*c->cols+j)*4);
 
-			float a = c->o.x + (i-c->rows/2)*16;
-			float b = c->o.y + (j-c->cols  )*16;
+			float a = c->o.x + (j-.5*c->cols)*16;
+			float b = c->o.y + (i-   c->rows)*16;
 			v[0].position = (sfVector2f){a+ 0,b+ 0};
 			v[1].position = (sfVector2f){a+16,b+ 0};
 			v[2].position = (sfVector2f){a+16,b+16};
@@ -85,12 +85,12 @@ void chunk_updwtr(chunk_t* c)
 		for (int j = 0; j < c->cols; j++)
 		{
 			int t = LAND(c,i,j);
-			if (!(160 <= t && t < 176))
+			if (t/16 != 10)
 				continue;
 			t += 16*step;
 			float a = 16*(t%16);
 			float b = 16*(t/16);
-			sfVertex* v = sfVertexArray_getVertex(c->array, (j*c->rows+i)*4);
+			sfVertex* v = sfVertexArray_getVertex(c->array, (i*c->cols+j)*4);
 			v[0].texCoords = (sfVector2f){a+ 0.01,b+ 0.01};
 			v[1].texCoords = (sfVector2f){a+15.99,b+ 0.01};
 			v[2].texCoords = (sfVector2f){a+15.99,b+15.99};

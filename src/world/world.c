@@ -62,8 +62,8 @@ void world_exit(world_t* w)
 
 chunk_t* world_chunkXY(world_t* w, float x, float y)
 {
-	int i = (x + w->o.w/2)/TILE_SIZE;
-	int j = (y + w->o.h/2)/TILE_SIZE;
+	int i = (y + w->o.h/2)/TILE_SIZE;
+	int j = (x + w->o.w/2)/TILE_SIZE;
 	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
 		return NULL;
 	int ch = w->chunks[0].rows;
@@ -73,8 +73,8 @@ chunk_t* world_chunkXY(world_t* w, float x, float y)
 
 short* world_landXY(world_t* w, float x, float y)
 {
-	int i = (x + w->o.w/2)/TILE_SIZE;
-	int j = (y + w->o.h/2)/TILE_SIZE;
+	int i = (y + w->o.h/2)/TILE_SIZE;
+	int j = (x + w->o.w/2)/TILE_SIZE;
 	return world_landIJ(w, i, j);
 }
 
@@ -95,8 +95,8 @@ short* world_landIJ(world_t* w, int i, int j)
 {
 	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
 		return NULL;
-	int cw = w->chunks[0].cols;
 	int ch = w->chunks[0].rows;
+	int cw = w->chunks[0].cols;
 	chunk_t* c = CHUNK(w, i/ch, j/cw);
 	return &LAND(c, i%ch, j%cw);
 }
@@ -218,8 +218,8 @@ mine_t* findMine_radius(world_t* w, float x, float y, kindOf_mine_t* t, int i, i
 }
 mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
 {
-	int i = (x + w->o.w/2)/TILE_SIZE;
-	int j = (y + w->o.h/2)/TILE_SIZE;
+	int i = (y + w->o.h/2)/TILE_SIZE;
+	int j = (x + w->o.w/2)/TILE_SIZE;
 	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
 		return NULL;
 	int ch = w->chunks[0].rows;
