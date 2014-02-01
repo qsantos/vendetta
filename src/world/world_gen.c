@@ -83,10 +83,28 @@ void world_genmap(world_t* w, unsigned int seed)
 		fprintf(stderr, "Finished Voronoi generation\n");
 
 	// assign land types to Voronoi regions
-	static const float land_probas[] = {0.8, 0.05, 0.05, 0.04, 0.01, 0,0,0,0,0,0.05};
+	static const float land_probas[] = {0, 0.25, 0.25, 0.2, 0.05, 0,0,0,0,0,0.25};
+
 	short region_types[v.n_regions];
 	for (size_t i = 0; i < v.n_regions; i++)
-		region_types[i] = 16 * rnd_pick(land_probas);
+		region_types[i] = 0;
+
+	size_t n_biomes = w->rows * w->cols / 1000;
+	for (size_t k = 0; k < n_biomes; k++)
+	{
+		int t = rnd_pick(land_probas);
+		float i = frnd(0, w->rows);
+		float j = frnd(0, w->cols);
+		float d = frnd(5, 10);
+		d *= d;
+		for (size_t k = 0; k < v.n_regions; k++)
+		{
+			vr_region_t* r = v.regions[k];
+			point_t p = point_minus((point_t){i,j}, r->p);
+			if (p.x*p.x + p.y*p.y < d)
+				region_types[k] = t;
+		}
+	}
 
 	// rasterise map
 	// TODO: clean that thing
@@ -95,7 +113,7 @@ void world_genmap(world_t* w, unsigned int seed)
 	// from a polygon is not totally trivial; to be cleaned later
 	for (size_t i = 0; i < v.n_regions; i++)
 	{
-		short t = region_types[i];
+		short t = 16 * region_types[i];
 
 		// set tiles in the i-th Voronoi region to proper type
 
