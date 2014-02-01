@@ -52,7 +52,7 @@ void world_save(world_t* w, FILE* f)
 		int ai = c->ai == NULL ? -1 : c->ai - u->bots;
 
 		save_object(&c->o, f);
-		fprintf(f, " %i %i %hhi %f %f %li %li %li\n",
+		fprintf(f, " %i %i %i %f %f %li %li %li\n",
 			t, ai,
 			c->alive, c->go_x, c->go_y, c->go_o,
 			c->hasBuilding, c->inBuilding);
@@ -131,14 +131,14 @@ void world_load(world_t* w, FILE* f)
 		object_t o;
 		int t;
 		int ai;
-		signed char alive;
+		int alive;
 		float go_x;
 		float go_y;
 		uuid_t go_o;
 		uuid_t hasBuilding;
 		uuid_t inBuilding;
 		o.t = O_CHARACTER;
-		CLINE("%li %f %f %f %f %i %i %hhi %f %f %li %li %li\n",
+		CLINE("%li %f %f %f %f %i %i %i %f %f %li %li %li\n",
 			&o.uuid, &o.x, &o.y, &o.w, &o.h,
 			&t, &ai,
 			&alive, &go_x, &go_y, &go_o,
