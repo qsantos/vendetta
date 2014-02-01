@@ -33,6 +33,7 @@ void world_save(world_t* w, FILE* f)
 
 	// seed
 	fprintf(f, "seed = %#x\n", w->settings->seed);
+	fprintf(f, "%ix%i\n", w->rows, w->cols);
 
 	// characters
 	pool_t* p = &w->objects;
@@ -118,6 +119,7 @@ void world_load(world_t* w, FILE* f)
 	// seed
 	unsigned int seed;
 	CLINE("seed = %x\n", &seed);
+	CLINE("%ix%i\n", &w->rows, &w->cols);
 	world_genmap(w, seed);
 
 	// characters

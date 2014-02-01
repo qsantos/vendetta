@@ -56,6 +56,8 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 	}
 	else
 	{
+		g->w->rows = s->map_height;
+		g->w->cols = s->map_width;
 		world_genmap(g->w, s->seed);
 		world_start(g->w);
 	}
