@@ -299,29 +299,13 @@ void character_move(character_t* c, float duration, float dx, float dy)
 {
 	c->inBuilding = -1;
 
-	float dir;
-	if (dx > 0)
-	{
-		dir = atan(dy / dx);
-		if (dy < 0)
-			dir += 2 * M_PI;
-	}
-	else if (dx < 0)
-	{
-		dir = atan(dy / dx) + M_PI;
-	}
-	else // dx == 0
-	{
-		dir = M_PI / 2;
-		if (dy < 0)
-			dir += M_PI;
-	}
+	float dir = atan2f(dy, dx);
 
-	c->dir = dir < M_PI * 1/4 ? D_EAST :
+	c->dir = dir <-M_PI * 3/4 ? D_WEST :
+	         dir <-M_PI * 1/4 ? D_NORTH :
+	         dir < M_PI * 1/4 ? D_EAST :
 	         dir < M_PI * 3/4 ? D_SOUTH :
-		 dir < M_PI * 5/4 ? D_WEST :
-		 dir < M_PI * 7/4 ? D_NORTH :
-		                     D_EAST;
+	                            D_WEST;
 
 	float distance = duration * character_getSkill(c, SK_WALK);
 	distance *= 100;
