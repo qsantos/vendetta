@@ -227,6 +227,7 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 
 	u->n_events = gr->n_sections;
 	u->events   = CALLOC(kindOf_event_t, u->n_events);
+	u->event_destroyBuilding = 23; // TODO: load from Parametres_Effets.ini
 	for (size_t i = 0; i < u->n_events; i++)
 	{
 		cfg_section_t*  s = &gr->sections[i];

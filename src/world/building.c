@@ -66,6 +66,10 @@ float building_attacked(building_t* b, float work, character_t* a)
 	if (b->life <= 0)
 	{
 		world_t* w = a->world;
+		universe_t* u = a->universe;
+
+		kindOf_event_t* e = &u->events[u->event_destroyBuilding];
+		evtList_push(&w->events, e, b->o.x, b->o.y - b->o.h/2);
 		world_delBuilding(w, b);
 	}
 	return work;

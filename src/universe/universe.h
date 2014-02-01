@@ -40,6 +40,7 @@ struct universe
 
 	size_t n_events;
 	kindOf_event_t* events;
+	size_t event_destroyBuilding;
 
 	size_t n_characters;
 	kindOf_character_t* characters;

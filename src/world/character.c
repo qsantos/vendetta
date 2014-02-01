@@ -251,7 +251,6 @@ void character_eatFor(character_t* c, int status)
 	}
 }
 
-
 void character_attack(character_t* c, object_t* o)
 {
 	if (c->statuses[ST_ATTACK] < 7)
