@@ -89,9 +89,9 @@ int main(int argc, char** argv)
 	settings_t s =
 	{
 		.seed       = time(NULL),
-		.map_width  = 100,
-		.map_height = 100,
-		.bots_count = 50,
+		.map_width  = 500,
+		.map_height = 500,
+		.bots_count = 100,
 		.verbosity  = 1,
 		.godmode    = 0,
 		.quickstart = 0,
