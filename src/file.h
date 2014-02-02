@@ -54,9 +54,11 @@ char isdir(const char* path);
 	struct dirent* __ent; \
 	char path[1024]; \
 	strncpy(path, p, 1024); \
+	path[sizeof(path)-1] = 0; \
 	while ((__ent = readdir(__dir)) != NULL) \
 	{ \
 		strncpy(path+strlen(p), __ent->d_name, 1024-strlen(p)); \
+		path[sizeof(path)-1] = 0; \
 		char __isdir = isdir(path); \
 		if (__isdir) \
 			path[strlen(p)+strlen(__ent->d_name)] = '/'; \
