@@ -92,7 +92,7 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	return -1;
 }
-static void draw_slider(graphics_t* gr, float x, float y, int* v, int min, int max, char do_draw)
+static void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int min, int max, char do_draw)
 {
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -117,13 +117,13 @@ static void draw_slider(graphics_t* gr, float x, float y, int* v, int min, int m
 		if (do_draw)
 		{
 			float r = (float)(*v - min) / (max-min);
-			graphics_drawProgressBar(gr, rect.left, rect.top, rect.width, rect.height, r, -1);
+			graphics_drawProgressBar(gr, rect.left, rect.top, rect.width, rect.height, r, -2);
 		}
 	}
 
 	{
 		char buffer[1024];
-		snprintf(buffer, 1024, "%i", *v);
+		snprintf(buffer, 1024, "%s: %i", name, *v);
 		sfText_setUTF8(text, buffer);
 		sfFloatRect rect = sfText_getLocalBounds(text);
 		sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
@@ -155,9 +155,9 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	y += 50;
 
-	draw_slider(gr, x, y, &s->map_width,  100, 2000, do_draw);
+	draw_slider(gr, x, y, "Largeur", &s->map_width,  100, 2000, do_draw);
 	y += 50;
-	draw_slider(gr, x, y, &s->map_height, 100, 2000, do_draw);
+	draw_slider(gr, x, y, "Height",  &s->map_height, 100, 2000, do_draw);
 	y += 50;
 
 	if (draw_button(x, y, "Revenir", gr, do_draw))
