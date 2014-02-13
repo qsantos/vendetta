@@ -92,10 +92,10 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	return -1;
 }
-static int draw_slider(graphics_t* gr, float x, float y, int v, char do_draw)
+static void draw_slider(graphics_t* gr, float x, float y, int* v, int min, int max, char do_draw)
 {
-	if (draw_button(x-100, y, "-", gr, do_draw)) return 0;
-	if (draw_button(x+100, y, "+", gr, do_draw)) return 1;
+	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
+	sfVector2f mouse = {imouse.x, imouse.y};
 
 	static sfText* text = NULL;
 	if (text == NULL)
@@ -109,20 +109,28 @@ static int draw_slider(graphics_t* gr, float x, float y, int v, char do_draw)
 		sfFloatRect rect = {0,0, 200, 40};
 		rect.left = x - rect.width / 2;
 		rect.top  = y - rect.height / 2;
+		if (sfFloatRect_contains(&rect, mouse.x, mouse.y) && sfMouse_isButtonPressed(sfMouseLeft))
+		{
+			float r = (mouse.x - rect.left) / rect.width;
+			*v = min + r * (max-min);
+		}
 		if (do_draw)
-			graphics_drawProgressBar(gr, rect.left, rect.top, rect.width, rect.height, v/2000., -1);
+		{
+			float r = (float)(*v - min) / (max-min);
+			graphics_drawProgressBar(gr, rect.left, rect.top, rect.width, rect.height, r, -1);
+		}
 	}
 
-	char buffer[1024];
-	snprintf(buffer, 1024, "%i", v);
-	sfText_setUTF8(text, buffer);
-	sfFloatRect rect = sfText_getLocalBounds(text);
-	sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
-	sfText_setPosition(text, pos);
-	if (do_draw)
-		sfRenderWindow_drawText(gr->render, text, NULL);
-
-	return -1;
+	{
+		char buffer[1024];
+		snprintf(buffer, 1024, "%i", *v);
+		sfText_setUTF8(text, buffer);
+		sfFloatRect rect = sfText_getLocalBounds(text);
+		sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+		sfText_setPosition(text, pos);
+		if (do_draw)
+			sfRenderWindow_drawText(gr->render, text, NULL);
+	}
 }
 static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 {
@@ -147,10 +155,9 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	y += 50;
 
-	int r;
-	if ((r = draw_slider(gr, x, y, s->map_width,  do_draw)) >= 0) return 2*1 + r;
+	draw_slider(gr, x, y, &s->map_width,  100, 2000, do_draw);
 	y += 50;
-	if ((r = draw_slider(gr, x, y, s->map_height, do_draw)) >= 0) return 2*2 + r;
+	draw_slider(gr, x, y, &s->map_height, 100, 2000, do_draw);
 	y += 50;
 
 	if (draw_button(x, y, "Revenir", gr, do_draw))
@@ -203,15 +210,8 @@ void menu(settings_t* s)
 			{
 				if (inconfig)
 				{
-					int i = configmenu(gr, s, 0);
-					char sign = 2*(i%2) - 1;
-					i /= 2;
-					if (i == 0)
+					if (configmenu(gr, s, 0) == 0)
 						inconfig = 0;
-					else if (i == 1)
-						s->map_width  += sign * 100;
-					else if (i == 2)
-						s->map_height += sign * 100;
 				}
 				else
 				{
