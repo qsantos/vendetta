@@ -18,55 +18,9 @@
 
 #include "menu.h"
 
-#include <stdlib.h>
-#include <string.h>
-
-#include "graphics.h"
+#include "widgets.h"
 #include "game.h"
 
-static char draw_button(float x, float y, const char* txt, graphics_t* gr, char do_draw)
-{
-	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
-	sfVector2f mouse = {imouse.x, imouse.y};
-
-	static sfSprite* normal = NULL;
-	static sfSprite* mini   = NULL;
-	if (normal == NULL)
-	{
-		normal = graphics_sprite(gr, "data/menubutton.png");
-		mini   = graphics_sprite(gr, "data/mini.png");
-	}
-	sfSprite* sprite = strlen(txt) > 1 ? normal : mini;
-
-	sfFloatRect rect = sfSprite_getGlobalBounds(sprite);
-	sfVector2f pos = {x-rect.width/2, y-rect.height/2};
-	sfSprite_setPosition(sprite, pos);
-
-	char is_in = sfSprite_contains(sprite, mouse);
-	sfColor color = is_in ? sfWhite : (sfColor){255,255,255,127};
-	sfSprite_setColor(sprite, color);
-
-	if (do_draw)
-		sfRenderWindow_drawSprite(gr->render, sprite, NULL);
-	else
-		return is_in;
-
-	static sfText* text = NULL;
-	if (text == NULL)
-	{
-		text = sfText_create();
-		sfText_setFont(text, gr->font);
-		sfText_setCharacterSize(text, 25);
-	}
-
-	sfText_setUTF8(text, txt);
-	rect = sfText_getLocalBounds(text);
-	pos = (sfVector2f){x-rect.width/2-rect.left, y-rect.height/2-rect.top};
-	sfText_setPosition(text, pos);
-	sfRenderWindow_drawText(gr->render, text, NULL);
-
-	return 0;
-}
 static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 {
 	(void) s;
@@ -84,53 +38,13 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	for (size_t i = 0; i < sizeof(labels)/sizeof(labels[0]); i++)
 	{
-		if (draw_button(x, y, labels[i], gr, do_draw))
+		if (draw_button(gr, x, y, labels[i], do_draw))
 			return i;
 
 		y += 50;
 	}
 
 	return -1;
-}
-static void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int min, int max, char do_draw)
-{
-	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
-	sfVector2f mouse = {imouse.x, imouse.y};
-
-	static sfText* text = NULL;
-	if (text == NULL)
-	{
-		text = sfText_create();
-		sfText_setFont(text, gr->font);
-		sfText_setCharacterSize(text, 20);
-	}
-
-	{
-		sfFloatRect rect = {0,0, 200, 40};
-		rect.left = x - rect.width / 2;
-		rect.top  = y - rect.height / 2;
-		if (sfFloatRect_contains(&rect, mouse.x, mouse.y) && sfMouse_isButtonPressed(sfMouseLeft))
-		{
-			float r = (mouse.x - rect.left) / rect.width;
-			*v = min + r * (max-min);
-		}
-		if (do_draw)
-		{
-			float r = (float)(*v - min) / (max-min);
-			graphics_drawProgressBar(gr, rect.left, rect.top, rect.width, rect.height, r, -2);
-		}
-	}
-
-	{
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %i", name, *v);
-		sfText_setUTF8(text, buffer);
-		sfFloatRect rect = sfText_getLocalBounds(text);
-		sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
-		sfText_setPosition(text, pos);
-		if (do_draw)
-			sfRenderWindow_drawText(gr->render, text, NULL);
-	}
 }
 static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 {
@@ -162,7 +76,7 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 	draw_slider(gr, x, y, "Bots",    &s->bots_count,  10, 2000, do_draw);
 	y += 50;
 
-	if (draw_button(x, y, "Confirmer", gr, do_draw))
+	if (draw_button(gr, x, y, "Confirmer", do_draw))
 		return 0;
 
 	return -1;

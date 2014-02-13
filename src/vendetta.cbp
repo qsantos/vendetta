@@ -91,6 +91,8 @@
 <Unit filename="voronoi/geometry.h" />
 <Unit filename="voronoi/heap.h" />
 <Unit filename="voronoi/binbeach.h" />
+<Unit filename="widgets.c" />
+<Unit filename="widgets.h" />
 <Unit filename="world/world.c" />
 <Unit filename="world/building.c" />
 <Unit filename="world/chunk.c" />
