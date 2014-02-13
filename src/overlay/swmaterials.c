@@ -101,7 +101,7 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 			caught |= sfSprite_contains(sprite, mouse);
 
 		// text
-		float max = floor(character_maxOf(g->player, m));
+		float max = floor(character_maxOfMaterial(g->player, m));
 		char buffer[1024];
 		snprintf(buffer, 1024, "%s: %.0f/%.0f", m->name, amount, max);
 		sfText_setPosition(text, (sfVector2f){x+32, y+6});

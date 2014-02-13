@@ -56,7 +56,10 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 		c->skills[i] = 20;
 
 	for (int i = 0; i < N_STATUSES; i++)
-		c->statuses[i] = 20;
+	{
+		float max = character_maxOfStatus(c, i);
+		c->statuses[i] = max;
+	}
 
 	c->equipment = CALLOC(int, u->n_slots);
 	for (size_t i = 0; i < u->n_slots; i++)
@@ -75,7 +78,8 @@ void character_exit(character_t* c)
 
 static float vitality_malus(character_t* c, int i)
 {
-	float s = c->statuses[i] / 20;
+	float max = character_maxOfStatus(c, i);
+	float s = c->statuses[i] / max;
 	if (s < 0.10) return 0.450;
 	if (s < 0.25) return 0.250;
 	if (s < 0.50) return 0.125;
@@ -88,12 +92,6 @@ float character_vitality(character_t* c)
 	ret -= vitality_malus(c, ST_STAMINA);
 	ret -= vitality_malus(c, ST_MORAL);
 	return fmax(ret, 0.1);
-}
-
-void character_weary(character_t* c, float f)
-{
-	c->statuses[ST_STAMINA] = fmax(c->statuses[ST_STAMINA] - f,   0);
-	c->statuses[ST_MORAL]   = fmax(c->statuses[ST_MORAL]   - f/3, 0);
 }
 
 float character_getSkill(character_t* c, int skill)
@@ -120,15 +118,35 @@ float character_getSkill(character_t* c, int skill)
 	return ret / 20;
 }
 
+float character_maxOfMaterial(character_t* c, kindOf_material_t* m)
+{
+	return 20 * character_getSkill(c, m->skill);
+}
+
+float character_maxOfStatus(character_t* c, int s)
+{
+	(void) c;
+	(void) s;
+	return 20;
+}
+
+void character_addStatus(character_t* c, int s, float q)
+{
+	float max = character_maxOfStatus(c, s);
+	float n = c->statuses[s] + q;
+	c->statuses[s] = fmin(fmax(n, 0), max);
+}
+
+void character_weary(character_t* c, float f)
+{
+	character_addStatus(c, ST_STAMINA, -f);
+	character_addStatus(c, ST_STAMINA, -f/3);
+}
+
 void character_train(character_t* c, int skill, float work)
 {
 	c->skills[skill] += work/50;
 	character_weary(c, 0.1 * work);
-}
-
-float character_maxOf(character_t* c, kindOf_material_t* m)
-{
-	return 20 * character_getSkill(c, m->skill);
 }
 
 void character_workAt(character_t* c, object_t* o, float duration)
@@ -154,7 +172,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 		float work = duration * character_getSkill(c, skill);
 		work *= tr->rate;
-		float avail = character_maxOf(c, t) - c->inventory.materials[id];
+		float avail = character_maxOfMaterial(c, t) - c->inventory.materials[id];
 		work = fmin(work, avail/tr->res[0].amount);
 		work = transform_apply(tr, &c->inventory, work);
 		character_train(c, skill, work);
@@ -217,7 +235,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 			float work = duration * character_getSkill(c, skill);
 			work *= tr->rate;
-			float avail = character_maxOf(c, t) - c->inventory.materials[id];
+			float avail = character_maxOfMaterial(c, t) - c->inventory.materials[id];
 			work = fmin(work, avail/tr->res[0].amount);
 			work = transform_apply(tr, &c->inventory, work);
 			character_train(c, skill, work);
@@ -236,7 +254,7 @@ char character_eat(character_t* c, int material)
 
 	c->inventory.materials[material] -= 1;
 	for (int i = 0; i < N_STATUSES; i++)
-		c->statuses[i] += m->eatBonus[i];
+		character_addStatus(c, i, m->eatBonus[i]);
 	return 1;
 }
 
@@ -365,7 +383,7 @@ void character_doRound(character_t* c, float duration)
 
 	duration *= character_vitality(c);
 
-	c->statuses[ST_ATTACK] = fmin(c->statuses[ST_ATTACK] + 7*duration, 20);
+	character_addStatus(c, ST_ATTACK, 7*duration);
 
 	float go_x = c->go_x;
 	float go_y = c->go_y;
@@ -450,8 +468,7 @@ void character_setPosition(character_t* c, float x, float y)
 
 float character_attacked(character_t* c, float work, character_t* a)
 {
-	work = fmin(work, c->statuses[ST_HEALTH]);
-	c->statuses[ST_HEALTH] -= work;
+	character_addStatus(c, ST_HEALTH, work);
 	if (c->statuses[ST_HEALTH] <= 0)
 	{
 		c->alive = 0;
@@ -550,7 +567,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			int skill = t->skill;
 
 			float amount = floor(c->inventory.materials[id]);
-			float max = floor(character_maxOf(c, t));
+			float max = floor(character_maxOfMaterial(c, t));
 			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%0.f)", u->skills[skill].name, amount, max);
 		}
 	}
@@ -604,7 +621,7 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			int skill = t->skill;
 
 			float amount = floor(c->inventory.materials[id]);
-			float max = floor(character_maxOf(c, t));
+			float max = floor(character_maxOfMaterial(c, t));
 			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%0.f)", u->skills[skill].name, amount, max);
 		}
 		else

@@ -131,6 +131,8 @@ static int overlay_statuses(game_t* g, char do_draw)
 	if (!do_draw)
 		mouse = overlay_mouse(g);
 
+	character_t* c = g->player;
+
 	static sfText* text = NULL;
 	if (text == NULL)
 	{
@@ -151,7 +153,8 @@ static int overlay_statuses(game_t* g, char do_draw)
 		    y <= mouse.y && mouse.y <= y + 20)
 			return i;
 
-		float p = g->player->statuses[i] / 20;
+		float max = character_maxOfStatus(c, i);
+		float p = c->statuses[i] / max;
 		if (do_draw)
 			graphics_drawProgressBar(g->g, x, y, 150, 20, p, g->autoEat[i]);
 
@@ -162,8 +165,7 @@ static int overlay_statuses(game_t* g, char do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
 
 		char buffer[1024];
-		float amount = floor(g->player->statuses[i]);
-		snprintf(buffer, 1024, "%.0f/%.0f", amount, floor(20.));
+		snprintf(buffer, 1024, "%.0f/%.0f", floor(c->statuses[i]), floor(max));
 		sfText_setUTF8(text, buffer);
 		sfFloatRect rect = sfText_getLocalBounds(text);
 		pos.x = x + 140 - rect.width;
@@ -316,7 +318,7 @@ int overlay_cursor(game_t* g)
 
 					char buffer[1024];
 					float amount = floor(g->player->inventory.materials[id]);
-					float max = character_maxOf(g->player, t);
+					float max = character_maxOfMaterial(g->player, t);
 					snprintf(buffer, 1024, "%s (%.0f/%0.f)", g->u->skills[skill].name, amount, max);
 					graphics_drawTooltip(g->g, buffer);
 				}

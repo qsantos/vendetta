@@ -102,7 +102,7 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 		for (size_t i = 0; i < g->u->n_materials; i++)
 		{
 			kindOf_material_t* t = &g->u->materials[i];
-			m[i] = character_maxOf(g->player, t);
+			m[i] = character_maxOfMaterial(g->player, t);
 		}
 	}
 }
@@ -334,9 +334,14 @@ void game_loop(game_t* g)
 		}
 
 		// check player statuses
+		character_t* c = g->player;
 		for (size_t i = 0; i < N_STATUSES; i++)
-			if (g->autoEat[i] && g->player->statuses[i] < 10)
+		{
+			float max = character_maxOfStatus(c, i);
+			float p = c->statuses[i] / max;
+			if (g->autoEat[i] && p < 0.5)
 				character_eatFor(g->player, i);
+		}
 
 		// do round
 		world_doRound(g->w, duration);

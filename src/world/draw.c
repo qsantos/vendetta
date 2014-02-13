@@ -101,7 +101,8 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 
-	float p = c->statuses[ST_HEALTH] / 20.;
+	float max = character_maxOfStatus(c, ST_HEALTH);
+	float p = c->statuses[ST_HEALTH] / max;
 	if (p != 0 && p != 1)
 		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p, 0);
 }
@@ -159,7 +160,7 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 
 			int id = tr->res[0].id;
 			kindOf_material_t* t = &u->materials[id];
-			p = player->inventory.materials[id] / character_maxOf(player, t);
+			p = player->inventory.materials[id] / character_maxOfMaterial(player, t);
 		}
 		graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y-b->o.h-6, b->o.w, 5, p, -1);
 	}
