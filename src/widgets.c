@@ -21,7 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 
-char draw_button(graphics_t* gr, float x, float y, const char* name, char do_draw)
+char draw_button(graphics_t* gr, float x, float y, const char* name, char enabled, char do_draw)
 {
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -40,13 +40,13 @@ char draw_button(graphics_t* gr, float x, float y, const char* name, char do_dra
 	sfSprite_setPosition(sprite, pos);
 
 	char is_in = sfSprite_contains(sprite, mouse);
-	sfColor color = is_in ? sfWhite : (sfColor){255,255,255,127};
+	sfColor color = enabled ? (is_in ? sfWhite : (sfColor){255,255,255,127}) : sfRed;
 	sfSprite_setColor(sprite, color);
 
 	if (do_draw)
 		sfRenderWindow_drawSprite(gr->render, sprite, NULL);
 	else
-		return is_in;
+		return enabled && is_in;
 
 	static sfText* text = NULL;
 	if (text == NULL)

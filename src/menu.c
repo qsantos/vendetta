@@ -18,6 +18,8 @@
 
 #include "menu.h"
 
+#include <unistd.h>
+
 #include "widgets.h"
 #include "game.h"
 
@@ -38,7 +40,8 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	for (size_t i = 0; i < sizeof(labels)/sizeof(labels[0]); i++)
 	{
-		if (draw_button(gr, x, y, labels[i], do_draw))
+		char enabled = i != 2 || !access("game.save", R_OK);
+		if (draw_button(gr, x, y, labels[i], enabled, do_draw))
 			return i;
 
 		y += 50;
@@ -74,7 +77,7 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 	draw_toggle(gr, x, (y+=50), "Quickstart", &s->quickstart, do_draw);
 	draw_toggle(gr, x, (y+=50), "Godmode",    &s->godmode,    do_draw);
 
-	if (draw_button(gr, x, (y+=50), "Confirmer", do_draw))
+	if (draw_button(gr, x, (y+=50), "Confirmer", 1, do_draw))
 		return 0;
 
 	return -1;
