@@ -159,8 +159,10 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 	y += 50;
 	draw_slider(gr, x, y, "Height",  &s->map_height, 100, 2000, do_draw);
 	y += 50;
+	draw_slider(gr, x, y, "Bots",    &s->bots_count,  10, 2000, do_draw);
+	y += 50;
 
-	if (draw_button(x, y, "Revenir", gr, do_draw))
+	if (draw_button(x, y, "Confirmer", gr, do_draw))
 		return 0;
 
 	return -1;
