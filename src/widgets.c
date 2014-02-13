@@ -65,7 +65,7 @@ char draw_button(graphics_t* gr, float x, float y, const char* name, char do_dra
 	return 0;
 }
 
-void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int min, int max, char do_draw)
+char draw_toggle(graphics_t* gr, float x, float y, const char* name, char* v, char do_draw)
 {
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -77,6 +77,27 @@ void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int
 		sfText_setFont(text, gr->font);
 		sfText_setCharacterSize(text, 20);
 	}
+
+	{
+		char buffer[1024];
+		snprintf(buffer, 1024, "%s: %s", name, *v ? "oui" : "non");
+		sfText_setUTF8(text, buffer);
+		sfFloatRect rect = sfText_getLocalBounds(text);
+		sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+		sfText_setPosition(text, pos);
+		if (do_draw)
+			sfRenderWindow_drawText(gr->render, text, NULL);
+		else if (sfText_contains(text, mouse))
+			*v ^= 1;
+	}
+
+	return 0;
+}
+
+void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int min, int max, char do_draw)
+{
+	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
+	sfVector2f mouse = {imouse.x, imouse.y};
 
 	{
 		sfFloatRect rect = {0,0, 200, 40};
@@ -94,14 +115,20 @@ void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int
 		}
 	}
 
+	static sfText* text = NULL;
+	if (text == NULL)
 	{
-		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %i", name, *v);
-		sfText_setUTF8(text, buffer);
-		sfFloatRect rect = sfText_getLocalBounds(text);
-		sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
-		sfText_setPosition(text, pos);
-		if (do_draw)
-			sfRenderWindow_drawText(gr->render, text, NULL);
+		text = sfText_create();
+		sfText_setFont(text, gr->font);
+		sfText_setCharacterSize(text, 20);
 	}
+
+	char buffer[1024];
+	snprintf(buffer, 1024, "%s: %i", name, *v);
+	sfText_setUTF8(text, buffer);
+	sfFloatRect rect = sfText_getLocalBounds(text);
+	sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+	sfText_setPosition(text, pos);
+	if (do_draw)
+		sfRenderWindow_drawText(gr->render, text, NULL);
 }

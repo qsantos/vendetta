@@ -67,16 +67,14 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 	sfText_setPosition(text, pos);
 	sfRenderWindow_drawText(gr->render, text, NULL);
 
-	y += 50;
+	draw_slider(gr, x, (y+=50), "Largeur", &s->map_width,  100, 2000, do_draw);
+	draw_slider(gr, x, (y+=50), "Height",  &s->map_height, 100, 2000, do_draw);
+	draw_slider(gr, x, (y+=50), "Bots",    &s->bots_count,  10, 2000, do_draw);
 
-	draw_slider(gr, x, y, "Largeur", &s->map_width,  100, 2000, do_draw);
-	y += 50;
-	draw_slider(gr, x, y, "Height",  &s->map_height, 100, 2000, do_draw);
-	y += 50;
-	draw_slider(gr, x, y, "Bots",    &s->bots_count,  10, 2000, do_draw);
-	y += 50;
+	draw_toggle(gr, x, (y+=50), "Quickstart", &s->quickstart, do_draw);
+	draw_toggle(gr, x, (y+=50), "Godmode",    &s->godmode,    do_draw);
 
-	if (draw_button(gr, x, y, "Confirmer", do_draw))
+	if (draw_button(gr, x, (y+=50), "Confirmer", do_draw))
 		return 0;
 
 	return -1;

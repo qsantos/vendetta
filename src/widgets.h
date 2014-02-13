@@ -22,6 +22,7 @@
 #include "graphics.h"
 
 char draw_button(graphics_t* gr, float x, float y, const char* name, char do_draw);
-void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int min, int max, char do_draw);
+char draw_toggle(graphics_t* gr, float x, float y, const char* name, char* v, char do_draw);
+void draw_slider(graphics_t* gr, float x, float y, const char* name, int*  v, int min, int max, char do_draw);
 
 #endif
