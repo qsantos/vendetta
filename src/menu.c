@@ -92,7 +92,7 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	return -1;
 }
-static int draw_scale(graphics_t* gr, float x, float y, int v, char do_draw)
+static int draw_slider(graphics_t* gr, float x, float y, int v, char do_draw)
 {
 	if (draw_button(x-100, y, "-", gr, do_draw)) return 0;
 	if (draw_button(x+100, y, "+", gr, do_draw)) return 1;
@@ -104,13 +104,23 @@ static int draw_scale(graphics_t* gr, float x, float y, int v, char do_draw)
 		sfText_setFont(text, gr->font);
 		sfText_setCharacterSize(text, 20);
 	}
+
+	{
+		sfFloatRect rect = {0,0, 200, 40};
+		rect.left = x - rect.width / 2;
+		rect.top  = y - rect.height / 2;
+		if (do_draw)
+			graphics_drawProgressBar(gr, rect.left, rect.top, rect.width, rect.height, v/2000., -1);
+	}
+
 	char buffer[1024];
 	snprintf(buffer, 1024, "%i", v);
 	sfText_setUTF8(text, buffer);
 	sfFloatRect rect = sfText_getLocalBounds(text);
 	sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
 	sfText_setPosition(text, pos);
-	sfRenderWindow_drawText(gr->render, text, NULL);
+	if (do_draw)
+		sfRenderWindow_drawText(gr->render, text, NULL);
 
 	return -1;
 }
@@ -138,9 +148,9 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 	y += 50;
 
 	int r;
-	if ((r = draw_scale(gr, x, y, s->map_width,  do_draw)) >= 0) return 2*1 + r;
+	if ((r = draw_slider(gr, x, y, s->map_width,  do_draw)) >= 0) return 2*1 + r;
 	y += 50;
-	if ((r = draw_scale(gr, x, y, s->map_height, do_draw)) >= 0) return 2*2 + r;
+	if ((r = draw_slider(gr, x, y, s->map_height, do_draw)) >= 0) return 2*2 + r;
 	y += 50;
 
 	if (draw_button(x, y, "Revenir", gr, do_draw))
