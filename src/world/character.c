@@ -120,7 +120,21 @@ float character_getSkill(character_t* c, int skill)
 
 float character_maxOfMaterial(character_t* c, kindOf_material_t* m)
 {
-	return 20 * character_getSkill(c, m->skill);
+	float ret = 20 * character_getSkill(c, m->skill);
+
+	// bonuses
+	universe_t* u = c->universe;
+	for (size_t i = 0; i < u->n_slots; i++)
+	{
+		int item = c->equipment[i];
+		if (item < 0)
+			continue;
+		kindOf_item_t* t = &u->items[item];
+		effect_t* e = &t->effect;
+		ret += e->max_material;
+	}
+
+	return ret;
 }
 
 float character_maxOfStatus(character_t* c, int s)

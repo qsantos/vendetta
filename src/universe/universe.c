@@ -414,6 +414,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		it->effect.status_bonus[ST_MORAL]   = cfg_getFloat(s, "BonusMoral");
 		it->effect.status_bonus[ST_MANA]    = cfg_getFloat(s, "BonusMagie");
 
+		it->effect.max_material = cfg_getFloat(s, "BonusMaxRessources");
+
 		float walking = cfg_getFloat(s, "BonusDeplacement");
 		if (walking != 0)
 			effect_skill(&it->effect, SK_WALK, walking);

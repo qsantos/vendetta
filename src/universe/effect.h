@@ -31,6 +31,7 @@ struct effect
 	int*   skills;
 	float* bonuses;
 	float  status_bonus[N_STATUSES];
+	float  max_material;
 };
 
 void effect_init(effect_t* e);

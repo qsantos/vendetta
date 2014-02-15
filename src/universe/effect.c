@@ -30,6 +30,8 @@ void effect_init(effect_t* e)
 
 	for (size_t i = 0; i < N_STATUSES; i++)
 		e->status_bonus[i] = 0;
+
+	e->max_material = 0;
 }
 
 void effect_exit(effect_t* e)
