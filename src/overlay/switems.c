@@ -38,6 +38,9 @@ size_t switems_itemTooltip(char* buffer, size_t n, universe_t* u, kindOf_item_t*
 	cur += snprintf(buffer+cur, n-cur, "%s", it->name);
 
 	effect_t* e = &it->effect;
+	float v = e->max_material;
+	if (v != 0)
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f transporté", v);
 	for (size_t i = 0; i < N_STATUSES; i++)
 	{
 		kindOf_status_t* s = &u->statuses[i];
