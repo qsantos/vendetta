@@ -55,15 +55,15 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 	for (size_t i = 0; i < u->n_skills; i++)
 		c->skills[i] = 20;
 
+	c->equipment = CALLOC(int, u->n_slots);
+	for (size_t i = 0; i < u->n_slots; i++)
+		c->equipment[i] = -1;
+
 	for (int i = 0; i < N_STATUSES; i++)
 	{
 		float max = character_maxOfStatus(c, i);
 		c->statuses[i] = max;
 	}
-
-	c->equipment = CALLOC(int, u->n_slots);
-	for (size_t i = 0; i < u->n_slots; i++)
-		c->equipment[i] = -1;
 }
 
 void character_exit(character_t* c)
@@ -125,9 +125,21 @@ float character_maxOfMaterial(character_t* c, kindOf_material_t* m)
 
 float character_maxOfStatus(character_t* c, int s)
 {
-	(void) c;
-	(void) s;
-	return 20;
+	float ret = 20;
+
+	// bonuses
+	universe_t* u = c->universe;
+	for (size_t i = 0; i < u->n_slots; i++)
+	{
+		int item = c->equipment[i];
+		if (item < 0)
+			continue;
+		kindOf_item_t* t = &u->items[item];
+		effect_t* e = &t->effect;
+		ret += e->status_bonus[s];
+	}
+
+	return ret;
 }
 
 void character_addStatus(character_t* c, int s, float q)

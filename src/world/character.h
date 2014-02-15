@@ -76,8 +76,8 @@ void character_exit(character_t* c);
 
 float character_vitality(character_t* c);
 float character_getSkill(character_t* c, int skill);
-float character_maxOfMaterial(character_t* c, kindOf_material_t* m);
 float character_maxOfStatus  (character_t* c, int s);
+float character_maxOfMaterial(character_t* c, kindOf_material_t* m);
 
 void character_addStatus(character_t* c, int s, float q);
 void character_weary   (character_t* c, float f);

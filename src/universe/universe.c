@@ -409,6 +409,11 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			effect_skill(&it->effect, skill, atof(v));
 		}
 
+		it->effect.status_bonus[ST_HEALTH]  = cfg_getFloat(s, "BonusVie");
+		it->effect.status_bonus[ST_STAMINA] = cfg_getFloat(s, "BonusEnergie");
+		it->effect.status_bonus[ST_MORAL]   = cfg_getFloat(s, "BonusMoral");
+		it->effect.status_bonus[ST_MANA]    = cfg_getFloat(s, "BonusMagie");
+
 		float walking = cfg_getFloat(s, "BonusDeplacement");
 		if (walking != 0)
 			effect_skill(&it->effect, SK_WALK, walking);

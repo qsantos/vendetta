@@ -27,6 +27,9 @@ void effect_init(effect_t* e)
 	e->n_skills = 0;
 	e->skills   = NULL;
 	e->bonuses  = NULL;
+
+	for (size_t i = 0; i < N_STATUSES; i++)
+		e->status_bonus[i] = 0;
 }
 
 void effect_exit(effect_t* e)

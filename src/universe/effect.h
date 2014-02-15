@@ -23,11 +23,14 @@ typedef struct effect effect_t;
 
 #include <sys/types.h>
 
+#include "status.h"
+
 struct effect
 {
 	size_t n_skills;
 	int*   skills;
 	float* bonuses;
+	float  status_bonus[N_STATUSES];
 };
 
 void effect_init(effect_t* e);
