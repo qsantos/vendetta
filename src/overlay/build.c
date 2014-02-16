@@ -294,8 +294,13 @@ char ov_build_catch(ov_build_t* o, game_t* g, int t)
 	int i = ov_build_draw(o, g, 0);
 	if (i >= 0)
 	{
-		o->selected = &g->u->buildings[i];
-		o->active = 0;
+		kindOf_building_t* b = &g->u->buildings[i];
+		int ok = transform_check(&b->build, &g->player->inventory);
+		if (ok)
+		{
+			o->selected = b;
+			o->active = 0;
+		}
 		return 1;
 	}
 
