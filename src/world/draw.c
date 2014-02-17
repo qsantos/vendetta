@@ -55,7 +55,8 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	if (c == NULL)
 		return;
 
-	if (c->inBuilding >= 0)
+	building_t* b = character_get_inBuilding(c);
+	if (b != NULL)
 		return;
 
 	int step = floor(c->step);

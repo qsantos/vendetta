@@ -325,7 +325,8 @@ void character_attack(character_t* c, object_t* o)
 	if (o->t == O_CHARACTER)
 	{
 		character_t* t = (character_t*) o;
-		if (!t->alive || t->inBuilding >= 0)
+		building_t* b = character_get_inBuilding(t);
+		if (b != NULL || !t->alive)
 		{
 			c->go_o = -1;
 			return;
@@ -436,7 +437,8 @@ void character_doRound(character_t* c, float duration)
 		if (o->t == O_CHARACTER)
 		{
 			character_t* t = (character_t*) o;
-			if (!t->alive || t->inBuilding >= 0)
+			building_t* b = character_get_inBuilding(t);
+			if (b != NULL || !t->alive)
 			{
 				c->go_o = -1;
 				return;
@@ -557,6 +559,28 @@ char character_delHome(character_t* c)
 	world_delBuilding(c->world, b);
 	c->hasBuilding = -1;
 	return 1;
+}
+
+building_t* character_get_inBuilding(character_t* c)
+{
+	if (c->inBuilding < 0)
+		return NULL;
+
+	building_t* b = building_get(&c->world->objects, c->inBuilding);
+	if (b == NULL)
+		c->inBuilding = -1;
+	return b;
+}
+
+building_t* character_get_hasBuilding(character_t* c)
+{
+	if (c->hasBuilding < 0)
+		return NULL;
+
+	building_t* b = building_get(&c->world->objects, c->hasBuilding);
+	if (b == NULL)
+		c->hasBuilding = -1;
+	return b;
 }
 
 size_t character_currentAction(character_t* c, char* buffer, size_t n)

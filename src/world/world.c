@@ -140,7 +140,8 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 
 		if (&c->o == ignore)
 			continue;
-		if (!c->alive || c->inBuilding >= 0)
+		building_t* b = character_get_inBuilding(c);
+		if (b != NULL || !c->alive)
 			continue;
 		if (object_isAt(&c->o, x, y))
 			return &c->o;
@@ -340,7 +341,8 @@ character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
 
 		if (t == c)
 			continue;
-		if (!t->alive || t->inBuilding >= 0)
+		building_t* b = character_get_inBuilding(c);
+		if (b != NULL || !c->alive)
 			continue;
 		float d = object_distance(&c->o, t->o.x, t->o.y);
 		if (min_d < 0 || d < min_d)

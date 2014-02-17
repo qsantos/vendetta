@@ -98,6 +98,9 @@ char character_buildAuto(character_t* c, kindOf_building_t* t);
 char character_buildAt  (character_t* c, kindOf_building_t* t, float x, float y);
 char character_delHome  (character_t* c);
 
+building_t* character_get_inBuilding (character_t* c);
+building_t* character_get_hasBuilding(character_t* c);
+
 size_t character_currentAction(character_t* c, char* buffer, size_t n);
 
 #endif
