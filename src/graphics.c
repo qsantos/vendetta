@@ -156,10 +156,10 @@ void graphics_drawRoundRect(graphics_t* g, float x, float y, float w, float h)
 	}
 	sfColor corners[4] =
 	{
-		{191, 191, 191, 223},
-		{223, 223, 223, 223},
-		{255, 255, 255, 223},
-		{223, 223, 223, 223},
+		{191, 191, 191, 191},
+		{223, 223, 223, 191},
+		{255, 255, 255, 191},
+		{223, 223, 223, 191},
 	};
 	for (int i = 0; i < 4*count; i++)
 	{
