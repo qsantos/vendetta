@@ -23,7 +23,6 @@
 #include <math.h>
 
 #include "../mem.h"
-#include "../world/world_save.h"
 
 void overlay_init(overlay_t* o, game_t* g)
 {
@@ -364,7 +363,7 @@ int overlay_catch(game_t* g, int t)
 					fprintf(stderr, "Could not open '%s' for writing\n", filename);
 					exit(1);
 				}
-				world_save(g->w, f);
+				game_save(g, f);
 				fclose(f);
 			}
 		}

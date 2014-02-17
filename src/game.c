@@ -51,7 +51,7 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 			fprintf(stderr, "Could not load game\n");
 			exit(1);
 		}
-		world_load(g->w, f);
+		game_load(g, f);
 		fclose(f);
 	}
 	else
@@ -60,6 +60,9 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 		g->w->cols = s->map_width;
 		world_genmap(g->w, s->seed);
 		world_start(g->w);
+
+		for (size_t i = 0; i < N_STATUSES; i++)
+			g->autoEat[i] = 0;
 	}
 
 	sfVector2u size = sfRenderWindow_getSize(g->g->render);
@@ -85,9 +88,6 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 		fprintf(stderr, "No character\n");
 		exit(1);
 	}
-
-	for (size_t i = 0; i < N_STATUSES; i++)
-		g->autoEat[i] = 0;
 
 	if (s->godmode)
 	{
@@ -349,4 +349,14 @@ void game_loop(game_t* g)
 
 	sfClock_destroy(maintain);
 	sfClock_destroy(clock);
+}
+
+void game_save(game_t* g, FILE* f)
+{
+	world_save(g->w, f);
+}
+
+void game_load(game_t* g, FILE* f)
+{
+	world_load(g->w, f);
 }

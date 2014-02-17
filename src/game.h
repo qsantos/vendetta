@@ -44,4 +44,7 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, char load);
 void game_exit(game_t* g);
 void game_loop(game_t* g);
 
+void game_save(game_t* g, FILE* f);
+void game_load(game_t* g, FILE* f);
+
 #endif

@@ -111,7 +111,7 @@ void world_save(world_t* w, FILE* f)
 		fprintf(stderr, "Missing line in save\n"); \
 		exit(1); \
 	} \
-	}while (0);
+	} while (0);
 void world_load(world_t* w, FILE* f)
 {
 	universe_t* u = w->universe;
