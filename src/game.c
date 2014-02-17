@@ -353,10 +353,26 @@ void game_loop(game_t* g)
 
 void game_save(game_t* g, FILE* f)
 {
+	for (size_t i = 0; i < N_STATUSES; i++)
+		fprintf(f, "%i/", g->autoEat[i]);
+	fprintf(f, "\n");
 	world_save(g->w, f);
 }
 
+#define CLINE(...) do { \
+	if (fscanf(f, __VA_ARGS__) < 0){ \
+		fprintf(stderr, "Missing line in save\n"); \
+		exit(1); \
+	} \
+	} while (0);
 void game_load(game_t* g, FILE* f)
 {
+	for (size_t i = 0; i < N_STATUSES; i++)
+	{
+		int v;
+		CLINE("%i/", &v);
+		g->autoEat[i] = v;
+	}
+	CLINE("\n");
 	world_load(g->w, f);
 }
