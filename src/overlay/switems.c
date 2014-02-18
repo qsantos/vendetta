@@ -87,9 +87,9 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 	char caught = 0;
 	for (size_t i = 0; i < g->u->n_items; i++)
 	{
-		float amount = floor(g->player->inventory.items[i]);
+		float amount = g->player->inventory.items[i];
 
-		if (amount == 0)
+		if (amount < 1)
 			continue;
 
 		kindOf_item_t* it = &g->u->items[i];
@@ -110,7 +110,7 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 
 		// text
 		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f", it->name, amount);
+		snprintf(buffer, 1024, "%s: %.0f", it->name, floor(amount));
 		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)

@@ -83,9 +83,9 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 
 	for (size_t i = 0; i < g->u->n_materials; i++)
 	{
-		float amount = floor(g->player->inventory.materials[i]);
+		float amount = g->player->inventory.materials[i];
 
-		if (amount == 0)
+		if (amount < 1)
 			continue;
 
 		kindOf_material_t* m = &g->u->materials[i];
@@ -101,9 +101,9 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 			caught |= sfSprite_contains(sprite, mouse);
 
 		// text
-		float max = floor(character_maxOfMaterial(g->player, m));
+		float max = character_maxOfMaterial(g->player, m);
 		char buffer[1024];
-		snprintf(buffer, 1024, "%s: %.0f/%.0f", m->name, amount, max);
+		snprintf(buffer, 1024, "%s: %.0f/%.0f", m->name, floor(amount), floor(max));
 		sfText_setPosition(text, (sfVector2f){x+32, y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)

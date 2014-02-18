@@ -316,9 +316,9 @@ int overlay_cursor(game_t* g)
 					int skill = t->skill;
 
 					char buffer[1024];
-					float amount = floor(g->player->inventory.materials[id]);
+					float amount = g->player->inventory.materials[id];
 					float max = character_maxOfMaterial(g->player, t);
-					snprintf(buffer, 1024, "%s (%.0f/%0.f)", g->u->skills[skill].name, amount, max);
+					snprintf(buffer, 1024, "%s (%.0f/%.0f)", g->u->skills[skill].name, floor(amount), floor(max));
 					graphics_drawTooltip(g->g, buffer);
 				}
 			}

@@ -641,9 +641,9 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			kindOf_material_t* t = &u->materials[id];
 			int skill = t->skill;
 
-			float amount = floor(c->inventory.materials[id]);
-			float max = floor(character_maxOfMaterial(c, t));
-			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%0.f)", u->skills[skill].name, amount, max);
+			float amount = c->inventory.materials[id];
+			float max = character_maxOfMaterial(c, t);
+			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%.0f)", u->skills[skill].name, floor(amount), floor(max));
 		}
 	}
 	else if (o->t == O_CHARACTER)
@@ -695,9 +695,9 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 			kindOf_material_t* t = &u->materials[id];
 			int skill = t->skill;
 
-			float amount = floor(c->inventory.materials[id]);
-			float max = floor(character_maxOfMaterial(c, t));
-			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%0.f)", u->skills[skill].name, amount, max);
+			float amount = c->inventory.materials[id];
+			float max = character_maxOfMaterial(c, t);
+			cur += snprintf(buffer+cur, n-cur, "%s (%.0f/%.0f)", u->skills[skill].name, floor(amount), floor(max));
 		}
 		else
 			cur += snprintf(buffer+cur, n-cur, "Se tourner les pources");
