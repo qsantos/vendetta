@@ -496,7 +496,7 @@ void character_setPosition(character_t* c, float x, float y)
 
 float character_attacked(character_t* c, float work, character_t* a)
 {
-	character_addStatus(c, ST_HEALTH, work);
+	character_addStatus(c, ST_HEALTH, -work);
 	if (c->statuses[ST_HEALTH] <= 0)
 	{
 		c->alive = 0;
