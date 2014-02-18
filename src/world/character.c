@@ -118,6 +118,25 @@ float character_getSkill(character_t* c, int skill)
 	return ret / 20;
 }
 
+float character_maxOfStatus(character_t* c, int s)
+{
+	float ret = 20;
+
+	// bonuses
+	universe_t* u = c->universe;
+	for (size_t i = 0; i < u->n_slots; i++)
+	{
+		int item = c->equipment[i];
+		if (item < 0)
+			continue;
+		kindOf_item_t* t = &u->items[item];
+		effect_t* e = &t->effect;
+		ret += e->status_bonus[s];
+	}
+
+	return ret;
+}
+
 float character_maxOfMaterial(character_t* c, kindOf_material_t* m)
 {
 	float ret = 20 * character_getSkill(c, m->skill);
@@ -137,9 +156,9 @@ float character_maxOfMaterial(character_t* c, kindOf_material_t* m)
 	return ret;
 }
 
-float character_maxOfStatus(character_t* c, int s)
+float character_armor(character_t* c)
 {
-	float ret = 20;
+	float ret = 0;
 
 	// bonuses
 	universe_t* u = c->universe;
@@ -150,7 +169,7 @@ float character_maxOfStatus(character_t* c, int s)
 			continue;
 		kindOf_item_t* t = &u->items[item];
 		effect_t* e = &t->effect;
-		ret += e->status_bonus[s];
+		ret += e->armor;
 	}
 
 	return ret;
@@ -332,7 +351,7 @@ void character_attack(character_t* c, object_t* o)
 			return;
 		}
 
-		float work = character_getSkill(c, SK_ATTACK);
+		float work = 5*character_getSkill(c, SK_ATTACK);
 		work = character_attacked(t, work, c);
 		character_train(c, SK_ATTACK, work);
 	}
@@ -410,7 +429,8 @@ void character_doRound(character_t* c, float duration)
 
 	duration *= character_vitality(c);
 
-	character_addStatus(c, ST_ATTACK, 7*duration);
+	character_addStatus(c, ST_ATTACK,  7*duration);
+	character_addStatus(c, ST_DEFENSE, 3*duration);
 
 	float go_x = c->go_x;
 	float go_y = c->go_y;
@@ -496,6 +516,11 @@ void character_setPosition(character_t* c, float x, float y)
 
 float character_attacked(character_t* c, float work, character_t* a)
 {
+	float defense = c->statuses[ST_DEFENSE];
+	defense = fmax(defense, character_armor(c));
+
+	character_addStatus(c, ST_DEFENSE, -work);
+	work -= defense;
 	character_addStatus(c, ST_HEALTH, -work);
 	if (c->statuses[ST_HEALTH] <= 0)
 	{
