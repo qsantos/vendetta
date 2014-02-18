@@ -341,8 +341,8 @@ character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
 
 		if (t == c)
 			continue;
-		building_t* b = character_get_inBuilding(c);
-		if (b != NULL || !c->alive)
+		building_t* b = character_get_inBuilding(t);
+		if (b != NULL || !t->alive)
 			continue;
 		float d = object_distance(&c->o, t->o.x, t->o.y);
 		if (min_d < 0 || d < min_d)
