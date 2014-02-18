@@ -136,6 +136,7 @@ void universe_init(universe_t* u, game_t* g)
 	u->statuses[ST_MORAL]  .name = "Moral";
 	u->statuses[ST_MANA]   .name = "Magie";
 	u->statuses[ST_ATTACK] .name = "Attaque";
+	u->statuses[ST_DEFENSE].name = "Défense";
 
 	u->n_categories = 11;
 	u->categories = CALLOC(kindOf_category_t, u->n_categories);
@@ -413,6 +414,8 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		it->effect.status_bonus[ST_STAMINA] = cfg_getFloat(s, "BonusEnergie");
 		it->effect.status_bonus[ST_MORAL]   = cfg_getFloat(s, "BonusMoral");
 		it->effect.status_bonus[ST_MANA]    = cfg_getFloat(s, "BonusMagie");
+		it->effect.status_bonus[ST_ATTACK]  = cfg_getFloat(s, "BonusAttaque");
+		it->effect.status_bonus[ST_DEFENSE] = cfg_getFloat(s, "BonusDefense");
 
 		it->effect.max_material = cfg_getFloat(s, "BonusMaxRessources");
 
@@ -420,6 +423,7 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		if (walking != 0)
 			effect_skill(&it->effect, SK_WALK, walking);
 
+		// TODO
 		float attack = cfg_getFloat(s, "BonusAttaque");
 		if (attack != 0)
 			effect_skill(&it->effect, SK_ATTACK, attack);

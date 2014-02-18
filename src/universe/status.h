@@ -27,7 +27,8 @@ typedef enum
 	ST_STAMINA,
 	ST_MORAL,
 	ST_MANA,
-	ST_ATTACK, // attack cool down
+	ST_ATTACK,  // attack cool down
+	ST_DEFENSE,
 	N_STATUSES,
 } status_type_t;
 
