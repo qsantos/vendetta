@@ -32,6 +32,7 @@ void effect_init(effect_t* e)
 		e->status_bonus[i] = 0;
 
 	e->max_material = 0;
+	e->armor = 0;
 }
 
 void effect_exit(effect_t* e)

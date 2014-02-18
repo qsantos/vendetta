@@ -32,6 +32,7 @@ struct effect
 	float* bonuses;
 	float  status_bonus[N_STATUSES];
 	float  max_material;
+	float  armor;
 };
 
 void effect_init(effect_t* e);

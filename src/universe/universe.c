@@ -418,6 +418,7 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		it->effect.status_bonus[ST_DEFENSE] = cfg_getFloat(s, "BonusDefense");
 
 		it->effect.max_material = cfg_getFloat(s, "BonusMaxRessources");
+		it->effect.armor        = cfg_getFloat(s, "BonusArmure");
 
 		float walking = cfg_getFloat(s, "BonusDeplacement");
 		if (walking != 0)
