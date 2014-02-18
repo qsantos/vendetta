@@ -39,6 +39,9 @@ void evtList_push(evtList_t* l, kindOf_event_t* t, float x, float y)
 {
 	l->d = CREALLOC(l->d, event_t, l->n+1);
 	l->d[l->n++] = (event_t){t, x, y, 0};
+
+	if (t->sound != NULL)
+		sfSound_play(t->sound);
 }
 
 void evtList_doRound(evtList_t* l, float duration)

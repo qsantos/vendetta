@@ -1,6 +1,6 @@
 CC      = gcc
 CFLAGS  = -std=c99 -Wall -Wextra -Werror -pedantic -O3
-LDFLAGS = -O3 -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
+LDFLAGS = -O3 -lcsfml-audio -lcsfml-graphics -lcsfml-window -lcsfml-system -lm
 TARGET  = ../vendetta
 
 SRC = $(wildcard *.c */*.c)

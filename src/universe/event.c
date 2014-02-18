@@ -27,6 +27,7 @@ void kindOf_event_init(kindOf_event_t* e)
 	e->duration = 1;
 	e->width = 0;
 	e->height = 0;
+	e->sound = NULL;
 }
 
 void kindOf_event_exit(kindOf_event_t* e)
@@ -46,4 +47,18 @@ void kindOf_event_sprite(kindOf_event_t* e, graphics_t* g, const char* filename,
 	sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
 	e->width  = rect.width / steps;
 	e->height = rect.height;
+}
+
+void kindOf_event_sound(kindOf_event_t* e, const char* filename)
+{
+	char buffer[1024];
+	snprintf(buffer, 1024, "data/sounds/%s", filename);
+
+	sfSoundBuffer* soundBuffer = sfSoundBuffer_createFromFile(buffer);
+	if (soundBuffer == NULL)
+		return;
+
+	sfSound* sound = sfSound_create();
+	sfSound_setBuffer(sound, soundBuffer);
+	e->sound = sound;
 }

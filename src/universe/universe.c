@@ -231,6 +231,7 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 	u->event_destroyBuilding = 23; // TODO: load from Parametres_Effets.ini
 	for (size_t i = 0; i < u->n_events; i++)
 	{
+		// graphics
 		cfg_section_t*  s = &gr->sections[i];
 		kindOf_event_t* e = &u->events[i];
 
@@ -244,6 +245,11 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		duration /= 10;
 		duration *= n_steps;
 		e->duration = duration;
+
+		// sound
+		char* sound_file = cfg_getString(s, "Son");
+		if (sound_file != NULL)
+			kindOf_event_sound(e, sound_file);
 	}
 }
 
