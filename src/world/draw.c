@@ -102,10 +102,26 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 
-	float max = character_maxOfStatus(c, ST_HEALTH);
-	float p = c->statuses[ST_HEALTH] / max;
-	if (p != 0 && p != 1)
-		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p, 0);
+	if (!c->alive)
+		return;
+
+	float max1 = character_maxOfStatus(c, ST_HEALTH);
+	float max2 = character_maxOfStatus(c, ST_ATTACK);
+	float max3 = character_maxOfStatus(c, ST_DEFENSE);
+	float p1 = c->statuses[ST_HEALTH]  / max1;
+	float p2 = c->statuses[ST_ATTACK]  / max2;
+	float p3 = c->statuses[ST_DEFENSE] / max3;
+	char draw2 = p2 != 1 || p3 != 1;
+	char draw1 = draw2 || p1 != 1;
+	if (draw1)
+	{
+		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p1, 0);
+	}
+	if (draw2)
+	{
+		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+10, c->o.w, 5, p2, -3);
+		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+14, c->o.w, 5, p3, -4);
+	}
 }
 
 void draw_mine(graphics_t* g, character_t* player, mine_t* m)

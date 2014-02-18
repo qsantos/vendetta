@@ -254,6 +254,8 @@ void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h,
 	sfColor inner;
 	     if (c == -1)   inner = (sfColor){255,255,255,191};
 	else if (c == -2)   inner = (sfColor){255,255,255,127};
+	else if (c == -3)   inner = (sfColor){255,  0,  0,191};
+	else if (c == -4)   inner = (sfColor){  0,  0,255,191};
 	else if (p <= 0.25) inner = (sfColor){255,  0,  0,191};
 	else if (p <= 0.50) inner = (sfColor){247,173,  0,191};
 	else if (p <= 0.75) inner = (sfColor){170,170, 68,191};
