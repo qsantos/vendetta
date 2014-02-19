@@ -158,7 +158,7 @@ void menu(settings_t* s)
 		else
 			mainmenu(gr, s, 1);
 
-		graphics_drawCursor(gr, 0);
+		draw_cursor(gr, 0);
 		sfRenderWindow_display(render);
 	}
 

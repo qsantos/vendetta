@@ -21,6 +21,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "../widgets.h"
+
 static void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
 {
 	sfVector2f pos = {o->x - o->w/2, o->y - o->h};
@@ -115,12 +117,12 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	char draw1 = draw2 || p1 != 1;
 	if (draw1)
 	{
-		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p1, 0);
+		draw_progressbar(g, c->o.x - c->o.w/2, c->o.y+6, c->o.w, 5, p1, 0);
 	}
 	if (draw2)
 	{
-		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+10, c->o.w, 5, p2, -3);
-		graphics_drawProgressBar(g, c->o.x - c->o.w/2, c->o.y+14, c->o.w, 5, p3, -4);
+		draw_progressbar(g, c->o.x - c->o.w/2, c->o.y+10, c->o.w, 5, p2, -3);
+		draw_progressbar(g, c->o.x - c->o.w/2, c->o.y+14, c->o.w, 5, p3, -4);
 	}
 }
 
@@ -179,12 +181,12 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 			kindOf_material_t* t = &u->materials[id];
 			p = player->inventory.materials[id] / character_maxOfMaterial(player, t);
 		}
-		graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y-b->o.h-6, b->o.w, 5, p, -1);
+		draw_progressbar(g, b->o.x - b->o.w/2, b->o.y-b->o.h-6, b->o.w, 5, p, -1);
 	}
 
 	p = b->life / 20;
 	if (p < 0.99)
-		graphics_drawProgressBar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
+		draw_progressbar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
 }
 
 void draw_chunk(graphics_t* g, character_t* player, chunk_t* c)

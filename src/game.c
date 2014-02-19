@@ -28,6 +28,7 @@
 #include "world/world_gen.h"
 #include "world/draw.h"
 #include "overlay/overlay.h"
+#include "widgets.h"
 
 void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
 {
@@ -319,7 +320,7 @@ void game_loop(game_t* g)
 
 		overlay_draw(g, 1);
 		int t = overlay_cursor(g);
-		graphics_drawCursor(g->g, t);
+		draw_cursor(g->g, t);
 		sfRenderWindow_display(g->g->render);
 
 		// check frame duration

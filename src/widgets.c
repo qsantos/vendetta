@@ -20,6 +20,163 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
+
+void draw_cursor(graphics_t* gr, int t)
+{
+	sfVector2i imouse = sfMouse_getPositionRenderWindow(gr->render);
+	sfVector2f mouse = {imouse.x, imouse.y};
+
+	static sfSprite* sprite = NULL;
+	if (sprite == NULL)
+		sprite = graphics_sprite(gr, "data/cursors.png");
+	sfIntRect rect = {24*t, 0, 24, 24};
+	sfSprite_setTextureRect(sprite, rect);
+	sfSprite_setPosition(sprite, mouse);
+	sfRenderWindow_drawSprite(gr->render, sprite, NULL);
+}
+
+// inspired from https://github.com/LaurentGomila/SFML/wiki/Source%3A-Draw-Rounded-Rectangle
+void draw_roundrect(graphics_t* gr, float x, float y, float w, float h)
+{
+	static sfVertexArray* array = NULL;
+	static const int count = 8;
+	static const float radius = 5;
+#define M_PI 3.14159265358979323846
+	if (array == NULL)
+	{
+		array = sfVertexArray_create();
+		sfVertexArray_setPrimitiveType(array, sfTrianglesFan);
+		sfVertexArray_resize(array, 4*count);
+	}
+	sfColor corners[4] =
+	{
+		{191, 191, 191, 191},
+		{223, 223, 223, 191},
+		{255, 255, 255, 191},
+		{223, 223, 223, 191},
+	};
+	for (int i = 0; i < 4*count; i++)
+	{
+		sfVertex* v = sfVertexArray_getVertex(array, i);
+
+		float deltaAngle = (M_PI/2.)/(count-1);
+		int centerIndex = i / count;
+		sfVector2f center =
+		centerIndex == 0 ? (sfVector2f){w - radius,     radius} :
+		centerIndex == 1 ? (sfVector2f){    radius,     radius} :
+		centerIndex == 2 ? (sfVector2f){    radius, h - radius} :
+		centerIndex == 3 ? (sfVector2f){w - radius, h - radius} :
+		(sfVector2f){0,0};
+
+		v->position.x = x+radius*cos(deltaAngle*(i-centerIndex)) + center.x;
+		v->position.y = y+radius*sin(deltaAngle*(i-centerIndex)) - center.y + h;
+
+		v->color = corners[centerIndex];
+	}
+	sfRenderWindow_drawVertexArray(gr->render, array, NULL);
+}
+
+void draw_tooltip(graphics_t* gr, const char* txt)
+{
+	sfVector2i imouse = sfMouse_getPositionRenderWindow(gr->render);
+	sfVector2f mouse = {imouse.x, imouse.y};
+
+	static sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont         (text, gr->font);
+		sfText_setCharacterSize(text, 15);
+		sfText_setColor        (text, sfBlack);
+	}
+
+	sfVector2f pos = {mouse.x + 24, mouse.y + 24};
+	sfText_setPosition(text, pos);
+	sfText_setUTF8(text, txt);
+
+	sfFloatRect rect = sfText_getGlobalBounds(text);
+	rect.left   -= 3;
+	rect.top    -= 3;
+	rect.width  += 8;
+	rect.height += 8;
+
+	sfVector2u size = sfRenderWindow_getSize(gr->render);
+	float dx = fmin(0, size.x - (rect.left+rect.width ));
+	float dy = fmin(0, size.y - (rect.top +rect.height));
+	pos.x += dx;
+	pos.y += dy;
+	rect.left += dx;
+	rect.top  += dy;
+	sfText_setPosition(text, pos);
+
+	draw_roundrect(gr, rect.left, rect.top, rect.width, rect.height);
+
+	sfRenderWindow_drawText(gr->render, text, NULL);
+}
+
+void draw_progressbar(graphics_t* gr, float x, float y, float w, float h, float p, char c)
+{
+	static sfRectangleShape* frame    = NULL;
+	static sfRectangleShape* progress = NULL;
+	if (frame == NULL)
+	{
+		frame = sfRectangleShape_create();
+		sfRectangleShape_setFillColor(frame, sfTransparent);
+
+		progress = sfRectangleShape_create();
+	}
+
+	float border = 1 + floor(h/20);
+	sfRectangleShape_setOutlineThickness(frame, border);
+	sfColor orange = {255, 42, 42, 255};
+	sfRectangleShape_setOutlineColor(frame, c == 1 ? orange : sfWhite);
+
+	sfColor inner;
+	     if (c == -1)   inner = (sfColor){255,255,255,191};
+	else if (c == -2)   inner = (sfColor){255,255,255,127};
+	else if (c == -3)   inner = (sfColor){255,  0,  0,191};
+	else if (c == -4)   inner = (sfColor){  0,  0,255,191};
+	else if (p <= 0.25) inner = (sfColor){255,  0,  0,191};
+	else if (p <= 0.50) inner = (sfColor){247,173,  0,191};
+	else if (p <= 0.75) inner = (sfColor){170,170, 68,191};
+	else if (p <= 1.00) inner = (sfColor){ 68,255, 68,191};
+	else                inner = (sfColor){  0,  0,255,191};
+
+	p = fmax(fmin(p, 1), 0);
+
+	sfRectangleShape_setFillColor(progress, inner);
+
+	sfVector2f pos = {x+border,y+border};
+	sfRectangleShape_setPosition(frame, pos);
+	sfRectangleShape_setPosition(progress, pos);
+
+	sfVector2f size = {w-2*border, h-2*border};
+	sfRectangleShape_setSize(frame, size);
+
+	size.x *= p;
+	sfRectangleShape_setSize(progress, size);
+	sfRenderWindow_drawRectangleShape(gr->render, progress, NULL);
+	sfRenderWindow_drawRectangleShape(gr->render, frame, NULL);
+}
+
+void draw_scrollbar(graphics_t* gr, float x, float y, float w, float h, float r, float p)
+{
+	static sfRectangleShape* cursor = NULL;
+	if (cursor == NULL)
+	{
+		cursor = sfRectangleShape_create();
+		sfRectangleShape_setFillColor(cursor, (sfColor){70,70,102,127});
+	}
+
+	r = fmin(r, 1);
+	if (r != 1)
+		y += p * h * (1-r);
+	h *= r;
+	sfRectangleShape_setSize(cursor, (sfVector2f){w,h});
+	sfRectangleShape_setPosition(cursor, (sfVector2f){x,y});
+	sfRenderWindow_drawRectangleShape(gr->render, cursor, NULL);
+}
 
 char draw_button(graphics_t* gr, float x, float y, const char* name, char enabled, char do_draw)
 {
@@ -111,7 +268,7 @@ void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int
 		if (do_draw)
 		{
 			float r = (float)(*v - min) / (max-min);
-			graphics_drawProgressBar(gr, rect.left, rect.top, rect.width, rect.height, r, -2);
+			draw_progressbar(gr, rect.left, rect.top, rect.width, rect.height, r, -2);
 		}
 	}
 

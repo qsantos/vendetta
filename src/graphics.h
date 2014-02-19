@@ -49,12 +49,6 @@ sfTexture* graphics_loadImage(graphics_t* g, const char* filename);
 int        graphics_spriteId (graphics_t* g, const char* filename);
 sfSprite*  graphics_sprite   (graphics_t* g, const char* filename);
 
-void graphics_drawRoundRect  (graphics_t* g, float x, float y, float w, float h);
-void graphics_drawCursor     (graphics_t* g, int t);
-void graphics_drawTooltip    (graphics_t* g, const char* txt);
-void graphics_drawProgressBar(graphics_t* g, float x, float y, float w, float h, float p, char c);
-void graphics_drawScrollBar  (graphics_t* g, float x, float y, float w, float h, float r, float p);
-
 void sfText_setUTF8(sfText* text, const char* string);
 
 char sfText_contains  (sfText*   text,   sfVector2f point);

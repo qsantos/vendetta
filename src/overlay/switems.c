@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "../widgets.h"
+
 void switems_init(switems_t* w, graphics_t* g)
 {
 	subwindow_init(&w->w, g, "Objets", 1024-SW_WIDTH*2, 0);
@@ -142,7 +144,7 @@ int switems_cursor(switems_t* w, game_t* g)
 
 	char buffer[1024];
 	switems_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
-	graphics_drawTooltip(g->g, buffer);
+	draw_tooltip(g->g, buffer);
 
 	return 12;
 }

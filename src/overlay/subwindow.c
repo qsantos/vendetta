@@ -22,6 +22,7 @@
 #include <math.h>
 
 #include "../string.h"
+#include "../widgets.h"
 
 void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, float y)
 {
@@ -93,7 +94,7 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 	{
 		float p = w->scrolling / (max_scrolling - min_scrolling);
 		float r = (SW_HEIGHT - 40) / w->height;
-		graphics_drawScrollBar(g, w->x+SW_WIDTH-20, w->y+50, 7, SW_HEIGHT-70, r, p);
+		draw_scrollbar(g, w->x+SW_WIDTH-20, w->y+50, 7, SW_HEIGHT-70, r, p);
 	}
 
 	sfVector2u size = sfRenderWindow_getSize(g->render);

@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "../widgets.h"
+
 void swbuilding_init(swbuilding_t* w, graphics_t* g)
 {
 	subwindow_init(&w->w, g, "Bâtiment", 1024-SW_WIDTH*3, 0);
@@ -211,7 +213,7 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g)
 	building_t* b = building_get(&g->w->objects, g->player->inBuilding);
 	transform_t* tr = &b->t->items[i];
 	swbuilding_tooltip(buffer, 1024, g->u, tr);
-	graphics_drawTooltip(g->g, buffer);
+	draw_tooltip(g->g, buffer);
 	return 2;
 }
 

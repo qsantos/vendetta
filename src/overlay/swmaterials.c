@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#include "../widgets.h"
+
 void swmaterials_init(swmaterials_t* w, graphics_t* g)
 {
 	subwindow_init(&w->w, g, "Matériaux", 1024-SW_WIDTH*2, SW_HEIGHT);
@@ -135,7 +137,7 @@ int swmaterials_cursor(swmaterials_t* w, game_t* g)
 
 	char buffer[1024];
 	swmaterials_materialTooltip(buffer, 1024, g->u, &g->u->materials[i]);
-	graphics_drawTooltip(g->g, buffer);
+	draw_tooltip(g->g, buffer);
 
 	if (g->u->materials[i].edible)
 		return 11;

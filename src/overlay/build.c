@@ -23,6 +23,7 @@
 #include <math.h>
 
 #include "../mem.h"
+#include "../widgets.h"
 
 #define M_PI 3.14159265358979323846
 
@@ -226,7 +227,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g)
 		kindOf_building_t* b = &g->u->buildings[i];
 		char buffer[1024];
 		ov_build_tooltip(buffer, 1024, g, b);
-		graphics_drawTooltip(g->g, buffer);
+		draw_tooltip(g->g, buffer);
 		caught = 1;
 	}
 

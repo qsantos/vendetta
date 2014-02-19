@@ -23,6 +23,7 @@
 #include <math.h>
 
 #include "../mem.h"
+#include "../widgets.h"
 
 void overlay_init(overlay_t* o, game_t* g)
 {
@@ -155,7 +156,7 @@ static int overlay_statuses(game_t* g, char do_draw)
 		float max = character_maxOfStatus(c, i);
 		float p = c->statuses[i] / max;
 		if (do_draw)
-			graphics_drawProgressBar(g->g, x, y, 150, 20, p, g->autoEat[i]);
+			draw_progressbar(g->g, x, y, 150, 20, p, g->autoEat[i]);
 
 		sfText_setUTF8(text, g->u->statuses[i].name); // TODO
 		sfVector2f pos = {x+5, y};
@@ -243,7 +244,7 @@ int overlay_cursor(game_t* g)
 			else if (i == 7)
 				cur += snprintf(buffer+cur, 1024-cur, "Sauvegarder");
 			if (cur != 0)
-				graphics_drawTooltip(g->g, buffer);
+				draw_tooltip(g->g, buffer);
 		}
 		else if (w == 1) // orders
 		{
@@ -272,7 +273,7 @@ int overlay_cursor(game_t* g)
 				cur += snprintf(buffer+cur, n-cur, "Attaquer bâtiment proche");
 			}
 			if (cur != 0)
-				graphics_drawTooltip(g->g, buffer);
+				draw_tooltip(g->g, buffer);
 		}
 		else if (w == 2) // statuses
 		{
@@ -299,7 +300,7 @@ int overlay_cursor(game_t* g)
 
 				if (c->ai != NULL)
 				{
-					graphics_drawTooltip(g->g, c->ai->name);
+					draw_tooltip(g->g, c->ai->name);
 				}
 			}
 			else if (o->t == O_MINE)
@@ -319,7 +320,7 @@ int overlay_cursor(game_t* g)
 					float amount = g->player->inventory.materials[id];
 					float max = character_maxOfMaterial(g->player, t);
 					snprintf(buffer, 1024, "%s (%.0f/%.0f)", g->u->skills[skill].name, floor(amount), floor(max));
-					graphics_drawTooltip(g->g, buffer);
+					draw_tooltip(g->g, buffer);
 				}
 			}
 			else if (o->t == O_BUILDING)
@@ -332,7 +333,7 @@ int overlay_cursor(game_t* g)
 				else
 					cursor = 4;
 
-				graphics_drawTooltip(g->g, b->t->name);
+				draw_tooltip(g->g, b->t->name);
 			}
 		}
 	}
