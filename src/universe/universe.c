@@ -231,10 +231,11 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 	u->event_destroyBuilding = 23; // TODO: load from Parametres_Effets.ini
 	for (size_t i = 0; i < u->n_events; i++)
 	{
-		// graphics
 		cfg_section_t*  s = &gr->sections[i];
 		kindOf_event_t* e = &u->events[i];
+		kindOf_event_init(e);
 
+		// graphics
 		char* image_file = cfg_getString(s, "Fichier");
 		int n_steps = cfg_getInt(s, "NombreEtapes");
 		if (image_file != NULL && n_steps > 0)
