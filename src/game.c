@@ -123,6 +123,7 @@ void game_exit(game_t* g)
 
 void game_loop(game_t* g)
 {
+	char hasFocus = 1;
 	float zoom = 1;
 	sfClock* clock = sfClock_create();
 	sfClock* maintain = sfClock_create();
@@ -142,11 +143,11 @@ void game_loop(game_t* g)
 			}
 			else if (event.type == sfEvtLostFocus)
 			{
-				g->g->hasFocus = sfFalse;
+				hasFocus = 0;
 			}
 			else if (event.type == sfEvtGainedFocus)
 			{
-				g->g->hasFocus = sfTrue;
+				hasFocus = 1;
 			}
 			else if (event.type == sfEvtResized)
 			{
@@ -155,7 +156,11 @@ void game_loop(game_t* g)
 				sfView_reset(g->g->world_view,   rect);
 				sfView_zoom (g->g->world_view,   zoom);
 			}
-			else if (event.type == sfEvtKeyReleased)
+
+			if (!hasFocus)
+				continue;
+
+			if (event.type == sfEvtKeyReleased)
 			{
 				sfKeyCode k = event.key.code;
 				if (k == sfKeyEscape)
@@ -270,7 +275,7 @@ void game_loop(game_t* g)
 			}
 		}
 
-		if (g->g->hasFocus)
+		if (hasFocus)
 		{
 			sfBool up    = sfKeyboard_isKeyPressed(sfKeyUp);
 			sfBool down  = sfKeyboard_isKeyPressed(sfKeyDown);

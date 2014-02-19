@@ -26,7 +26,6 @@ typedef struct graphics graphics_t;
 struct graphics
 {
 	sfRenderWindow* render;
-	sfBool          hasFocus;
 	sfFont*         font;
 
 	sfView* world_view;

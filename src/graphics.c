@@ -37,8 +37,6 @@ void graphics_init(graphics_t* g)
 		exit(1);
 	sfRenderWindow_setMouseCursorVisible(g->render, sfFalse);
 
-	g->hasFocus = sfTrue;
-
 	g->font = sfFont_createFromFile("data/DejaVuSans.ttf");
 	if (g->font == NULL)
 		exit(1);
