@@ -28,11 +28,11 @@
 void overlay_init(overlay_t* o, game_t* g)
 {
 	   ov_build_init(&o->build);
-	 swbuilding_init(&o->swbuilding,  g->g);
-	    switems_init(&o->switems,     g->g);
-	swmaterials_init(&o->swmaterials, g->g);
-	   swskills_init(&o->swskills,    g->g);
-	swequipment_init(&o->swequipment, g->g);
+	 swbuilding_init(&o->swbuilding,  g);
+	    switems_init(&o->switems,     g);
+	swmaterials_init(&o->swmaterials, g);
+	   swskills_init(&o->swskills,    g);
+	swequipment_init(&o->swequipment, g);
 
 	o->n_subwindows = 5;
 	o->sw = CALLOC(subwindow_t*, o->n_subwindows);

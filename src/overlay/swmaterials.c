@@ -23,9 +23,9 @@
 
 #include "../widgets.h"
 
-void swmaterials_init(swmaterials_t* w, graphics_t* g)
+void swmaterials_init(swmaterials_t* w, game_t* g)
 {
-	subwindow_init(&w->w, g, "Matériaux", 1024-SW_WIDTH*2, SW_HEIGHT);
+	subwindow_init(&w->w, g->g, "Matériaux", 1024-SW_WIDTH*2, SW_HEIGHT);
 }
 
 void swmaterials_exit(swmaterials_t* w)

@@ -30,7 +30,7 @@ struct swmaterials
 
 #include "../game.h"
 
-void swmaterials_init(swmaterials_t* w, graphics_t* g);
+void swmaterials_init(swmaterials_t* w, game_t* g);
 void swmaterials_exit(swmaterials_t* w);
 
 int  swmaterials_draw  (swmaterials_t* w, game_t* g, char do_draw);

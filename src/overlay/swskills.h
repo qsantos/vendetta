@@ -30,7 +30,7 @@ struct swskills
 
 #include "../game.h"
 
-void swskills_init(swskills_t* w, graphics_t* g);
+void swskills_init(swskills_t* w, game_t* g);
 void swskills_exit(swskills_t* w);
 
 int  swskills_draw  (swskills_t* w, game_t* g, char do_draw);

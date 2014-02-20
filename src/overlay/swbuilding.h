@@ -30,7 +30,7 @@ struct swbuilding
 
 #include "../game.h"
 
-void swbuilding_init(swbuilding_t* w, graphics_t* g);
+void swbuilding_init(swbuilding_t* w, game_t* g);
 void swbuilding_exit(swbuilding_t* w);
 
 int  swbuilding_draw  (swbuilding_t* w, game_t* g, char do_draw);

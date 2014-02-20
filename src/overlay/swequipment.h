@@ -30,7 +30,7 @@ struct swequipment
 
 #include "../game.h"
 
-void swequipment_init(swequipment_t* w, graphics_t* g);
+void swequipment_init(swequipment_t* w, game_t* g);
 void swequipment_exit(swequipment_t* w);
 
 int  swequipment_draw  (swequipment_t* w, game_t* g, char do_draw);

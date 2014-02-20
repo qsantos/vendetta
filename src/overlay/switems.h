@@ -30,7 +30,7 @@ struct switems
 
 #include "../game.h"
 
-void switems_init(switems_t* w, graphics_t* g);
+void switems_init(switems_t* w, game_t* g);
 void switems_exit(switems_t* w);
 
 int  switems_draw  (switems_t* w, game_t* g, char do_draw);

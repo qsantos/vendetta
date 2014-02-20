@@ -24,9 +24,9 @@
 
 #include "../widgets.h"
 
-void swbuilding_init(swbuilding_t* w, graphics_t* g)
+void swbuilding_init(swbuilding_t* w, game_t* g)
 {
-	subwindow_init(&w->w, g, "Bâtiment", 1024-SW_WIDTH*3, 0);
+	subwindow_init(&w->w, g->g, "Bâtiment", 1024-SW_WIDTH*3, 0);
 }
 
 void swbuilding_exit(swbuilding_t* w)
