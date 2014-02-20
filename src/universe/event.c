@@ -33,11 +33,7 @@ void kindOf_event_init(kindOf_event_t* e)
 void kindOf_event_exit(kindOf_event_t* e)
 {
 	if (e->sound != NULL)
-	{
-		sfSoundBuffer* soundBuffer = (sfSoundBuffer*) sfSound_getBuffer(e->sound);
-		sfSoundBuffer_destroy(soundBuffer);
-		sfSound_destroy(e->sound);
-	}
+		sfSoundBuffer_destroy(e->sound);
 }
 
 void kindOf_event_sprite(kindOf_event_t* e, assets_t* a, const char* filename, int steps)
@@ -58,12 +54,5 @@ void kindOf_event_sound(kindOf_event_t* e, const char* filename)
 {
 	char buffer[1024];
 	snprintf(buffer, 1024, "data/sounds/%s", filename);
-
-	sfSoundBuffer* soundBuffer = sfSoundBuffer_createFromFile(buffer);
-	if (soundBuffer == NULL)
-		return;
-
-	sfSound* sound = sfSound_create();
-	sfSound_setBuffer(sound, soundBuffer);
-	e->sound = sound;
+	e->sound = sfSoundBuffer_createFromFile(buffer);
 }

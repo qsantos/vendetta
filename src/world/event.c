@@ -38,10 +38,17 @@ void evtList_exit(evtList_t* l)
 void evtList_push(evtList_t* l, kindOf_event_t* t, float x, float y)
 {
 	l->d = CREALLOC(l->d, event_t, l->n+1);
-	l->d[l->n++] = (event_t){t, x, y, 0};
+	event_t* e = &l->d[l->n++];
+
+	*e = (event_t){t, x, y, 0, NULL};
 
 	if (t->sound != NULL)
-		sfSound_play(t->sound);
+	{
+		sfSound* sound = sfSound_create();
+		sfSound_setBuffer(sound, t->sound);
+		sfSound_play(sound);
+		e->sound = sound;
+	}
 }
 
 void evtList_doRound(evtList_t* l, float duration)
@@ -49,12 +56,21 @@ void evtList_doRound(evtList_t* l, float duration)
 	for (ssize_t i = 0; i < (ssize_t) l->n; i++)
 	{
 		event_t* e = &l->d[i];
+
+		// process event
 		e->p += duration / e->t->duration;
-		if (e->p >= 1)
-		{
-			l->n--;
-			memmove(l->d+i, l->d+i+1, sizeof(event_t)*(l->n-i));
-			i--;
-		}
+
+		// check if event done
+		if (e->p < 1)
+			continue;
+		if (e->sound != NULL && sfSound_getStatus(e->sound) != sfStopped)
+			continue;
+
+		// remove event
+		if (e->sound != NULL)
+			sfSound_destroy(e->sound);
+		l->n--;
+		memmove(l->d+i, l->d+i+1, sizeof(event_t)*(l->n-i));
+		i--;
 	}
 }

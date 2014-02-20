@@ -33,7 +33,7 @@ struct kindOf_event
 	float height;
 
 	// sound
-	sfSound* sound; // TODO
+	sfSoundBuffer* sound; // TODO
 };
 
 #include "../assets.h"

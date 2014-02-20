@@ -30,6 +30,8 @@ struct event
 	float x;
 	float y;
 	float p;
+
+	sfSound* sound; // TODO
 };
 
 struct evtList
