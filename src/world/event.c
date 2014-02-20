@@ -53,8 +53,7 @@ void evtList_doRound(evtList_t* l, float duration)
 		if (e->p >= 1)
 		{
 			l->n--;
-			if (i != 0)
-				memmove(l->d+i-1, l->d+i, sizeof(event_t)*(l->n-i));
+			memmove(l->d+i, l->d+i+1, sizeof(event_t)*(l->n-i));
 			i--;
 		}
 	}
