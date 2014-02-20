@@ -21,7 +21,6 @@
 
 typedef struct kindOf_item kindOf_item_t;
 
-#include "universe.h"
 #include "effect.h"
 
 struct kindOf_item
@@ -37,9 +36,11 @@ struct kindOf_item
 	int icon_index;
 };
 
+#include "../assets.h"
+
 void kindOf_item_init(kindOf_item_t* i);
 void kindOf_item_exit(kindOf_item_t* i);
 
-void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx);
+void kindOf_item_icon(kindOf_item_t* i, assets_t* a, const char* filename, int idx);
 
 #endif

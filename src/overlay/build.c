@@ -67,7 +67,7 @@ static int draw_buildButton(ov_build_t* o, game_t* g, kindOf_building_t* b, floa
 
 	char caught = 0;
 
-	sfSprite* sprite = g->g->sprites[b->button_sprite];
+	sfSprite* sprite = g->a->sprites[b->button_sprite];
 
 	static const int max_cols = 1024 / 28;
 	int idx = b->button_index;
@@ -227,7 +227,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g)
 		kindOf_building_t* b = &g->u->buildings[i];
 		char buffer[1024];
 		ov_build_tooltip(buffer, 1024, g, b);
-		draw_tooltip(g->g, buffer);
+		draw_tooltip(g->g, g->a, buffer);
 		caught = 1;
 	}
 
@@ -245,7 +245,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g)
 	int ok = world_canBuild(g->w, pos.x, pos.y + b->height/2, b);
 
 	// building sprite
-	sfSprite* sprite = g->g->sprites[b->sprite];
+	sfSprite* sprite = g->a->sprites[b->sprite];
 	sfIntRect rect2 = {0, b->height*(b->n_sprites-1), b->width, b->height};
 	sfSprite_setTextureRect(sprite, rect2);
 	pos.x -= b->width/2;

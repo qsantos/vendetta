@@ -65,7 +65,7 @@ static int overlay_buttons(game_t* g, char do_draw)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g->g, "data/buttons.png");
+		sprite = assets_sprite(g->a, "data/buttons.png");
 	for (size_t i = 0; i < g->o->n_subwindows; i++)
 	{
 		subwindow_t* w = g->o->sw[i];
@@ -104,7 +104,7 @@ static int overlay_orders(game_t* g, char do_draw)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g->g, "data/orders.png");
+		sprite = assets_sprite(g->a, "data/orders.png");
 
 	float x = 100;
 	float y = 0;
@@ -139,7 +139,7 @@ static int overlay_statuses(game_t* g, char do_draw)
 		text = sfText_create();
 		sfColor col = {255, 255, 255, 255};
 		sfText_setColor(text, col);
-		sfText_setFont(text, g->g->font);
+		sfText_setFont(text, g->a->font);
 		sfText_setCharacterSize(text, 15);
 	}
 
@@ -207,7 +207,7 @@ int overlay_draw(game_t* g, char do_draw)
 		text = sfText_create();
 		sfColor col = {255, 255, 255, 255};
 		sfText_setColor(text, col);
-		sfText_setFont(text, g->g->font);
+		sfText_setFont(text, g->a->font);
 		sfText_setCharacterSize(text, 15);
 	}
 
@@ -244,7 +244,7 @@ int overlay_cursor(game_t* g)
 			else if (i == 7)
 				cur += snprintf(buffer+cur, 1024-cur, "Sauvegarder");
 			if (cur != 0)
-				draw_tooltip(g->g, buffer);
+				draw_tooltip(g->g, g->a, buffer);
 		}
 		else if (w == 1) // orders
 		{
@@ -273,7 +273,7 @@ int overlay_cursor(game_t* g)
 				cur += snprintf(buffer+cur, n-cur, "Attaquer bâtiment proche");
 			}
 			if (cur != 0)
-				draw_tooltip(g->g, buffer);
+				draw_tooltip(g->g, g->a, buffer);
 		}
 		else if (w == 2) // statuses
 		{
@@ -300,7 +300,7 @@ int overlay_cursor(game_t* g)
 
 				if (c->ai != NULL)
 				{
-					draw_tooltip(g->g, c->ai->name);
+					draw_tooltip(g->g, g->a, c->ai->name);
 				}
 			}
 			else if (o->t == O_MINE)
@@ -320,7 +320,7 @@ int overlay_cursor(game_t* g)
 					float amount = g->player->inventory.materials[id];
 					float max = character_maxOfMaterial(g->player, t);
 					snprintf(buffer, 1024, "%s (%.0f/%.0f)", g->u->skills[skill].name, floor(amount), floor(max));
-					draw_tooltip(g->g, buffer);
+					draw_tooltip(g->g, g->a, buffer);
 				}
 			}
 			else if (o->t == O_BUILDING)
@@ -333,7 +333,7 @@ int overlay_cursor(game_t* g)
 				else
 					cursor = 4;
 
-				draw_tooltip(g->g, b->t->name);
+				draw_tooltip(g->g, g->a, b->t->name);
 			}
 		}
 	}

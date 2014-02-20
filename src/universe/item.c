@@ -19,6 +19,7 @@
 #include "item.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "../mem.h"
 
@@ -41,11 +42,11 @@ void kindOf_item_exit(kindOf_item_t* i)
 	free(i->name);
 }
 
-void kindOf_item_icon(kindOf_item_t* i, graphics_t* g, const char* filename, int idx)
+void kindOf_item_icon(kindOf_item_t* i, assets_t* a, const char* filename, int idx)
 {
 	char s[1024];
 	snprintf(s, 1024, "data/%s", filename);
-	int id = graphics_spriteId(g, s);
+	int id = assets_spriteId(a, s);
 
 	i->icon_sprite = id;
 	i->icon_index  = idx;

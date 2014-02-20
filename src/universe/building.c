@@ -53,25 +53,25 @@ void kindOf_building_exit(kindOf_building_t* b)
 	free(b->name);
 }
 
-void kindOf_building_sprite(kindOf_building_t* b, graphics_t* g, const char* filename, int n_sprites)
+void kindOf_building_sprite(kindOf_building_t* b, assets_t* a, const char* filename, int n_sprites)
 {
 	char s[1024];
 	snprintf(s, 1024, "data/buildings/%s", filename);
-	int id = graphics_spriteId(g, s);
+	int id = assets_spriteId(a, s);
 
 	b->sprite = id;
 	b->n_sprites = n_sprites;
 
-	sfIntRect rect = sfSprite_getTextureRect(g->sprites[id]);
+	sfIntRect rect = sfSprite_getTextureRect(a->sprites[id]);
 	b->width  = rect.width;
 	b->height = rect.height / n_sprites;
 }
 
-void kindOf_building_button(kindOf_building_t* b, graphics_t* g, const char* filename, int idx)
+void kindOf_building_button(kindOf_building_t* b, assets_t* a, const char* filename, int idx)
 {
 	char s[1024];
 	snprintf(s, 1024, "data/%s", filename);
-	int id = graphics_spriteId(g, s);
+	int id = assets_spriteId(a, s);
 
 	b->button_sprite = id;
 	b->button_index = idx;

@@ -20,16 +20,17 @@
 #define WIDGET_H
 
 #include "graphics.h"
+#include "assets.h"
 
-void draw_cursor   (graphics_t* gr, int t);
+void draw_cursor   (graphics_t* gr, assets_t* a, int t);
 void draw_roundrect(graphics_t* gr, float x, float y, float w, float h);
-void draw_tooltip  (graphics_t* gr, const char* txt);
+void draw_tooltip  (graphics_t* gr, assets_t* a, const char* txt);
 
 void draw_progressbar(graphics_t* gr, float x, float y, float w, float h, float p, char c);
 void draw_scrollbar  (graphics_t* gr, float x, float y, float w, float h, float r, float p);
 
-char draw_button(graphics_t* gr, float x, float y, const char* name, char enabled, char do_draw);
-char draw_toggle(graphics_t* gr, float x, float y, const char* name, char* v, char do_draw);
-void draw_slider(graphics_t* gr, float x, float y, const char* name, int*  v, int min, int max, char do_draw);
+char draw_button(graphics_t* gr, assets_t* a, float x, float y, const char* name, char enabled, char do_draw);
+char draw_toggle(graphics_t* gr, assets_t* a, float x, float y, const char* name, char* v, char do_draw);
+void draw_slider(graphics_t* gr, assets_t* a, float x, float y, const char* name, int*  v, int min, int max, char do_draw);
 
 #endif

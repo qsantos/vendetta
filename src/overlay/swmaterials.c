@@ -60,7 +60,7 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 {
 	if (do_draw)
 	{
-		if (!subwindow_draw(&w->w, g->g))
+		if (!subwindow_draw(&w->w, g->g, g->a))
 			return -1;
 	}
 
@@ -74,7 +74,7 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 		sfColor color = {255, 255, 255, 255};
 
 		text = sfText_create();
-		sfText_setFont         (text, g->g->font);
+		sfText_setFont         (text, g->a->font);
 		sfText_setCharacterSize(text, 15);
 		sfText_setColor        (text, color);
 	}
@@ -93,7 +93,7 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 		kindOf_material_t* m = &g->u->materials[i];
 
 		// icon
-		sfSprite* sprite = g->g->sprites[m->icon_sprite];
+		sfSprite* sprite = g->a->sprites[m->icon_sprite];
 		sfIntRect rect = {32*m->icon_index, 0, 32, 32};
 		sfSprite_setTextureRect(sprite, rect);
 		sfSprite_setPosition(sprite, (sfVector2f){x,y});
@@ -137,7 +137,7 @@ int swmaterials_cursor(swmaterials_t* w, game_t* g)
 
 	char buffer[1024];
 	swmaterials_materialTooltip(buffer, 1024, g->u, &g->u->materials[i]);
-	draw_tooltip(g->g, buffer);
+	draw_tooltip(g->g, g->a, buffer);
 
 	if (g->u->materials[i].edible)
 		return 11;

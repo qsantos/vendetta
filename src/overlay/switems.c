@@ -65,7 +65,7 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 {
 	if (do_draw)
 	{
-		if (!subwindow_draw(&w->w, g->g))
+		if (!subwindow_draw(&w->w, g->g, g->a))
 			return -1;
 	}
 
@@ -79,7 +79,7 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 		sfColor color = {255, 255, 255, 255};
 
 		text = sfText_create();
-		sfText_setFont         (text, g->g->font);
+		sfText_setFont         (text, g->a->font);
 		sfText_setCharacterSize(text, 15);
 		sfText_setColor        (text, color);
 	}
@@ -101,7 +101,7 @@ int switems_draw(switems_t* w, game_t* g, char do_draw)
 		int idx = it->icon_index;
 		int col = idx % max_cols;
 		int row = idx / max_cols;
-		sfSprite* sprite = g->g->sprites[it->icon_sprite];
+		sfSprite* sprite = g->a->sprites[it->icon_sprite];
 		sfIntRect rect = {32*col, 32*row, 32, 32};
 		sfSprite_setTextureRect(sprite, rect);
 		sfSprite_setPosition(sprite, (sfVector2f){x,y});
@@ -144,7 +144,7 @@ int switems_cursor(switems_t* w, game_t* g)
 
 	char buffer[1024];
 	switems_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
-	draw_tooltip(g->g, buffer);
+	draw_tooltip(g->g, g->a, buffer);
 
 	return 12;
 }

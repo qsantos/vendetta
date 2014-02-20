@@ -83,11 +83,11 @@ struct universe
 void universe_init(universe_t* u, game_t* g);
 void universe_exit(universe_t* u);
 
-void universe_init_events   (universe_t* u, graphics_t* g, cfg_group_t* gr);
-void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr);
-void universe_init_mines    (universe_t* u, graphics_t* g, cfg_group_t* gr);
-void universe_init_iskills  (universe_t* u, graphics_t* g, cfg_group_t* gr);
-void universe_init_items    (universe_t* u, graphics_t* g, cfg_group_t* gr);
-void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr);
+void universe_init_events   (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_materials(universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_mines    (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_iskills  (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_items    (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_buildings(universe_t* u, assets_t* a, cfg_group_t* gr);
 
 #endif

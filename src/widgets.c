@@ -22,14 +22,14 @@
 #include <stdio.h>
 #include <math.h>
 
-void draw_cursor(graphics_t* gr, int t)
+void draw_cursor(graphics_t* gr, assets_t* a, int t)
 {
 	sfVector2i imouse = sfMouse_getPositionRenderWindow(gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(gr, "data/cursors.png");
+		sprite = assets_sprite(a, "data/cursors.png");
 	sfIntRect rect = {24*t, 0, 24, 24};
 	sfSprite_setTextureRect(sprite, rect);
 	sfSprite_setPosition(sprite, mouse);
@@ -77,7 +77,7 @@ void draw_roundrect(graphics_t* gr, float x, float y, float w, float h)
 	sfRenderWindow_drawVertexArray(gr->render, array, NULL);
 }
 
-void draw_tooltip(graphics_t* gr, const char* txt)
+void draw_tooltip(graphics_t* gr, assets_t* a, const char* txt)
 {
 	sfVector2i imouse = sfMouse_getPositionRenderWindow(gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -86,7 +86,7 @@ void draw_tooltip(graphics_t* gr, const char* txt)
 	if (text == NULL)
 	{
 		text = sfText_create();
-		sfText_setFont         (text, gr->font);
+		sfText_setFont         (text, a->font);
 		sfText_setCharacterSize(text, 15);
 		sfText_setColor        (text, sfBlack);
 	}
@@ -178,7 +178,7 @@ void draw_scrollbar(graphics_t* gr, float x, float y, float w, float h, float r,
 	sfRenderWindow_drawRectangleShape(gr->render, cursor, NULL);
 }
 
-char draw_button(graphics_t* gr, float x, float y, const char* name, char enabled, char do_draw)
+char draw_button(graphics_t* gr, assets_t* a, float x, float y, const char* name, char enabled, char do_draw)
 {
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -187,8 +187,8 @@ char draw_button(graphics_t* gr, float x, float y, const char* name, char enable
 	static sfSprite* mini   = NULL;
 	if (normal == NULL)
 	{
-		normal = graphics_sprite(gr, "data/menubutton.png");
-		mini   = graphics_sprite(gr, "data/mini.png");
+		normal = assets_sprite(a, "data/menubutton.png");
+		mini   = assets_sprite(a, "data/mini.png");
 	}
 	sfSprite* sprite = strlen(name) > 1 ? normal : mini;
 
@@ -209,7 +209,7 @@ char draw_button(graphics_t* gr, float x, float y, const char* name, char enable
 	if (text == NULL)
 	{
 		text = sfText_create();
-		sfText_setFont(text, gr->font);
+		sfText_setFont(text, a->font);
 		sfText_setCharacterSize(text, 25);
 	}
 
@@ -222,7 +222,7 @@ char draw_button(graphics_t* gr, float x, float y, const char* name, char enable
 	return 0;
 }
 
-char draw_toggle(graphics_t* gr, float x, float y, const char* name, char* v, char do_draw)
+char draw_toggle(graphics_t* gr, assets_t* a, float x, float y, const char* name, char* v, char do_draw)
 {
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -231,7 +231,7 @@ char draw_toggle(graphics_t* gr, float x, float y, const char* name, char* v, ch
 	if (text == NULL)
 	{
 		text = sfText_create();
-		sfText_setFont(text, gr->font);
+		sfText_setFont(text, a->font);
 		sfText_setCharacterSize(text, 20);
 	}
 
@@ -251,7 +251,7 @@ char draw_toggle(graphics_t* gr, float x, float y, const char* name, char* v, ch
 	return 0;
 }
 
-void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int min, int max, char do_draw)
+void draw_slider(graphics_t* gr, assets_t* a, float x, float y, const char* name, int* v, int min, int max, char do_draw)
 {
 	sfVector2i imouse = sfMouse_getPosition((sfWindow*) gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
@@ -276,7 +276,7 @@ void draw_slider(graphics_t* gr, float x, float y, const char* name, int* v, int
 	if (text == NULL)
 	{
 		text = sfText_create();
-		sfText_setFont(text, gr->font);
+		sfText_setFont(text, a->font);
 		sfText_setCharacterSize(text, 20);
 	}
 

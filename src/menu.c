@@ -23,7 +23,7 @@
 #include "widgets.h"
 #include "game.h"
 
-static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
+static char mainmenu(settings_t* s, graphics_t* gr, assets_t* a, char do_draw)
 {
 	(void) s;
 
@@ -41,7 +41,7 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 	for (size_t i = 0; i < sizeof(labels)/sizeof(labels[0]); i++)
 	{
 		char enabled = i != 2 || !access("game.save", R_OK);
-		if (draw_button(gr, x, y, labels[i], enabled, do_draw))
+		if (draw_button(gr, a, x, y, labels[i], enabled, do_draw))
 			return i;
 
 		y += 50;
@@ -49,7 +49,7 @@ static char mainmenu(graphics_t* gr, settings_t* s, char do_draw)
 
 	return -1;
 }
-static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
+static char configmenu(settings_t* s, graphics_t* gr, assets_t* a, char do_draw)
 {
 	sfVector2u size = sfRenderWindow_getSize(gr->render);
 	float x = size.x / 2;
@@ -59,7 +59,7 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 	if (text == NULL)
 	{
 		text = sfText_create();
-		sfText_setFont(text, gr->font);
+		sfText_setFont(text, a->font);
 		sfText_setCharacterSize(text, 20);
 	}
 	char buffer[1024];
@@ -70,22 +70,22 @@ static char configmenu(graphics_t* gr, settings_t* s, char do_draw)
 	sfText_setPosition(text, pos);
 	sfRenderWindow_drawText(gr->render, text, NULL);
 
-	draw_slider(gr, x, (y+=50), "Largeur", &s->map_width,  100, 2000, do_draw);
-	draw_slider(gr, x, (y+=50), "Height",  &s->map_height, 100, 2000, do_draw);
-	draw_slider(gr, x, (y+=50), "Bots",    &s->bots_count,  10, 2000, do_draw);
+	draw_slider(gr, a, x, (y+=50), "Largeur", &s->map_width,  100, 2000, do_draw);
+	draw_slider(gr, a, x, (y+=50), "Height",  &s->map_height, 100, 2000, do_draw);
+	draw_slider(gr, a, x, (y+=50), "Bots",    &s->bots_count,  10, 2000, do_draw);
 
-	draw_toggle(gr, x, (y+=50), "Quickstart", &s->quickstart, do_draw);
-	draw_toggle(gr, x, (y+=50), "Godmode",    &s->godmode,    do_draw);
+	draw_toggle(gr, a, x, (y+=50), "Quickstart", &s->quickstart, do_draw);
+	draw_toggle(gr, a, x, (y+=50), "Godmode",    &s->godmode,    do_draw);
 
-	if (draw_button(gr, x, (y+=50), "Confirmer", 1, do_draw))
+	if (draw_button(gr, a, x, (y+=50), "Confirmer", 1, do_draw))
 		return 0;
 
 	return -1;
 }
-static void play(settings_t* s, graphics_t* gr, char load)
+static void play(settings_t* s, graphics_t* gr, assets_t* a, char load)
 {
 	game_t game;
-	game_init(&game, s, gr, load);
+	game_init(&game, s, gr, a, load);
 	game_loop(&game);
 	game_exit(&game);
 }
@@ -95,7 +95,11 @@ void menu(settings_t* s)
 	graphics_t* gr = &graphics;
 	graphics_init(gr);
 
-	sfSprite* illustration = graphics_sprite(gr, "data/menu.png");
+	assets_t assets;
+	assets_t* a = &assets;
+	assets_init(a);
+
+	sfSprite* illustration = assets_sprite(a, "data/menu.png");
 
 	sfRenderWindow* render = gr->render;
 	char inconfig = 0;
@@ -121,24 +125,24 @@ void menu(settings_t* s)
 				if (event.key.code == sfKeyEscape)
 					stayhere = 0;
 				else if (event.key.code == sfKeyReturn)
-					play(s, gr, 0);
+					play(s, gr, a, 0);
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				if (inconfig)
 				{
-					if (configmenu(gr, s, 0) == 0)
+					if (configmenu(s, gr, a, 0) == 0)
 						inconfig = 0;
 				}
 				else
 				{
-					int i = mainmenu(gr, s, 0);
+					int i = mainmenu(s, gr, a, 0);
 					if (i == 0)
-						play(s, gr, 0);
+						play(s, gr, a, 0);
 					else if (i == 1)
 						inconfig = 1;
 					else if (i == 2)
-						play(s, gr, 1);
+						play(s, gr, a, 1);
 					else if (i == 3)
 						stayhere = 0;
 				}
@@ -154,11 +158,11 @@ void menu(settings_t* s)
 		sfRenderWindow_drawSprite(render, illustration, NULL);
 
 		if (inconfig)
-			configmenu(gr, s, 1);
+			configmenu(s, gr, a, 1);
 		else
-			mainmenu(gr, s, 1);
+			mainmenu(s, gr, a, 1);
 
-		draw_cursor(gr, 0);
+		draw_cursor(gr, a, 0);
 		sfRenderWindow_display(render);
 	}
 

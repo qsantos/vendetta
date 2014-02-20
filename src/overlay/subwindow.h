@@ -21,7 +21,7 @@
 
 typedef struct subwindow subwindow_t;
 
-#include "../graphics.h"
+#include <SFML/Graphics.h>
 
 struct subwindow
 {
@@ -38,11 +38,14 @@ struct subwindow
 #define SW_WIDTH  307.f
 #define SW_HEIGHT 356.f
 
+#include "../graphics.h"
+#include "../assets.h"
+
 void subwindow_init(subwindow_t* w, graphics_t* g, const char* name, float x, float y);
 void subwindow_exit(subwindow_t* w);
 
 char subwindow_cursor(subwindow_t* w, graphics_t* g);
-char subwindow_draw  (subwindow_t* w, graphics_t* g);
+char subwindow_draw  (subwindow_t* w, graphics_t* g, assets_t* a);
 char subwindow_catch (subwindow_t* w, graphics_t* g, int t);
 char subwindow_wheel (subwindow_t* w, graphics_t* g, int delta);
 

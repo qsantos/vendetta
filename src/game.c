@@ -30,10 +30,11 @@
 #include "overlay/overlay.h"
 #include "widgets.h"
 
-void game_init(game_t* g, settings_t* s, graphics_t* gr, char load)
+void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 {
 	g->s = s;
 	g->g = gr;
+	g->a = a;
 
 	g->o = CALLOC( overlay_t, 1);
 	g->u = CALLOC(universe_t, 1);
@@ -315,12 +316,12 @@ void game_loop(game_t* g)
 		sfView_setCenter(g->g->world_view, pos);
 
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
-		draw_world(g->g, g->player, g->w);
+		draw_world(g->g, g->a, g->player, g->w);
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g, 1);
 		int t = overlay_cursor(g);
-		draw_cursor(g->g, t);
+		draw_cursor(g->g, g->a, t);
 		sfRenderWindow_display(g->g->render);
 
 		// check frame duration

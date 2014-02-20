@@ -21,7 +21,6 @@
 
 typedef struct kindOf_material kindOf_material_t;
 
-#include "../graphics.h"
 #include "status.h"
 
 struct kindOf_material
@@ -37,9 +36,11 @@ struct kindOf_material
 	int icon_index;
 };
 
+#include "../assets.h"
+
 void kindOf_material_init(kindOf_material_t* m);
 void kindOf_material_exit(kindOf_material_t* m);
 
-void kindOf_material_icon(kindOf_material_t* m, graphics_t* g, const char* filename, int idx);
+void kindOf_material_icon(kindOf_material_t* m, assets_t* a, const char* filename, int idx);
 
 #endif

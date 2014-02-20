@@ -23,14 +23,16 @@
 
 #include "../widgets.h"
 
-static void draw_object(graphics_t* g, object_t* o, sfSprite* sprite)
+static void draw_object(graphics_t* g, assets_t* a, object_t* o, sfSprite* sprite)
 {
+	(void) a;
+
 	sfVector2f pos = {o->x - o->w/2, o->y - o->h};
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
-void draw_event(graphics_t* g, character_t* player, event_t* e)
+void draw_event(graphics_t* g, assets_t* a, character_t* player, event_t* e)
 {
 	(void) player;
 
@@ -39,7 +41,7 @@ void draw_event(graphics_t* g, character_t* player, event_t* e)
 	if (t->sprite < 0)
 		return;
 
-	sfSprite* sprite = g->sprites[t->sprite];
+	sfSprite* sprite = a->sprites[t->sprite];
 
 	sfIntRect rect = {0, 0, t->width, t->height};
 	int step = floor(e->p * t->steps);
@@ -52,7 +54,7 @@ void draw_event(graphics_t* g, character_t* player, event_t* e)
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
-void draw_character(graphics_t* g, character_t* player, character_t* c)
+void draw_character(graphics_t* g, assets_t* a, character_t* player, character_t* c)
 {
 	if (c == NULL)
 		return;
@@ -93,9 +95,9 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 
 	static sfSprite* defaultSprite = NULL;
 	if (defaultSprite == NULL)
-		defaultSprite = graphics_sprite(g, "data/characters/default.png");
+		defaultSprite = assets_sprite(a, "data/characters/default.png");
 
-	sfSprite*sprite = c->t == NULL ? defaultSprite : g->sprites[c->t->sprite];
+	sfSprite*sprite = c->t == NULL ? defaultSprite : a->sprites[c->t->sprite];
 
 	sfColor color = c->alive ? sfWhite : (sfColor){255,255,255,127};
 	sfSprite_setColor(sprite, color);
@@ -126,7 +128,7 @@ void draw_character(graphics_t* g, character_t* player, character_t* c)
 	}
 }
 
-void draw_mine(graphics_t* g, character_t* player, mine_t* m)
+void draw_mine(graphics_t* g, assets_t* a, character_t* player, mine_t* m)
 {
 	(void) player;
 
@@ -135,15 +137,15 @@ void draw_mine(graphics_t* g, character_t* player, mine_t* m)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g, "data/mines.png");
+		sprite = assets_sprite(a, "data/mines.png");
 
 	int t = m->t->id;
 	sfIntRect rect = {32*t, 32*0, 32, 32};
 	sfSprite_setTextureRect(sprite, rect);
-	draw_object(g, &m->o, sprite);
+	draw_object(g, a, &m->o, sprite);
 }
 
-void draw_building(graphics_t* g, character_t* player, building_t* b)
+void draw_building(graphics_t* g, assets_t* a, character_t* player, building_t* b)
 {
 	if (b == NULL)
 		return;
@@ -157,10 +159,10 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 	else
 		step = floor(p * (n-2));
 
-	sfSprite* sprite = g->sprites[b->t->sprite];
+	sfSprite* sprite = a->sprites[b->t->sprite];
 	sfIntRect rect = {0, b->o.h*step, b->o.w, b->o.h};
 	sfSprite_setTextureRect(sprite, rect);
-	draw_object(g, &b->o, sprite);
+	draw_object(g, a, &b->o, sprite);
 
 	if (player->hasBuilding == b->o.uuid && player->inBuilding == b->o.uuid && p == 1)
 	{
@@ -189,11 +191,11 @@ void draw_building(graphics_t* g, character_t* player, building_t* b)
 		draw_progressbar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
 }
 
-void draw_chunk(graphics_t* g, character_t* player, chunk_t* c)
+void draw_chunk(graphics_t* g, assets_t* a, character_t* player, chunk_t* c)
 {
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
 	if (states.texture == NULL)
-		states.texture = graphics_loadImage(g, "data/lands.png");
+		states.texture = assets_loadImage(a, "data/lands.png");
 
 	sfVertexArray* array = c->array;
 	int cur_step = floor(g->step);
@@ -207,10 +209,10 @@ void draw_chunk(graphics_t* g, character_t* player, chunk_t* c)
 	sfRenderWindow_drawVertexArray(g->render, array, &states);
 
 	for (ssize_t i = c->n_mines-1; i >= 0; i--)
-		draw_mine(g, player, c->mines[i]);
+		draw_mine(g, a, player, c->mines[i]);
 }
 
-void draw_chunks(graphics_t* g, character_t* player, world_t* w)
+void draw_chunks(graphics_t* g, assets_t* a, character_t* player, world_t* w)
 {
 	sfVector2f x = sfView_getCenter(g->world_view);
 	sfVector2f s = sfView_getSize(g->world_view);
@@ -227,13 +229,13 @@ void draw_chunks(graphics_t* g, character_t* player, world_t* w)
 		if (!object_overlaps(&c->o, &o))
 			continue;
 
-		draw_chunk(g, player, c);
+		draw_chunk(g, a, player, c);
 	}
 }
 
-void draw_world(graphics_t* g, character_t* player, world_t* w)
+void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w)
 {
-	draw_chunks(g, player, w);
+	draw_chunks(g, a, player, w);
 
 	pool_t* p = &w->objects;
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
@@ -242,7 +244,7 @@ void draw_world(graphics_t* g, character_t* player, world_t* w)
 		if (b == NULL)
 			continue;
 
-		draw_building(g, player, b);
+		draw_building(g, a, player, b);
 	}
 
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
@@ -251,9 +253,9 @@ void draw_world(graphics_t* g, character_t* player, world_t* w)
 		if (c == NULL)
 			continue;
 
-		draw_character(g, player, c);
+		draw_character(g, a, player, c);
 	}
 
 	for (ssize_t i = w->events.n-1; i >= 0; i--)
-		draw_event(g, player, &w->events.d[i]);
+		draw_event(g, a, player, &w->events.d[i]);
 }

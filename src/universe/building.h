@@ -21,7 +21,8 @@
 
 typedef struct kindOf_building kindOf_building_t;
 
-#include "../graphics.h"
+#include <sys/types.h>
+
 #include "transform.h"
 
 struct kindOf_building
@@ -49,11 +50,13 @@ struct kindOf_building
 	transform_t* items;
 };
 
+#include "../assets.h"
+
 void kindOf_building_init(kindOf_building_t* b);
 void kindOf_building_exit(kindOf_building_t* b);
 
-void kindOf_building_sprite(kindOf_building_t* b, graphics_t* g, const char* filename, int n_sprites);
-void kindOf_building_button(kindOf_building_t* b, graphics_t* g, const char* filename, int idx);
+void kindOf_building_sprite(kindOf_building_t* b, assets_t* g, const char* filename, int n_sprites);
+void kindOf_building_button(kindOf_building_t* b, assets_t* g, const char* filename, int idx);
 
 int kindOf_building_newItem(kindOf_building_t* b);
 

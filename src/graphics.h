@@ -26,17 +26,9 @@ typedef struct graphics graphics_t;
 struct graphics
 {
 	sfRenderWindow* render;
-	sfFont*         font;
 
 	sfView* world_view;
 	sfView* overlay_view;
-
-	char**      filenames;
-	sfTexture** textures;
-
-	size_t     n_sprites;
-	size_t     a_sprites;
-	sfSprite** sprites;
 
 	float step;
 	float fps;
@@ -44,10 +36,6 @@ struct graphics
 
 void graphics_init(graphics_t* g);
 void graphics_exit(graphics_t* g);
-
-sfTexture* graphics_loadImage(graphics_t* g, const char* filename);
-int        graphics_spriteId (graphics_t* g, const char* filename);
-sfSprite*  graphics_sprite   (graphics_t* g, const char* filename);
 
 void sfText_setUTF8(sfText* text, const char* string);
 

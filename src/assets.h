@@ -16,16 +16,30 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef DRAW_H
-#define DRAW_H
+#ifndef ASSETS_H
+#define ASSETS_H
 
-#include "world.h"
-#include "../graphics.h"
+typedef struct assets assets_t;
 
-void draw_event    (graphics_t* g, assets_t* a, character_t* player, event_t* e);
-void draw_character(graphics_t* g, assets_t* a, character_t* player, character_t* c);
-void draw_mine     (graphics_t* g, assets_t* a, character_t* player, mine_t* m);
-void draw_building (graphics_t* g, assets_t* a, character_t* player, building_t* b);
-void draw_world    (graphics_t* g, assets_t* a, character_t* player, world_t* w);
+#include <SFML/Graphics.h>
+
+struct assets
+{
+	sfFont* font;
+
+	char**      filenames;
+	sfTexture** textures;
+
+	size_t     n_sprites;
+	size_t     a_sprites;
+	sfSprite** sprites;
+};
+
+void assets_init(assets_t* a);
+void assets_exit(assets_t* a);
+
+sfTexture* assets_loadImage(assets_t* a, const char* filename);
+int        assets_spriteId (assets_t* a, const char* filename);
+sfSprite*  assets_sprite   (assets_t* a, const char* filename);
 
 #endif

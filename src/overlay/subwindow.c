@@ -53,7 +53,7 @@ char subwindow_cursor(subwindow_t* w, graphics_t* g)
 	return sfFloatRect_contains(&rect, mouse.x, mouse.y);
 }
 
-char subwindow_draw(subwindow_t* w, graphics_t* g)
+char subwindow_draw(subwindow_t* w, graphics_t* g, assets_t* a)
 {
 	if (!w->visible)
 		return 0;
@@ -62,7 +62,7 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
-		sprite = graphics_sprite(g, "data/subwindow.png");
+		sprite = assets_sprite(a, "data/subwindow.png");
 	sfSprite_setPosition(sprite, pos);
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 
@@ -72,7 +72,7 @@ char subwindow_draw(subwindow_t* w, graphics_t* g)
 		text = sfText_create();
 		sfColor col = {255, 255, 255, 255};
 		sfText_setColor        (text, col);
-		sfText_setFont         (text, g->font);
+		sfText_setFont         (text, a->font);
 		sfText_setCharacterSize(text, 18);
 	}
 	sfText_setUTF8(text, w->name);

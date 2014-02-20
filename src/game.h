@@ -23,6 +23,7 @@ typedef struct game game_t;
 
 #include "settings.h"
 #include "graphics.h"
+#include "assets.h"
 #include "universe/universe.h"
 #include "world/world.h"
 #include "overlay/overlay.h"
@@ -31,6 +32,7 @@ struct game
 {
 	settings_t* s;
 	graphics_t* g;
+	assets_t*   a;
 
 	overlay_t*  o;
 	universe_t* u;
@@ -40,7 +42,7 @@ struct game
 	char         autoEat[N_STATUSES];
 };
 
-void game_init(game_t* g, settings_t* s, graphics_t* gr, char load);
+void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load);
 void game_exit(game_t* g);
 void game_loop(game_t* g);
 

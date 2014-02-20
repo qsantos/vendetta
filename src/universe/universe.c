@@ -40,7 +40,7 @@ static void rec_find(universe_t* u, game_t* g, const char* path)
 				continue;
 			kindOf_character_t* c = &u->characters[u->n_characters++];
 			kindOf_character_init(c);
-			c->sprite = graphics_spriteId(g->g, path);
+			c->sprite = assets_spriteId(g->a, path);
 			if (g->s->verbosity >= 2)
 				fprintf(stderr, "Loaded '%s'\n", path);
 		);
@@ -101,12 +101,12 @@ void universe_init(universe_t* u, game_t* g)
 	}
 
 	// apply rest of configuration
-	universe_init_events   (u, g->g, cfg_ini_group(&ini, "Effet"));
-	universe_init_materials(u, g->g, cfg_ini_group(&ini, "Ressource"));
-	universe_init_mines    (u, g->g, cfg_ini_group(&ini, "TerrainRessource"));
-	universe_init_iskills  (u, g->g, cfg_ini_group(&ini, "CompetenceObjet"));
-	universe_init_items    (u, g->g, cfg_ini_group(&ini, "Objet"));
-	universe_init_buildings(u, g->g, cfg_ini_group(&ini, "Batiment"));
+	universe_init_events   (u, g->a, cfg_ini_group(&ini, "Effet"));
+	universe_init_materials(u, g->a, cfg_ini_group(&ini, "Ressource"));
+	universe_init_mines    (u, g->a, cfg_ini_group(&ini, "TerrainRessource"));
+	universe_init_iskills  (u, g->a, cfg_ini_group(&ini, "CompetenceObjet"));
+	universe_init_items    (u, g->a, cfg_ini_group(&ini, "Objet"));
+	universe_init_buildings(u, g->a, cfg_ini_group(&ini, "Batiment"));
 
 	if (g->s->verbosity >= 1)
 	{
@@ -221,7 +221,7 @@ void universe_exit(universe_t* u)
 	free(u->bots);
 }
 
-void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
+void universe_init_events(universe_t* u, assets_t* a, cfg_group_t* gr)
 {
 	if (gr == NULL)
 		return;
@@ -239,7 +239,7 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		char* image_file = cfg_getString(s, "Fichier");
 		int n_steps = cfg_getInt(s, "NombreEtapes");
 		if (image_file != NULL && n_steps > 0)
-			kindOf_event_sprite(e, g, image_file, n_steps);
+			kindOf_event_sprite(e, a, image_file, n_steps);
 		free(image_file);
 
 		float duration = cfg_getFloat(s, "DureeEtape");
@@ -254,7 +254,7 @@ void universe_init_events(universe_t* u, graphics_t* g, cfg_group_t* gr)
 	}
 }
 
-void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
+void universe_init_materials(universe_t* u, assets_t* a, cfg_group_t* gr)
 {
 	if (gr == NULL)
 		return;
@@ -275,7 +275,7 @@ void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		t->rate = cfg_getFloat(s, "VitesseExtraction");
 
 		int   id = cfg_getInt(s, "TypeMatierePremiere") - 1;
-		float a  = cfg_getFloat(s, "QuantiteMatierePremiere");
+		float am = cfg_getFloat(s, "QuantiteMatierePremiere");
 		if (id >= (ssize_t) u->n_materials)
 		{
 			fprintf(stderr, "Invalid requisite material id '%i' at '%s_%s'\n",
@@ -283,7 +283,7 @@ void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 			exit(1);
 		}
 		if (id >= 0)
-			transform_req(t, id, a, 0);
+			transform_req(t, id, am, 0);
 
 		m->name = cfg_getString(s, "Nom");
 		m->edible     = cfg_getInt(s, "Mangeable");
@@ -301,16 +301,17 @@ void universe_init_materials(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		char* icon_file  = cfg_getString(s, "Image");
 		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
 		if (icon_file != NULL && icon_index >= 0)
-			kindOf_material_icon(m, g, icon_file, icon_index);
+			kindOf_material_icon(m, a, icon_file, icon_index);
 		else
 			fprintf(stderr, "Missing icon for '%s_%s'\n", gr->name, s->name);
 		free(icon_file);
 	}
 }
 
-void universe_init_mines(universe_t* u, graphics_t* g, cfg_group_t* gr)
+void universe_init_mines(universe_t* u, assets_t* a, cfg_group_t* gr)
 {
-	(void) g;
+	(void) a;
+
 	if (gr == NULL)
 		return;
 
@@ -334,9 +335,10 @@ void universe_init_mines(universe_t* u, graphics_t* g, cfg_group_t* gr)
 	}
 }
 
-void universe_init_iskills(universe_t* u, graphics_t* g, cfg_group_t* gr)
+void universe_init_iskills(universe_t* u, assets_t* a, cfg_group_t* gr)
 {
-	(void) g;
+	(void) a;
+
 	if (gr == NULL)
 		return;
 
@@ -355,7 +357,7 @@ void universe_init_iskills(universe_t* u, graphics_t* g, cfg_group_t* gr)
 	}
 }
 
-void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
+void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 {
 	if (gr == NULL)
 		return;
@@ -473,14 +475,14 @@ void universe_init_items(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		char* icon_file  = cfg_getString(s, "Image");
 		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
 		if (icon_file != NULL && icon_index >= 0)
-			kindOf_item_icon(it, g, icon_file, icon_index);
+			kindOf_item_icon(it, a, icon_file, icon_index);
 		else
 			fprintf(stderr, "Missing icon for '%s_%s'\n", gr->name, s->name);
 		free(icon_file);
 	}
 }
 
-void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
+void universe_init_buildings(universe_t* u, assets_t* a, cfg_group_t* gr)
 {
 	if (gr == NULL)
 		return;
@@ -511,7 +513,7 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		char* image_file = cfg_getString(s, "Image");
 		int   n_sprites  = cfg_getInt(s, "NombreEtapeFabrication") + 1;
 		if (image_file != NULL && n_sprites > 0)
-			kindOf_building_sprite(b, g, image_file, n_sprites);
+			kindOf_building_sprite(b, a, image_file, n_sprites);
 		else
 			fprintf(stderr, "Missing image for '%s_%s'\n", gr->name, s->name);
 		free(image_file);
@@ -519,7 +521,7 @@ void universe_init_buildings(universe_t* u, graphics_t* g, cfg_group_t* gr)
 		char* button_file  = cfg_getString(s, "ImageBouton");
 		int   button_index = cfg_getInt   (s, "SpriteBoutonIndex") - 1;
 		if (button_file != NULL && button_index >= 0)
-			kindOf_building_button(b, g, button_file, button_index);
+			kindOf_building_button(b, a, button_file, button_index);
 		else
 			fprintf(stderr, "Missing button for '%s_%s'\n", gr->name, s->name);
 		free(button_file);

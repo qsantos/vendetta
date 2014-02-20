@@ -35,11 +35,11 @@ void kindOf_material_exit(kindOf_material_t* m)
 	free(m->name);
 }
 
-void kindOf_material_icon(kindOf_material_t* m, graphics_t* g, const char* filename, int idx)
+void kindOf_material_icon(kindOf_material_t* m, assets_t* a, const char* filename, int idx)
 {
 	char s[1024];
 	snprintf(s, 1024, "data/%s", filename);
-	int id = graphics_spriteId(g, s);
+	int id = assets_spriteId(a, s);
 
 	m->icon_sprite = id;
 	m->icon_index  = idx;
