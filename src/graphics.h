@@ -29,9 +29,6 @@ struct graphics
 
 	sfView* world_view;
 	sfView* overlay_view;
-
-	float step;
-	float fps;
 };
 
 void graphics_init(graphics_t* g);

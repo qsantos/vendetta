@@ -38,6 +38,8 @@ struct game
 	universe_t* u;
 	world_t*    w;
 
+	float fps;
+
 	character_t* player;
 	char         autoEat[N_STATUSES];
 };

@@ -29,9 +29,6 @@ void graphics_init(graphics_t* g)
 	if (g->render == NULL)
 		exit(1);
 	sfRenderWindow_setMouseCursorVisible(g->render, sfFalse);
-
-	g->step = 0;
-	g->fps  = 0;
 }
 
 void graphics_exit(graphics_t* g)

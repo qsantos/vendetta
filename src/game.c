@@ -44,6 +44,8 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 	universe_init(g->u, g);
 	   world_init(g->w, g);
 
+	g->fps  = 0;
+
 	if (load)
 	{
 		const char* filename = "game.save";
@@ -129,9 +131,13 @@ void game_loop(game_t* g)
 	float zoom = 1;
 	sfClock* clock = sfClock_create();
 	sfClock* maintain = sfClock_create();
-	float fpssum = 0;
-	int fpscount = 0;
-	float fpslast = 0;
+
+	float step = 0;
+
+	int   fpscount = 0;
+	float fpssum   = 0;
+	float fpslast  = 0;
+
 	char stayhere = 1;
 	while (stayhere && sfRenderWindow_isOpen(g->g->render))
 	{
@@ -316,7 +322,7 @@ void game_loop(game_t* g)
 		sfView_setCenter(g->g->world_view, pos);
 
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
-		draw_world(g->g, g->a, g->player, g->w);
+		draw_world(g->g, g->a, g->player, g->w, ((int)floor(step)) % 4);
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g, 1);
@@ -326,17 +332,17 @@ void game_loop(game_t* g)
 
 		// check frame duration
 		float duration = sfTime_asSeconds(sfClock_restart(clock));
-		g->g->step += duration;
+		step += duration;
 
 		// measure FPS
-		fpssum += 1. / duration;
 		fpscount++;
+		fpssum += 1. / duration;
 		fpslast += duration;
 		if (fpslast >= 1.)
 		{
-			g->g->fps = fpssum / fpscount;
-			fpssum = 0;
+			g->fps = fpssum / fpscount;
 			fpscount = 0;
+			fpssum = 0;
 			fpslast = 0;
 		}
 

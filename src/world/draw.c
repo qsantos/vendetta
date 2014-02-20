@@ -191,18 +191,16 @@ void draw_building(graphics_t* g, assets_t* a, character_t* player, building_t* 
 		draw_progressbar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
 }
 
-void draw_chunk(graphics_t* g, assets_t* a, character_t* player, chunk_t* c)
+void draw_chunk(graphics_t* g, assets_t* a, character_t* player, chunk_t* c, int step)
 {
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
 	if (states.texture == NULL)
 		states.texture = assets_loadImage(a, "data/lands.png");
 
 	sfVertexArray* array = c->array;
-	int cur_step = floor(g->step);
-	cur_step %= 4;
-	if (cur_step != c->water_step)
+	if (step != c->water_step)
 	{
-		c->water_step = cur_step;
+		c->water_step = step;
 		chunk_updwtr(c);
 	}
 
@@ -212,7 +210,7 @@ void draw_chunk(graphics_t* g, assets_t* a, character_t* player, chunk_t* c)
 		draw_mine(g, a, player, c->mines[i]);
 }
 
-void draw_chunks(graphics_t* g, assets_t* a, character_t* player, world_t* w)
+void draw_chunks(graphics_t* g, assets_t* a, character_t* player, world_t* w, int step)
 {
 	sfVector2f x = sfView_getCenter(g->world_view);
 	sfVector2f s = sfView_getSize(g->world_view);
@@ -229,13 +227,13 @@ void draw_chunks(graphics_t* g, assets_t* a, character_t* player, world_t* w)
 		if (!object_overlaps(&c->o, &o))
 			continue;
 
-		draw_chunk(g, a, player, c);
+		draw_chunk(g, a, player, c, step);
 	}
 }
 
-void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w)
+void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w, int step)
 {
-	draw_chunks(g, a, player, w);
+	draw_chunks(g, a, player, w, step);
 
 	pool_t* p = &w->objects;
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
