@@ -16,47 +16,23 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef W_OBJECT_H
-#define W_OBJECT_H
+#include "projectile.h"
 
-typedef enum
+void projectile_init(projectile_t* p, kindOf_projectile_t* t, float x, float y, float tx, float ty)
 {
-	D_NORTH,
-	D_EAST,
-	D_SOUTH,
-	D_WEST,
-} direction_t;
+	p->o.t = O_PROJECTILE;
+	p->o.x = x;
+	p->o.y = y;
+	p->o.w = t->width;
+	p->o.h = t->height;
+	p->t = t;
+	p->target_x = tx;
+	p->target_y = ty;
+	p->dir = D_SOUTH;
+	p->step = 0;
+}
 
-typedef enum
+void projectile_exit(projectile_t* p)
 {
-	O_NONE,
-	O_PROJECTILE,
-	O_CHARACTER,
-	O_MINE,
-	O_BUILDING,
-	O_CHUNK,
-	O_WORLD,
-} otype_t;
-
-typedef struct object object_t;
-typedef signed long   uuid_t;
-
-#include <sys/types.h>
-
-struct object
-{
-	otype_t t;
-	uuid_t uuid;
-
-	float x;
-	float y;
-	float w;
-	float h;
-};
-
-char  object_overlaps(object_t* o, object_t* a);
-char  object_contains(object_t* o, object_t* a);
-char  object_isAt    (object_t* o, float x, float y);
-float object_distance(object_t* o, float x, float y);
-
-#endif
+	(void) p;
+}

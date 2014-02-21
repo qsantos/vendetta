@@ -37,8 +37,13 @@ object_t* pool_new(pool_t* p, uuid_t uuid, size_t size);
 object_t* pool_get(pool_t* p, uuid_t uuid);
 void      pool_del(pool_t* p, object_t* a);
 
+#include "projectile.h"
 #include "character.h"
+#include "mine.h"
 #include "building.h"
+
+projectile_t* projectile_new(pool_t* p, uuid_t uuid);
+projectile_t* projectile_get(pool_t* p, uuid_t uuid);
 
 character_t* character_new(pool_t* p, uuid_t uuid);
 character_t* character_get(pool_t* p, uuid_t uuid);

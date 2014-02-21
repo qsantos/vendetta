@@ -90,6 +90,7 @@ T##_t* T##_get(pool_t* p, uuid_t uuid) \
 	return r; \
 }
 
-SPECIALIZED(character, O_CHARACTER)
-SPECIALIZED(mine,      O_MINE)
-SPECIALIZED(building,  O_BUILDING)
+SPECIALIZED(projectile, O_PROJECTILE)
+SPECIALIZED(character,  O_CHARACTER)
+SPECIALIZED(mine,       O_MINE)
+SPECIALIZED(building,   O_BUILDING)

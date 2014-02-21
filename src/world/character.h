@@ -33,14 +33,6 @@ typedef struct character character_t;
 #include "../universe/universe.h"
 #include "../ai.h"
 
-typedef enum
-{
-	D_NORTH,
-	D_EAST,
-	D_SOUTH,
-	D_WEST,
-} direction_t;
-
 struct character
 {
 	object_t o;

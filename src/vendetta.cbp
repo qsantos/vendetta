@@ -113,7 +113,9 @@
 <Unit filename="world/event.h" />
 <Unit filename="world/draw.c" />
 <Unit filename="world/mine.h" />
+<Unit filename="world/projectile.h" />
 <Unit filename="world/world_save.h" />
+<Unit filename="world/projectile.c" />
 <Unit filename="world/character.h" />
 <Unit filename="world/world_gen.h" />
 <Unit filename="world/draw.h" />
