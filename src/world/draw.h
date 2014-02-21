@@ -16,8 +16,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#ifndef DRAW_H
-#define DRAW_H
+#ifndef W_DRAW_H
+#define W_DRAW_H
 
 #include "world.h"
 #include "../graphics.h"
