@@ -32,6 +32,7 @@ struct kindOf_item
 	effect_t effect;
 	int      event;
 	int      projectile;
+	float    range;
 
 	int icon_sprite;
 	int icon_index;

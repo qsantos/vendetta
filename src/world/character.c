@@ -343,8 +343,9 @@ char character_attack(character_t* c, object_t* o)
 	universe_t* u = c->universe;
 	world_t* w = c->world;
 
-	float range = 20;
 	int evtId = -1;
+	float range = 0;
+	int projectile = -1;
 	for (size_t i = 0; i < u->n_slots; i++)
 	{
 		int id = c->equipment[i];
@@ -352,10 +353,15 @@ char character_attack(character_t* c, object_t* o)
 			continue;
 
 		kindOf_item_t* it = &u->items[id];
-		evtId = it->event;
-		if (evtId >= 0)
-			break;
+		if (it->range > range)
+		{
+			range = it->range;
+			projectile = it->projectile;
+		}
+		if (evtId < 0)
+			evtId = it->event;
 	}
+	range += 20;
 	if (evtId < 0)
 		evtId = 0;
 
@@ -376,11 +382,6 @@ char character_attack(character_t* c, object_t* o)
 		float work = 5*character_getSkill(c, SK_ATTACK);
 		work = character_attacked(t, work, c);
 		character_train(c, SK_ATTACK, work);
-		evtList_push(&w->events, e, o->x, o->y - o->h/2);
-
-		kindOf_projectile_t* pt = &u->projectiles[0];
-		projectile_t* p = projectile_new(&w->objects, -1);
-		projectile_init(p, pt, c->o.x, c->o.y, o->x+500, o->y+500);
 	}
 	else if (o->t == O_BUILDING)
 	{
@@ -389,7 +390,15 @@ char character_attack(character_t* c, object_t* o)
 		float work = character_getSkill(c, SK_DESTROY);
 		work = building_attacked(b, work, c);
 		character_train(c, SK_DESTROY, work);
-		evtList_push(&w->events, e, o->x, o->y - o->h/2);
+	}
+
+	evtList_push(&w->events, e, o->x, o->y - o->h/2);
+
+	if (projectile >= 0)
+	{
+		kindOf_projectile_t* pt = &u->projectiles[projectile];
+		projectile_t* p = projectile_new(&w->objects, -1);
+		projectile_init(p, pt, c->o.x, c->o.y, o->x, o->y);
 	}
 
 	return 1;

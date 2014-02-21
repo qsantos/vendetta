@@ -32,6 +32,7 @@ void kindOf_item_init(kindOf_item_t* i)
 	effect_init(&i->effect);
 	i->event      = -1;
 	i->projectile = -1;
+	i->range      = 0;
 
 	i->icon_sprite = -1;
 	i->icon_index  = 0;

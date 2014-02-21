@@ -406,6 +406,7 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 		it->skill = u->iskills[iskill];
 
 		it->event = cfg_getInt(s, "EffetAttaque") - 1;
+		it->range = cfg_getFloat(s, "BonusPorteeAttaque");
 		it->projectile = cfg_getInt(s, "LanceProjectile") - 1;
 
 		transform_init(t);
