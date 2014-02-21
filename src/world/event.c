@@ -32,6 +32,13 @@ void evtList_init(evtList_t* l)
 
 void evtList_exit(evtList_t* l)
 {
+	for (size_t i = 0; i < l->n; i++)
+	{
+		event_t* t = &l->d[i];
+		if (t->sound != NULL)
+			sfSound_destroy(t->sound);
+	}
+
 	free(l->d);
 }
 
