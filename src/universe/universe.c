@@ -101,12 +101,13 @@ void universe_init(universe_t* u, game_t* g)
 	}
 
 	// apply rest of configuration
-	universe_init_events   (u, g->a, cfg_ini_group(&ini, "Effet"));
-	universe_init_materials(u, g->a, cfg_ini_group(&ini, "Ressource"));
-	universe_init_mines    (u, g->a, cfg_ini_group(&ini, "TerrainRessource"));
-	universe_init_iskills  (u, g->a, cfg_ini_group(&ini, "CompetenceObjet"));
-	universe_init_items    (u, g->a, cfg_ini_group(&ini, "Objet"));
-	universe_init_buildings(u, g->a, cfg_ini_group(&ini, "Batiment"));
+	universe_init_events     (u, g->a, cfg_ini_group(&ini, "Effet"));
+	universe_init_materials  (u, g->a, cfg_ini_group(&ini, "Ressource"));
+	universe_init_projectiles(u, g->a, cfg_ini_group(&ini, "Projectile"));
+	universe_init_mines      (u, g->a, cfg_ini_group(&ini, "TerrainRessource"));
+	universe_init_iskills    (u, g->a, cfg_ini_group(&ini, "CompetenceObjet"));
+	universe_init_items      (u, g->a, cfg_ini_group(&ini, "Objet"));
+	universe_init_buildings  (u, g->a, cfg_ini_group(&ini, "Batiment"));
 
 	if (g->s->verbosity >= 1)
 	{
@@ -203,6 +204,10 @@ void universe_exit(universe_t* u)
 	for (size_t i = 0; i < u->n_items; i++)
 		kindOf_item_exit(&u->items[i]);
 	free(u->items);
+
+	for (size_t i = 0; i < u->n_projectiles; i++)
+		kindOf_projectile_exit(&u->projectiles[i]);
+	free(u->projectiles);
 
 	for (size_t i = 0; i < u->n_materials; i++)
 		kindOf_material_exit(&u->materials[i]);
@@ -305,6 +310,26 @@ void universe_init_materials(universe_t* u, assets_t* a, cfg_group_t* gr)
 		else
 			fprintf(stderr, "Missing icon for '%s_%s'\n", gr->name, s->name);
 		free(icon_file);
+	}
+}
+
+void universe_init_projectiles(universe_t* u, assets_t* a, cfg_group_t* gr)
+{
+	if (gr == NULL)
+		return;
+
+	u->n_projectiles = gr->n_sections;
+	u->projectiles   = CALLOC(kindOf_projectile_t, u->n_projectiles);
+	for (size_t i = 0; i < u->n_projectiles; i++)
+	{
+		cfg_section_t* s = &gr->sections[i];
+		kindOf_projectile_t* p = &u->projectiles[i];
+		kindOf_projectile_init(p);
+
+		const char* image = cfg_getString(s, "CheminApparence");
+		if (image != NULL)
+			kindOf_projectile_sprite(p, a, image);
+		p->event = cfg_getInt(s, "EffetAttaque") - 1;
 	}
 }
 

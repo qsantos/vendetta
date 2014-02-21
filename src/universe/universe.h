@@ -25,6 +25,7 @@ typedef struct universe universe_t;
 #include "event.h"
 #include "character.h"
 #include "material.h"
+#include "projectile.h"
 #include "item.h"
 #include "mine.h"
 #include "building.h"
@@ -47,6 +48,9 @@ struct universe
 
 	size_t n_materials;
 	kindOf_material_t* materials;
+
+	size_t n_projectiles;
+	kindOf_projectile_t* projectiles;
 
 	size_t n_items;
 	kindOf_item_t* items;
@@ -83,11 +87,12 @@ struct universe
 void universe_init(universe_t* u, game_t* g);
 void universe_exit(universe_t* u);
 
-void universe_init_events   (universe_t* u, assets_t* a, cfg_group_t* gr);
-void universe_init_materials(universe_t* u, assets_t* a, cfg_group_t* gr);
-void universe_init_mines    (universe_t* u, assets_t* a, cfg_group_t* gr);
-void universe_init_iskills  (universe_t* u, assets_t* a, cfg_group_t* gr);
-void universe_init_items    (universe_t* u, assets_t* a, cfg_group_t* gr);
-void universe_init_buildings(universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_events     (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_materials  (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_projectiles(universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_mines      (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_iskills    (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_items      (universe_t* u, assets_t* a, cfg_group_t* gr);
+void universe_init_buildings  (universe_t* u, assets_t* a, cfg_group_t* gr);
 
 #endif

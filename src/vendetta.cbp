@@ -69,6 +69,8 @@
 <Unit filename="universe/ini.c" />
 <Unit filename="universe/category.h" />
 <Unit filename="universe/mine.h" />
+<Unit filename="universe/projectile.h" />
+<Unit filename="universe/projectile.c" />
 <Unit filename="universe/equipment.c" />
 <Unit filename="universe/character.h" />
 <Unit filename="universe/skill.c" />
