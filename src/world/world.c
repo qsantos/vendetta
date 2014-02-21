@@ -122,10 +122,15 @@ void world_doRound(world_t* w, float duration)
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
 		character_t* c = character_get(p, i);
-		if (c == NULL)
-			continue;
+		if (c != NULL)
+			character_doRound(c, duration);
+	}
 
-		character_doRound(c, duration);
+	for (size_t i = 0; i < p->n_objects; i++)
+	{
+		projectile_t* q = projectile_get(p, i);
+		if (q != NULL)
+			projectile_doRound(q, duration);
 	}
 }
 

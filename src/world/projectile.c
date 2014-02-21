@@ -18,6 +18,10 @@
 
 #include "projectile.h"
 
+#include <math.h>
+
+#define M_PI 3.14159265358979323846
+
 void projectile_init(projectile_t* p, kindOf_projectile_t* t, float x, float y, float tx, float ty)
 {
 	p->o.t = O_PROJECTILE;
@@ -35,4 +39,29 @@ void projectile_init(projectile_t* p, kindOf_projectile_t* t, float x, float y, 
 void projectile_exit(projectile_t* p)
 {
 	(void) p;
+}
+
+void projectile_doRound(projectile_t* p, float duration)
+{
+	float dx = p->target_x - p->o.x;
+	float dy = p->target_y - p->o.y;
+
+	float dir = atan2f(dy, dx);
+
+	p->dir = dir <-M_PI * 3/4 ? D_WEST :
+	         dir <-M_PI * 1/4 ? D_NORTH :
+	         dir < M_PI * 1/4 ? D_EAST :
+	         dir < M_PI * 3/4 ? D_SOUTH :
+	                            D_WEST;
+
+	float distance = 150 * duration;
+	float remDistance = sqrt(dx*dx + dy*dy);
+	distance = fmin(distance, remDistance);
+
+	p->o.x += distance * cos(dir);
+	p->o.y += distance * sin(dir);
+
+	p->step += 10 * duration;
+	if (p->step >= 4)
+		p->step = 0;
 }

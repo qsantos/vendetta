@@ -357,7 +357,7 @@ void character_attack(character_t* c, object_t* o)
 
 		kindOf_projectile_t* pt = &u->projectiles[0];
 		projectile_t* p = projectile_new(&w->objects, -1);
-		projectile_init(p, pt, c->o.x, c->o.y, o->x, o->y);
+		projectile_init(p, pt, c->o.x, c->o.y, o->x+500, o->y+500);
 	}
 	else if (o->t == O_BUILDING)
 	{
