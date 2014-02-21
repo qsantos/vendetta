@@ -54,6 +54,29 @@ void draw_event(graphics_t* g, assets_t* a, character_t* player, event_t* e)
 	sfRenderWindow_drawSprite(g->render, sprite, NULL);
 }
 
+void draw_projectile(graphics_t* g, assets_t* a, character_t* player, projectile_t* p)
+{
+	(void) player;
+
+	if (p->t->sprite < 0)
+		return;
+
+	sfSprite* sprite = a->sprites[p->t->sprite];
+
+	int step = floor(p->step);
+	if (step >= 3)
+		step = 1;
+
+	float w = p->t->width;
+	float h = p->t->height;
+	sfIntRect  rect = {w*step, h*p->dir, w, h};
+	sfVector2f pos  = {p->o.x - p->o.w/2, p->o.y - p->o.h};
+
+	sfSprite_setTextureRect(sprite, rect);
+	sfSprite_setPosition(sprite, pos);
+	sfRenderWindow_drawSprite(g->render, sprite, NULL);
+}
+
 void draw_character(graphics_t* g, assets_t* a, character_t* player, character_t* c)
 {
 	if (c == NULL)
@@ -239,19 +262,22 @@ void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w, int
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
 	{
 		building_t* b = building_get(p, i);
-		if (b == NULL)
-			continue;
-
-		draw_building(g, a, player, b);
+		if (b != NULL)
+			draw_building(g, a, player, b);
 	}
 
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
 	{
 		character_t* c = character_get(p, i);
-		if (c == NULL)
-			continue;
+		if (c != NULL)
+			draw_character(g, a, player, c);
+	}
 
-		draw_character(g, a, player, c);
+	for (ssize_t i = p->n_objects-1; i >= 0; i--)
+	{
+		projectile_t* q = projectile_get(p, i);
+		if (q != NULL)
+			draw_projectile(g, a, player, q);
 	}
 
 	for (ssize_t i = w->events.n-1; i >= 0; i--)
