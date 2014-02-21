@@ -46,6 +46,9 @@ void evtList_push(evtList_t* l, kindOf_event_t* t, float x, float y)
 	{
 		sfSound* sound = sfSound_create();
 		sfSound_setBuffer(sound, t->sound);
+		sfSound_setPosition(sound, (sfVector3f){x,0,y});
+		sfSound_setMinDistance(sound, 100);
+		sfSound_setAttenuation(sound, 2);
 		sfSound_play(sound);
 		e->sound = sound;
 	}
