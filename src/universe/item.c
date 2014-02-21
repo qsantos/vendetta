@@ -27,10 +27,11 @@ void kindOf_item_init(kindOf_item_t* i)
 {
 	i->name     = NULL;
 
-	i->skill    = -1;
-	i->category = -1;
+	i->skill      = -1;
+	i->category   = -1;
 	effect_init(&i->effect);
-	i->event    = -1;
+	i->event      = -1;
+	i->projectile = -1;
 
 	i->icon_sprite = -1;
 	i->icon_index  = 0;

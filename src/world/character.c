@@ -354,6 +354,10 @@ void character_attack(character_t* c, object_t* o)
 		float work = 5*character_getSkill(c, SK_ATTACK);
 		work = character_attacked(t, work, c);
 		character_train(c, SK_ATTACK, work);
+
+		kindOf_projectile_t* pt = &u->projectiles[0];
+		projectile_t* p = projectile_new(&w->objects, -1);
+		projectile_init(p, pt, c->o.x, c->o.y, o->x, o->y);
 	}
 	else if (o->t == O_BUILDING)
 	{

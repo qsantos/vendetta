@@ -31,6 +31,7 @@ struct kindOf_item
 	int      category;
 	effect_t effect;
 	int      event;
+	int      projectile;
 
 	int icon_sprite;
 	int icon_index;
