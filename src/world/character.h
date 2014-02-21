@@ -76,7 +76,7 @@ void character_addStatus(character_t* c, int s, float q);
 void character_weary   (character_t* c, float f);
 void character_train   (character_t* c, int skill, float work);
 void character_workAt  (character_t* c, object_t* o, float duration);
-void character_attack  (character_t* c, object_t* o);
+char character_attack  (character_t* c, object_t* o);
 void character_move    (character_t* c, float duration, float dx, float dy);
 void character_doRound (character_t* c, float duration);
 

@@ -314,15 +314,36 @@ void character_eatFor(character_t* c, int status)
 	}
 }
 
-void character_attack(character_t* c, object_t* o)
+char character_attack(character_t* c, object_t* o)
 {
-	if (c->statuses[ST_ATTACK] < 7)
-		return;
-	c->statuses[ST_ATTACK] -= 7;
+	if (&c->o == o)
+		return 0;
+
+	if (o->t == O_CHARACTER)
+	{
+		character_t* t = (character_t*) o;
+
+		building_t* b = character_get_inBuilding(t);
+		if (b != NULL || !t->alive)
+		{
+			c->go_o = -1;
+			return 0;
+		}
+	}
+	else if (o->t == O_BUILDING)
+	{
+		building_t* b = (building_t*) o;
+
+		if (b->owner == c->o.uuid)
+			return 0;
+	}
+	else
+		return 0;
 
 	universe_t* u = c->universe;
 	world_t* w = c->world;
 
+	float range = 20;
 	int evtId = -1;
 	for (size_t i = 0; i < u->n_slots; i++)
 	{
@@ -338,22 +359,24 @@ void character_attack(character_t* c, object_t* o)
 	if (evtId < 0)
 		evtId = 0;
 
+	float d = object_distance(&c->o, o->x, o->y);
+	if (d >= range && !(o->t == O_BUILDING && object_overlaps(&c->o, o)))
+		return 0;
+
+	if (c->statuses[ST_ATTACK] < 7)
+		return 0;
+	c->statuses[ST_ATTACK] -= 7;
+
 	kindOf_event_t* e = &u->events[evtId];
-	evtList_push(&w->events, e, o->x, o->y - o->h/2);
 
 	if (o->t == O_CHARACTER)
 	{
 		character_t* t = (character_t*) o;
-		building_t* b = character_get_inBuilding(t);
-		if (b != NULL || !t->alive)
-		{
-			c->go_o = -1;
-			return;
-		}
 
 		float work = 5*character_getSkill(c, SK_ATTACK);
 		work = character_attacked(t, work, c);
 		character_train(c, SK_ATTACK, work);
+		evtList_push(&w->events, e, o->x, o->y - o->h/2);
 
 		kindOf_projectile_t* pt = &u->projectiles[0];
 		projectile_t* p = projectile_new(&w->objects, -1);
@@ -361,11 +384,15 @@ void character_attack(character_t* c, object_t* o)
 	}
 	else if (o->t == O_BUILDING)
 	{
-		building_t* t = (building_t*) o;
+		building_t* b = (building_t*) o;
+
 		float work = character_getSkill(c, SK_DESTROY);
-		work = building_attacked(t, work, c);
+		work = building_attacked(b, work, c);
 		character_train(c, SK_DESTROY, work);
+		evtList_push(&w->events, e, o->x, o->y - o->h/2);
 	}
+
+	return 1;
 }
 
 void character_move(character_t* c, float duration, float dx, float dy)
@@ -456,33 +483,8 @@ void character_doRound(character_t* c, float duration)
 	float dy = go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
-	if (o != NULL)
-	{
-		if (o->t == O_CHARACTER)
-		{
-			character_t* t = (character_t*) o;
-			building_t* b = character_get_inBuilding(t);
-			if (b != NULL || !t->alive)
-			{
-				c->go_o = -1;
-				return;
-			}
-			else if (remDistance < 20 && t != c)
-			{
-				character_attack(c, &t->o);
-				return;
-			}
-		}
-		else if (o->t == O_BUILDING && object_overlaps(o, &c->o))
-		{
-			building_t* b = (building_t*) o;
-			if (b->owner != c->o.uuid)
-			{
-				character_attack(c, &b->o);
-				return;
-			}
-		}
-	}
+	if (o != NULL && character_attack(c, o))
+		return;
 
 	if (remDistance == 0)
 	{
