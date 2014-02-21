@@ -41,10 +41,13 @@ void projectile_exit(projectile_t* p)
 	(void) p;
 }
 
-void projectile_doRound(projectile_t* p, float duration)
+char projectile_doRound(projectile_t* p, float duration)
 {
 	float dx = p->target_x - p->o.x;
 	float dy = p->target_y - p->o.y;
+
+	if (dx == 0 && dy == 0)
+		return 0;
 
 	float dir = atan2f(dy, dx);
 
@@ -64,4 +67,6 @@ void projectile_doRound(projectile_t* p, float duration)
 	p->step += 10 * duration;
 	if (p->step >= 4)
 		p->step = 0;
+
+	return 1;
 }

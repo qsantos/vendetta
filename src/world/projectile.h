@@ -40,6 +40,6 @@ struct projectile
 void projectile_init(projectile_t* p, kindOf_projectile_t* t, float x, float y, float tx, float ty);
 void projectile_exit(projectile_t* p);
 
-void projectile_doRound(projectile_t* p, float duration);
+char projectile_doRound(projectile_t* p, float duration);
 
 #endif
