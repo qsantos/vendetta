@@ -380,7 +380,7 @@ char character_attack(character_t* c, object_t* o)
 		character_t* t = (character_t*) o;
 
 		float work = 5*character_getSkill(c, SK_ATTACK);
-		work = character_attacked(t, work, c);
+		work = character_attacked(t, work);
 		character_train(c, SK_ATTACK, work);
 	}
 	else if (o->t == O_BUILDING)
@@ -529,7 +529,7 @@ void character_setPosition(character_t* c, float x, float y)
 	}
 }
 
-float character_attacked(character_t* c, float work, character_t* a)
+float character_attacked(character_t* c, float work)
 {
 	float defense = c->statuses[ST_DEFENSE];
 	defense = fmax(defense, character_armor(c));
@@ -538,10 +538,7 @@ float character_attacked(character_t* c, float work, character_t* a)
 	work -= defense;
 	character_addStatus(c, ST_HEALTH, -work);
 	if (c->statuses[ST_HEALTH] <= 0)
-	{
 		c->alive = 0;
-		a->go_o = -1;
-	}
 	return work;
 }
 
