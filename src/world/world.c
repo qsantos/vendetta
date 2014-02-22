@@ -326,7 +326,7 @@ building_t* world_addBuilding(world_t* w, float x, float y, kindOf_building_t* t
 {
 	pool_t* p = &w->objects;
 	building_t* b = building_new(p, -1);
-	building_init(b, t, c->o.uuid, x, y);
+	building_init(b, w, t, c->o.uuid, x, y);
 	return b;
 }
 

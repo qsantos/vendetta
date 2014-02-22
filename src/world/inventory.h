@@ -27,9 +27,9 @@ struct inventory
 	float* items;
 };
 
-#include "../universe/universe.h"
+#include <sys/types.h>
 
-void inventory_init(inventory_t* i, universe_t* u);
+void inventory_init(inventory_t* i, size_t n_materials, size_t n_items);
 void inventory_exit(inventory_t* i);
 
 #endif

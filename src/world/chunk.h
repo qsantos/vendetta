@@ -23,6 +23,8 @@ typedef struct chunk chunk_t;
 
 #include <SFML/Graphics.h>
 
+#include "object.h"
+#include "world.h"
 #include "mine.h"
 
 #define TILE_SIZE 16
@@ -31,6 +33,7 @@ typedef struct chunk chunk_t;
 struct chunk
 {
 	object_t o;
+	world_t* w;
 
 	int rows;
 	int cols;
@@ -43,7 +46,7 @@ struct chunk
 	mine_t** mines;
 };
 
-void chunk_init(chunk_t* c, float x, float y, int rows, int cols);
+void chunk_init(chunk_t* c, world_t* w, float x, float y, int rows, int cols);
 void chunk_exit(chunk_t* c);
 
 void chunk_update(chunk_t* c);

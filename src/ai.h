@@ -22,7 +22,6 @@
 typedef struct ai ai_t;
 
 #include "universe/transform.h"
-#include "world/character.h"
 
 struct ai
 {
@@ -30,6 +29,8 @@ struct ai
 	transform_t inventory;
 	int         building;
 };
+
+#include "world/character.h"
 
 void ai_init(ai_t* ai);
 void ai_exit(ai_t* ai);

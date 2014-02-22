@@ -22,16 +22,17 @@
 typedef struct mine mine_t;
 
 #include "object.h"
+#include "world.h"
 #include "../universe/mine.h"
 
 struct mine
 {
 	object_t o;
-
+	world_t* w;
 	kindOf_mine_t* t;
 };
 
-void mine_init(mine_t* m, kindOf_mine_t* t);
+void mine_init(mine_t* m, world_t* w, kindOf_mine_t* t);
 void mine_exit(mine_t* m);
 
 #endif

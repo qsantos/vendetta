@@ -24,7 +24,7 @@
 
 #include "../mem.h"
 
-void building_init(building_t* b, kindOf_building_t* t, uuid_t owner, float x, float y)
+void building_init(building_t* b, world_t* w, kindOf_building_t* t, uuid_t owner, float x, float y)
 {
 	b->o.t = O_BUILDING;
 	b->o.x = x;
@@ -32,7 +32,9 @@ void building_init(building_t* b, kindOf_building_t* t, uuid_t owner, float x, f
 	b->o.w = t->width;
 	b->o.h = t->height;
 
+	b->w = w;
 	b->t = t;
+
 	b->owner = owner;
 
 	b->build_progress = 0;
@@ -59,18 +61,17 @@ float building_build(building_t* b, float work)
 	return work;
 }
 
-float building_attacked(building_t* b, float work, character_t* a)
+float building_attacked(building_t* b, float work)
 {
 	work = fmin(work, b->life);
 	b->life -= work;
 	if (b->life <= 0)
 	{
-		world_t* w = a->world;
-		universe_t* u = a->universe;
+		universe_t* u = b->w->universe;
 
 		kindOf_event_t* e = &u->events[u->event_destroyBuilding];
-		evtList_push(&w->events, e, b->o.x, b->o.y - b->o.h/2);
-		world_delBuilding(w, b);
+		evtList_push(&b->w->events, e, b->o.x, b->o.y - b->o.h/2);
+		world_delBuilding(b->w, b);
 	}
 	return work;
 }

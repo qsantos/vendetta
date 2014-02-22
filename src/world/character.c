@@ -24,17 +24,18 @@
 
 #include "../mem.h"
 #include "../rand.h"
-#include "mine.h"
 
 #define M_PI 3.14159265358979323846
 
-void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_t* w)
+void character_init(character_t* c, world_t* w, kindOf_character_t* t)
 {
 	c->o.t = O_CHARACTER;
 	c->o.w = 24;
 	c->o.h = 32;
 
+	c->w = w;
 	c->t = t;
+
 	c->alive = 1;
 
 	c->go_o = -1;
@@ -42,12 +43,11 @@ void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_
 	c->step = 5; // standing still
 	c->inWater = 0;
 
-	c->ai        = NULL;
+	c->ai = NULL;
 
-	c->universe = u;
-	c->world    = w;
+	universe_t* u = w->universe;
 
-	inventory_init(&c->inventory, u);
+	inventory_init(&c->inventory, u->n_materials, u->n_items);
 	c->hasBuilding = -1;
 	c->inBuilding  = -1;
 
@@ -99,7 +99,7 @@ float character_getSkill(character_t* c, int skill)
 	float ret = c->skills[skill];
 
 	// bonuses
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	for (size_t i = 0; i < u->n_slots; i++)
 	{
 		int item = c->equipment[i];
@@ -123,7 +123,7 @@ float character_maxOfStatus(character_t* c, int s)
 	float ret = 20;
 
 	// bonuses
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	for (size_t i = 0; i < u->n_slots; i++)
 	{
 		int item = c->equipment[i];
@@ -142,7 +142,7 @@ float character_maxOfMaterial(character_t* c, kindOf_material_t* m)
 	float ret = 20 * character_getSkill(c, m->skill);
 
 	// bonuses
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	for (size_t i = 0; i < u->n_slots; i++)
 	{
 		int item = c->equipment[i];
@@ -161,7 +161,7 @@ float character_armor(character_t* c)
 	float ret = 0;
 
 	// bonuses
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	for (size_t i = 0; i < u->n_slots; i++)
 	{
 		int item = c->equipment[i];
@@ -202,7 +202,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		return;
 	}
 
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	if (o->t == O_MINE)
 	{
 		mine_t* m = (mine_t*) o;
@@ -290,7 +290,9 @@ void character_workAt(character_t* c, object_t* o, float duration)
 
 char character_eat(character_t* c, int material)
 {
-	kindOf_material_t* m = &c->universe->materials[material];
+	universe_t* u = c->w->universe;
+
+	kindOf_material_t* m = &u->materials[material];
 	if (!m->edible)
 		return 0;
 
@@ -305,7 +307,7 @@ char character_eat(character_t* c, int material)
 
 void character_eatFor(character_t* c, int status)
 {
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	for (size_t i = 0; i < u->n_materials; i++)
 	{
 		kindOf_material_t* m = &u->materials[i];
@@ -340,8 +342,7 @@ char character_attack(character_t* c, object_t* o)
 	else
 		return 0;
 
-	universe_t* u = c->universe;
-	world_t* w = c->world;
+	universe_t* u = c->w->universe;
 
 	int evtId = -1;
 	float range = 0;
@@ -388,17 +389,17 @@ char character_attack(character_t* c, object_t* o)
 		building_t* b = (building_t*) o;
 
 		float work = character_getSkill(c, SK_DESTROY);
-		work = building_attacked(b, work, c);
+		work = building_attacked(b, work);
 		character_train(c, SK_DESTROY, work);
 	}
 
-	evtList_push(&w->events, e, o->x, o->y - o->h/2);
+	evtList_push(&c->w->events, e, o->x, o->y - o->h/2);
 
 	if (projectile >= 0)
 	{
 		kindOf_projectile_t* pt = &u->projectiles[projectile];
-		projectile_t* p = projectile_new(&w->objects, -1);
-		projectile_init(p, pt, c->o.x, c->o.y, o->x, o->y);
+		projectile_t* p = projectile_new(&c->w->objects, -1);
+		projectile_init(p, c->w, pt, c->o.x, c->o.y, o->x, o->y);
 	}
 
 	return 1;
@@ -420,7 +421,7 @@ void character_move(character_t* c, float duration, float dx, float dy)
 	distance *= 100;
 
 	c->inWater = 0;
-	world_t* w = c->world;
+	world_t* w = c->w;
 	int l = world_getLandXY(w, c->o.x, c->o.y)/16;
 	if (l == 4) // mountains
 	{
@@ -474,7 +475,7 @@ void character_doRound(character_t* c, float duration)
 
 	float go_x = c->go_x;
 	float go_y = c->go_y;
-	object_t* o = pool_get(&c->world->objects, c->go_o);
+	object_t* o = pool_get(&c->w->objects, c->go_o);
 	if (o != NULL)
 	{
 		go_x = o->x;
@@ -515,7 +516,7 @@ void character_setPosition(character_t* c, float x, float y)
 	// TODO
 	// quickfix: check if already in water
 	{
-	world_t* w = c->world;
+	world_t* w = c->w;
 	short l = world_getLandXY(w, c->o.x, c->o.y)/16;
 	if (l == 10)
 	{
@@ -544,7 +545,7 @@ float character_attacked(character_t* c, float work)
 
 void character_goMine(character_t* c, kindOf_mine_t* t)
 {
-	mine_t* m = world_findMine(c->world, c->o.x, c->o.y, t);
+	mine_t* m = world_findMine(c->w, c->o.x, c->o.y, t);
 	if (m != NULL)
 		c->go_o = m->o.uuid;
 }
@@ -556,7 +557,7 @@ char character_buildAuto(character_t* c, kindOf_building_t* t)
 
 	character_delHome(c);
 
-	for (float radius = 50; radius < c->world->o.w; radius *= 1.5)
+	for (float radius = 50; radius < c->w->o.w; radius *= 1.5)
 	{
 		float x = c->o.x + cfrnd(radius);
 		float y = c->o.y + cfrnd(radius);
@@ -570,7 +571,7 @@ char character_buildAuto(character_t* c, kindOf_building_t* t)
 
 char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 {
-	if (!world_canBuild(c->world, x, y, t))
+	if (!world_canBuild(c->w, x, y, t))
 		return 0;
 
 	if (!transform_check(&t->build, &c->inventory))
@@ -579,21 +580,21 @@ char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 	character_delHome(c);
 
 	transform_apply(&t->build, &c->inventory, 1);
-	building_t* b = world_addBuilding(c->world, x, y, t, c);
+	building_t* b = world_addBuilding(c->w, x, y, t, c);
 	c->hasBuilding = b->o.uuid;
 	return 1;
 }
 
 char character_delHome(character_t* c)
 {
-	building_t* b = building_get(&c->world->objects, c->hasBuilding);
+	building_t* b = building_get(&c->w->objects, c->hasBuilding);
 	if (b == NULL)
 	{
 		c->hasBuilding = -1;
 		return 0;
 	}
 
-	world_delBuilding(c->world, b);
+	world_delBuilding(c->w, b);
 	c->hasBuilding = -1;
 	return 1;
 }
@@ -603,7 +604,7 @@ building_t* character_get_inBuilding(character_t* c)
 	if (c->inBuilding < 0)
 		return NULL;
 
-	building_t* b = building_get(&c->world->objects, c->inBuilding);
+	building_t* b = building_get(&c->w->objects, c->inBuilding);
 	if (b == NULL)
 		c->inBuilding = -1;
 	return b;
@@ -614,7 +615,7 @@ building_t* character_get_hasBuilding(character_t* c)
 	if (c->hasBuilding < 0)
 		return NULL;
 
-	building_t* b = building_get(&c->world->objects, c->hasBuilding);
+	building_t* b = building_get(&c->w->objects, c->hasBuilding);
 	if (b == NULL)
 		c->hasBuilding = -1;
 	return b;
@@ -624,8 +625,8 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 {
 	size_t cur = 0;
 
-	object_t* o = pool_get(&c->world->objects, c->go_o);
-	universe_t* u = c->universe;
+	object_t* o = pool_get(&c->w->objects, c->go_o);
+	universe_t* u = c->w->universe;
 	char moving = c->go_x != c->o.x || c->go_y != c->o.y;
 	if (o == NULL)
 	{

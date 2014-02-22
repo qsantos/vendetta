@@ -23,13 +23,13 @@
 
 #include "../mem.h"
 
-void inventory_init(inventory_t* i, universe_t* u)
+void inventory_init(inventory_t* i, size_t n_materials, size_t n_items)
 {
-	i->materials = CALLOC(float, u->n_materials);
-	i->items     = CALLOC(float, u->n_items);
+	i->materials = CALLOC(float, n_materials);
+	i->items     = CALLOC(float, n_items);
 
-	memset(i->materials, 0, sizeof(float)*u->n_materials);
-	memset(i->items,     0, sizeof(float)*u->n_items);
+	memset(i->materials, 0, sizeof(float)*n_materials);
+	memset(i->items,     0, sizeof(float)*n_items);
 }
 
 void inventory_exit(inventory_t* i)

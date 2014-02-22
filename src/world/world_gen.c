@@ -44,7 +44,7 @@ void world_genmap(world_t* w, unsigned int seed)
 			chunk_t* c = CHUNK(w, i, j);
 			float x = TILE_SIZE*cw*(j-.5*w->chunk_cols+.5);
 			float y = TILE_SIZE*ch*(i-.5*w->chunk_rows+.5+.5);
-			chunk_init(c, x, y, cw, ch);
+			chunk_init(c, w, x, y, cw, ch);
 		}
 
 	if (w->settings->verbosity >= 1)
@@ -227,7 +227,7 @@ void world_start(world_t* w)
 		character_t* c = character_new(p, -1);
 
 		int type = rand() % u->n_characters;
-		character_init(c, &u->characters[type], u, w);
+		character_init(c, w, &u->characters[type]);
 		character_setPosition(c, cfrnd(w->o.w-20), cfrnd(w->o.h-20));
 	}
 	if (w->settings->verbosity >= 3)
@@ -238,7 +238,7 @@ void world_start(world_t* w)
 void world_randMine(world_t* w, int type)
 {
 	mine_t* m = mine_new(&w->objects, -1);
-	mine_init(m, &w->universe->mines[type]);
+	mine_init(m, w, &w->universe->mines[type]);
 	while (1)
 	{
 		float x = cfrnd(w->o.w - 32);

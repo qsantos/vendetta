@@ -109,7 +109,7 @@ char ai_gather(character_t* c, int id, float amount)
 	if (amount < 0)
 		return 0;
 
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	for (size_t i = 0; i < u->n_mines; i++)
 	{
 		kindOf_mine_t* t = &u->mines[i];
@@ -148,7 +148,7 @@ char ai_gather(character_t* c, int id, float amount)
 
 	if (c->inBuilding != c->hasBuilding)
 	{
-		building_t* b = building_get(&c->world->objects, c->hasBuilding);
+		building_t* b = building_get(&c->w->objects, c->hasBuilding);
 		if (b != NULL)
 			c->go_o = b->o.uuid;
 		return 1;
@@ -164,7 +164,7 @@ char ai_make(character_t* c, int id, float amount)
 		return 0;
 
 	transform_t* tr = NULL;
-	universe_t* u = c->universe;
+	universe_t* u = c->w->universe;
 	for (size_t i = 0; i < u->n_buildings; i++)
 	{
 		kindOf_building_t* t = &u->buildings[i];
@@ -172,7 +172,7 @@ char ai_make(character_t* c, int id, float amount)
 		if (tr == NULL)
 			continue;
 
-		building_t* b = building_get(&c->world->objects, c->hasBuilding);
+		building_t* b = building_get(&c->w->objects, c->hasBuilding);
 
 		transform_t tmp;
 		transform_init(&tmp);
@@ -196,13 +196,13 @@ char ai_make(character_t* c, int id, float amount)
 
 	if (c->inBuilding != c->hasBuilding)
 	{
-		building_t* b = building_get(&c->world->objects, c->hasBuilding);
+		building_t* b = building_get(&c->w->objects, c->hasBuilding);
 		if (b != NULL)
 			c->go_o = b->o.uuid;
 		return 1;
 	}
 
-	building_t* b = building_get(&c->world->objects, c->hasBuilding);
+	building_t* b = building_get(&c->w->objects, c->hasBuilding);
 	if (b == NULL)
 		return 1;
 
@@ -227,9 +227,10 @@ char ai_getreq(character_t* c, transform_t* tr, float amount)
 
 char ai_build(character_t* c, int id)
 {
-	kindOf_building_t* t = &c->universe->buildings[id];
+	universe_t* u = c->w->universe;
+	kindOf_building_t* t = &u->buildings[id];
 
-	building_t* b = building_get(&c->world->objects, c->hasBuilding);
+	building_t* b = building_get(&c->w->objects, c->hasBuilding);
 	if (b != NULL && b->t == t)
 		return 0;
 
@@ -252,7 +253,7 @@ char ai_do(ai_t* ai, character_t* c)
 
 	if (c->inBuilding != c->hasBuilding)
 	{
-		building_t* b = building_get(&c->world->objects, c->hasBuilding);
+		building_t* b = building_get(&c->w->objects, c->hasBuilding);
 		if (b != NULL)
 			c->go_o = b->o.uuid;
 		return 1;

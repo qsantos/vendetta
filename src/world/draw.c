@@ -189,7 +189,7 @@ void draw_building(graphics_t* g, assets_t* a, character_t* player, building_t* 
 
 	if (player->hasBuilding == b->o.uuid && player->inBuilding == b->o.uuid && p == 1)
 	{
-		universe_t* u = player->universe;
+		universe_t* u = player->w->universe;
 		float p;
 		if (b->work_n > 0)
 		{

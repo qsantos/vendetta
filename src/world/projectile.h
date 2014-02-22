@@ -22,12 +22,13 @@
 typedef struct projectile projectile_t;
 
 #include "object.h"
+#include "world.h"
 #include "../universe/projectile.h"
 
 struct projectile
 {
 	object_t o;
-
+	world_t* w;
 	kindOf_projectile_t* t;
 
 	float target_x;
@@ -37,7 +38,7 @@ struct projectile
 	float step;
 };
 
-void projectile_init(projectile_t* p, kindOf_projectile_t* t, float x, float y, float tx, float ty);
+void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float x, float y, float tx, float ty);
 void projectile_exit(projectile_t* p);
 
 char projectile_doRound(projectile_t* p, float duration);

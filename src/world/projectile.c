@@ -22,14 +22,17 @@
 
 #define M_PI 3.14159265358979323846
 
-void projectile_init(projectile_t* p, kindOf_projectile_t* t, float x, float y, float tx, float ty)
+void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float x, float y, float tx, float ty)
 {
 	p->o.t = O_PROJECTILE;
 	p->o.x = x;
 	p->o.y = y;
 	p->o.w = t->width;
 	p->o.h = t->height;
+
+	p->w = w;
 	p->t = t;
+
 	p->target_x = tx;
 	p->target_y = ty;
 	p->dir = D_SOUTH;

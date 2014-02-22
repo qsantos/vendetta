@@ -146,7 +146,7 @@ void world_load(world_t* w, FILE* f)
 
 		// uuid = i
 		character_t* c = character_new(p, o.uuid);
-		character_init(c, &u->characters[t], u, w);
+		character_init(c, w, &u->characters[t]);
 		c->o = o;
 		c->ai = ai < 0 ? NULL : &u->bots[ai];
 		c->alive = alive;
@@ -199,7 +199,7 @@ void world_load(world_t* w, FILE* f)
 			&work_progress, &work_n);
 
 		building_t* b = building_new(p, o.uuid);
-		building_init(b, &u->buildings[t], owner, 0, 0);
+		building_init(b, w, &u->buildings[t], owner, 0, 0);
 		b->o = o;
 		b->build_progress = build_progress;
 		b->life = life;

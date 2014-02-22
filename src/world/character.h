@@ -21,23 +21,19 @@
 
 typedef struct character character_t;
 
-#include "object.h"
 #include "inventory.h"
-#include "building.h"
 #include "skill.h"
 #include "status.h"
+#include "object.h"
 #include "world.h"
 #include "../universe/character.h"
-#include "../universe/material.h"
-#include "../universe/mine.h"
-#include "../universe/universe.h"
-#include "../ai.h"
 
 struct character
 {
 	object_t o;
-
+	world_t* w;
 	kindOf_character_t* t;
+
 	char alive;
 
 	float  go_x;
@@ -50,9 +46,6 @@ struct character
 
 	ai_t* ai;
 
-	universe_t* universe;
-	world_t*    world;
-
 	inventory_t inventory;
 	uuid_t hasBuilding;
 	uuid_t inBuilding;
@@ -63,7 +56,12 @@ struct character
 	int* equipment;
 };
 
-void character_init(character_t* c, kindOf_character_t* t, universe_t* u, world_t* w);
+#include "../universe/material.h"
+#include "../universe/mine.h"
+#include "../universe/building.h"
+#include "building.h"
+
+void character_init(character_t* c, world_t* w, kindOf_character_t* t);
 void character_exit(character_t* c);
 
 float character_vitality(character_t* c);
