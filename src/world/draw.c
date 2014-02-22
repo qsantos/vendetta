@@ -41,10 +41,13 @@ void draw_event(graphics_t* g, assets_t* a, character_t* player, event_t* e)
 	if (t->sprite < 0)
 		return;
 
+	int step = floor(e->p * t->steps);
+	if (step >= t->steps)
+		return;
+
 	sfSprite* sprite = a->sprites[t->sprite];
 
 	sfIntRect rect = {0, 0, t->width, t->height};
-	int step = floor(e->p * t->steps);
 	rect.left = t->width * step;
 	sfSprite_setTextureRect(sprite, rect);
 
