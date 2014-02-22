@@ -344,39 +344,32 @@ char character_attack(character_t* c, object_t* o)
 
 	universe_t* u = c->w->universe;
 
-	int evtId = -1;
-	float range = 0;
-	int projectile = -1;
-	for (size_t i = 0; i < u->n_slots; i++)
-	{
-		int id = c->equipment[i];
-		if (id < 0)
-			continue;
+	// TODO
+	int id = c->equipment[0];
+	kindOf_item_t* it = id < 0 ? NULL : &u->items[id];
 
-		kindOf_item_t* it = &u->items[id];
-		if (it->range > range)
-		{
-			range = it->range;
-			projectile = it->projectile;
-		}
-		if (evtId < 0)
-			evtId = it->event;
-	}
-	range += 20;
-	if (evtId < 0)
-		evtId = 0;
-
+	float range = 20 + (it == NULL ? 0 : it->range);
 	float d = object_distance(&c->o, o->x, o->y);
 	if (d >= range && !(o->t == O_BUILDING && object_overlaps(&c->o, o)))
 		return 0;
 
 	if (c->statuses[ST_ATTACK] < 7)
-		return 0;
+		return 1;
+
 	c->statuses[ST_ATTACK] -= 7;
 
-	kindOf_event_t* e = &u->events[evtId];
+	if (it != NULL && it->projectile >= 0)
+	{
+		float work = 5*character_getSkill(c, SK_ATTACK);
+		character_train(c, SK_ATTACK, work);
 
-	if (o->t == O_CHARACTER)
+		kindOf_projectile_t* pt = &u->projectiles[it->projectile];
+		projectile_t* p = projectile_new(&c->w->objects, -1);
+		projectile_init(p, c->w, pt, c->o.x, c->o.y, work, o->x, o->y);
+
+		return 1;
+	}
+	else if (o->t == O_CHARACTER)
 	{
 		character_t* t = (character_t*) o;
 
@@ -393,14 +386,11 @@ char character_attack(character_t* c, object_t* o)
 		character_train(c, SK_DESTROY, work);
 	}
 
+	int evtId = it == NULL ? 0 : it->event;
+	if (evtId < 0)
+		evtId = 0;
+	kindOf_event_t* e = &u->events[evtId];
 	evtList_push(&c->w->events, e, o->x, o->y - o->h/2);
-
-	if (projectile >= 0)
-	{
-		kindOf_projectile_t* pt = &u->projectiles[projectile];
-		projectile_t* p = projectile_new(&c->w->objects, -1);
-		projectile_init(p, c->w, pt, c->o.x, c->o.y, o->x, o->y);
-	}
 
 	return 1;
 }

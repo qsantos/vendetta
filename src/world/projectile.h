@@ -31,6 +31,7 @@ struct projectile
 	world_t* w;
 	kindOf_projectile_t* t;
 
+	float damage;
 	float target_x;
 	float target_y;
 
@@ -38,7 +39,7 @@ struct projectile
 	float step;
 };
 
-void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float x, float y, float tx, float ty);
+void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float x, float y, float damage, float tx, float ty);
 void projectile_exit(projectile_t* p);
 
 char projectile_doRound(projectile_t* p, float duration);

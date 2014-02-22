@@ -22,7 +22,7 @@
 
 #define M_PI 3.14159265358979323846
 
-void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float x, float y, float tx, float ty)
+void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float x, float y, float damage, float tx, float ty)
 {
 	p->o.t = O_PROJECTILE;
 	p->o.x = x;
@@ -33,6 +33,7 @@ void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float 
 	p->w = w;
 	p->t = t;
 
+	p->damage = damage;
 	p->target_x = tx;
 	p->target_y = ty;
 	p->dir = D_SOUTH;
@@ -50,7 +51,30 @@ char projectile_doRound(projectile_t* p, float duration)
 	float dy = p->target_y - p->o.y;
 
 	if (dx == 0 && dy == 0)
+	{
+		object_t* o = world_objectAt(p->w, p->target_x, p->target_y, NULL);
+		if (o == NULL)
+			return 0;
+
+		if (p->t->event >= 0)
+		{
+			universe_t*  u = p->w->universe;
+			kindOf_event_t* e = &u->events[p->t->event];
+			evtList_push(&p->w->events, e, o->x, o->y - o->h/2);
+		}
+
+		if (o->t == O_CHARACTER)
+		{
+			character_t* c = (character_t*) o;
+			character_attacked(c, p->damage);
+		}
+		else if (o->t == O_BUILDING)
+		{
+			building_t* b = (building_t*) o;
+			building_attacked(b, p->damage);
+		}
 		return 0;
+	}
 
 	float dir = atan2f(dy, dx);
 
