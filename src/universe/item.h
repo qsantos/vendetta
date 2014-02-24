@@ -22,6 +22,8 @@
 typedef struct kindOf_item kindOf_item_t;
 
 #include "effect.h"
+#include "status.h"
+#include "transform.h"
 
 struct kindOf_item
 {
@@ -33,6 +35,9 @@ struct kindOf_item
 	int      event;
 	int      projectile;
 	float    range;
+
+	float reqMana;
+	transform_t cost;
 
 	int icon_sprite;
 	int icon_index;

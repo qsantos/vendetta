@@ -34,6 +34,9 @@ void kindOf_item_init(kindOf_item_t* i)
 	i->projectile = -1;
 	i->range      = 0;
 
+	transform_init(&i->cost);
+	i->reqMana = 0;
+
 	i->icon_sprite = -1;
 	i->icon_index  = 0;
 }

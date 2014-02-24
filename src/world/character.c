@@ -353,10 +353,22 @@ char character_attack(character_t* c, object_t* o)
 	if (d >= range && !(o->t == O_BUILDING && object_overlaps(&c->o, o)))
 		return 0;
 
+	if (it != NULL && transform_check(&it->cost, &c->inventory) == 0)
+		return 1;
+
+	float reqMana = it == NULL ? 0 : it->reqMana;
+	if (c->statuses[ST_MANA] < reqMana)
+		return 1;
+
 	if (c->statuses[ST_ATTACK] < 7)
 		return 1;
 
 	c->statuses[ST_ATTACK] -= 7;
+
+	c->statuses[ST_MANA] -= reqMana;
+
+	if (it != NULL)
+		transform_apply(&it->cost, &c->inventory, 1);
 
 	if (it != NULL && it->projectile >= 0)
 	{

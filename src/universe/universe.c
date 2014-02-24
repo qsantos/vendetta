@@ -499,6 +499,13 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 			effect_skill(&it->effect, skill, atof(v));
 		}
 
+		it->reqMana = cfg_getFloat(s, "PerteMagie");
+
+		int   id = cfg_getInt(s, "PerteRessourceIndice") - 1;
+		float am = cfg_getFloat(s, "PerteRessourceQuantite");
+		if (id >= 0)
+			transform_req(&it->cost, id, am, 0);
+
 		char* icon_file  = cfg_getString(s, "Image");
 		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
 		if (icon_file != NULL && icon_index >= 0)
