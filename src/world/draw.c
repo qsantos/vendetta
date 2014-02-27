@@ -217,8 +217,10 @@ void draw_building(graphics_t* g, assets_t* a, character_t* player, building_t* 
 		draw_progressbar(g, b->o.x - b->o.w/2, b->o.y+1, b->o.w, 5, p, 0);
 }
 
-void draw_chunk(graphics_t* g, assets_t* a, character_t* player, chunk_t* c, int step)
+void draw_chunkLands(graphics_t* g, assets_t* a, character_t* player, chunk_t* c, int step)
 {
+	(void) player;
+
 	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
 	if (states.texture == NULL)
 		states.texture = assets_loadImage(a, "data/lands.png");
@@ -231,7 +233,10 @@ void draw_chunk(graphics_t* g, assets_t* a, character_t* player, chunk_t* c, int
 	}
 
 	sfRenderWindow_drawVertexArray(g->render, array, &states);
+}
 
+void draw_chunkMines(graphics_t* g, assets_t* a, character_t* player, chunk_t* c)
+{
 	for (ssize_t i = c->n_mines-1; i >= 0; i--)
 		draw_mine(g, a, player, c->mines[i]);
 }
@@ -249,11 +254,15 @@ void draw_chunks(graphics_t* g, assets_t* a, character_t* player, world_t* w, in
 	for (size_t i = 0; i < w->n_chunks; i++)
 	{
 		chunk_t* c = &w->chunks[i];
+		if (object_overlaps(&c->o, &o))
+			draw_chunkLands(g, a, player, c, step);
+	}
 
-		if (!object_overlaps(&c->o, &o))
-			continue;
-
-		draw_chunk(g, a, player, c, step);
+	for (size_t i = 0; i < w->n_chunks; i++)
+	{
+		chunk_t* c = &w->chunks[i];
+		if (object_overlaps(&c->o, &o))
+			draw_chunkMines(g, a, player, c);
 	}
 }
 
