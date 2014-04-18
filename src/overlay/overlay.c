@@ -357,15 +357,7 @@ int overlay_catch(game_t* g, int t)
 			}
 			else if (i == 7)
 			{
-				const char* filename = "game.save";
-				FILE* f = fopen(filename, "w");
-				if (f == NULL)
-				{
-					fprintf(stderr, "Could not open '%s' for writing\n", filename);
-					exit(1);
-				}
-				game_save(g, f);
-				fclose(f);
+				game_save_n(g, "game.save");
 			}
 		}
 		else if (w == 1) // orders

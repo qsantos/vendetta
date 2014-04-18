@@ -48,15 +48,7 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 
 	if (load)
 	{
-		const char* filename = "game.save";
-		FILE* f = fopen(filename, "r");
-		if (f == NULL)
-		{
-			fprintf(stderr, "Could not load game\n");
-			exit(1);
-		}
-		game_load(g, f);
-		fclose(f);
+		game_load_n(g, "game.save");
 	}
 	else
 	{
@@ -391,4 +383,28 @@ void game_load(game_t* g, FILE* f)
 	}
 	CLINE("\n");
 	world_load(g->w, f);
+}
+
+void game_save_n(game_t* g, const char* filename)
+{
+	FILE* f = fopen(filename, "w");
+	if (f == NULL)
+	{
+		fprintf(stderr, "Could not open '%s' for writing\n", filename);
+		exit(1);
+	}
+	game_save(g, f);
+	fclose(f);
+}
+
+void game_load_n(game_t* g, const char* filename)
+{
+	FILE* f = fopen(filename, "r");
+	if (f == NULL)
+	{
+		fprintf(stderr, "Could not load game\n");
+		exit(1);
+	}
+	game_load(g, f);
+	fclose(f);
 }

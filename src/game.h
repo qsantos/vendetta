@@ -51,4 +51,7 @@ void game_loop(game_t* g);
 void game_save(game_t* g, FILE* f);
 void game_load(game_t* g, FILE* f);
 
+void game_save_n(game_t* g, const char* filename);
+void game_load_n(game_t* g, const char* filename);
+
 #endif
