@@ -33,8 +33,10 @@ struct kindOf_item
 	int      category;
 	effect_t effect;
 	int      event;
+
 	int      projectile;
 	float    range;
+	float    reloadDelay;
 
 	float reqMana;
 	transform_t cost;

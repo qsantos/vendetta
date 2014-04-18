@@ -42,6 +42,7 @@ struct character
 
 	direction_t dir;
 	float       step;
+	float       attackDelay;
 	char        inWater;
 
 	ai_t* ai;

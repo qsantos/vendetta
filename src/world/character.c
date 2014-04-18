@@ -41,6 +41,7 @@ void character_init(character_t* c, world_t* w, kindOf_character_t* t)
 	c->go_o = -1;
 	c->dir  = D_SOUTH;
 	c->step = 5; // standing still
+	c->attackDelay = 0;
 	c->inWater = 0;
 
 	c->ai = NULL;
@@ -318,6 +319,9 @@ void character_eatFor(character_t* c, int status)
 
 char character_attack(character_t* c, object_t* o)
 {
+	if (o == NULL)
+		return 0;
+
 	if (&c->o == o)
 		return 0;
 
@@ -342,6 +346,9 @@ char character_attack(character_t* c, object_t* o)
 	else
 		return 0;
 
+	if (c->attackDelay != 0)
+		return 1;
+
 	universe_t* u = c->w->universe;
 
 	// TODO
@@ -364,11 +371,12 @@ char character_attack(character_t* c, object_t* o)
 		return 1;
 
 	c->statuses[ST_ATTACK] -= 7;
-
-	c->statuses[ST_MANA] -= reqMana;
+	c->statuses[ST_MANA]   -= reqMana;
 
 	if (it != NULL)
 		transform_apply(&it->cost, &c->inventory, 1);
+
+	c->attackDelay = it == NULL ? 1 : it->reloadDelay;
 
 	if (it != NULL && it->projectile >= 0)
 	{
@@ -470,6 +478,8 @@ void character_doRound(character_t* c, float duration)
 		ai_do(c->ai, c);
 	}
 
+	c->attackDelay = fmax(c->attackDelay - duration, 0);
+
 	duration *= character_vitality(c);
 
 	character_addStatus(c, ST_ATTACK,  7*duration);
@@ -495,7 +505,7 @@ void character_doRound(character_t* c, float duration)
 	float dy = go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
-	if (o != NULL && character_attack(c, o))
+	if (character_attack(c, o))
 		return;
 
 	if (remDistance == 0)

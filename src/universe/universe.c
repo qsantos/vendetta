@@ -404,10 +404,13 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 
 		int iskill = cfg_getInt(s, "Competence") - 1;
 		it->skill = u->iskills[iskill];
-
 		it->event = cfg_getInt(s, "EffetAttaque") - 1;
-		it->range = cfg_getFloat(s, "BonusPorteeAttaque");
-		it->projectile = cfg_getInt(s, "LanceProjectile") - 1;
+
+		it->range       = cfg_getFloat(s, "BonusPorteeAttaque");
+		it->projectile  = cfg_getInt(s, "LanceProjectile") - 1;
+		float delay = cfg_getFloat(s, "DureeRechargeAttaque");
+		if (delay != 0)
+			it->reloadDelay = delay;
 
 		transform_init(t);
 		transform_res(t, i, 1, 1);

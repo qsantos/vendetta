@@ -31,8 +31,10 @@ void kindOf_item_init(kindOf_item_t* i)
 	i->category   = -1;
 	effect_init(&i->effect);
 	i->event      = -1;
-	i->projectile = -1;
-	i->range      = 0;
+
+	i->projectile  = -1;
+	i->range       = 0;
+	i->reloadDelay = 1;
 
 	transform_init(&i->cost);
 	i->reqMana = 0;
