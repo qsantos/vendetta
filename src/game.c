@@ -356,7 +356,8 @@ void game_loop(game_t* g)
 		}
 
 		// do round
-		world_doRound(g->w, duration);
+		overlay_doRound(g,    duration);
+		  world_doRound(g->w, duration);
 	}
 
 	sfClock_destroy(maintain);

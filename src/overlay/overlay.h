@@ -43,6 +43,9 @@ struct overlay
 	int selected;
 	float lastx;
 	float lasty;
+
+	char* msg;
+	float msgDelay;
 };
 
 #include "../game.h"
@@ -55,6 +58,10 @@ int  overlay_cursor(game_t* g);
 int  overlay_catch (game_t* g, int t);
 int  overlay_wheel (game_t* g, int d);
 void overlay_move  (game_t* g);
+
+void overlay_doRound(game_t* g, float duration);
+
+void overlay_message(game_t* g, const char* msg, float delay);
 
 sfVector2f overlay_mouse(game_t* g);
 

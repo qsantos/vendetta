@@ -24,6 +24,7 @@
 
 #include "../mem.h"
 #include "../widgets.h"
+#include "../string.h"
 
 void overlay_init(overlay_t* o, game_t* g)
 {
@@ -43,10 +44,15 @@ void overlay_init(overlay_t* o, game_t* g)
 	o->sw[4] = &o->switems    .w;
 
 	o->selected = -1;
+
+	o->msg = NULL;
+	o->msgDelay = 0;
 }
 
 void overlay_exit(overlay_t* o)
 {
+	free(o->msg);
+
 	free(o->sw);
 
 	swequipment_exit(&o->swequipment);
@@ -223,6 +229,15 @@ int overlay_draw(game_t* g, char do_draw)
 	sfText_setUTF8(text, buffer);
 	sfText_setPosition(text, (sfVector2f){size.x - 80, size.y - 30});
 	sfRenderWindow_drawText(g->g->render, text, NULL);
+
+	if (g->o->msgDelay != 0)
+	{
+		snprintf(buffer, 1024, "%s", g->o->msg);
+		sfText_setUTF8(text, buffer);
+		sfFloatRect rect = sfText_getLocalBounds(text);
+		sfText_setPosition(text, (sfVector2f){floor(size.x/2 - rect.width/2), 10});
+		sfRenderWindow_drawText(g->g->render, text, NULL);
+	}
 
 	return -1;
 }
@@ -459,6 +474,18 @@ void overlay_move(game_t* g)
 	subwindow_t* w = g->o->sw[g->o->selected];
 	w->x += dx;
 	w->y += dy;
+}
+
+void overlay_doRound(game_t* g, float duration)
+{
+	g->o->msgDelay = fmax(0, g->o->msgDelay - duration);
+}
+
+void overlay_message(game_t* g, const char* msg, float delay)
+{
+	free(g->o->msg);
+	g->o->msg = strdup(msg);
+	g->o->msgDelay = delay;
 }
 
 sfVector2f overlay_mouse(game_t* g)
