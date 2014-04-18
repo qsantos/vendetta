@@ -27,7 +27,9 @@
 void world_genmap(world_t* w, unsigned int seed)
 {
 	universe_t* u = w->universe;
-	srand(seed);
+
+	w->seed = seed;
+	srand(w->seed);
 
 	if (w->settings->verbosity >= 1)
 		fprintf(stderr, "Proceeding to land generation\n");

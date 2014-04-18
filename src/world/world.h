@@ -39,6 +39,7 @@ struct world
 	settings_t* settings;
 	universe_t* universe;
 
+	unsigned int seed;
 	int cols;
 	int rows;
 	int chunk_cols;

@@ -32,7 +32,7 @@ void world_save(world_t* w, FILE* f)
 	universe_t* u = w->universe;
 
 	// seed
-	fprintf(f, "seed = %#x\n", w->settings->seed);
+	fprintf(f, "seed = %#x\n", w->seed);
 	fprintf(f, "%ix%i\n", w->rows, w->cols);
 
 	// characters
