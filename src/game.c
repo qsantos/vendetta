@@ -212,6 +212,10 @@ void game_loop(game_t* g)
 					if (t != NULL)
 						g->player->go_o = t->o.uuid;
 				}
+				else if (k == sfKeyS)
+				{
+					game_save_n(g, "game.save");
+				}
 				else if (k == sfKeySpace)
 				{
 					g->o->swbuilding .w.visible ^= 1;

@@ -126,6 +126,8 @@ void menu(settings_t* s)
 					stayhere = 0;
 				else if (event.key.code == sfKeyReturn)
 					play(s, gr, a, 0);
+				else if (event.key.code == sfKeyC)
+					play(s, gr, a, 1);
 			}
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
