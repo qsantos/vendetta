@@ -400,6 +400,8 @@ void game_save_n(game_t* g, const char* filename)
 	}
 	game_save(g, f);
 	fclose(f);
+
+	overlay_message(g, "Game saved", 2);
 }
 
 void game_load_n(game_t* g, const char* filename)
@@ -412,4 +414,6 @@ void game_load_n(game_t* g, const char* filename)
 	}
 	game_load(g, f);
 	fclose(f);
+
+	overlay_message(g, "Game loaded", 2);
 }
