@@ -49,7 +49,7 @@ size_t kindOf_material_info(kindOf_material_t* m, char* buffer, size_t n, univer
 {
 	size_t cur = 0;
 
-	cur += snprintf(buffer+cur, n-cur, "%s", m->name);
+	cur += snprintf(buffer+cur, n-cur, "%s (%s)", m->name, u->skills[m->skill].name);
 
 	if (!m->edible)
 		return cur;
