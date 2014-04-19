@@ -58,3 +58,31 @@ void kindOf_item_icon(kindOf_item_t* i, assets_t* a, const char* filename, int i
 	i->icon_sprite = id;
 	i->icon_index  = idx;
 }
+
+size_t kindOf_item_info(kindOf_item_t* it, char* buffer, size_t n, universe_t* u)
+{
+	size_t cur = 0;
+
+	cur += snprintf(buffer+cur, n-cur, "%s", it->name);
+
+	effect_t* e = &it->effect;
+	float v = e->max_material;
+	if (v != 0)
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f transporté", v);
+	for (size_t i = 0; i < N_STATUSES; i++)
+	{
+		kindOf_status_t* s = &u->statuses[i];
+		float v = e->status_bonus[i];
+		if (v == 0)
+			continue;
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", v, s->name);
+	}
+	for (size_t i = 0; i < e->n_skills; i++)
+	{
+		int skill = e->skills[i];
+		kindOf_skill_t* k = &u->skills[skill];
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", e->bonuses[i], k->name);
+	}
+
+	return cur;
+}

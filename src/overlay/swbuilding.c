@@ -34,27 +34,37 @@ void swbuilding_exit(swbuilding_t* w)
 	subwindow_exit(&w->w);
 }
 
-size_t component_tooltip(char* buffer, size_t n, universe_t* u, component_t* c)
-{
-	if (c->amount == 0)
-		return 0;
-	char* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
-	return snprintf(buffer, n, "\n%.1f %s", floor(c->amount), name);
-}
 size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr)
 {
 	size_t cur = 0;
 
 	// result components
-	cur += snprintf(buffer+cur, n-cur, "Fabrique :");
+	cur += snprintf(buffer+cur, n-cur, "Fabriquer ");
 	for (int i = 0; i < tr->n_res; i++)
-		cur += component_tooltip(buffer+cur, n-cur, u, &tr->res[i]);
+	{
+		component_t* c = &tr->res[i];
+
+		if (c->amount == 0 || !c->is_item)
+		{
+			fprintf(stderr, "Quite strange\n");
+			continue;
+		}
+
+		if (c->amount != 1)
+			cur += snprintf(buffer+cur, n-cur, "%.0fx", floor(c->amount));
+		cur += kindOf_item_info(&u->items[c->id], buffer+cur, n-cur, u);
+		cur += snprintf(buffer+cur, n-cur, "\n\n");
+	}
 
 	// required components
 	if (tr->n_req != 0)
-		cur += snprintf(buffer+cur, n-cur, "\n\nRequiert :");
+		cur += snprintf(buffer+cur, n-cur, "Requiert");
 	for (int i = 0; i < tr->n_req; i++)
-		cur += component_tooltip(buffer+cur, n-cur, u, &tr->req[i]);
+	{
+		component_t* c = &tr->req[i];
+		char* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
+		cur += snprintf(buffer+cur, n-cur, "\n%.1f %s", floor(c->amount), name);
+	}
 
 	return cur;
 }

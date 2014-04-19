@@ -33,29 +33,6 @@ void swmaterials_exit(swmaterials_t* w)
 	subwindow_exit(&w->w);
 }
 
-size_t swmaterials_materialTooltip(char* buffer, size_t n, universe_t* u, kindOf_material_t* m)
-{
-	size_t cur = 0;
-
-	cur += snprintf(buffer+cur, n-cur, "%s", m->name);
-
-	if (!m->edible)
-		return cur;
-
-	cur += snprintf(buffer+cur, n-cur, "\nComestible");
-	for (int i = 0; i < N_STATUSES; i++)
-	{
-		float b = m->eatBonus[i];
-		if (b == 0)
-			continue;
-
-		char* name = u->statuses[i].name;
-		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
-	}
-
-	return cur;
-}
-
 int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 {
 	if (do_draw)
@@ -136,7 +113,7 @@ int swmaterials_cursor(swmaterials_t* w, game_t* g)
 		return 0;
 
 	char buffer[1024];
-	swmaterials_materialTooltip(buffer, 1024, g->u, &g->u->materials[i]);
+	kindOf_material_info(&g->u->materials[i], buffer, 1024, g->u);
 	draw_tooltip(g->g, g->a, buffer);
 
 	if (g->u->materials[i].edible)

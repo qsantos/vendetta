@@ -44,3 +44,26 @@ void kindOf_material_icon(kindOf_material_t* m, assets_t* a, const char* filenam
 	m->icon_sprite = id;
 	m->icon_index  = idx;
 }
+
+size_t kindOf_material_info(kindOf_material_t* m, char* buffer, size_t n, universe_t* u)
+{
+	size_t cur = 0;
+
+	cur += snprintf(buffer+cur, n-cur, "%s", m->name);
+
+	if (!m->edible)
+		return cur;
+
+	cur += snprintf(buffer+cur, n-cur, "\nComestible");
+	for (int i = 0; i < N_STATUSES; i++)
+	{
+		float b = m->eatBonus[i];
+		if (b == 0)
+			continue;
+
+		char* name = u->statuses[i].name;
+		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", b, name);
+	}
+
+	return cur;
+}

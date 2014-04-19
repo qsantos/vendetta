@@ -43,4 +43,8 @@ void kindOf_material_exit(kindOf_material_t* m);
 
 void kindOf_material_icon(kindOf_material_t* m, assets_t* a, const char* filename, int idx);
 
+#include "universe.h"
+
+size_t kindOf_material_info(kindOf_material_t* m, char* buffer, size_t n, universe_t* u);
+
 #endif

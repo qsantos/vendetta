@@ -33,34 +33,6 @@ void switems_exit(switems_t* w)
 	subwindow_exit(&w->w);
 }
 
-size_t switems_itemTooltip(char* buffer, size_t n, universe_t* u, kindOf_item_t* it)
-{
-	size_t cur = 0;
-
-	cur += snprintf(buffer+cur, n-cur, "%s", it->name);
-
-	effect_t* e = &it->effect;
-	float v = e->max_material;
-	if (v != 0)
-		cur += snprintf(buffer+cur, n-cur, "\n%+.1f transporté", v);
-	for (size_t i = 0; i < N_STATUSES; i++)
-	{
-		kindOf_status_t* s = &u->statuses[i];
-		float v = e->status_bonus[i];
-		if (v == 0)
-			continue;
-		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", v, s->name);
-	}
-	for (size_t i = 0; i < e->n_skills; i++)
-	{
-		int skill = e->skills[i];
-		kindOf_skill_t* k = &u->skills[skill];
-		cur += snprintf(buffer+cur, n-cur, "\n%+.1f %s", e->bonuses[i], k->name);
-	}
-
-	return cur;
-}
-
 int switems_draw(switems_t* w, game_t* g, char do_draw)
 {
 	if (do_draw)
@@ -143,7 +115,7 @@ int switems_cursor(switems_t* w, game_t* g)
 		return 0;
 
 	char buffer[1024];
-	switems_itemTooltip(buffer, 1024, g->u, &g->u->items[i]);
+	kindOf_item_info(&g->u->items[i], buffer, 1024, g->u);
 	draw_tooltip(g->g, g->a, buffer);
 
 	return 12;

@@ -52,4 +52,8 @@ void kindOf_item_exit(kindOf_item_t* i);
 
 void kindOf_item_icon(kindOf_item_t* i, assets_t* a, const char* filename, int idx);
 
+#include "universe.h"
+
+size_t kindOf_item_info(kindOf_item_t* it, char* buffer, size_t n, universe_t* u);
+
 #endif
