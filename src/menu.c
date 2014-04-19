@@ -123,7 +123,12 @@ void menu(settings_t* s)
 			else if (event.type == sfEvtKeyReleased)
 			{
 				if (event.key.code == sfKeyEscape)
-					stayhere = 0;
+				{
+					if (inconfig)
+						inconfig = 0;
+					else
+						stayhere = 0;
+				}
 				else if (event.key.code == sfKeyReturn)
 					play(s, gr, a, 0);
 				else if (event.key.code == sfKeyC)
