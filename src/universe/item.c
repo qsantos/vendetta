@@ -65,6 +65,11 @@ size_t kindOf_item_info(kindOf_item_t* it, char* buffer, size_t n, universe_t* u
 
 	cur += snprintf(buffer+cur, n-cur, "%s", it->name);
 
+	if (it->range != 0)
+		cur += snprintf(buffer+cur, n-cur, "\nPortée : %.1f", it->range);
+	if (it->category == 0 || it->category == 1) // TODO
+		cur += snprintf(buffer+cur, n-cur, "\nTemps de recharge : %.1fs", it->reloadDelay);
+
 	effect_t* e = &it->effect;
 	float v = e->max_material;
 	if (v != 0)
