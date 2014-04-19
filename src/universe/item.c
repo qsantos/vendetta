@@ -70,6 +70,19 @@ size_t kindOf_item_info(kindOf_item_t* it, char* buffer, size_t n, universe_t* u
 	if (it->category == 0 || it->category == 1) // TODO
 		cur += snprintf(buffer+cur, n-cur, "\nTemps de recharge : %.1fs", it->reloadDelay);
 
+	if (it->reqMana != 0)
+		cur += snprintf(buffer+cur, n-cur, "\nUtilise %.1f mana", it->reqMana);
+
+	transform_t* t = &it->cost;
+	for (int i = 0; i < t->n_req; i++)
+	{
+		component_t* c = &t->req[i];
+		if (c->is_item)
+			cur += snprintf(buffer+cur, n-cur, "\nUtilise %.1f %s", c->amount, u->items[c->id].name);
+		else
+			cur += snprintf(buffer+cur, n-cur, "\nUtilise %.1f %s", c->amount, u->materials[c->id].name);
+	}
+
 	effect_t* e = &it->effect;
 	float v = e->max_material;
 	if (v != 0)
