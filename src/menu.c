@@ -19,6 +19,7 @@
 #include "menu.h"
 
 #include <unistd.h>
+#include <math.h>
 
 #include "widgets.h"
 #include "game.h"
@@ -66,7 +67,7 @@ static char configmenu(settings_t* s, graphics_t* gr, assets_t* a, char do_draw)
 	snprintf(buffer, 1024, "Seed: %#x", s->seed);
 	sfText_setUTF8(text, buffer);
 	sfFloatRect rect = sfText_getLocalBounds(text);
-	sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+	sfVector2f pos = {floor(x-rect.width/2-rect.left), floor(y-rect.height/2-rect.top)};
 	sfText_setPosition(text, pos);
 	sfRenderWindow_drawText(gr->render, text, NULL);
 

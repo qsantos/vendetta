@@ -77,8 +77,8 @@ char subwindow_draw(subwindow_t* w, graphics_t* g, assets_t* a)
 	}
 	sfText_setUTF8(text, w->name);
 	sfFloatRect rect = sfText_getLocalBounds(text);
-	pos.x += (SW_WIDTH-rect.width)/2;
-	pos.y += + 20;
+	pos.x += floor( (SW_WIDTH-rect.width)/2 );
+	pos.y += 20;
 	sfText_setPosition(text, pos);
 	sfRenderWindow_drawText(g->render, text, NULL);
 

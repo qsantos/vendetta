@@ -215,7 +215,7 @@ char draw_button(graphics_t* gr, assets_t* a, float x, float y, const char* name
 
 	sfText_setUTF8(text, name);
 	rect = sfText_getLocalBounds(text);
-	pos = (sfVector2f){x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+	pos = (sfVector2f){floor(x-rect.width/2-rect.left), floor(y-rect.height/2-rect.top)};
 	sfText_setPosition(text, pos);
 	sfRenderWindow_drawText(gr->render, text, NULL);
 
@@ -240,7 +240,7 @@ char draw_toggle(graphics_t* gr, assets_t* a, float x, float y, const char* name
 		snprintf(buffer, 1024, "%s: %s", name, *v ? "oui" : "non");
 		sfText_setUTF8(text, buffer);
 		sfFloatRect rect = sfText_getLocalBounds(text);
-		sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+		sfVector2f pos = {floor(x-rect.width/2-rect.left), floor(y-rect.height/2-rect.top)};
 		sfText_setPosition(text, pos);
 		if (do_draw)
 			sfRenderWindow_drawText(gr->render, text, NULL);
@@ -284,7 +284,7 @@ void draw_slider(graphics_t* gr, assets_t* a, float x, float y, const char* name
 	snprintf(buffer, 1024, "%s: %i", name, *v);
 	sfText_setUTF8(text, buffer);
 	sfFloatRect rect = sfText_getLocalBounds(text);
-	sfVector2f pos = {x-rect.width/2-rect.left, y-rect.height/2-rect.top};
+	sfVector2f pos = {floor(x-rect.width/2-rect.left), floor(y-rect.height/2-rect.top)};
 	sfText_setPosition(text, pos);
 	if (do_draw)
 		sfRenderWindow_drawText(gr->render, text, NULL);
