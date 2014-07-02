@@ -548,8 +548,7 @@ float character_attacked(character_t* c, float work)
 	defense = fmax(defense, character_armor(c));
 
 	character_addStatus(c, ST_DEFENSE, -work);
-	work -= defense;
-	character_addStatus(c, ST_HEALTH, -work);
+	character_addStatus(c, ST_HEALTH, work - defense);
 	if (c->statuses[ST_HEALTH] <= 0)
 		c->alive = 0;
 	return work;
