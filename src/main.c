@@ -197,8 +197,6 @@ int main(int argc, char** argv)
 	free(argv);
 #endif
 
-	fprintf(stderr, "Using seed %#x\n", s.seed);
-
 	menu(&s);
 
 	return 0;

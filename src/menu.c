@@ -18,6 +18,7 @@
 
 #include "menu.h"
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
 
@@ -56,20 +57,7 @@ static char configmenu(settings_t* s, graphics_t* gr, assets_t* a, char do_draw)
 	float x = size.x / 2;
 	float y = size.y / 2 - 100;
 
-	sfText* text = NULL;
-	if (text == NULL)
-	{
-		text = sfText_create();
-		sfText_setFont(text, a->font);
-		sfText_setCharacterSize(text, 20);
-	}
-	char buffer[1024];
-	snprintf(buffer, 1024, "Seed: %#x", s->seed);
-	sfText_setUTF8(text, buffer);
-	sfFloatRect rect = sfText_getLocalBounds(text);
-	sfVector2f pos = {floor(x-rect.width/2-rect.left), floor(y-rect.height/2-rect.top)};
-	sfText_setPosition(text, pos);
-	sfRenderWindow_drawText(gr->render, text, NULL);
+	draw_input(gr, a, x, y, "Seed", s->seed_txt, do_draw);
 
 	draw_slider(gr, a, x, (y+=50), "Largeur", &s->map_width,  100, 2000, do_draw);
 	draw_slider(gr, a, x, (y+=50), "Height",  &s->map_height, 100, 2000, do_draw);
@@ -85,6 +73,8 @@ static char configmenu(settings_t* s, graphics_t* gr, assets_t* a, char do_draw)
 }
 static void play(settings_t* s, graphics_t* gr, assets_t* a, char load)
 {
+	s->seed = strtoul(s->seed_txt, NULL, 0);
+
 	game_t game;
 	game_init(&game, s, gr, a, load);
 	game_loop(&game);
@@ -92,6 +82,8 @@ static void play(settings_t* s, graphics_t* gr, assets_t* a, char load)
 }
 void menu(settings_t* s)
 {
+	snprintf(s->seed_txt, 32, "%#x", s->seed);
+
 	graphics_t graphics;
 	graphics_t* gr = &graphics;
 	graphics_init(gr);
@@ -155,6 +147,8 @@ void menu(settings_t* s)
 						stayhere = 0;
 				}
 			}
+			else if (event.type == sfEvtTextEntered)
+				input_type(s->seed_txt, 32, event.text.unicode);
 		}
 
 		sfRenderWindow_clear(render, sfBlack);

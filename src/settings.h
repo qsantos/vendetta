@@ -24,6 +24,7 @@ typedef struct settings settings_t;
 struct settings
 {
 	unsigned int seed;
+	char seed_txt[32];
 
 	int map_width;
 	int map_height;
