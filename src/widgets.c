@@ -337,10 +337,10 @@ void input_type(char* value, size_t n, sfUint32 c)
 	else if (c >= 0x20)
 	{
 		// wctomb want room for all four bytes just in case
-		if (n-l-1 < MB_CUR_MAX)
+		if (n-l-1 < (size_t) MB_CUR_MAX)
 			return;
 
-		// TODO: Windows may not like wctomb
+		// TODO: compilation on Windows may not like wctomb
 		size_t s = wctomb(value+l, c);
 		value[l+s] = 0;
 	}

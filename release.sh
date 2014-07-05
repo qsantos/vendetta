@@ -21,7 +21,7 @@ mv deps/lin64/*.so* .
 mv *.so* deps/lin64/
 rm $release
 
-time make -j 4 -C src rebuild CC=i586-mingw32msvc-gcc
+time make -j 4 -C src rebuild CC=i686-w64-mingw32-gcc
 mv vendetta vendetta.exe
 OS="windows-32bits"
 release="$name-$version-$OS"
