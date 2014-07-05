@@ -33,4 +33,7 @@ char draw_button(graphics_t* gr, assets_t* a, float x, float y, const char* name
 char draw_toggle(graphics_t* gr, assets_t* a, float x, float y, const char* name, char* v, char do_draw);
 void draw_slider(graphics_t* gr, assets_t* a, float x, float y, const char* name, int*  v, int min, int max, char do_draw);
 
+void draw_input(graphics_t* gr, assets_t* a, float x, float y, const char* name, const char* value, char do_draw);
+void input_type(char* value, size_t n, sfUint32  c);
+
 #endif

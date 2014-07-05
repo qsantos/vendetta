@@ -18,6 +18,7 @@
 
 #include "widgets.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -288,4 +289,59 @@ void draw_slider(graphics_t* gr, assets_t* a, float x, float y, const char* name
 	sfText_setPosition(text, pos);
 	if (do_draw)
 		sfRenderWindow_drawText(gr->render, text, NULL);
+}
+
+void draw_input(graphics_t* gr, assets_t* a, float x, float y, const char* name, const char* value, char do_draw)
+{
+	(void) a;
+	(void) name;
+
+	static sfText* text = NULL;
+	if (text == NULL)
+	{
+		text = sfText_create();
+		sfText_setFont(text, a->font);
+		sfText_setCharacterSize(text, 20);
+	}
+
+	sfFloatRect rect = {0,0, 200, 40};
+	rect.left = x - rect.width / 2;
+	rect.top  = y - rect.height / 2;
+	sfVector2f pos = {rect.left, rect.top};
+
+	sfText_setUTF8(text, value);
+	sfText_setPosition(text, pos);
+	if (do_draw)
+		sfRenderWindow_drawText(gr->render, text, NULL);
+}
+void input_type(char* value, size_t n, sfUint32 c)
+{
+	// gets the number of used bytes in the multi-byte string (safe)
+	size_t l = strlen(value);
+
+	if (c == 0x8) // backspace
+	{
+		if (l == 0)
+			return;
+
+		unsigned char* last = (unsigned char*) (value+l-1);
+
+		// find multi-byte character start
+		if (*last >= 0x80)
+			while (*last < 0xC0)
+				last--;
+
+		// advance end of string
+		*last = 0;
+	}
+	else if (c >= 0x20)
+	{
+		// wctomb want room for all four bytes just in case
+		if (n-l-1 < MB_CUR_MAX)
+			return;
+
+		// TODO: Windows may not like wctomb
+		size_t s = wctomb(value+l, c);
+		value[l+s] = 0;
+	}
 }
