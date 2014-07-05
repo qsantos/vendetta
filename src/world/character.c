@@ -346,9 +346,6 @@ char character_attack(character_t* c, object_t* o)
 	else
 		return 0;
 
-	if (c->attackDelay != 0)
-		return 1;
-
 	universe_t* u = c->w->universe;
 
 	// TODO
@@ -359,6 +356,9 @@ char character_attack(character_t* c, object_t* o)
 	float d = object_distance(&c->o, o->x, o->y);
 	if (d >= range && !(o->t == O_BUILDING && object_overlaps(&c->o, o)))
 		return 0;
+
+	if (c->attackDelay != 0)
+		return 1;
 
 	if (it != NULL && transform_check(&it->cost, &c->inventory) == 0)
 		return 1;
