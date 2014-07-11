@@ -279,12 +279,20 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			kindOf_material_t* t = &u->materials[id];
 			int skill = t->skill;
 
+			// how much work can be done with the given time and resources
 			float work = duration * character_getSkill(c, skill);
 			work *= tr->rate;
-			float avail = character_maxOfMaterial(c, t) - c->inventory.materials[id];
-			work = fmin(work, avail/tr->res[0].amount);
 			work = transform_apply(tr, &c->inventory, work);
 			character_train(c, skill, work);
+
+			// transfers exceeding resources to building
+			float max = character_maxOfMaterial(c, t);
+			float cur = c->inventory.materials[id];
+			if (cur > max)
+			{
+				b->inventory.materials[id] += cur - max;
+				c->inventory.materials[id] = max;
+			}
 		}
 	}
 }
