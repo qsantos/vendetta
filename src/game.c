@@ -279,7 +279,15 @@ void game_loop(game_t* g)
 			}
 		}
 
-		if (hasFocus)
+		sfBool modif =
+			sfKeyboard_isKeyPressed(sfKeyLControl) ||
+			sfKeyboard_isKeyPressed(sfKeyRControl) ||
+			sfKeyboard_isKeyPressed(sfKeyLAlt) ||
+			sfKeyboard_isKeyPressed(sfKeyRAlt) ||
+			sfKeyboard_isKeyPressed(sfKeyLSystem) ||
+			sfKeyboard_isKeyPressed(sfKeyRSystem) ||
+		0;
+		if (!modif && hasFocus)
 		{
 			sfBool up    = sfKeyboard_isKeyPressed(sfKeyUp);
 			sfBool down  = sfKeyboard_isKeyPressed(sfKeyDown);
