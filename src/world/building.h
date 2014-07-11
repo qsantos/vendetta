@@ -24,6 +24,7 @@ typedef struct building building_t;
 #include "object.h"
 #include "world.h"
 #include "../universe/building.h"
+#include "inventory.h"
 
 struct building
 {
@@ -39,6 +40,8 @@ struct building
 	size_t work_n;
 	int*   work_list;
 	float  work_progress;
+
+	inventory_t inventory;
 };
 
 void building_init(building_t* b, world_t* w, kindOf_building_t* t, uuid_t owner, float x, float y);

@@ -43,6 +43,9 @@ void building_init(building_t* b, world_t* w, kindOf_building_t* t, uuid_t owner
 	b->work_n = 0;
 	b->work_list = 0;
 	b->work_progress = 0;
+
+	universe_t* u = w->universe;
+	inventory_init(&b->inventory, u->n_materials, u->n_items);
 }
 
 void building_exit(building_t* b)
@@ -50,6 +53,7 @@ void building_exit(building_t* b)
 	if (b == NULL)
 		return;
 
+	inventory_exit(&b->inventory);
 	free(b->work_list);
 }
 
