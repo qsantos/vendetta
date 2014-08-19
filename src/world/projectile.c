@@ -18,9 +18,7 @@
 
 #include "projectile.h"
 
-#include <math.h>
-
-#define M_PI 3.14159265358979323846
+#include "../math.h"
 
 void projectile_init(projectile_t* p, world_t* w, kindOf_projectile_t* t, float x, float y, float damage, float tx, float ty)
 {

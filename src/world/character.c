@@ -18,14 +18,12 @@
 
 #include "character.h"
 
-#include <math.h>
 #include <string.h>
 #include <stdio.h>
 
+#include "../math.h"
 #include "../mem.h"
 #include "../rand.h"
-
-#define M_PI 3.14159265358979323846
 
 void character_init(character_t* c, world_t* w, kindOf_character_t* t)
 {

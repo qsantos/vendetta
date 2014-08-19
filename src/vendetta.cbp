@@ -27,6 +27,7 @@
 <Unit filename="graphics.c" />
 <Unit filename="graphics.h" />
 <Unit filename="main.c" />
+<Unit filename="math.c" />
 <Unit filename="mem.c" />
 <Unit filename="mem.h" />
 <Unit filename="menu.c" />

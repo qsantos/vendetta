@@ -21,7 +21,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <math.h>
+
+#include "math.h"
 
 void draw_cursor(graphics_t* gr, assets_t* a, int t)
 {
@@ -43,7 +44,6 @@ void draw_roundrect(graphics_t* gr, float x, float y, float w, float h)
 	static sfVertexArray* array = NULL;
 	static const int count = 8;
 	static const float radius = 5;
-#define M_PI 3.14159265358979323846
 	if (array == NULL)
 	{
 		array = sfVertexArray_create();
