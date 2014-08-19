@@ -225,7 +225,12 @@ int overlay_draw(game_t* g, char do_draw)
 	sfText_setPosition(text, (sfVector2f){180, size.y - 30});
 	sfRenderWindow_drawText(g->g->render, text, NULL);
 
-	snprintf(buffer, 1024, "FPS: %.0f", floor(g->fps));
+	snprintf(buffer, 1024, "Or : %.0f", floor(g->player->inventory.money));
+	sfText_setUTF8(text, buffer);
+	sfText_setPosition(text, (sfVector2f){size.x/2, size.y - 30});
+	sfRenderWindow_drawText(g->g->render, text, NULL);
+
+	snprintf(buffer, 1024, "FPS : %.0f", floor(g->fps));
 	sfText_setUTF8(text, buffer);
 	sfText_setPosition(text, (sfVector2f){size.x - 80, size.y - 30});
 	sfRenderWindow_drawText(g->g->render, text, NULL);
