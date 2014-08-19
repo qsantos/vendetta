@@ -126,11 +126,29 @@ char switems_catch(switems_t* w, game_t* g, int t)
 	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
 
-	if (t != sfMouseLeft)
+	// button pressed
+	if (t < 0)
 		return subwindow_catch(&w->w, g->g, t);
 
 	int i = switems_draw(w, g, 0);
 	if (i < 0)
+		return subwindow_catch(&w->w, g->g, t);
+
+	character_t* c = g->player;
+
+	// to building inventory
+	if (t == sfMouseRight)
+	{
+		building_t* b = building_get(&c->w->objects, c->inBuilding);
+		if (b == NULL)
+			return 1;
+		b->inventory.items[i]++;
+		c->inventory.items[i]--;
+		return 1;
+	}
+
+	// to equipment
+	if (t != sfMouseLeft)
 		return subwindow_catch(&w->w, g->g, t);
 
 	int cat = g->u->items[i].category;
@@ -146,7 +164,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 		for (size_t j = 0; j < g->u->n_slots; j++)
 			if (g->u->slots[j].category == 0)
 			{
-				int k = g->player->equipment[j];
+				int k = c->equipment[j];
 				if (k < 0)
 				{
 					if (twohanded)
@@ -155,8 +173,8 @@ char switems_catch(switems_t* w, game_t* g, int t)
 					}
 					else
 					{
-						g->player->equipment[j] = i;
-						g->player->inventory.items[i]--;
+						c->equipment[j] = i;
+						c->inventory.items[i]--;
 						break;
 					}
 				}
@@ -172,7 +190,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 		int a = -1;
 		int b = -1;
 		for (size_t j = 0; j < g->u->n_slots; j++)
-			if (g->u->slots[j].category == 0 && g->player->equipment[j] < 0)
+			if (g->u->slots[j].category == 0 && c->equipment[j] < 0)
 			{
 				if (a < 0)
 					a = j;
@@ -184,18 +202,18 @@ char switems_catch(switems_t* w, game_t* g, int t)
 			}
 		if (a >= 0 && b >= 0)
 		{
-			g->player->equipment[a] = i;
-			g->player->inventory.items[i]--;
+			c->equipment[a] = i;
+			c->inventory.items[i]--;
 		}
 	}
 	else
 	// END quickfix
 
 	for (size_t j = 0; j < g->u->n_slots; j++)
-		if (g->u->slots[j].category == cat && g->player->equipment[j] < 0)
+		if (g->u->slots[j].category == cat && c->equipment[j] < 0)
 		{
-			g->player->equipment[j] = i;
-			g->player->inventory.items[i]--;
+			c->equipment[j] = i;
+			c->inventory.items[i]--;
 			break;
 		}
 
