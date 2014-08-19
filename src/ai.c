@@ -245,6 +245,17 @@ char ai_do(ai_t* ai, character_t* c)
 {
 	transform_t* tr = &ai->inventory;
 
+	float max = character_maxOfStatus(c, ST_STAMINA);
+	float threshold = max * 0.5;
+	if (c->statuses[ST_STAMINA] < threshold)
+	{
+		while (c->statuses[ST_STAMINA] < max && character_eat(c, 1));
+		return 1;
+	}
+
+	if (ai_gather(c, 1, 5))
+		return 1;
+
 	if (ai_getreq(c, tr, 1))
 		return 1;
 
