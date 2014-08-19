@@ -137,7 +137,11 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		char buffer[1024];
 		size_t cur = 0;
 		size_t n = 1024;
-		if (t->make.n_req == 0)
+		if (b->owner != g->player->o.uuid)
+		{
+			cur += snprintf(buffer+cur, n-cur, "Acheter %s", m->name);
+		}
+		else if (t->make.n_req == 0)
 		{
 			cur += snprintf(buffer+cur, n-cur, "Récolter %s", m->name);
 		}
@@ -148,8 +152,7 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		}
 
 		float q = b->inventory.materials[c->id];
-		if (q > 0)
-			cur += snprintf(buffer+cur, n-cur, " (%.0f)", floor(q));
+		cur += snprintf(buffer+cur, n-cur, " (%.0f)", floor(q));
 
 		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);

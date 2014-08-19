@@ -44,6 +44,8 @@ void character_init(character_t* c, world_t* w, kindOf_character_t* t)
 	c->attackDelay = 0;
 	c->inWater = 0;
 
+	c->attack = 0;
+
 	c->ai = NULL;
 
 	universe_t* u = w->universe;
@@ -228,7 +230,11 @@ void character_workAt(character_t* c, object_t* o, float duration)
 		building_t* b = (building_t*) o;
 
 		if (b->owner != c->o.uuid)
+		{
+			if (b->build_progress == 1)
+				c->inBuilding = b->o.uuid;
 			return;
+		}
 
 		kindOf_building_t* t = b->t;
 
@@ -514,7 +520,7 @@ void character_doRound(character_t* c, float duration)
 	float dy = go_y - c->o.y;
 
 	float remDistance = sqrt(dx*dx + dy*dy);
-	if (character_attack(c, o))
+	if (c->attack && character_attack(c, o))
 		return;
 
 	if (remDistance == 0)

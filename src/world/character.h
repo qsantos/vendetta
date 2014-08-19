@@ -39,6 +39,7 @@ struct character
 	float  go_x;
 	float  go_y;
 	uuid_t go_o;
+	char attack;
 
 	direction_t dir;
 	float       step;

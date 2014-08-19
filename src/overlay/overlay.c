@@ -342,7 +342,12 @@ int overlay_cursor(game_t* g)
 			{
 				building_t* b = (building_t*) o;
 				if (b->owner != g->player->o.uuid)
-					cursor = 9;
+				{
+					if (sfKeyboard_isKeyPressed(sfKeyLControl))
+						cursor = 9;
+					else if (b->build_progress == 1)
+						cursor = 7;
+				}
 				else if (b->build_progress == 1)
 					cursor = 7;
 				else

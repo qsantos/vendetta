@@ -216,6 +216,7 @@ void world_load(world_t* w, FILE* f)
 		b->work_n = work_n;
 
 		load_inventory(&b->inventory, u, f);
+		building_update(b);
 
 		b->work_list = CALLOC(int, work_n);
 		for (size_t i = 0; i < work_n; i++)

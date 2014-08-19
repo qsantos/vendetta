@@ -254,7 +254,10 @@ void game_loop(game_t* g)
 				if (o == NULL)
 					g->player->go_o = -1;
 				else
+				{
 					g->player->go_o = o->uuid;
+					g->player->attack = sfKeyboard_isKeyPressed(sfKeyLControl);
+				}
 			}
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
