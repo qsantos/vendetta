@@ -144,8 +144,13 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		else
 		{
 			kindOf_material_t* x = &g->u->materials[t->make.req[0].id];
-			cur += snprintf(buffer+cur, n-cur, "Transformer %s en %s", x->name, m->name);
+			cur += snprintf(buffer+cur, n-cur, "%s vers %s", x->name, m->name);
 		}
+
+		float q = b->inventory.materials[c->id];
+		if (q > 0)
+			cur += snprintf(buffer+cur, n-cur, " (%.0f)", floor(q));
+
 		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
