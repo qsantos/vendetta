@@ -283,7 +283,8 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 	}
 
 	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
-	if (t == sfMouseRight)
+	universe_t* u = g->w->universe;
+	if (!isOwner || t == sfMouseRight)
 	{
 		component_t* k = &tr->res[0];
 		size_t id = k->id;
@@ -291,6 +292,9 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 		{
 			if (b->inventory.items[id] >= 1.)
 			{
+				float price = isOwner ? 0 : u->items[id].price;
+				c->inventory.money -= price;
+				b->inventory.money += price;
 				b->inventory.items[id]--;
 				c->inventory.items[id]++;
 				building_update(b);
@@ -300,6 +304,9 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 		{
 			if (b->inventory.materials[id] >= 1.)
 			{
+				float price = isOwner ? 0 : u->materials[id].price;
+				c->inventory.money -= price;
+				b->inventory.money += price;
 				b->inventory.materials[id]--;
 				c->inventory.materials[id]++;
 				building_update(b);
