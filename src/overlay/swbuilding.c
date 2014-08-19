@@ -269,6 +269,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 			{
 				b->inventory.items[id]--;
 				c->inventory.items[id]++;
+				building_update(b);
 			}
 		}
 		else
@@ -277,6 +278,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 			{
 				b->inventory.materials[id]--;
 				c->inventory.materials[id]++;
+				building_update(b);
 			}
 		}
 	}

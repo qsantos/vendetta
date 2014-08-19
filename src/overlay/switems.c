@@ -144,6 +144,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 			return 1;
 		b->inventory.items[i]++;
 		c->inventory.items[i]--;
+		building_update(b);
 		return 1;
 	}
 

@@ -292,6 +292,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			{
 				b->inventory.materials[id] += cur - max;
 				c->inventory.materials[id] = max;
+				building_update(b);
 			}
 		}
 	}

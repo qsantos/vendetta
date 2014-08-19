@@ -42,6 +42,7 @@ struct building
 	float  work_progress;
 
 	inventory_t inventory;
+	char open;
 };
 
 void building_init(building_t* b, world_t* w, kindOf_building_t* t, uuid_t owner, float x, float y);
@@ -52,5 +53,7 @@ float building_attacked(building_t* b, float work);
 
 void building_work_enqueue(building_t* b, int c);
 void building_work_dequeue(building_t* b, size_t n);
+
+void building_update(building_t* b);
 
 #endif

@@ -182,6 +182,8 @@ void draw_building(graphics_t* g, assets_t* a, character_t* player, building_t* 
 
 	if (n <= 1)
 		step = 0;
+	else if (b->open)
+		step = n-1;
 	else
 		step = floor(p * (n-2));
 

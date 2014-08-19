@@ -46,6 +46,7 @@ void building_init(building_t* b, world_t* w, kindOf_building_t* t, uuid_t owner
 
 	universe_t* u = w->universe;
 	inventory_init(&b->inventory, u->n_materials, u->n_items);
+	b->open = 0;
 }
 
 void building_exit(building_t* b)
@@ -94,4 +95,21 @@ void building_work_dequeue(building_t* b, size_t n)
 		memmove(b->work_list + n, b->work_list + n + 1, sizeof(int) * (b->work_n - n -1));
 		b->work_n--;
 	}
+}
+
+void building_update(building_t* b)
+{
+	universe_t* u = b->w->universe;
+	char open = 0;
+	for (size_t i = 0; !open && i < u->n_materials; i++)
+	{
+		if (b->inventory.materials[i] >= 1)
+			open = 1;
+	}
+	for (size_t i = 0; !open && i < u->n_items; i++)
+	{
+		if (b->inventory.items[i] >= 1)
+			open = 1;
+	}
+	b->open = open;
 }

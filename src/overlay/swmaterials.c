@@ -143,6 +143,7 @@ char swmaterials_catch(swmaterials_t* w, game_t* g, int t)
 			return 1;
 		b->inventory.materials[i]++;
 		c->inventory.materials[i]--;
+		building_update(b);
 		return 1;
 	}
 	else if (t == sfMouseLeft)
