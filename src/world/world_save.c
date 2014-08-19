@@ -27,6 +27,15 @@ static void save_object(object_t* o, FILE* f)
 {
 	fprintf(f, "%li %f %f %f %f", o->uuid, o->x, o->y, o->w, o->h);
 }
+static void save_inventory(inventory_t* inv, universe_t* u, FILE* f)
+{
+	for (size_t i = 0; i < u->n_materials; i++)
+		fprintf(f, "%f,", inv->materials[i]);
+	fprintf(f, "\n");
+	for (size_t i = 0; i < u->n_items; i++)
+		fprintf(f, "%f,", inv->items[i]);
+	fprintf(f, "\n");
+}
 void world_save(world_t* w, FILE* f)
 {
 	universe_t* u = w->universe;
@@ -57,13 +66,7 @@ void world_save(world_t* w, FILE* f)
 			c->alive, c->go_x, c->go_y, c->go_o,
 			c->hasBuilding, c->inBuilding);
 
-		// inventory
-		for (size_t i = 0; i < u->n_materials; i++)
-			fprintf(f, "%f,", c->inventory.materials[i]);
-		fprintf(f, "\n");
-		for (size_t i = 0; i < u->n_items; i++)
-			fprintf(f, "%f,", c->inventory.items[i]);
-		fprintf(f, "\n");
+		save_inventory(&c->inventory, u, f);
 
 		// skills
 		for (size_t i = 0; i < u->n_skills; i++)
@@ -100,6 +103,9 @@ void world_save(world_t* w, FILE* f)
 			t,
 			b->owner, b->build_progress, b->life,
 			b->work_progress, (unsigned) b->work_n);
+
+		save_inventory(&b->inventory, u, f);
+
 		for (size_t i = 0; i < b->work_n; i++)
 			fprintf(f, "%i,", b->work_list[i]);
 		fprintf(f, "\n");
@@ -112,6 +118,15 @@ void world_save(world_t* w, FILE* f)
 		exit(1); \
 	} \
 	} while (0);
+static void load_inventory(inventory_t* inv, universe_t* u, FILE* f)
+{
+	for (size_t i = 0; i < u->n_materials; i++)
+		CLINE("%f,", &inv->materials[i]);
+	CLINE("\n");
+	for (size_t i = 0; i < u->n_items; i++)
+		CLINE("%f,", &inv->items[i]);
+	CLINE("\n");
+}
 void world_load(world_t* w, FILE* f)
 {
 	universe_t* u = w->universe;
@@ -156,13 +171,7 @@ void world_load(world_t* w, FILE* f)
 		c->hasBuilding = hasBuilding;
 		c->inBuilding = inBuilding;
 
-		// inventory
-		for (size_t i = 0; i < u->n_materials; i++)
-			CLINE("%f,", &c->inventory.materials[i]);
-		CLINE("\n");
-		for (size_t i = 0; i < u->n_items; i++)
-			CLINE("%f,", &c->inventory.items[i]);
-		CLINE("\n");
+		load_inventory(&c->inventory, u, f);
 
 		// skills
 		for (size_t i = 0; i < u->n_skills; i++)
@@ -205,6 +214,8 @@ void world_load(world_t* w, FILE* f)
 		b->life = life;
 		b->work_progress = work_progress;
 		b->work_n = work_n;
+
+		load_inventory(&b->inventory, u, f);
 
 		b->work_list = CALLOC(int, work_n);
 		for (size_t i = 0; i < work_n; i++)
