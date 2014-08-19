@@ -127,13 +127,29 @@ char swmaterials_catch(swmaterials_t* w, game_t* g, int t)
 	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
 
-	if (t != sfMouseLeft)
+	// button pressed
+	if (t < 0)
 		return subwindow_catch(&w->w, g->g, t);
 
 	int i = swmaterials_draw(w, g, 0);
 	if (i < 0)
 		return subwindow_catch(&w->w, g->g, t);
 
-	character_eat(g->player, i);
-	return 1;
+	character_t* c = g->player;
+	if (t == sfMouseRight)
+	{
+		building_t* b = building_get(&c->w->objects, c->inBuilding);
+		if (b == NULL)
+			return 1;
+		b->inventory.materials[i]++;
+		c->inventory.materials[i]--;
+		return 1;
+	}
+	else if (t == sfMouseLeft)
+	{
+		character_eat(c, i);
+		return 1;
+	}
+
+	return 0;
 }
