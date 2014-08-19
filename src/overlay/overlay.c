@@ -421,7 +421,7 @@ int overlay_catch(game_t* g, int t)
 		return 1;
 	}
 
-	if (t == -sfMouseRight-1)
+	if (t == -sfMouseMiddle-1)
 	{
 		for (size_t i = 0; i < g->o->n_subwindows; i++)
 			if (subwindow_catch(g->o->sw[i], g->g, t))
@@ -431,7 +431,7 @@ int overlay_catch(game_t* g, int t)
 			}
 		return 1;
 	}
-	else if (t == sfMouseRight)
+	else if (t == sfMouseMiddle)
 	{
 		if (g->o->selected >= 0)
 		{
