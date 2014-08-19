@@ -32,6 +32,8 @@ struct kindOf_material
 	char edible;
 	float eatBonus[N_STATUSES];
 
+	float price;
+
 	int icon_sprite;
 	int icon_index;
 };

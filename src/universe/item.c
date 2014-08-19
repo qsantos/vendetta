@@ -38,6 +38,7 @@ void kindOf_item_init(kindOf_item_t* i)
 
 	transform_init(&i->cost);
 	i->reqMana = 0;
+	i->price = 0;
 
 	i->icon_sprite = -1;
 	i->icon_index  = 0;

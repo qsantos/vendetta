@@ -28,6 +28,7 @@ void kindOf_material_init(kindOf_material_t* m)
 	m->edible = 0;
 	for (int i = 0; i < N_STATUSES; i++)
 		m->eatBonus[i] = 0;
+	m->price = 0;
 }
 
 void kindOf_material_exit(kindOf_material_t* m)

@@ -38,8 +38,9 @@ struct kindOf_item
 	float    range;
 	float    reloadDelay;
 
-	float reqMana;
 	transform_t cost;
+	float reqMana;
+	float price;
 
 	int icon_sprite;
 	int icon_index;

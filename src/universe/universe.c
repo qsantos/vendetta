@@ -290,12 +290,13 @@ void universe_init_materials(universe_t* u, assets_t* a, cfg_group_t* gr)
 		if (id >= 0)
 			transform_req(t, id, am, 0);
 
-		m->name = cfg_getString(s, "Nom");
-		m->edible     = cfg_getInt(s, "Mangeable");
-		m->eatBonus[ST_HEALTH]  = cfg_getFloat(s, "GainVie");
-		m->eatBonus[ST_STAMINA] = cfg_getFloat(s, "GainEnergie");
-		m->eatBonus[ST_MORAL]   = cfg_getFloat(s, "GainMoral");
-		m->eatBonus[ST_MANA]    = cfg_getFloat(s, "GainMagie");
+		m->name                 = cfg_getString(s, "Nom");
+		m->edible               = cfg_getInt   (s, "Mangeable");
+		m->eatBonus[ST_HEALTH]  = cfg_getFloat (s, "GainVie");
+		m->eatBonus[ST_STAMINA] = cfg_getFloat (s, "GainEnergie");
+		m->eatBonus[ST_MORAL]   = cfg_getFloat (s, "GainMoral");
+		m->eatBonus[ST_MANA]    = cfg_getFloat (s, "GainMagie");
+		m->price                = cfg_getFloat (s, "PrixVente");
 
 		size_t skill = u->n_skills++;
 		kindOf_skill_t* k = &u->skills[skill];
@@ -406,9 +407,9 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 		it->skill = u->iskills[iskill];
 		it->event = cfg_getInt(s, "EffetAttaque") - 1;
 
-		it->range       = cfg_getFloat(s, "BonusPorteeAttaque");
-		it->projectile  = cfg_getInt(s, "LanceProjectile") - 1;
-		float delay = cfg_getFloat(s, "DureeRechargeAttaque");
+		it->range      = cfg_getFloat(s, "BonusPorteeAttaque");
+		it->projectile = cfg_getInt  (s, "LanceProjectile") - 1;
+		float delay    = cfg_getFloat(s, "DureeRechargeAttaque");
 		if (delay != 0)
 			it->reloadDelay = delay;
 
@@ -431,6 +432,8 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 			}
 			transform_req(t, i, atof(v), 0);
 		}
+
+		it->price = cfg_getFloat(s, "PrixVente");
 
 		cfg_array_t* sboni = cfg_getArray(s, "BonusCompetencesSpeciales");
 		if (sboni != NULL)
