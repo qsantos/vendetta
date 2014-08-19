@@ -253,22 +253,30 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 		return subwindow_catch(&w->w, g->g, t);
 
 	int i = swbuilding_draw(w, g, 0);
-	if (i < 0)
+	if (i == -1)
 		return subwindow_catch(&w->w, g->g, t);
 
 	character_t* c = g->player;
 	building_t* b = building_get(&g->w->objects, c->inBuilding);
-	transform_t* tr = &b->t->items[i];
+	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
 	if (t == sfMouseRight)
 	{
 		component_t* k = &tr->res[0];
+		size_t id = k->id;
 		if (k->is_item)
 		{
-			size_t id = k->id;
 			if (b->inventory.items[id] >= 1.)
 			{
 				b->inventory.items[id]--;
 				c->inventory.items[id]++;
+			}
+		}
+		else
+		{
+			if (b->inventory.materials[id] >= 1.)
+			{
+				b->inventory.materials[id]--;
+				c->inventory.materials[id]++;
 			}
 		}
 	}
