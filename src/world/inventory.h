@@ -23,6 +23,7 @@ typedef struct inventory inventory_t;
 
 struct inventory
 {
+	float money;
 	float* materials;
 	float* items;
 };

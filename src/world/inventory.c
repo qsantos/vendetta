@@ -25,6 +25,7 @@
 
 void inventory_init(inventory_t* i, size_t n_materials, size_t n_items)
 {
+	i->money     = 0;
 	i->materials = CALLOC(float, n_materials);
 	i->items     = CALLOC(float, n_items);
 

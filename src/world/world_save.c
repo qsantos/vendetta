@@ -29,6 +29,7 @@ static void save_object(object_t* o, FILE* f)
 }
 static void save_inventory(inventory_t* inv, universe_t* u, FILE* f)
 {
+	fprintf(f, "%f,", inv->money);
 	for (size_t i = 0; i < u->n_materials; i++)
 		fprintf(f, "%f,", inv->materials[i]);
 	fprintf(f, "\n");
@@ -120,6 +121,7 @@ void world_save(world_t* w, FILE* f)
 	} while (0);
 static void load_inventory(inventory_t* inv, universe_t* u, FILE* f)
 {
+	CLINE("%f,", &inv->money);
 	for (size_t i = 0; i < u->n_materials; i++)
 		CLINE("%f,", &inv->materials[i]);
 	CLINE("\n");

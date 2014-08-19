@@ -51,6 +51,7 @@ void character_init(character_t* c, world_t* w, kindOf_character_t* t)
 	universe_t* u = w->universe;
 
 	inventory_init(&c->inventory, u->n_materials, u->n_items);
+	c->inventory.money = 100;
 	c->hasBuilding = -1;
 	c->inBuilding  = -1;
 
