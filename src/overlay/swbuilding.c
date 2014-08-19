@@ -107,11 +107,20 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 	char caught = 0;
 
 	char buffer[1024];
-	snprintf(buffer, 1024, "%s", t->name);
+	size_t cur = 0;
+	cur += snprintf(buffer+cur, 1024-cur, "%s", t->name);
+	float m = b->inventory.money;
+	if (m >= 1)
+		snprintf(buffer+cur, 1024-cur, " (%.0f or)", floor(m));
 	sfText_setPosition(text, (sfVector2f){x,y});
 	sfText_setUTF8(text, buffer);
 	if (do_draw)
 		sfRenderWindow_drawText(g->g->render, text, NULL);
+	else
+		caught |= sfText_contains(text, mouse);
+
+	if (caught)
+		return -3;
 
 	y += 20;
 
@@ -235,7 +244,7 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g)
 		return -1;
 
 	int i = swbuilding_draw(w, g, 0);
-	if (i == -1)
+	if (i == -1 || i == -3)
 		return 0;
 
 	char buffer[1024];
@@ -261,6 +270,18 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 
 	character_t* c = g->player;
 	building_t* b = building_get(&g->w->objects, c->inBuilding);
+	char isOwner = b->owner == c->o.uuid;
+
+	if (i == -3)
+	{
+		if (isOwner)
+		{
+			c->inventory.money += b->inventory.money;
+			b->inventory.money = 0;
+		}
+		return 1;
+	}
+
 	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
 	if (t == sfMouseRight)
 	{
