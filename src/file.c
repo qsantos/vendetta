@@ -20,10 +20,11 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#undef __STRICT_ANSI__
+#undef __STRICT_ANSI__ // yup, Windows again
 #include <sys/stat.h>
 #define __STRICT_ANSI__
 
+// still not stock; err... standard
 char isdir(const char* path)
 {
 	struct stat info;

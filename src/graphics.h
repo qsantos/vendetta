@@ -36,6 +36,7 @@ void graphics_exit(graphics_t* g);
 
 void sfText_setUTF8(sfText* text, const char* string);
 
+// additional membership tests
 char sfText_contains  (sfText*   text,   sfVector2f point);
 char sfSprite_contains(sfSprite* sprite, sfVector2f point);
 

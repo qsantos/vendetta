@@ -130,9 +130,12 @@ void draw_progressbar(graphics_t* gr, float x, float y, float w, float h, float 
 
 	float border = 1 + floor(h/20);
 	sfRectangleShape_setOutlineThickness(frame, border);
+
+	// set outline color
 	sfColor orange = {255, 42, 42, 255};
 	sfRectangleShape_setOutlineColor(frame, c == 1 ? orange : sfWhite);
 
+	// set inner color
 	sfColor inner;
 	     if (c == -1)   inner = (sfColor){255,255,255,191};
 	else if (c == -2)   inner = (sfColor){255,255,255,127};
@@ -143,20 +146,23 @@ void draw_progressbar(graphics_t* gr, float x, float y, float w, float h, float 
 	else if (p <= 0.75) inner = (sfColor){170,170, 68,191};
 	else if (p <= 1.00) inner = (sfColor){ 68,255, 68,191};
 	else                inner = (sfColor){  0,  0,255,191};
-
-	p = fmax(fmin(p, 1), 0);
-
 	sfRectangleShape_setFillColor(progress, inner);
 
+	// clamp progress
+	p = fmax(fmin(p, 1), 0);
+
+	// set position
 	sfVector2f pos = {x+border,y+border};
 	sfRectangleShape_setPosition(frame, pos);
 	sfRectangleShape_setPosition(progress, pos);
 
+	// set size
 	sfVector2f size = {w-2*border, h-2*border};
 	sfRectangleShape_setSize(frame, size);
-
 	size.x *= p;
 	sfRectangleShape_setSize(progress, size);
+
+	// draw
 	sfRenderWindow_drawRectangleShape(gr->render, progress, NULL);
 	sfRenderWindow_drawRectangleShape(gr->render, frame, NULL);
 }
@@ -170,9 +176,11 @@ void draw_scrollbar(graphics_t* gr, float x, float y, float w, float h, float r,
 		sfRectangleShape_setFillColor(cursor, (sfColor){70,70,102,127});
 	}
 
+	// sets the height of the marker
 	r = fmin(r, 1);
 	if (r != 1)
 		y += p * h * (1-r);
+
 	h *= r;
 	sfRectangleShape_setSize(cursor, (sfVector2f){w,h});
 	sfRectangleShape_setPosition(cursor, (sfVector2f){x,y});

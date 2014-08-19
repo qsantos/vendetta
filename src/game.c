@@ -137,6 +137,7 @@ void game_loop(game_t* g)
 		sfEvent event;
 		while (stayhere && sfRenderWindow_pollEvent(g->g->render, &event))
 		{
+			// base events
 			if (event.type == sfEvtClosed)
 			{
 				stayhere = 0;
@@ -157,9 +158,11 @@ void game_loop(game_t* g)
 				sfView_zoom (g->g->world_view,   zoom);
 			}
 
+			// avoids taking user input while the users does something else
 			if (!hasFocus)
 				continue;
 
+			// keyboard shortcuts
 			if (event.type == sfEvtKeyReleased)
 			{
 				sfKeyCode k = event.key.code;
@@ -236,6 +239,7 @@ void game_loop(game_t* g)
 					}
 				}
 			}
+			// usual clicks
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				sfMouseButtonEvent* e = &event.mouseButton;
@@ -261,7 +265,10 @@ void game_loop(game_t* g)
 			}
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
+				// used for click-and-hold character control
 				sfClock_restart(maintain);
+
+				// subwindow click-and-drag
 				overlay_catch(g, -event.mouseButton.button-1);
 			}
 			else if (event.type == sfEvtMouseMoved)
@@ -273,15 +280,21 @@ void game_loop(game_t* g)
 				int delta = event.mouseWheel.delta;
 				if (sfKeyboard_isKeyPressed(sfKeyLControl))
 				{
+					// view zoom
 					float dzoom = pow(1.1, -delta);
 					sfView_zoom(g->g->world_view, dzoom);
 					zoom *= dzoom;
 				}
 				else
+				{
+					// subwindow scrolling
 					overlay_wheel(g, delta);
+				}
 			}
 		}
 
+		// checks for modifier keys before using the direction keys
+		// it avoids moving when e.g. switching virtual desktops
 		sfBool modif =
 			sfKeyboard_isKeyPressed(sfKeyLControl) ||
 			sfKeyboard_isKeyPressed(sfKeyRControl) ||
@@ -290,6 +303,7 @@ void game_loop(game_t* g)
 			sfKeyboard_isKeyPressed(sfKeyLSystem) ||
 			sfKeyboard_isKeyPressed(sfKeyRSystem) ||
 		0;
+
 		if (!modif && hasFocus)
 		{
 			sfBool up    = sfKeyboard_isKeyPressed(sfKeyUp);
@@ -297,6 +311,7 @@ void game_loop(game_t* g)
 			sfBool left  = sfKeyboard_isKeyPressed(sfKeyLeft);
 			sfBool right = sfKeyboard_isKeyPressed(sfKeyRight);
 
+			// direction key control
 			if (up || down || left || right)
 			{
 				g->player->go_x = g->player->o.x + 100 * (right - 2*left);
@@ -304,9 +319,10 @@ void game_loop(game_t* g)
 				g->player->go_o = -1;
 			}
 
-			if (sfMouse_isButtonPressed(sfMouseLeft) &&
-			(sfKeyboard_isKeyPressed(sfKeyLShift) ||
-			sfTime_asSeconds(sfClock_getElapsedTime(maintain)) > 0.5
+			// hold-and-click control
+			if (sfMouse_isButtonPressed(sfMouseLeft) && (
+				sfKeyboard_isKeyPressed(sfKeyLShift) ||
+				sfTime_asSeconds(sfClock_getElapsedTime(maintain)) > 0.5
 			))
 			{
 				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);

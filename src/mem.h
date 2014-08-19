@@ -19,8 +19,10 @@
 #ifndef MEM_H
 #define MEM_H
 
+// (re)-allocating memory with checking of success
 void* check_alloc(size_t n, void* ptr, const char* file, int line);
 
+// use CALLOC instead of malloc and CREALLOC instead of realloc
 #define CALLOC(T,N)     ( (T*) check_alloc((N)*sizeof(T), NULL, __FILE__, __LINE__) )
 #define CREALLOC(P,T,N) ( (T*) check_alloc((N)*sizeof(T), P,    __FILE__, __LINE__) )
 

@@ -21,6 +21,8 @@
 
 #include <math.h>
 
+// guess what? M_PI is not in strict C99
+// having memorized all of pi's digits comes handy at least
 #define M_PI 3.14159265358979323846
 
 #endif

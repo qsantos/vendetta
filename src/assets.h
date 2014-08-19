@@ -38,6 +38,8 @@ struct assets
 void assets_init(assets_t* a);
 void assets_exit(assets_t* a);
 
+// you don't have to worry about loading the same file
+// several times with these functions (an image is loaded at most once)
 sfTexture* assets_loadImage(assets_t* a, const char* filename);
 int        assets_spriteId (assets_t* a, const char* filename);
 sfSprite*  assets_sprite   (assets_t* a, const char* filename);

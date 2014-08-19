@@ -36,6 +36,7 @@ void graphics_exit(graphics_t* g)
 	sfRenderWindow_destroy(g->render);
 }
 
+// acceptable Unicode standards are UTF-8 and UTF-32, so Windows opted for UTF-16
 #ifdef __WIN32__
 #include <windows.h>
 #include <winnls.h>

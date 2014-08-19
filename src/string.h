@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 
+// those functions are in the GNU extension and I like portability
+
 char*   strdup (const char* s);
 ssize_t getline(char **lineptr, size_t *n, FILE *stream);
 

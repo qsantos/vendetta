@@ -19,6 +19,7 @@
 #ifndef FILE_H
 #define FILE_H
 
+// yay, again Windows compatibility
 #if defined __WIN32__
 typedef long off_t;
 typedef long long off64_t;
@@ -43,6 +44,8 @@ enum
 
 char isdir(const char* path);
 
+// executes DO for every entry in the given directory
+// in DO, 'path' points to the current entry
 #define FOREACH_ALL(PATH, DO) do { \
 	const char* p = PATH; \
 	DIR* __dir = opendir(p); \
@@ -69,6 +72,7 @@ char isdir(const char* path);
 	closedir(__dir); \
 	} while (0)
 
+// same, restricted to sub-directories and file, respectively
 #define FOREACH_DIR( PATH, DO) FOREACH_ALL(PATH, if( __isdir){DO;})
 #define FOREACH_FILE(PATH, DO) FOREACH_ALL(PATH, if(!__isdir){DO;})
 

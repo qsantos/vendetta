@@ -53,6 +53,8 @@ static void usage(const char* name)
 	exit(1);
 }
 
+// BEGIN Windows tweaking
+// compiling a graphical application on Windows without opening a console requires some tweaking
 #ifdef __WIN32__
 #undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
@@ -80,12 +82,15 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	argv[argc] = NULL;
 	LocalFree(argvw);
 #else
+// END Windows tweaking
 int main(int argc, char** argv)
 {
 #endif
+	// this ensures that UTF-8 text will be displayed correctly
 	setlocale(LC_ALL, "");
 	setlocale(LC_NUMERIC, "C");
 
+	// default settings for a new game, those can be overriden via command line options
 	settings_t s =
 	{
 		.seed       = time(NULL),
@@ -97,6 +102,7 @@ int main(int argc, char** argv)
 		.quickstart = 0,
 	};
 
+	// handling command line options; nothing fancy so no need for getopts()
 	int curarg = 1;
 	while (curarg < argc)
 	{
@@ -191,13 +197,17 @@ int main(int argc, char** argv)
 			usage(argv[0]);
 		}
 	}
+
+// cleaning the potential tweaking from above
 #ifdef __WIN32__
 	for (int i = 0; i < argc; i++)
 		free(argv[i]);
 	free(argv);
 #endif
 
+	// gives control to the menu, which in turns can start a game
 	menu(&s);
 
+	// hallelujah! it did not segfault yet!
 	return 0;
 }
