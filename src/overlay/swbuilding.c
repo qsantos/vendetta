@@ -184,10 +184,16 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 
 		// text
 		char buffer[1024];
+		size_t cur = 0;
+		cur += snprintf(buffer+cur, 1024-cur, "%s", it->name);
+
+		int n = (int) floor(b->inventory.items[c->id]);
+		if (n != 0)
+			cur += snprintf(buffer+cur, 1024-cur, " (×%i)", n);
+
 		if ((int) i == cur_work)
-			snprintf(buffer, 1024, "%s (%i%%)", it->name, (int) floor(100*b->work_progress));
-		else
-			snprintf(buffer, 1024, "%s", it->name);
+			cur += snprintf(buffer+cur, 1024-cur, " (%i%%)", (int) floor(100*b->work_progress));
+
 		sfText_setPosition(text, (sfVector2f){x+32,y+6});
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
