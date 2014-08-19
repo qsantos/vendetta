@@ -238,17 +238,35 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 	if (!subwindow_cursor(&w->w, g->g))
 		return 0;
 
-	if (t != sfMouseLeft)
+	// button pressed
+	if (t < 0)
 		return subwindow_catch(&w->w, g->g, t);
 
 	int i = swbuilding_draw(w, g, 0);
 	if (i < 0)
 		return subwindow_catch(&w->w, g->g, t);
 
-	building_t* b = building_get(&g->w->objects, g->player->inBuilding);
+	character_t* c = g->player;
+	building_t* b = building_get(&g->w->objects, c->inBuilding);
 	transform_t* tr = &b->t->items[i];
-	if (transform_check(tr, &g->player->inventory))
-		building_work_enqueue(b, i);
+	if (t == sfMouseRight)
+	{
+		component_t* k = &tr->res[0];
+		if (k->is_item)
+		{
+			size_t id = k->id;
+			if (b->inventory.items[id] >= 1.)
+			{
+				b->inventory.items[id]--;
+				c->inventory.items[id]++;
+			}
+		}
+	}
+	else if (t == sfMouseLeft)
+	{
+		if (transform_check(tr, &c->inventory))
+			building_work_enqueue(b, i);
+	}
 
 	return 1;
 }
