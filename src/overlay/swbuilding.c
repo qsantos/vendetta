@@ -44,15 +44,13 @@ size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr
 	{
 		component_t* c = &tr->res[i];
 
-		if (c->amount == 0 || !c->is_item)
-		{
-			fprintf(stderr, "Quite strange\n");
-			continue;
-		}
+		if (c->is_item)
+			cur += kindOf_item_info(&u->items[c->id], buffer+cur, n-cur, u);
+		else
+			cur += kindOf_material_info(&u->materials[c->id], buffer+cur, n-cur, u);
 
 		if (c->amount != 1)
-			cur += snprintf(buffer+cur, n-cur, "%.0fx", floor(c->amount));
-		cur += kindOf_item_info(&u->items[c->id], buffer+cur, n-cur, u);
+			cur += snprintf(buffer+cur, n-cur, " (×%.0f)", floor(c->amount));
 		cur += snprintf(buffer+cur, n-cur, "\n\n");
 	}
 
@@ -132,6 +130,8 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		sfSprite_setPosition(sprite, (sfVector2f){x,y});
 		if (do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
+		else
+			caught |= sfSprite_contains(sprite, mouse);
 
 		// text
 		char buffer[1024];
@@ -155,8 +155,13 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		sfText_setUTF8(text, buffer);
 		if (do_draw)
 			sfRenderWindow_drawText(g->g->render, text, NULL);
+		else
+			caught |= sfText_contains(text, mouse);
 
 		y += 32;
+
+		if (caught)
+			return -2;
 	}
 
 	y += 20;
@@ -227,12 +232,12 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g)
 		return -1;
 
 	int i = swbuilding_draw(w, g, 0);
-	if (i < 0)
+	if (i == -1)
 		return 0;
 
 	char buffer[1024];
 	building_t* b = building_get(&g->w->objects, g->player->inBuilding);
-	transform_t* tr = &b->t->items[i];
+	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
 	swbuilding_tooltip(buffer, 1024, g->u, tr);
 	draw_tooltip(g->g, g->a, buffer);
 	return 2;
