@@ -103,7 +103,7 @@ void ai_load(ai_t* ai, const char* filename)
 	fclose(f);
 }
 
-char ai_get(character_t* c, component_t* p, float amount)
+char ai_get(character_t* c, component_t* p, float amount, char keep)
 {
 	universe_t* u = c->w->universe;
 
@@ -125,6 +125,9 @@ char ai_get(character_t* c, component_t* p, float amount)
 	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, p->id, p->is_item);
 	if (tr == NULL)
 	{
+		if (keep)
+			return 1;
+
 		kindOf_building_t* b = universe_buildFor(u, p->id, p->is_item);
 		if (b == NULL)
 		{
@@ -150,7 +153,7 @@ char ai_get(character_t* c, component_t* p, float amount)
 		transform_add(&total, &b->build, 1);
 
 		// do gather
-		char isreq = ai_getreq(c, &total, 1);
+		char isreq = ai_getreq(c, &total, 1, keep);
 		transform_exit(&total);
 		if (isreq)
 			return 1;
@@ -160,7 +163,7 @@ char ai_get(character_t* c, component_t* p, float amount)
 		return 1;
 	}
 
-	if (ai_getreq(c, tr, amount))
+	if (ai_getreq(c, tr, amount, keep))
 		return 1;
 
 	// go in the building
@@ -181,10 +184,10 @@ char ai_get(character_t* c, component_t* p, float amount)
 	return 1;
 }
 
-char ai_getreq(character_t* c, transform_t* tr, float amount)
+char ai_getreq(character_t* c, transform_t* tr, float amount, char keep)
 {
 	for (int i = 0; i < tr->n_req; i++)
-		if (ai_get(c, &tr->req[i], amount))
+		if (ai_get(c, &tr->req[i], amount, keep))
 			return 1;
 	return 0;
 }
@@ -198,7 +201,7 @@ char ai_build(character_t* c, int id)
 	if (b != NULL && b->t == t)
 		return 0;
 
-	if (ai_getreq(c, &t->build, 1))
+	if (ai_getreq(c, &t->build, 1, 0))
 		return 1;
 
 	character_buildAuto(c, t);
@@ -219,13 +222,14 @@ char ai_do(ai_t* ai, character_t* c)
 	}
 	// ensures the AI always has apples to eat
 	static component_t apples = {.id=1, .amount=1};
-	if (ai_get(c, &apples, 5))
+	if (ai_get(c, &apples, 5, 1))
 		return 1;
 
+	// get preliminary components
 	while (c->ai_data.step < tr->n_req)
 	{
 		component_t* p = &tr->req[c->ai_data.step];
-		if (ai_get(c, p, 1))
+		if (ai_get(c, p, 1, 0))
 			return 1;
 		else
 			c->ai_data.step++;
