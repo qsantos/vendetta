@@ -124,8 +124,23 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 	transform_t* tr = b == NULL ? NULL : kindOf_building_canMake(b->t, is_item, id);
 	if (tr == NULL)
 	{
+		// do not replace the building
 		if (keep)
+		{
+			// try and buy it
+			building_t* b = world_findSale(c->w, c, is_item, id);
+			if (b == NULL)
+				return 1;
+
+			if (c->inBuilding != b->o.uuid)
+			{
+				c->go_o = b->o.uuid;
+				return 1;
+			}
+
+			building_take(b, is_item, id, amount, &c->inventory, 0);
 			return 1;
+		}
 
 		kindOf_building_t* b = universe_buildFor(u, is_item, id);
 		if (b == NULL)
