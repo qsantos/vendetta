@@ -272,34 +272,20 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 	building_t* b = building_get(&g->w->objects, c->inBuilding);
 	char isOwner = b->owner == c->o.uuid;
 
+	// take money
 	if (i == -3)
 	{
 		if (isOwner)
-		{
-			c->inventory.money += b->inventory.money;
-			b->inventory.money = 0;
-		}
+			building_withdraw(b, &c->inventory);
 		return 1;
 	}
 
+	// take item
 	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
-	universe_t* u = g->w->universe;
 	if (!isOwner || t == sfMouseRight)
 	{
 		component_t* k = &tr->res[0];
-		char is_item = k->is_item;
-		size_t id = k->id;
-
-		float price = 0;
-		if (!isOwner)
-			price = is_item ? u->items[id].price : u->materials[id].price;
-
-		if (inventory_get(&b->inventory, is_item, id) >= 1.0)
-		{
-			inventory_pay(&b->inventory, price,             &c->inventory);
-			inventory_mov(&b->inventory, is_item, id, -1.0, &c->inventory);
-			building_update(b);
-		}
+		building_take(b, k->is_item, k->id, 1.0f, &c->inventory, isOwner);
 	}
 	else if (t == sfMouseLeft)
 	{

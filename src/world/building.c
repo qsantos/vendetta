@@ -113,3 +113,36 @@ void building_update(building_t* b)
 	}
 	b->open = open;
 }
+
+void building_take(building_t* b, char is_item, int id, float amount, inventory_t* inv, char isOwner)
+{
+	universe_t* u = b->w->universe;
+
+	amount = fmin(amount, inventory_get(&b->inventory, is_item, id));
+
+	float price = 0;
+	if (!isOwner)
+	{
+		price = is_item ? u->items[id].price : u->materials[id].price;
+		price *= amount;
+	}
+	if (price > inv->money)
+		return;
+
+	inventory_pay(&b->inventory, price,                inv);
+	inventory_mov(&b->inventory, is_item, id, -amount, inv);
+	building_update(b);
+}
+
+void building_put(building_t* b, char is_item, int id, float amount, inventory_t* inv, char isOwner)
+{
+	if (!isOwner)
+		return;
+
+	inventory_mov(&b->inventory, is_item, id, amount, inv);
+}
+
+void building_withdraw(building_t* b, inventory_t* inv)
+{
+	inventory_pay(inv, b->inventory.money, &b->inventory);
+}
