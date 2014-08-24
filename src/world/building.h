@@ -60,4 +60,6 @@ void building_take    (building_t* b, char is_item, int id, float amount, invent
 void building_put     (building_t* b, char is_item, int id, float amount, inventory_t* inv, char isOwner);
 void building_withdraw(building_t* b,                                     inventory_t* inv);
 
+float building_onSale(building_t* b, char is_item, int id);
+
 #endif

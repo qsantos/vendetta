@@ -146,3 +146,11 @@ void building_withdraw(building_t* b, inventory_t* inv)
 {
 	inventory_pay(inv, b->inventory.money, &b->inventory);
 }
+
+float building_onSale(building_t* b, char is_item, int id)
+{
+	if (kindOf_building_canMake(b->t, is_item, id) == NULL)
+		return 0;
+
+	return inventory_get(&b->inventory, is_item, id);
+}

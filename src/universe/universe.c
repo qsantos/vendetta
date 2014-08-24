@@ -622,7 +622,7 @@ kindOf_building_t* universe_buildFor(universe_t* u, char is_item, int id)
 	for (size_t i = 0; i < u->n_buildings; i++)
 	{
 		kindOf_building_t* b = &u->buildings[i];
-		transform_t* tr = kindOf_building_available(b, is_item, id);
+		transform_t* tr = kindOf_building_canMake(b, is_item, id);
 		if (tr != NULL)
 			return b;
 	}

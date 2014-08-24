@@ -81,4 +81,6 @@ void        world_delBuilding (world_t* w, building_t* b);
 character_t* world_findEnnemyCharacter(world_t* w, character_t* c);
 building_t*  world_findEnnemyBuilding (world_t* w, character_t* c);
 
+building_t* world_findSale(world_t* w, character_t*c, char is_item, int id);
+
 #endif

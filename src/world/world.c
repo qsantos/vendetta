@@ -387,3 +387,27 @@ building_t* world_findEnnemyBuilding(world_t* w, character_t* c)
 	}
 	return ret;
 }
+
+building_t* world_findSale(world_t* w, character_t*c, char is_item, int id)
+{
+	pool_t* p = &w->objects;
+	building_t* ret = NULL;
+	float min_d = -1;
+	for (size_t i = 0; i < p->n_objects; i++)
+	{
+		building_t* b = building_get(p, i);
+		if (b == NULL)
+			continue;
+
+		if (building_onSale(b, is_item, id) <= 0)
+			continue;
+
+		float d = object_distance(&c->o, b->o.x, b->o.y);
+		if (min_d < 0 || d < min_d)
+		{
+			ret = b;
+			min_d = d;
+		}
+	}
+	return ret;
+}

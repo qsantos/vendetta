@@ -121,7 +121,7 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 
 	// if the current building cannot obtain the component, build one which can
 	building_t* b = building_get(&c->w->objects, c->hasBuilding);
-	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, is_item, id);
+	transform_t* tr = b == NULL ? NULL : kindOf_building_canMake(b->t, is_item, id);
 	if (tr == NULL)
 	{
 		if (keep)
@@ -140,7 +140,7 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 		transform_init(&total);
 
 		// first, gather the non-base materials for the component
-		tr = kindOf_building_available(b, is_item, id);
+		tr = kindOf_building_canMake(b, is_item, id);
 		for (int i = 0; i < tr->n_req; i++)
 		{
 			component_t* p = &tr->req[i];

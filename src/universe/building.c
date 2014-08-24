@@ -84,7 +84,7 @@ int kindOf_building_newItem(kindOf_building_t* b)
 	return b->n_items++;
 }
 
-transform_t* kindOf_building_available(kindOf_building_t* b, char is_item, int id)
+transform_t* kindOf_building_canMake(kindOf_building_t* b, char is_item, int id)
 {
 	if (transform_is_res(&b->make, is_item, id) >= 0)
 		return &b->make;

@@ -60,6 +60,6 @@ void kindOf_building_button(kindOf_building_t* b, assets_t* g, const char* filen
 
 int kindOf_building_newItem(kindOf_building_t* b);
 
-transform_t* kindOf_building_available(kindOf_building_t* b, char is_item, int id);
+transform_t* kindOf_building_canMake(kindOf_building_t* b, char is_item, int id);
 
 #endif
