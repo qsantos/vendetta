@@ -103,17 +103,16 @@ void ai_load(ai_t* ai, const char* filename)
 	fclose(f);
 }
 
-char ai_get(character_t* c, component_t* p, float amount, char keep)
+char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 {
 	universe_t* u = c->w->universe;
 
-	amount *= p->amount;
-	amount -= (p->is_item ? c->inventory.items : c->inventory.materials)[p->id];
+	amount -= (is_item ? c->inventory.items : c->inventory.materials)[id];
 	if (amount <= 0)
 		return 0;
 
 	// gather if possible
-	kindOf_mine_t* m = universe_mineFor(u, p->is_item, p->id);
+	kindOf_mine_t* m = universe_mineFor(u, is_item, id);
 	if (m != NULL)
 	{
 		character_goMine(c, m);
@@ -122,16 +121,16 @@ char ai_get(character_t* c, component_t* p, float amount, char keep)
 
 	// if the current building cannot obtain the component, build one which can
 	building_t* b = building_get(&c->w->objects, c->hasBuilding);
-	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, p->is_item, p->id);
+	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, is_item, id);
 	if (tr == NULL)
 	{
 		if (keep)
 			return 1;
 
-		kindOf_building_t* b = universe_buildFor(u, p->is_item, p->id);
+		kindOf_building_t* b = universe_buildFor(u, is_item, id);
 		if (b == NULL)
 		{
-			const char* name = p->is_item ? u->items[p->id].name : u->materials[p->id].name;
+			const char* name = is_item ? u->items[id].name : u->materials[id].name;
 			fprintf(stderr, "%s: I do not know how to make %s\n", c->ai->name, name);
 			return 1;
 		}
@@ -141,7 +140,7 @@ char ai_get(character_t* c, component_t* p, float amount, char keep)
 		transform_init(&total);
 
 		// first, gather the non-base materials for the component
-		tr = kindOf_building_available(b, p->is_item, p->id);
+		tr = kindOf_building_available(b, is_item, id);
 		for (int i = 0; i < tr->n_req; i++)
 		{
 			component_t* p = &tr->req[i];
@@ -174,7 +173,7 @@ char ai_get(character_t* c, component_t* p, float amount, char keep)
 	}
 
 	// enqueue item
-	if (p->is_item && b->work_n == 0)
+	if (is_item && b->work_n == 0)
 	{
 		int nth = tr - b->t->items;
 		building_work_enqueue(b, nth);
@@ -187,8 +186,11 @@ char ai_get(character_t* c, component_t* p, float amount, char keep)
 char ai_getreq(character_t* c, transform_t* tr, float amount, char keep)
 {
 	for (int i = 0; i < tr->n_req; i++)
-		if (ai_get(c, &tr->req[i], amount, keep))
+	{
+		component_t* p = &tr->req[i];
+		if (ai_get(c, p->is_item, p->id, p->amount*amount, keep))
 			return 1;
+	}
 	return 0;
 }
 
@@ -221,15 +223,14 @@ char ai_do(ai_t* ai, character_t* c)
 		return 1;
 	}
 	// ensures the AI always has apples to eat
-	static component_t apples = {.id=1, .amount=1};
-	if (ai_get(c, &apples, 5, 1))
+	if (ai_get(c, MATERIAL, 1, 5.0, 1))
 		return 1;
 
 	// get preliminary components
 	while (c->ai_data.step < tr->n_req)
 	{
 		component_t* p = &tr->req[c->ai_data.step];
-		if (ai_get(c, p, 1, 0))
+		if (ai_get(c, p->is_item, p->id, p->amount, 0))
 			return 1;
 		else
 			c->ai_data.step++;
@@ -279,8 +280,11 @@ char ai_do(ai_t* ai, character_t* c)
 		if (c->ai_data.collect)
 		{
 			for (int i = 0; i < tr->n_req; i++)
-				if (ai_get(c, &tr->req[i], 5, 1))
+			{
+				component_t* p = &tr->req[i];
+				if (ai_get(c, p->is_item, p->id, p->amount*5, 1))
 					return 1;
+			}
 			c->ai_data.collect = 0;
 		}
 	}
