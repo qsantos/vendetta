@@ -65,8 +65,7 @@ char isdir(const char* path);
 		char __isdir = isdir(path); \
 		if (__isdir) \
 			path[strlen(p)+strlen(__ent->d_name)] = '/'; \
-		if(strcmp(__ent->d_name, ".")  != 0 && \
-		   strcmp(__ent->d_name, "..") != 0) \
+		if (__ent->d_name[0] != '.') \
 		{ DO; } \
 	} \
 	closedir(__dir); \
