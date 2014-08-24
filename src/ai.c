@@ -250,24 +250,42 @@ char ai_do(ai_t* ai, character_t* c)
 		return 1;
 	}
 
-	// work
-	if (b->work_n == 0)
+	// make items as a job
+	int n = b->t->n_items;
+	if (n > 0)
 	{
-		int n = b->t->n_items;
-		if (n > 0)
+		if (b->work_n == 0)
 		{
 			building_work_enqueue(b, rand() % n);
 			c->ai_data.collect = 1;
 		}
+		if (c->ai_data.collect)
+		{
+			transform_t* tr = &b->t->items[b->work_list[0]];
+			if (ai_getreq(c, tr, 1, 1))
+				return 1;
+			else
+				c->ai_data.collect = 0;
+		}
 	}
-	if (c->ai_data.collect)
+
+	// transform materials as a job
+	tr = &b->t->make;
+	if (tr != NULL)
 	{
-		transform_t* tr = &b->t->items[b->work_list[0]];
-		if (ai_getreq(c, tr, 1, 1))
-			return 1;
-		else
+		if (!c->ai_data.collect)
+			c->ai_data.collect = transform_ratio(tr, &c->inventory, -1) <= 0;
+
+		if (c->ai_data.collect)
+		{
+			for (int i = 0; i < tr->n_req; i++)
+				if (ai_get(c, &tr->req[i], 5, 1))
+					return 1;
 			c->ai_data.collect = 0;
+		}
 	}
+
+	// go home
 	if (c->inBuilding != c->hasBuilding)
 	{
 		c->go_o = b->o.uuid;
