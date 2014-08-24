@@ -103,125 +103,92 @@ void ai_load(ai_t* ai, const char* filename)
 	fclose(f);
 }
 
-char ai_gather(character_t* c, int id, float amount)
+char ai_get(character_t* c, component_t* p, float amount)
 {
-	amount -= c->inventory.materials[id];
+	universe_t* u = c->w->universe;
+
+	amount *= p->amount;
+	amount -= (p->is_item ? c->inventory.items : c->inventory.materials)[p->id];
 	if (amount < 0)
 		return 0;
 
-	universe_t* u = c->w->universe;
+	// gather if possible
 	for (size_t i = 0; i < u->n_mines; i++)
 	{
 		kindOf_mine_t* t = &u->mines[i];
-		if (transform_is_res(&t->harvest, id, 0) >= 0)
+		if (transform_is_res(&t->harvest, p->id, p->is_item) >= 0)
 		{
 			character_goMine(c, t);
 			return 1;
 		}
 	}
 
-	transform_t* tr = NULL;
-	for (size_t i = 0; i < u->n_buildings; i++)
-	{
-		kindOf_building_t* t = &u->buildings[i];
-		tr = kindOf_building_available(t, id, 0);
-		if (tr == NULL)
-			continue;
-
-		transform_t tmp;
-		transform_copy(&tmp, &t->build);
-		transform_add(&tmp, tr, amount);
-		char isreq = ai_getreq(c, &tmp, 1);
-		transform_exit(&tmp);
-
-		if (isreq)
-			return 1;
-
-		if (ai_build(c, i))
-			return 1;
-
-		break;
-	}
-
-	if (tr == NULL)
-		return 1;
-
-	if (c->inBuilding != c->hasBuilding)
-	{
-		building_t* b = building_get(&c->w->objects, c->hasBuilding);
-		if (b != NULL)
-			c->go_o = b->o.uuid;
-		return 1;
-	}
-
-	return 1;
-}
-
-char ai_make(character_t* c, int id, float amount)
-{
-	amount -= c->inventory.items[id];
-	if (amount < 0)
-		return 0;
-
-	transform_t* tr = NULL;
-	universe_t* u = c->w->universe;
-	for (size_t i = 0; i < u->n_buildings; i++)
-	{
-		kindOf_building_t* t = &u->buildings[i];
-		tr = kindOf_building_available(t, id, 1);
-		if (tr == NULL)
-			continue;
-
-		building_t* b = building_get(&c->w->objects, c->hasBuilding);
-
-		transform_t tmp;
-		transform_init(&tmp);
-		transform_add(&tmp, tr, amount);
-		if (b == NULL || b->t != t)
-			transform_add(&tmp, &t->build, 1);
-		char isreq = ai_getreq(c, &tmp, 1);
-		transform_exit(&tmp);
-
-		if (isreq)
-			return 1;
-
-		if (ai_build(c, i))
-			return 1;
-
-		break;
-	}
-
-	if (tr == NULL)
-		return 1;
-
-	if (c->inBuilding != c->hasBuilding)
-	{
-		building_t* b = building_get(&c->w->objects, c->hasBuilding);
-		if (b != NULL)
-			c->go_o = b->o.uuid;
-		return 1;
-	}
-
+	// if the current building cannot obtain the component, build one which can
 	building_t* b = building_get(&c->w->objects, c->hasBuilding);
-	if (b == NULL)
-		return 1;
+	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, p->id, p->is_item);
+	if (tr == NULL)
+	{
+		for (size_t i = 0; i < u->n_buildings; i++)
+		{
+			// check that the building can make the component
+			kindOf_building_t* b = &u->buildings[i];
+			tr = kindOf_building_available(b, p->id, p->is_item);
+			if (tr == NULL)
+				continue;
 
-	if (b->work_n != 0)
-		return 1;
+			// materials to be gather before building
+			transform_t total;
+			transform_init(&total);
 
-	int nth = (tr - b->t->items);
-	building_work_enqueue(b, nth);
+			// first, gather the materials for the component
+			transform_add(&total, tr, amount);
+
+			// then, gather the materials for the building
+			transform_add(&total, &b->build, 1);
+
+			// do gather
+			char isreq = ai_getreq(c, &total, 1);
+			transform_exit(&total);
+			if (isreq)
+				return 1;
+
+			if (ai_build(c, i))
+				return 1;
+
+			break;
+		}
+
+		if (tr == NULL)
+		{
+			const char* name = p->is_item ? u->items[p->id].name : u->materials[p->id].name;
+			fprintf(stderr, "%s: I do not know how to make %s\n", c->ai->name, name);
+			return 1;
+		}
+	}
+
+	// go in the building
+	if (c->inBuilding != c->hasBuilding)
+	{
+		c->go_o = b->o.uuid;
+		return 1;
+	}
+
+	// enqueue item
+	if (p->is_item && b->work_n == 0)
+	{
+		int nth = tr - b->t->items;
+		building_work_enqueue(b, nth);
+	}
+
+	// work
 	return 1;
 }
 
 char ai_getreq(character_t* c, transform_t* tr, float amount)
 {
 	for (int i = 0; i < tr->n_req; i++)
-	{
-		component_t* p = &tr->req[i];
-		if ((p->is_item ? ai_make : ai_gather)(c, p->id, p->amount * amount))
+		if (ai_get(c, &tr->req[i], amount))
 			return 1;
-	}
 	return 0;
 }
 
@@ -245,6 +212,7 @@ char ai_do(ai_t* ai, character_t* c)
 {
 	transform_t* tr = &ai->inventory;
 
+	// eat apples
 	float max = character_maxOfStatus(c, ST_STAMINA);
 	float threshold = max * 0.5;
 	if (c->statuses[ST_STAMINA] < threshold)
@@ -252,8 +220,9 @@ char ai_do(ai_t* ai, character_t* c)
 		while (c->statuses[ST_STAMINA] < max && character_eat(c, 1));
 		return 1;
 	}
-
-	if (ai_gather(c, 1, 5))
+	// ensures the AI always has apples to eat
+	static component_t apples = {.id=1, .amount=1};
+	if (ai_get(c, &apples, 5))
 		return 1;
 
 	if (ai_getreq(c, tr, 1))

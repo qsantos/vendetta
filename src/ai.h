@@ -39,8 +39,7 @@ void ai_push_item(ai_t* ai, int id);
 
 void ai_load(ai_t* ai, const char* filename);
 
-char ai_gather(character_t* c, int id, float amount);
-char ai_make  (character_t* c, int id, float amount);
+char ai_get   (character_t* c, component_t* p,  float amount);
 char ai_getreq(character_t* c, transform_t* tr, float amount);
 char ai_build (character_t* c, int id);
 char ai_do    (ai_t* ai, character_t* c);
