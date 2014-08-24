@@ -605,3 +605,26 @@ void universe_init_buildings(universe_t* u, assets_t* a, cfg_group_t* gr)
 		}
 	}
 }
+
+kindOf_mine_t* universe_mineFor(universe_t* u, int id, char is_item)
+{
+	for (size_t i = 0; i < u->n_mines; i++)
+	{
+		kindOf_mine_t* t = &u->mines[i];
+		if (transform_is_res(&t->harvest, id, is_item) >= 0)
+			return t;
+	}
+	return NULL;
+}
+
+kindOf_building_t* universe_buildFor(universe_t* u, int id, char is_item)
+{
+	for (size_t i = 0; i < u->n_buildings; i++)
+	{
+		kindOf_building_t* b = &u->buildings[i];
+		transform_t* tr = kindOf_building_available(b, id, is_item);
+		if (tr != NULL)
+			return b;
+	}
+	return NULL;
+}

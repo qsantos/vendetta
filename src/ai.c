@@ -113,14 +113,11 @@ char ai_get(character_t* c, component_t* p, float amount)
 		return 0;
 
 	// gather if possible
-	for (size_t i = 0; i < u->n_mines; i++)
+	kindOf_mine_t* m = universe_mineFor(u, p->id, p->is_item);
+	if (m != NULL)
 	{
-		kindOf_mine_t* t = &u->mines[i];
-		if (transform_is_res(&t->harvest, p->id, p->is_item) >= 0)
-		{
-			character_goMine(c, t);
-			return 1;
-		}
+		character_goMine(c, m);
+		return 1;
 	}
 
 	// if the current building cannot obtain the component, build one which can
@@ -128,42 +125,34 @@ char ai_get(character_t* c, component_t* p, float amount)
 	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, p->id, p->is_item);
 	if (tr == NULL)
 	{
-		for (size_t i = 0; i < u->n_buildings; i++)
-		{
-			// check that the building can make the component
-			kindOf_building_t* b = &u->buildings[i];
-			tr = kindOf_building_available(b, p->id, p->is_item);
-			if (tr == NULL)
-				continue;
-
-			// materials to be gather before building
-			transform_t total;
-			transform_init(&total);
-
-			// first, gather the materials for the component
-			transform_add(&total, tr, amount);
-
-			// then, gather the materials for the building
-			transform_add(&total, &b->build, 1);
-
-			// do gather
-			char isreq = ai_getreq(c, &total, 1);
-			transform_exit(&total);
-			if (isreq)
-				return 1;
-
-			if (ai_build(c, i))
-				return 1;
-
-			break;
-		}
-
-		if (tr == NULL)
+		kindOf_building_t* b = universe_buildFor(u, p->id, p->is_item);
+		if (b == NULL)
 		{
 			const char* name = p->is_item ? u->items[p->id].name : u->materials[p->id].name;
 			fprintf(stderr, "%s: I do not know how to make %s\n", c->ai->name, name);
 			return 1;
 		}
+
+		// materials to be gather before building
+		transform_t total;
+		transform_init(&total);
+
+		// first, gather the materials for the component
+		tr = kindOf_building_available(b, p->id, p->is_item);
+		transform_add(&total, tr, amount);
+
+		// then, gather the materials for the building
+		transform_add(&total, &b->build, 1);
+
+		// do gather
+		char isreq = ai_getreq(c, &total, 1);
+		transform_exit(&total);
+		if (isreq)
+			return 1;
+
+		// build
+		character_buildAuto(c, b);
+		return 1;
 	}
 
 	// go in the building
