@@ -137,9 +137,14 @@ char ai_get(character_t* c, component_t* p, float amount)
 		transform_t total;
 		transform_init(&total);
 
-		// first, gather the materials for the component
+		// first, gather the non-base materials for the component
 		tr = kindOf_building_available(b, p->id, p->is_item);
-		transform_add(&total, tr, amount);
+		for (int i = 0; i < tr->n_req; i++)
+		{
+			component_t* p = &tr->req[i];
+			if (universe_mineFor(u, p->id, p->is_item) == NULL)
+				transform_req(&total, p->id, p->amount*amount, p->is_item);
+		}
 
 		// then, gather the materials for the building
 		transform_add(&total, &b->build, 1);
@@ -154,6 +159,9 @@ char ai_get(character_t* c, component_t* p, float amount)
 		character_buildAuto(c, b);
 		return 1;
 	}
+
+	if (ai_getreq(c, tr, amount))
+		return 1;
 
 	// go in the building
 	if (c->inBuilding != c->hasBuilding)
