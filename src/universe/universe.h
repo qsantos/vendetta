@@ -95,7 +95,7 @@ void universe_init_iskills    (universe_t* u, assets_t* a, cfg_group_t* gr);
 void universe_init_items      (universe_t* u, assets_t* a, cfg_group_t* gr);
 void universe_init_buildings  (universe_t* u, assets_t* a, cfg_group_t* gr);
 
-kindOf_mine_t*     universe_mineFor (universe_t* u, int id, char is_item);
-kindOf_building_t* universe_buildFor(universe_t* u, int id, char is_item);
+kindOf_mine_t*     universe_mineFor (universe_t* u, char is_item, int id);
+kindOf_building_t* universe_buildFor(universe_t* u, char is_item, int id);
 
 #endif

@@ -84,13 +84,13 @@ int kindOf_building_newItem(kindOf_building_t* b)
 	return b->n_items++;
 }
 
-transform_t* kindOf_building_available(kindOf_building_t* b, int id, int is_item)
+transform_t* kindOf_building_available(kindOf_building_t* b, char is_item, int id)
 {
-	if (transform_is_res(&b->make, id, is_item) >= 0)
+	if (transform_is_res(&b->make, is_item, id) >= 0)
 		return &b->make;
 
 	for (size_t i = 0; i < b->n_items; i++)
-		if (transform_is_res(&b->items[i], id, is_item) >= 0)
+		if (transform_is_res(&b->items[i], is_item, id) >= 0)
 			return &b->items[i];
 
 	return NULL;

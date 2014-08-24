@@ -276,7 +276,7 @@ void universe_init_materials(universe_t* u, assets_t* a, cfg_group_t* gr)
 
 		kindOf_material_init(m);
 		transform_init(t);
-		transform_res(t, i, 1, 0);
+		transform_res(t, MATERIAL, i, 1.0);
 		t->rate = cfg_getFloat(s, "VitesseExtraction");
 
 		int   id = cfg_getInt(s, "TypeMatierePremiere") - 1;
@@ -288,7 +288,7 @@ void universe_init_materials(universe_t* u, assets_t* a, cfg_group_t* gr)
 			exit(1);
 		}
 		if (id >= 0)
-			transform_req(t, id, am, 0);
+			transform_req(t, MATERIAL, id, am);
 
 		m->name                 = cfg_getString(s, "Nom");
 		m->edible               = cfg_getInt   (s, "Mangeable");
@@ -414,7 +414,7 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 			it->reloadDelay = delay;
 
 		transform_init(t);
-		transform_res(t, i, 1, 1);
+		transform_res(t, ITEM, i, 1.0);
 		t->rate = 100. / cfg_getInt(s, "DureeFabrication");
 
 		cfg_array_t* cost = cfg_getArray(s, "PrixRessources");
@@ -430,7 +430,7 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 					(unsigned) i, gr->name, s->name);
 				exit(1);
 			}
-			transform_req(t, i, atof(v), 0);
+			transform_req(t, MATERIAL, i, atof(v));
 		}
 
 		it->price = cfg_getFloat(s, "PrixVente");
@@ -510,7 +510,7 @@ void universe_init_items(universe_t* u, assets_t* a, cfg_group_t* gr)
 		int   id = cfg_getInt(s, "PerteRessourceIndice") - 1;
 		float am = cfg_getFloat(s, "PerteRessourceQuantite");
 		if (id >= 0)
-			transform_req(&it->cost, id, am, 0);
+			transform_req(&it->cost, MATERIAL, id, am);
 
 		char* icon_file  = cfg_getString(s, "Image");
 		int   icon_index = cfg_getInt   (s, "SpriteIndex") - 1;
@@ -582,7 +582,7 @@ void universe_init_buildings(universe_t* u, assets_t* a, cfg_group_t* gr)
 					(unsigned) i, gr->name, s->name);
 				exit(1);
 			}
-			transform_req(&b->build, i, atof(v), 0);
+			transform_req(&b->build, MATERIAL, i, atof(v));
 		}
 
 		cfg_array_t* items = cfg_getArray(s, "ObjetsFabriques");
@@ -606,23 +606,23 @@ void universe_init_buildings(universe_t* u, assets_t* a, cfg_group_t* gr)
 	}
 }
 
-kindOf_mine_t* universe_mineFor(universe_t* u, int id, char is_item)
+kindOf_mine_t* universe_mineFor(universe_t* u, char is_item, int id)
 {
 	for (size_t i = 0; i < u->n_mines; i++)
 	{
 		kindOf_mine_t* t = &u->mines[i];
-		if (transform_is_res(&t->harvest, id, is_item) >= 0)
+		if (transform_is_res(&t->harvest, is_item, id) >= 0)
 			return t;
 	}
 	return NULL;
 }
 
-kindOf_building_t* universe_buildFor(universe_t* u, int id, char is_item)
+kindOf_building_t* universe_buildFor(universe_t* u, char is_item, int id)
 {
 	for (size_t i = 0; i < u->n_buildings; i++)
 	{
 		kindOf_building_t* b = &u->buildings[i];
-		transform_t* tr = kindOf_building_available(b, id, is_item);
+		transform_t* tr = kindOf_building_available(b, is_item, id);
 		if (tr != NULL)
 			return b;
 	}

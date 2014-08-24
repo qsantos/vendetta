@@ -87,11 +87,11 @@ void ai_load(ai_t* ai, const char* filename)
 
 		if (strcmp(key, "Ressource") == 0)
 		{
-			transform_req(&ai->inventory, id - 1, val, 0);
+			transform_req(&ai->inventory, MATERIAL, id - 1, val);
 		}
 		else if (strcmp(key, "Objet") == 0)
 		{
-			transform_req(&ai->inventory, id - 1, val, 1);
+			transform_req(&ai->inventory, ITEM, id - 1, val);
 		}
 		else if (strcmp(key, "Batiment") == 0)
 		{
@@ -113,7 +113,7 @@ char ai_get(character_t* c, component_t* p, float amount, char keep)
 		return 0;
 
 	// gather if possible
-	kindOf_mine_t* m = universe_mineFor(u, p->id, p->is_item);
+	kindOf_mine_t* m = universe_mineFor(u, p->is_item, p->id);
 	if (m != NULL)
 	{
 		character_goMine(c, m);
@@ -122,13 +122,13 @@ char ai_get(character_t* c, component_t* p, float amount, char keep)
 
 	// if the current building cannot obtain the component, build one which can
 	building_t* b = building_get(&c->w->objects, c->hasBuilding);
-	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, p->id, p->is_item);
+	transform_t* tr = b == NULL ? NULL : kindOf_building_available(b->t, p->is_item, p->id);
 	if (tr == NULL)
 	{
 		if (keep)
 			return 1;
 
-		kindOf_building_t* b = universe_buildFor(u, p->id, p->is_item);
+		kindOf_building_t* b = universe_buildFor(u, p->is_item, p->id);
 		if (b == NULL)
 		{
 			const char* name = p->is_item ? u->items[p->id].name : u->materials[p->id].name;
@@ -141,12 +141,12 @@ char ai_get(character_t* c, component_t* p, float amount, char keep)
 		transform_init(&total);
 
 		// first, gather the non-base materials for the component
-		tr = kindOf_building_available(b, p->id, p->is_item);
+		tr = kindOf_building_available(b, p->is_item, p->id);
 		for (int i = 0; i < tr->n_req; i++)
 		{
 			component_t* p = &tr->req[i];
-			if (universe_mineFor(u, p->id, p->is_item) == NULL)
-				transform_req(&total, p->id, p->amount*amount, p->is_item);
+			if (universe_mineFor(u, p->is_item, p->id) == NULL)
+				transform_req(&total, p->is_item, p->id, p->amount*amount);
 		}
 
 		// then, gather the materials for the building
