@@ -141,8 +141,7 @@ char swmaterials_catch(swmaterials_t* w, game_t* g, int t)
 		building_t* b = building_get(&c->w->objects, c->inBuilding);
 		if (b == NULL)
 			return 1;
-		b->inventory.materials[i]++;
-		c->inventory.materials[i]--;
+		inventory_mov(&b->inventory, MATERIAL, i, 1, &c->inventory);
 		building_update(b);
 		return 1;
 	}

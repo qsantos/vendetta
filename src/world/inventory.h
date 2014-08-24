@@ -30,7 +30,12 @@ struct inventory
 
 #include <sys/types.h>
 
-void inventory_init(inventory_t* i, size_t n_materials, size_t n_items);
-void inventory_exit(inventory_t* i);
+void inventory_init(inventory_t* inv, size_t n_materials, size_t n_items);
+void inventory_exit(inventory_t* inv);
+
+float inventory_get(inventory_t* inv, char is_item, int id);
+void  inventory_add(inventory_t* inv, char is_item, int id, float amount);
+void  inventory_mov(inventory_t* inv, char is_item, int id, float amount, inventory_t* from);
+void  inventory_pay(inventory_t* inv,                       float amount, inventory_t* from);
 
 #endif

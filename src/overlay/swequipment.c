@@ -151,7 +151,7 @@ char swequipment_catch(swequipment_t* w, game_t* g, int t)
 	if (j >= 0)
 	{
 		g->player->equipment[i] = -1;
-		g->player->inventory.items[j]++;
+		inventory_add(&g->player->inventory, ITEM, j, 1);
 	}
 	return 1;
 }

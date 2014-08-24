@@ -296,8 +296,7 @@ void character_workAt(character_t* c, object_t* o, float duration)
 			float cur = c->inventory.materials[id];
 			if (cur > max)
 			{
-				b->inventory.materials[id] += cur - max;
-				c->inventory.materials[id] = max;
+				inventory_mov(&b->inventory, MATERIAL, id, cur-max, &c->inventory);
 				building_update(b);
 			}
 		}

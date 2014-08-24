@@ -107,7 +107,7 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 {
 	universe_t* u = c->w->universe;
 
-	amount -= (is_item ? c->inventory.items : c->inventory.materials)[id];
+	amount -= inventory_get(&c->inventory, is_item, id);
 	if (amount <= 0)
 		return 0;
 

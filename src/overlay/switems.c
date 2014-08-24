@@ -142,8 +142,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 		building_t* b = building_get(&c->w->objects, c->inBuilding);
 		if (b == NULL)
 			return 1;
-		b->inventory.items[i]++;
-		c->inventory.items[i]--;
+		inventory_mov(&b->inventory, ITEM, i, 1, &c->inventory);
 		building_update(b);
 		return 1;
 	}
@@ -175,7 +174,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 					else
 					{
 						c->equipment[j] = i;
-						c->inventory.items[i]--;
+						inventory_add(&c->inventory, ITEM, i, -1);
 						break;
 					}
 				}
@@ -204,7 +203,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 		if (a >= 0 && b >= 0)
 		{
 			c->equipment[a] = i;
-			c->inventory.items[i]--;
+			inventory_add(&c->inventory, ITEM, i, -1);
 		}
 	}
 	else
@@ -214,7 +213,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 		if (g->u->slots[j].category == cat && c->equipment[j] < 0)
 		{
 			c->equipment[j] = i;
-			c->inventory.items[i]--;
+			inventory_add(&c->inventory, ITEM, i, -1);
 			break;
 		}
 

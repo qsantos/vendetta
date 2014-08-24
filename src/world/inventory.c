@@ -23,18 +23,43 @@
 
 #include "../mem.h"
 
-void inventory_init(inventory_t* i, size_t n_materials, size_t n_items)
+void inventory_init(inventory_t* inv, size_t n_materials, size_t n_items)
 {
-	i->money     = 0;
-	i->materials = CALLOC(float, n_materials);
-	i->items     = CALLOC(float, n_items);
+	inv->money     = 0;
+	inv->materials = CALLOC(float, n_materials);
+	inv->items     = CALLOC(float, n_items);
 
-	memset(i->materials, 0, sizeof(float)*n_materials);
-	memset(i->items,     0, sizeof(float)*n_items);
+	memset(inv->materials, 0, sizeof(float)*n_materials);
+	memset(inv->items,     0, sizeof(float)*n_items);
 }
 
-void inventory_exit(inventory_t* i)
+void inventory_exit(inventory_t* inv)
 {
-	free(i->items);
-	free(i->materials);
+	free(inv->items);
+	free(inv->materials);
+}
+
+float inventory_get(inventory_t* inv, char is_item, int id)
+{
+	return (is_item ? inv->items : inv->materials)[id];
+}
+
+void inventory_add(inventory_t* inv, char is_item, int id, float amount)
+{
+	if (is_item)
+		inv->items[id] += amount;
+	else
+		inv->materials[id] += amount;
+}
+
+void inventory_mov(inventory_t* inv, char is_item, int id, float amount, inventory_t* from)
+{
+	inventory_add(inv,  is_item, id,  amount);
+	inventory_add(from, is_item, id, -amount);
+}
+
+void inventory_pay(inventory_t* inv, float amount, inventory_t* from)
+{
+	inv ->money += amount;
+	from->money -= amount;
 }

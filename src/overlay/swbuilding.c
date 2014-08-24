@@ -287,30 +287,18 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 	if (!isOwner || t == sfMouseRight)
 	{
 		component_t* k = &tr->res[0];
+		char is_item = k->is_item;
 		size_t id = k->id;
-		if (k->is_item)
+
+		float price = 0;
+		if (!isOwner)
+			price = is_item ? u->items[id].price : u->materials[id].price;
+
+		if (inventory_get(&b->inventory, is_item, id) >= 1.0)
 		{
-			if (b->inventory.items[id] >= 1.)
-			{
-				float price = isOwner ? 0 : u->items[id].price;
-				c->inventory.money -= price;
-				b->inventory.money += price;
-				b->inventory.items[id]--;
-				c->inventory.items[id]++;
-				building_update(b);
-			}
-		}
-		else
-		{
-			if (b->inventory.materials[id] >= 1.)
-			{
-				float price = isOwner ? 0 : u->materials[id].price;
-				c->inventory.money -= price;
-				b->inventory.money += price;
-				b->inventory.materials[id]--;
-				c->inventory.materials[id]++;
-				building_update(b);
-			}
+			inventory_pay(&b->inventory, price,             &c->inventory);
+			inventory_mov(&b->inventory, is_item, id, -1.0, &c->inventory);
+			building_update(b);
 		}
 	}
 	else if (t == sfMouseLeft)
