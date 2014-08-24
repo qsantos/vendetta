@@ -19,7 +19,8 @@
 #ifndef U_AI_H
 #define U_AI_H
 
-typedef struct ai ai_t;
+typedef struct ai      ai_t;
+typedef struct ai_data ai_data_t;
 
 #include "universe/transform.h"
 
@@ -28,6 +29,11 @@ struct ai
 	char*       name;
 	transform_t inventory;
 	int         building;
+};
+
+struct ai_data
+{
+	int step;
 };
 
 #include "world/character.h"

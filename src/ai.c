@@ -222,8 +222,14 @@ char ai_do(ai_t* ai, character_t* c)
 	if (ai_get(c, &apples, 5))
 		return 1;
 
-	if (ai_getreq(c, tr, 1))
-		return 1;
+	while (c->ai_data.step < tr->n_req)
+	{
+		component_t* p = &tr->req[c->ai_data.step];
+		if (ai_get(c, p, 1))
+			return 1;
+		else
+			c->ai_data.step++;
+	}
 
 	if (ai->building >= 0 && ai_build(c, ai->building))
 		return 1;

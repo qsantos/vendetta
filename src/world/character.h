@@ -46,7 +46,8 @@ struct character
 	float       attackDelay;
 	char        inWater;
 
-	ai_t* ai;
+	ai_t*     ai;
+	ai_data_t ai_data;
 
 	inventory_t inventory;
 	uuid_t hasBuilding;

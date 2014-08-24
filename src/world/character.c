@@ -45,6 +45,7 @@ void character_init(character_t* c, world_t* w, kindOf_character_t* t)
 	c->attack = 0;
 
 	c->ai = NULL;
+	memset(&c->ai_data, 0, sizeof(ai_data_t));
 
 	universe_t* u = w->universe;
 
