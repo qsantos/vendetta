@@ -109,7 +109,7 @@ char ai_get(character_t* c, component_t* p, float amount)
 
 	amount *= p->amount;
 	amount -= (p->is_item ? c->inventory.items : c->inventory.materials)[p->id];
-	if (amount < 0)
+	if (amount <= 0)
 		return 0;
 
 	// gather if possible
