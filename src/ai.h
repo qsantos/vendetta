@@ -34,6 +34,7 @@ struct ai
 struct ai_data
 {
 	int step;
+	int collect; // need materials for item
 };
 
 #include "world/character.h"

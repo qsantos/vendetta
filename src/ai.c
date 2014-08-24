@@ -235,16 +235,44 @@ char ai_do(ai_t* ai, character_t* c)
 			c->ai_data.step++;
 	}
 
+	// make building for job
 	if (ai->building >= 0 && ai_build(c, ai->building))
 		return 1;
-
-	if (c->inBuilding != c->hasBuilding)
+	building_t* b = building_get(&c->w->objects, c->hasBuilding);
+	if (b == NULL)
 	{
-		building_t* b = building_get(&c->w->objects, c->hasBuilding);
-		if (b != NULL)
-			c->go_o = b->o.uuid;
+		fprintf(stderr, "Where did my house go? :(\n");
+		return 0;
+	}
+	if (b->build_progress < 1 && c->inBuilding != c->hasBuilding)
+	{
+		c->go_o = b->o.uuid;
 		return 1;
 	}
 
-	return 0;
+	// work
+	if (b->work_n == 0)
+	{
+		int n = b->t->n_items;
+		if (n > 0)
+		{
+			building_work_enqueue(b, rand() % n);
+			c->ai_data.collect = 1;
+		}
+	}
+	if (c->ai_data.collect)
+	{
+		transform_t* tr = &b->t->items[b->work_list[0]];
+		if (ai_getreq(c, tr, 1, 1))
+			return 1;
+		else
+			c->ai_data.collect = 0;
+	}
+	if (c->inBuilding != c->hasBuilding)
+	{
+		c->go_o = b->o.uuid;
+		return 1;
+	}
+
+	return 1;
 }
