@@ -277,6 +277,49 @@ building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* 
 	return ret;
 }
 
+static char canBuild_aux(chunk_t* c, object_t* o);
+char world_canMine(world_t* w, float x, float y)
+{
+	object_t o = {O_BUILDING, 0, x, y, 32, 32};
+	if (!object_contains(&w->o, &o))
+		return 0;
+
+	float minx = o.x - o.w/2;
+	float maxx = minx + o.w;
+	float miny = o.y - o.h;
+	float maxy = o.y;
+	for (float x = minx; x <= maxx; x += TILE_SIZE)
+		for (float y = miny; y <= maxy; y += TILE_SIZE)
+		{
+			char l = world_getLandXY(w, x, y)/16;
+			if (l == 4 || l == 10)
+				return 0;
+		}
+
+	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y-o.h), &o)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y    ), &o)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y-o.h), &o)) return 0;
+	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y    ), &o)) return 0;
+
+	return 1;
+}
+mine_t* world_addMine(world_t* w, float x, float y, kindOf_mine_t* t)
+{
+	if (!world_canMine(w, x, y))
+		return NULL;
+
+	mine_t* m = mine_new(&w->objects, -1);
+	mine_init(m, w, t, x, y);
+
+	object_t o = m->o;
+	chunk_pushMine(world_chunkXY(w, o.x-o.w/2, o.y-o.h), m);
+	chunk_pushMine(world_chunkXY(w, o.x-o.w/2, o.y    ), m);
+	chunk_pushMine(world_chunkXY(w, o.x+o.w/2, o.y-o.h), m);
+	chunk_pushMine(world_chunkXY(w, o.x+o.w/2, o.y    ), m);
+
+	return m;
+}
+
 static char canBuild_aux(chunk_t* c, object_t* o)
 {
 	if (c == NULL)
@@ -301,8 +344,11 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 	float maxy = o.y;
 	for (float x = minx; x <= maxx; x += TILE_SIZE)
 		for (float y = miny; y <= maxy; y += TILE_SIZE)
-			if (world_getLandXY(w, x, y)/16 != 0)
+		{
+			char l = world_getLandXY(w, x, y)/16;
+			if (l != 0)
 				return 0;
+		}
 
 	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y-o.h), &o)) return 0;
 	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y    ), &o)) return 0;

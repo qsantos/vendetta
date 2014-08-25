@@ -32,7 +32,7 @@ struct mine
 	kindOf_mine_t* t;
 };
 
-void mine_init(mine_t* m, world_t* w, kindOf_mine_t* t);
+void mine_init(mine_t* m, world_t* w, kindOf_mine_t* t, float x, float y);
 void mine_exit(mine_t* m);
 
 #endif

@@ -24,6 +24,6 @@
 void world_genmap(world_t* w, unsigned int seed);
 void world_start (world_t* w);
 
-void  world_randMine(world_t* w, int type);
+void world_randMine(world_t* w, int type);
 
 #endif
