@@ -570,7 +570,11 @@ float character_attacked(character_t* c, float work)
 
 void character_goMine(character_t* c, kindOf_mine_t* t)
 {
-	mine_t* m = world_findMine(c->w, c->o.x, c->o.y, t);
+	mine_t* m = mine_get(&c->w->objects, c->go_o);
+	if (m != NULL && m->t == t)
+		return;
+
+	m = world_findMine(c->w, c->o.x, c->o.y, t);
 	if (m != NULL)
 		c->go_o = m->o.uuid;
 }
