@@ -40,6 +40,7 @@ struct overlay
 	size_t n_subwindows;
 	subwindow_t** sw;
 
+	sfVector2f mouse;
 	int selected;
 	float lastx;
 	float lasty;
@@ -64,5 +65,6 @@ void overlay_doRound(game_t* g, float duration);
 void overlay_message(game_t* g, const char* msg, float delay);
 
 sfVector2f overlay_mouse(game_t* g);
+sfVector2f   world_mouse(game_t* g);
 
 #endif
