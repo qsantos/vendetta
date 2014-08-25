@@ -37,8 +37,8 @@ void world_genmap(world_t* w, unsigned int seed)
 
 	int cw = 64;
 	int ch = 64;
-	w->chunk_cols = ceil(w->cols / cw);
-	w->chunk_rows = ceil(w->rows / ch);
+	w->chunk_cols = ceil((float) w->cols / cw);
+	w->chunk_rows = ceil((float) w->rows / ch);
 	w->n_chunks = w->chunk_cols*w->chunk_rows;
 	w->chunks = CALLOC(chunk_t, w->n_chunks);
 	for (int i = 0; i < w->chunk_rows; i++)
