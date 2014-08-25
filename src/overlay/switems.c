@@ -142,8 +142,7 @@ char switems_catch(switems_t* w, game_t* g, int t)
 		building_t* b = building_get(&c->w->objects, c->inBuilding);
 		if (b == NULL)
 			return 1;
-		inventory_mov(&b->inventory, ITEM, i, 1, &c->inventory);
-		building_update(b);
+		building_put(b, ITEM, i, 1.0, &c->inventory, b->owner == c->o.uuid);
 		return 1;
 	}
 

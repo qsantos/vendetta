@@ -140,6 +140,7 @@ void building_put(building_t* b, char is_item, int id, float amount, inventory_t
 		return;
 
 	inventory_mov(&b->inventory, is_item, id, amount, inv);
+	building_update(b);
 }
 
 void building_withdraw(building_t* b, inventory_t* inv)
