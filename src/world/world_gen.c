@@ -240,20 +240,13 @@ void world_start(world_t* w)
 
 void world_randMine(world_t* w, int type)
 {
-	mine_t* m = mine_new(&w->objects, -1);
-	mine_init(m, w, &w->universe->mines[type]);
+	kindOf_mine_t* t = &w->universe->mines[type];
 	while (1)
 	{
 		float x = cfrnd(w->o.w - 32);
 		float y = cfrnd(w->o.h - 32) + 16;
-		int t = world_getLandXY(w, x, y) / 16;
-		if (t == 4 || t == 10)
-			continue;
 
-		chunk_t* c = world_chunkXY(w, x, y);
-		m->o.x = x;
-		m->o.y = y;
-		if (chunk_pushMine(c, m))
+		if (world_addMine(w, x, y, t) != NULL)
 			break;
 	}
 }

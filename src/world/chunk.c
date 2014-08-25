@@ -103,15 +103,13 @@ void chunk_updwtr(chunk_t* c)
 		}
 }
 
-char chunk_pushMine(chunk_t* c, mine_t* m)
+void chunk_pushMine(chunk_t* c, mine_t* m)
 {
-	for (size_t i = 0; i < c->n_mines; i++)
-		if (object_overlaps(&m->o, &c->mines[i]->o))
-			return 0;
+	if (c->n_mines != 0 && m == c->mines[c->n_mines-1])
+		return;
 
 	c->mines = CREALLOC(c->mines, mine_t*, c->n_mines+1);
 	c->mines[c->n_mines++] = m;
-	return 1;
 }
 
 void chunk_pushBuilding(chunk_t* c, building_t* b)

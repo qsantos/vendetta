@@ -56,7 +56,7 @@ void chunk_exit(chunk_t* c);
 void chunk_update(chunk_t* c);
 void chunk_updwtr(chunk_t* c);
 
-char chunk_pushMine(chunk_t* c, mine_t* m);
+void chunk_pushMine(chunk_t* c, mine_t* m);
 
 void chunk_pushBuilding(chunk_t* c, building_t* b);
 void chunk_delBuilding (chunk_t* c, uuid_t uuid);
