@@ -260,7 +260,11 @@ char ai_do(ai_t* ai, character_t* c)
 		fprintf(stderr, "Where did my house go? :(\n");
 		return 0;
 	}
-	if (b->build_progress < 1 && c->inBuilding != c->hasBuilding)
+	if (c->inBuilding == c->hasBuilding)
+	{
+		building_withdraw(b, &c->inventory);
+	}
+	else if (b->build_progress < 1)
 	{
 		c->go_o = b->o.uuid;
 		return 1;
