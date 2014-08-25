@@ -348,7 +348,7 @@ void game_loop(game_t* g)
 
 		// draw display
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
-		draw_world(g->g, g->a, g->player, g->w, ((int)floor(step)) % 4);
+		draw_world(g->g, g->a, g->player, g->w, floor(step));
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g, 1);
@@ -358,7 +358,7 @@ void game_loop(game_t* g)
 
 		// check frame duration
 		float duration = sfTime_asSeconds(sfClock_restart(clock));
-		step += duration;
+		step = fmodf(step + duration, 4.0f);
 
 		// measure FPS
 		fpscount++;
