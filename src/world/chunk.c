@@ -19,9 +19,9 @@
 #include "chunk.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "../mem.h"
-#include "../rand.h"
 
 void chunk_init(chunk_t* c, world_t* w, float x, float y, int rows, int cols)
 {
@@ -44,6 +44,9 @@ void chunk_init(chunk_t* c, world_t* w, float x, float y, int rows, int cols)
 
 	c->n_mines = 0;
 	c->mines = NULL;
+
+	c->n_buildings = 0;
+	c->buildings = NULL;
 }
 
 void chunk_exit(chunk_t* c)
@@ -109,4 +112,23 @@ char chunk_pushMine(chunk_t* c, mine_t* m)
 	c->mines = CREALLOC(c->mines, mine_t*, c->n_mines+1);
 	c->mines[c->n_mines++] = m;
 	return 1;
+}
+
+void chunk_pushBuilding(chunk_t* c, building_t* b)
+{
+	c->buildings = CREALLOC(c->buildings, building_t*, c->n_buildings+1);
+	c->buildings[c->n_buildings++] = b;
+}
+
+void chunk_delBuilding(chunk_t* c, uuid_t uuid)
+{
+	for (size_t i = 0; i < c->n_buildings; i++)
+	{
+		if (uuid == c->buildings[i]->o.uuid)
+		{
+			memmove(c->buildings + i, c->buildings + i + 1, sizeof(building_t*) * (c->n_buildings - i - 1));
+			c->n_buildings--;
+			break;
+		}
+	}
 }

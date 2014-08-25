@@ -26,6 +26,7 @@ typedef struct chunk chunk_t;
 #include "object.h"
 #include "world.h"
 #include "mine.h"
+#include "building.h"
 
 #define TILE_SIZE 16
 #define LAND(C,I,J) ((C)->lands[(I)*(C)->cols + (J)])
@@ -44,6 +45,9 @@ struct chunk
 
 	size_t n_mines;
 	mine_t** mines;
+
+	size_t n_buildings;
+	building_t** buildings;
 };
 
 void chunk_init(chunk_t* c, world_t* w, float x, float y, int rows, int cols);
@@ -53,5 +57,8 @@ void chunk_update(chunk_t* c);
 void chunk_updwtr(chunk_t* c);
 
 char chunk_pushMine(chunk_t* c, mine_t* m);
+
+void chunk_pushBuilding(chunk_t* c, building_t* b);
+void chunk_delBuilding (chunk_t* c, uuid_t uuid);
 
 #endif
