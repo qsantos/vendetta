@@ -314,8 +314,10 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 
 building_t* world_addBuilding(world_t* w, float x, float y, kindOf_building_t* t, character_t* c)
 {
-	pool_t* p = &w->objects;
-	building_t* b = building_new(p, -1);
+	if (!world_canBuild(w, x, y, t))
+		return NULL;
+
+	building_t* b = building_new(&w->objects, -1);
 	building_init(b, w, t, c->o.uuid, x, y);
 
 	object_t o = b->o;

@@ -600,16 +600,16 @@ char character_buildAuto(character_t* c, kindOf_building_t* t)
 
 char character_buildAt(character_t* c, kindOf_building_t* t, float x, float y)
 {
-	if (!world_canBuild(c->w, x, y, t))
-		return 0;
-
 	if (!transform_check(&t->build, &c->inventory))
 		return 0;
 
 	character_delHome(c);
 
-	transform_apply(&t->build, &c->inventory, 1);
 	building_t* b = world_addBuilding(c->w, x, y, t, c);
+	if (b == NULL)
+		return 0;
+
+	transform_apply(&t->build, &c->inventory, 1);
 	c->hasBuilding = b->o.uuid;
 	return 1;
 }
