@@ -237,13 +237,7 @@ void draw_chunkLands(graphics_t* g, assets_t* a, character_t* player, chunk_t* c
 	sfRenderWindow_drawVertexArray(g->render, array, &states);
 }
 
-void draw_chunkMines(graphics_t* g, assets_t* a, character_t* player, chunk_t* c)
-{
-	for (ssize_t i = c->n_mines-1; i >= 0; i--)
-		draw_mine(g, a, player, c->mines[i]);
-}
-
-void draw_chunks(graphics_t* g, assets_t* a, character_t* player, world_t* w, int step)
+void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w, int step)
 {
 	sfVector2f x = sfView_getCenter(g->world_view);
 	sfVector2f s = sfView_getSize(g->world_view);
@@ -253,44 +247,33 @@ void draw_chunks(graphics_t* g, assets_t* a, character_t* player, world_t* w, in
 	s.y += 64;
 
 	object_t o = {O_NONE, 0, x.x, x.y+s.y/2, s.x, s.y};
+
+	// draw chunks (fist lands, then mines, then buildings)
 	for (size_t i = 0; i < w->n_chunks; i++)
 	{
 		chunk_t* c = &w->chunks[i];
 		if (object_overlaps(&c->o, &o))
+		{
 			draw_chunkLands(g, a, player, c, step);
+			for (ssize_t i = c->n_mines-1; i >= 0; i--)
+				draw_mine(g, a, player, c->mines[i]);
+			for (ssize_t i = c->n_buildings-1; i >= 0; i--)
+				draw_building(g, a, player, c->buildings[i]);
+		}
 	}
-
-	for (size_t i = 0; i < w->n_chunks; i++)
-	{
-		chunk_t* c = &w->chunks[i];
-		if (object_overlaps(&c->o, &o))
-			draw_chunkMines(g, a, player, c);
-	}
-}
-
-void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w, int step)
-{
-	draw_chunks(g, a, player, w, step);
 
 	pool_t* p = &w->objects;
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
 	{
-		building_t* b = building_get(p, i);
-		if (b != NULL)
-			draw_building(g, a, player, b);
-	}
-
-	for (ssize_t i = p->n_objects-1; i >= 0; i--)
-	{
 		character_t* c = character_get(p, i);
-		if (c != NULL)
+		if (c != NULL && object_overlaps(&c->o, &o))
 			draw_character(g, a, player, c);
 	}
 
 	for (ssize_t i = p->n_objects-1; i >= 0; i--)
 	{
 		projectile_t* q = projectile_get(p, i);
-		if (q != NULL)
+		if (q != NULL && object_overlaps(&q->o, &o))
 			draw_projectile(g, a, player, q);
 	}
 
