@@ -116,6 +116,9 @@ char chunk_pushMine(chunk_t* c, mine_t* m)
 
 void chunk_pushBuilding(chunk_t* c, building_t* b)
 {
+	if (c->n_buildings != 0 && b == c->buildings[c->n_buildings-1])
+		return;
+
 	c->buildings = CREALLOC(c->buildings, building_t*, c->n_buildings+1);
 	c->buildings[c->n_buildings++] = b;
 }

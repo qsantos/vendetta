@@ -318,16 +318,22 @@ building_t* world_addBuilding(world_t* w, float x, float y, kindOf_building_t* t
 	building_t* b = building_new(p, -1);
 	building_init(b, w, t, c->o.uuid, x, y);
 
-	chunk_t* k = world_chunkXY(w, x, y);
-	chunk_pushBuilding(k, b);
+	object_t o = b->o;
+	chunk_pushBuilding(world_chunkXY(w, o.x-o.w/2, o.y-o.h), b);
+	chunk_pushBuilding(world_chunkXY(w, o.x-o.w/2, o.y    ), b);
+	chunk_pushBuilding(world_chunkXY(w, o.x+o.w/2, o.y-o.h), b);
+	chunk_pushBuilding(world_chunkXY(w, o.x+o.w/2, o.y    ), b);
 
 	return b;
 }
 
 void world_delBuilding(world_t* w, building_t* b)
 {
-	chunk_t* c = world_chunkXY(w, b->o.x, b->o.y);
-	chunk_delBuilding(c, b->o.uuid);
+	object_t o = b->o;
+	chunk_delBuilding(world_chunkXY(w, o.x-o.w/2, o.y-o.h), o.uuid);
+	chunk_delBuilding(world_chunkXY(w, o.x-o.w/2, o.y    ), o.uuid);
+	chunk_delBuilding(world_chunkXY(w, o.x+o.w/2, o.y-o.h), o.uuid);
+	chunk_delBuilding(world_chunkXY(w, o.x+o.w/2, o.y    ), o.uuid);
 
 	building_exit(b);
 	pool_t* p = &w->objects;
