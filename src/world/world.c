@@ -158,7 +158,9 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 	}
 
 	chunk_t* c = world_chunkXY(w, x, y);
-	if (c != NULL)
+	if (c == NULL)
+		return NULL;
+
 	for (size_t i = 0; i < c->n_mines; i++)
 	{
 		mine_t* m = c->mines[i];
@@ -167,16 +169,12 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 		if (object_isAt(&m->o, x, y))
 			return &m->o;
 	}
-
-	for (size_t i = 0; i < p->n_objects; i++)
+	for (size_t i = 0; i < c->n_buildings; i++)
 	{
-		building_t* b = building_get(p, i);
-		if (b == NULL)
-			continue;
-
+		building_t* b = c->buildings[i];
 		if (&b->o == ignore)
 			continue;
-		if (b != NULL && object_isAt(&b->o, x, y))
+		if (object_isAt(&b->o, x, y))
 			return &b->o;
 	}
 
@@ -286,6 +284,9 @@ static char canBuild_aux(chunk_t* c, object_t* o)
 	for (size_t i = 0; i < c->n_mines; i++)
 		if (object_overlaps(&c->mines[i]->o, o))
 			return 0;
+	for (size_t i = 0; i < c->n_buildings; i++)
+		if (object_overlaps(&c->buildings[i]->o, o))
+			return 0;
 	return 1;
 }
 char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
@@ -307,17 +308,6 @@ char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 	if (!canBuild_aux(world_chunkXY(w, o.x-o.w/2, o.y    ), &o)) return 0;
 	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y-o.h), &o)) return 0;
 	if (!canBuild_aux(world_chunkXY(w, o.x+o.w/2, o.y    ), &o)) return 0;
-
-	pool_t* p = &w->objects;
-	for (size_t i = 0; i < p->n_objects; i++)
-	{
-		building_t* b = building_get(p, i);
-		if (b == NULL)
-			continue;
-
-		if (object_overlaps(&b->o, &o))
-			return 0;
-	}
 
 	return 1;
 }
