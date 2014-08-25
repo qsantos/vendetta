@@ -27,9 +27,6 @@ void draw_projectile(graphics_t* g, assets_t* a, character_t* player, projectile
 void draw_character (graphics_t* g, assets_t* a, character_t* player, character_t* c);
 void draw_mine      (graphics_t* g, assets_t* a, character_t* player, mine_t* m);
 void draw_building  (graphics_t* g, assets_t* a, character_t* player, building_t* b);
-void draw_chunkLands(graphics_t* g, assets_t* a, character_t* player, chunk_t* c, int step);
-void draw_chunkMines(graphics_t* g, assets_t* a, character_t* player, chunk_t* c);
-void draw_chunks    (graphics_t* g, assets_t* a, character_t* player, world_t* w, int step);
 void draw_world     (graphics_t* g, assets_t* a, character_t* player, world_t* w, int step);
 
 #endif
