@@ -127,6 +127,15 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 		// do not replace the building
 		if (keep)
 		{
+			float price = is_item ? u->items[id].price : u->materials[id].price;
+			price *= amount;
+			if (c->inventory.money < price)
+			{
+				if (c->inBuilding != c->hasBuilding)
+					c->go_o = c->hasBuilding;
+				return 1;
+			}
+
 			// try and buy it
 			building_t* b = world_findSale(c->w, c, is_item, id);
 			if (b == NULL)
