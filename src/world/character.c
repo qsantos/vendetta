@@ -586,7 +586,10 @@ char character_buildAuto(character_t* c, kindOf_building_t* t)
 
 	character_delHome(c);
 
-	for (float radius = 50; radius < c->w->o.w; radius *= 1.5)
+	float w = c->w->o.w;
+	float h = c->w->o.h;
+	float max = sqrt(w*w + h*h) * 1.5;
+	for (float radius = 50; radius < max; radius *= 1.5)
 	{
 		float x = c->o.x + cfrnd(radius);
 		float y = c->o.y + cfrnd(radius);
