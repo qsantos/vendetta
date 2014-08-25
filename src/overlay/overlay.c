@@ -65,10 +65,6 @@ void overlay_exit(overlay_t* o)
 
 static int overlay_buttons(game_t* g, char do_draw)
 {
-	sfVector2f mouse = {0,0};
-	if (!do_draw)
-		mouse = overlay_mouse(g);
-
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 		sprite = assets_sprite(g->a, "data/buttons.png");
@@ -86,7 +82,7 @@ static int overlay_buttons(game_t* g, char do_draw)
 		sfSprite_setTextureRect(sprite, rect);
 		if (do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
-		else if (sfSprite_contains(sprite, mouse))
+		else if (sfSprite_contains(sprite, g->o->mouse))
 			return i;
 	}
 
@@ -98,16 +94,12 @@ static int overlay_buttons(game_t* g, char do_draw)
 	sfSprite_setTextureRect(sprite, rect);
 	if (do_draw)
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
-	else if (sfSprite_contains(sprite, mouse))
+	else if (sfSprite_contains(sprite, g->o->mouse))
 		return i;
 	return -1;
 }
 static int overlay_orders(game_t* g, char do_draw)
 {
-	sfVector2f mouse = {0,0};
-	if (!do_draw)
-		mouse = overlay_mouse(g);
-
 	static sfSprite* sprite = NULL;
 	if (sprite == NULL)
 		sprite = assets_sprite(g->a, "data/orders.png");
@@ -124,7 +116,7 @@ static int overlay_orders(game_t* g, char do_draw)
 
 		if (do_draw)
 			sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
-		else if (sfSprite_contains(sprite, mouse))
+		else if (sfSprite_contains(sprite, g->o->mouse))
 			return i;
 
 		x += 28;
@@ -133,10 +125,6 @@ static int overlay_orders(game_t* g, char do_draw)
 }
 static int overlay_statuses(game_t* g, char do_draw)
 {
-	sfVector2f mouse = {0,0};
-	if (!do_draw)
-		mouse = overlay_mouse(g);
-
 	character_t* c = g->player;
 
 	static sfText* text = NULL;
@@ -155,8 +143,8 @@ static int overlay_statuses(game_t* g, char do_draw)
 	for (int i = 0; i < N_STATUSES; i++)
 	{
 		if (!do_draw &&
-		    x <= mouse.x && mouse.x <= x + 150 &&
-		    y <= mouse.y && mouse.y <= y + 20)
+		    x <= g->o->mouse.x && g->o->mouse.x <= x + 150 &&
+		    y <= g->o->mouse.y && g->o->mouse.y <= y + 20)
 			return i;
 
 		float max = character_maxOfStatus(c, i);
@@ -185,6 +173,8 @@ static int overlay_statuses(game_t* g, char do_draw)
 }
 int overlay_draw(game_t* g, char do_draw)
 {
+	g->o->mouse = overlay_mouse(g);
+
 	int i = overlay_buttons(g, do_draw);
 	if (i >= 0)
 		return 3*i+0;
@@ -307,8 +297,7 @@ int overlay_cursor(game_t* g)
 	else if ((cursor = swequipment_cursor(&g->o->swequipment, g)) >= 0);
 	else
 	{
-		sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
-		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->world_view);
+		sfVector2f pos = world_mouse(g);
 		object_t* o = world_objectAt(g->w, pos.x, pos.y, &g->player->o);
 		if (o != NULL)
 		{
@@ -470,8 +459,7 @@ int overlay_wheel(game_t* g, int d)
 
 void overlay_move(game_t* g)
 {
-	sfVector2i imouse = sfMouse_getPosition((sfWindow*) g->g->render);
-	sfVector2f mouse = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->overlay_view);
+	sfVector2f mouse = overlay_mouse(g);
 
 	float dx = mouse.x - g->o->lastx;
 	float dy = mouse.y - g->o->lasty;
@@ -502,4 +490,10 @@ sfVector2f overlay_mouse(game_t* g)
 {
 	sfVector2i mouse = sfMouse_getPosition((sfWindow*) g->g->render);
 	return sfRenderWindow_mapPixelToCoords(g->g->render, mouse, g->g->overlay_view);
+}
+
+sfVector2f world_mouse(game_t* g)
+{
+	sfVector2i mouse = sfMouse_getPosition((sfWindow*) g->g->render);
+	return sfRenderWindow_mapPixelToCoords(g->g->render, mouse, g->g->world_view);
 }

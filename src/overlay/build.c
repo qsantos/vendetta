@@ -59,10 +59,6 @@ static int draw_buildButton(ov_build_t* o, game_t* g, kindOf_building_t* b, floa
 {
 	(void) o;
 
-	sfVector2f mouse;
-	if (!do_draw)
-		mouse = overlay_mouse(g);
-
 	char caught = 0;
 
 	sfSprite* sprite = g->a->sprites[b->button_sprite];
@@ -84,7 +80,7 @@ static int draw_buildButton(ov_build_t* o, game_t* g, kindOf_building_t* b, floa
 	if (do_draw)
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	else
-		caught |= sfSprite_contains(sprite, mouse);
+		caught |= sfSprite_contains(sprite, g->o->mouse);
 
 	return caught;
 }
@@ -272,8 +268,6 @@ int ov_build_cursor(ov_build_t* o, game_t* g)
 
 char ov_build_catch(ov_build_t* o, game_t* g, int t)
 {
-	sfVector2f mouse = overlay_mouse(g);
-
 	if (t == sfMouseRight)
 	{
 		if (o->selected != NULL)
@@ -281,8 +275,8 @@ char ov_build_catch(ov_build_t* o, game_t* g, int t)
 		else
 		{
 			o->active ^= 1;
-			o->x = mouse.x;
-			o->y = mouse.y;
+			o->x = g->o->mouse.x;
+			o->y = g->o->mouse.y;
 		}
 		return 1;
 	}
@@ -312,10 +306,8 @@ char ov_build_catch(ov_build_t* o, game_t* g, int t)
 	kindOf_building_t* b = o->selected;
 	if (b != NULL)
 	{
-		sfVector2i imouse = {mouse.x, mouse.y};
-		sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, imouse, g->g->world_view);
+		sfVector2f pos = world_mouse(g);
 		pos.y += b->height / 2;
-
 		if (character_buildAt(g->player, b, pos.x, pos.y))
 			o->selected = NULL;
 		return 1;
