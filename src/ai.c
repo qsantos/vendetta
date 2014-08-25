@@ -276,8 +276,13 @@ char ai_do(ai_t* ai, character_t* c)
 	{
 		if (b->work_n == 0)
 		{
-			building_work_enqueue(b, rand() % n);
+			if (c->ai_data.sell > 0)
+				building_put(b, ITEM, c->ai_data.sell-1, 1.0, &c->inventory, 1);
+
+			int nth = rand() % n;
+			building_work_enqueue(b, nth);
 			c->ai_data.collect = 1;
+			c->ai_data.sell = b->t->items[nth].res[0].id + 1;
 		}
 		if (c->ai_data.collect)
 		{

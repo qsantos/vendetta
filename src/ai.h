@@ -35,6 +35,7 @@ struct ai_data
 {
 	int step;
 	int collect; // need materials for item
+	int sell;    // 0: ignore, other put item (id+1) for sell
 };
 
 #include "world/character.h"
