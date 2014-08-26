@@ -357,6 +357,7 @@ int overlay_cursor(game_t* g)
 
 int overlay_catch(game_t* g, int t)
 {
+	character_t* c = g->player;
 	int i = overlay_draw(g, 0);
 	if (i >= 0)
 	{
@@ -381,36 +382,36 @@ int overlay_catch(game_t* g, int t)
 			}
 			else if (i == 1)
 			{
-				building_t* b = building_get(&g->w->objects, g->player->hasBuilding);
+				building_t* b = building_get(&g->w->objects, c->hasBuilding);
 				if (b != NULL)
-					g->player->go_o = b->o.uuid;
+					c->go_o = b->o.uuid;
 			}
 			else if (i <= 9)
 			{
 				i -= 2;
 				kindOf_mine_t* t = &g->u->mines[i];
-				mine_t* m = world_findMine(g->w, g->player->o.x, g->player->o.y, t);
+				mine_t* m = world_findMine(g->w, c->o.x, c->o.y, t);
 				if (m != NULL)
-					g->player->go_o = m->o.uuid;
+					c->go_o = m->o.uuid;
 			}
 			else if (i == 10)
 			{
-				character_t* t = world_findEnnemyCharacter(g->w, g->player);
+				character_t* t = world_findEnnemyCharacter(g->w, c);
 				if (t != NULL)
-					g->player->go_o = t->o.uuid;
+					c->go_o = t->o.uuid;
 			}
 			else if (i == 11)
 			{
-				building_t* t = world_findEnnemyBuilding(g->w, g->player);
+				building_t* t = world_findEnnemyBuilding(g->w, c);
 				if (t != NULL)
-					g->player->go_o = t->o.uuid;
+					c->go_o = t->o.uuid;
 			}
 		}
 		else if (w == 2) // statuses
 		{
 			if (t == sfMouseLeft)
 			{
-				character_eatFor(g->player, i);
+				character_eatFor(c, i);
 			}
 			else if (t == sfMouseRight)
 			{
