@@ -25,12 +25,14 @@ char character_doAttack(character_t* c, object_t* o)
 	if (o == NULL)
 		return 0;
 
-	if (&c->o == o)
-		return 0;
 
 	if (o->t == O_CHARACTER)
 	{
 		character_t* t = (character_t*) o;
+
+		// cannot attack self
+		if (c == t)
+			return 0;
 
 		building_t* b = character_get_inBuilding(t);
 		if (b != NULL || !t->alive)
@@ -43,6 +45,11 @@ char character_doAttack(character_t* c, object_t* o)
 	{
 		building_t* b = (building_t*) o;
 
+		// cannot attack a building from within
+		if (b->o.uuid == c->inBuilding)
+			return 0;
+
+		// cannot attack own building
 		if (b->owner == c->o.uuid)
 			return 0;
 	}
