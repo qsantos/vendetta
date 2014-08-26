@@ -135,7 +135,7 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 			if (c->inventory.money < price)
 			{
 				if (c->inBuilding != c->hasBuilding)
-					c->go_o = c->hasBuilding;
+					character_goto(c, c->hasBuilding);
 				return 1;
 			}
 
@@ -146,7 +146,7 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 
 			if (c->inBuilding != b->o.uuid)
 			{
-				c->go_o = b->o.uuid;
+				character_goto(c, b->o.uuid);
 				return 1;
 			}
 
@@ -195,7 +195,7 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 	// go in the building
 	if (c->inBuilding != c->hasBuilding)
 	{
-		c->go_o = b->o.uuid;
+		character_goto(c, b->o.uuid);
 		return 1;
 	}
 
@@ -278,7 +278,7 @@ char ai_do(ai_t* ai, character_t* c)
 	}
 	else if (b->build_progress < 1)
 	{
-		c->go_o = b->o.uuid;
+		character_goto(c, b->o.uuid);
 		return 1;
 	}
 
@@ -331,7 +331,7 @@ char ai_do(ai_t* ai, character_t* c)
 	// go home
 	if (c->inBuilding != c->hasBuilding)
 	{
-		c->go_o = b->o.uuid;
+		character_goto(c, b->o.uuid);
 		return 1;
 	}
 

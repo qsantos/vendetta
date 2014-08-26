@@ -196,6 +196,37 @@ void character_train(character_t* c, int skill, float work)
 	character_weary(c, 0.1 * work);
 }
 
+void character_stop(character_t* c)
+{
+	c->go_x = c->o.x;
+	c->go_y = c->o.y;
+	c->go_o = -1;
+}
+
+void character_move(character_t* c, float dx, float dy)
+{
+	character_goAt(c, c->o.x+dx, c->o.y+dy);
+}
+
+void character_goAt(character_t* c, float x, float y)
+{
+	c->go_x = x;
+	c->go_y = y;
+	c->go_o = -1;
+}
+
+void character_goto(character_t* c, uuid_t uuid)
+{
+	c->attack = 0;
+	c->go_o = uuid;
+}
+
+void character_attack(character_t* c, uuid_t uuid)
+{
+	c->attack = 1;
+	c->go_o = uuid;
+}
+
 char character_eat(character_t* c, int material)
 {
 	universe_t* u = c->w->universe;

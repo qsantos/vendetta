@@ -299,10 +299,14 @@ void character_doRound(character_t* c, float duration)
 	object_t* o = pool_get(&c->w->objects, c->go_o);
 	if (o != NULL)
 	{
-		go_x = o->x;
-		go_y = o->y;
+		// stay still if target is removed
 		c->go_x = c->o.x;
 		c->go_y = c->o.y;
+
+		go_x = o->x;
+		go_y = o->y;
+
+		// door offset
 		if (o->t == O_BUILDING)
 		{
 			building_t* b = (building_t*) o;

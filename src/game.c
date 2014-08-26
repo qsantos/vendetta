@@ -172,14 +172,13 @@ void game_loop(game_t* g)
 					stayhere = 0;
 				else if (k == sfKeyUp || k == sfKeyDown || k == sfKeyLeft || k == sfKeyRight)
 				{
-					c->go_x = c->o.x;
-					c->go_y = c->o.y;
+					character_stop(c);
 				}
 				else if (k == sfKeyReturn)
 				{
 					building_t* b = building_get(&g->w->objects, c->hasBuilding);
 					if (b != NULL)
-						c->go_o = b->o.uuid;
+						character_goto(c, b->o.uuid);
 				}
 				else if (k == sfKeyDelete)
 				{
@@ -209,13 +208,13 @@ void game_loop(game_t* g)
 				{
 					character_t* t = world_findEnnemyCharacter(g->w, c);
 					if (t != NULL)
-						c->go_o = t->o.uuid;
+						character_attack(c, t->o.uuid);
 				}
 				else if (k == sfKeyW)
 				{
 					building_t* t = world_findEnnemyBuilding(g->w, c->o.x, c->o.y, c);
 					if (t != NULL)
-						c->go_o = t->o.uuid;
+						character_attack(c, t->o.uuid);
 				}
 				else if (k == sfKeyS)
 				{
@@ -237,7 +236,7 @@ void game_loop(game_t* g)
 						kindOf_mine_t* t = &g->u->mines[id];
 						mine_t* m = world_findMine(g->w, c->o.x, c->o.y, t);
 						if (m != NULL)
-							c->go_o = m->o.uuid;
+							character_goto(c, m->o.uuid);
 					}
 				}
 			}
@@ -259,17 +258,12 @@ void game_loop(game_t* g)
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
 				object_t* o = world_objectAt(g->w, pos.x, pos.y, &c->o);
 
-				c->go_x = pos.x;
-				c->go_y = pos.y;
 				if (o == NULL)
-				{
-					c->go_o = -1;
-				}
+					character_goAt(c, pos.x, pos.y);
+				else if (sfKeyboard_isKeyPressed(sfKeyLControl))
+					character_attack(c, o->uuid);
 				else
-				{
-					c->go_o = o->uuid;
-					c->attack = sfKeyboard_isKeyPressed(sfKeyLControl);
-				}
+					character_goto(c, o->uuid);
 			}
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
@@ -326,9 +320,9 @@ void game_loop(game_t* g)
 			// direction key control
 			if (up || down || left || right)
 			{
-				c->go_x = c->o.x + 100 * (right - 2*left);
-				c->go_y = c->o.y + 100 * (down  - 2*up);
-				c->go_o = -1;
+				float dx = 100 * (right - 2*left);
+				float dy = 100 * (down  - 2*up);
+				character_move(c, dx, dy);
 			}
 
 			// hold-and-click control
@@ -339,9 +333,7 @@ void game_loop(game_t* g)
 			{
 				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
-				c->go_x = pos.x;
-				c->go_y = pos.y;
-				c->go_o = -1;
+				character_goAt(c, pos.x, pos.y);
 			}
 		}
 
