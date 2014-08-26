@@ -285,8 +285,37 @@ TYPE##_t* FNAME(world_t* w, float x, float y, __VA_ARGS__) \
 	return ret; \
 }
 
-LOOKFOR(world_findMine,     mine,     if (obj->t != t) continue, kindOf_mine_t* t)
-LOOKFOR(world_findBuilding, building, if (obj->t != t) continue, kindOf_building_t* t)
+LOOKFOR(world_findMine,           mine,     if (obj->t != t)                          continue, kindOf_mine_t* t)
+LOOKFOR(world_findBuilding,       building, if (obj->t != t)                          continue, kindOf_building_t* t)
+LOOKFOR(world_findEnnemyBuilding, building, if (obj->owner == p->o.uuid)              continue, character_t* p)
+LOOKFOR(world_findSale,           building, if (building_onSale(obj,is_item,id) <= 0) continue, char is_item, int id)
+
+character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
+{
+	pool_t* p = &w->objects;
+
+	character_t* ret = NULL;
+	float min_d = -1;
+	for (size_t i = 0; i < p->n_objects; i++)
+	{
+		character_t* t = character_get(p, i);
+		if (t == NULL)
+			continue;
+
+		if (t == c)
+			continue;
+		building_t* b = character_get_inBuilding(t);
+		if (b != NULL || !t->alive)
+			continue;
+		float d = object_distance(&c->o, t->o.x, t->o.y);
+		if (min_d < 0 || d < min_d)
+		{
+			ret = t;
+			min_d = d;
+		}
+	}
+	return ret;
+}
 
 static char canBuild_aux(chunk_t* c, object_t* o);
 char world_canMine(world_t* w, float x, float y)
@@ -397,79 +426,4 @@ void world_delBuilding(world_t* w, building_t* b)
 	building_exit(b);
 	pool_t* p = &w->objects;
 	pool_del(p, &b->o);
-}
-
-character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
-{
-	pool_t* p = &w->objects;
-
-	character_t* ret = NULL;
-	float min_d = -1;
-	for (size_t i = 0; i < p->n_objects; i++)
-	{
-		character_t* t = character_get(p, i);
-		if (t == NULL)
-			continue;
-
-		if (t == c)
-			continue;
-		building_t* b = character_get_inBuilding(t);
-		if (b != NULL || !t->alive)
-			continue;
-		float d = object_distance(&c->o, t->o.x, t->o.y);
-		if (min_d < 0 || d < min_d)
-		{
-			ret = t;
-			min_d = d;
-		}
-	}
-	return ret;
-}
-
-building_t* world_findEnnemyBuilding(world_t* w, character_t* c)
-{
-	pool_t* p = &w->objects;
-	building_t* ret = NULL;
-	float min_d = -1;
-	for (size_t i = 0; i < p->n_objects; i++)
-	{
-		building_t* b = building_get(p, i);
-		if (b == NULL)
-			continue;
-
-		if (b->owner == c->o.uuid)
-			continue;
-
-		float d = object_distance(&c->o, b->o.x, b->o.y);
-		if (min_d < 0 || d < min_d)
-		{
-			ret = b;
-			min_d = d;
-		}
-	}
-	return ret;
-}
-
-building_t* world_findSale(world_t* w, character_t*c, char is_item, int id)
-{
-	pool_t* p = &w->objects;
-	building_t* ret = NULL;
-	float min_d = -1;
-	for (size_t i = 0; i < p->n_objects; i++)
-	{
-		building_t* b = building_get(p, i);
-		if (b == NULL)
-			continue;
-
-		if (building_onSale(b, is_item, id) <= 0)
-			continue;
-
-		float d = object_distance(&c->o, b->o.x, b->o.y);
-		if (min_d < 0 || d < min_d)
-		{
-			ret = b;
-			min_d = d;
-		}
-	}
-	return ret;
 }
