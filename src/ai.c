@@ -308,7 +308,7 @@ char ai_do(ai_t* ai, character_t* c)
 
 	// transform materials as a job
 	tr = &b->t->make;
-	if (tr != NULL)
+	if (tr->n_res != 0)
 	{
 		if (!c->ai_data.collect)
 			c->ai_data.collect = transform_ratio(tr, &c->inventory, -1) <= 0;
