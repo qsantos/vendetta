@@ -37,7 +37,7 @@ void character_init(character_t* c, world_t* w, kindOf_character_t* t)
 	c->alive = 1;
 
 	c->go_o = -1;
-	c->dir  = D_SOUTH;
+	c->dir = D_SOUTH;
 	c->step = 5; // standing still
 	c->attackDelay = 0;
 	c->inWater = 0;
