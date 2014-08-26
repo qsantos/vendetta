@@ -310,6 +310,9 @@ char ai_do(ai_t* ai, character_t* c)
 	tr = &b->t->make;
 	if (tr->n_res != 0)
 	{
+		int id = tr->res[0].id;
+		building_put(b, MATERIAL, id, c->inventory.materials[id], &c->inventory, 1);
+
 		if (!c->ai_data.collect)
 			c->ai_data.collect = transform_ratio(tr, &c->inventory, -1) <= 0;
 
