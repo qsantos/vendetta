@@ -491,9 +491,7 @@
 <Unit filename="src/world/world.c" />
 <Unit filename="src/world/world.h" />
 <Unit filename="src/world/world_gen.c" />
-<Unit filename="src/world/world_gen.h" />
 <Unit filename="src/world/world_save.c" />
-<Unit filename="src/world/world_save.h" />
 <Unit filename="start.sh" />
 
 </Project>
