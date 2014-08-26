@@ -282,7 +282,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 
 	// take item
 	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
-	if (!isOwner || t == sfMouseRight)
+	if (i < 0 || !isOwner || t == sfMouseRight)
 	{
 		component_t* k = &tr->res[0];
 		building_take(b, k->is_item, k->id, 1.0f, &c->inventory, isOwner);
