@@ -469,6 +469,7 @@
 <Unit filename="src/world/building.h" />
 <Unit filename="src/world/character.c" />
 <Unit filename="src/world/character.h" />
+<Unit filename="src/world/character_round.c" />
 <Unit filename="src/world/chunk.c" />
 <Unit filename="src/world/chunk.h" />
 <Unit filename="src/world/draw.c" />
