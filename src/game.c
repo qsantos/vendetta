@@ -122,7 +122,9 @@ void game_loop(game_t* g)
 	char hasFocus = 1;
 	float zoom = 1;
 	sfClock* clock = sfClock_create();
-	sfClock* maintain = sfClock_create();
+
+	char maintain_active = 0;
+	sfClock* maintain_clock = sfClock_create();
 
 	float step = 0;
 
@@ -244,6 +246,10 @@ void game_loop(game_t* g)
 			else if (event.type == sfEvtMouseButtonReleased)
 			{
 				sfMouseButtonEvent* e = &event.mouseButton;
+
+				if (e->button == sfMouseLeft)
+					maintain_active = 0;
+
 				if (overlay_catch(g, e->button))
 					continue;
 
@@ -257,7 +263,9 @@ void game_loop(game_t* g)
 				c->go_x = pos.x;
 				c->go_y = pos.y;
 				if (o == NULL)
+				{
 					c->go_o = -1;
+				}
 				else
 				{
 					c->go_o = o->uuid;
@@ -266,11 +274,15 @@ void game_loop(game_t* g)
 			}
 			else if (event.type == sfEvtMouseButtonPressed)
 			{
+				sfMouseButtonEvent* e = &event.mouseButton;
+
 				// used for click-and-hold character control
-				sfClock_restart(maintain);
+				if (e->button == sfMouseLeft)
+					maintain_active = 1;
+				sfClock_restart(maintain_clock);
 
 				// subwindow click-and-drag
-				overlay_catch(g, -event.mouseButton.button-1);
+				overlay_catch(g, -e->button-1);
 			}
 			else if (event.type == sfEvtMouseMoved)
 			{
@@ -321,9 +333,9 @@ void game_loop(game_t* g)
 			}
 
 			// hold-and-click control
-			if (sfMouse_isButtonPressed(sfMouseLeft) && (
-				sfKeyboard_isKeyPressed(sfKeyLShift) ||
-				sfTime_asSeconds(sfClock_getElapsedTime(maintain)) > 0.5
+			if (maintain_active && (
+				sfTime_asSeconds(sfClock_getElapsedTime(maintain_clock)) > 0.5 ||
+				sfKeyboard_isKeyPressed(sfKeyLShift)
 			))
 			{
 				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);
@@ -387,7 +399,7 @@ void game_loop(game_t* g)
 		  world_doRound(g->w, duration);
 	}
 
-	sfClock_destroy(maintain);
+	sfClock_destroy(maintain_clock);
 	sfClock_destroy(clock);
 }
 
