@@ -77,6 +77,11 @@ void character_addStatus(character_t* c, int s, float q);
 void character_weary    (character_t* c, float f);
 void character_train    (character_t* c, int skill, float work);
 
+void character_stop  (character_t* c);
+void character_move  (character_t* c, float dx, float dy);
+void character_goAt  (character_t* c, float  x, float  y);
+void character_goto  (character_t* c, uuid_t uuid);
+void character_attack(character_t* c, uuid_t uuid);
 char character_eat   (character_t* c, int material);
 void character_eatFor(character_t* c, int status);
 
