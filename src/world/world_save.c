@@ -224,5 +224,10 @@ void world_load(world_t* w, FILE* f)
 		for (size_t i = 0; i < work_n; i++)
 			CLINE("%i,", &b->work_list[i]);
 		CLINE("\n");
+
+		chunk_pushBuilding(world_chunkXY(w, o.x-o.w/2, o.y-o.h), b);
+		chunk_pushBuilding(world_chunkXY(w, o.x-o.w/2, o.y    ), b);
+		chunk_pushBuilding(world_chunkXY(w, o.x+o.w/2, o.y-o.h), b);
+		chunk_pushBuilding(world_chunkXY(w, o.x+o.w/2, o.y    ), b);
 	}
 }
