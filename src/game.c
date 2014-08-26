@@ -133,6 +133,7 @@ void game_loop(game_t* g)
 	char stayhere = 1;
 	while (stayhere && sfRenderWindow_isOpen(g->g->render))
 	{
+		character_t* c = g->player;
 		// handle user input
 		sfEvent event;
 		while (stayhere && sfRenderWindow_pollEvent(g->g->render, &event))
@@ -170,18 +171,18 @@ void game_loop(game_t* g)
 					stayhere = 0;
 				else if (k == sfKeyUp || k == sfKeyDown || k == sfKeyLeft || k == sfKeyRight)
 				{
-					g->player->go_x = g->player->o.x;
-					g->player->go_y = g->player->o.y;
+					c->go_x = c->o.x;
+					c->go_y = c->o.y;
 				}
 				else if (k == sfKeyReturn)
 				{
-					building_t* b = building_get(&g->w->objects, g->player->hasBuilding);
+					building_t* b = building_get(&g->w->objects, c->hasBuilding);
 					if (b != NULL)
-						g->player->go_o = b->o.uuid;
+						c->go_o = b->o.uuid;
 				}
 				else if (k == sfKeyDelete)
 				{
-					character_delHome(g->player);
+					character_delHome(c);
 				}
 				else if (k == sfKeyB)
 				{
@@ -205,15 +206,15 @@ void game_loop(game_t* g)
 				}
 				else if (k == sfKeyX)
 				{
-					character_t* t = world_findEnnemyCharacter(g->w, g->player);
+					character_t* t = world_findEnnemyCharacter(g->w, c);
 					if (t != NULL)
-						g->player->go_o = t->o.uuid;
+						c->go_o = t->o.uuid;
 				}
 				else if (k == sfKeyW)
 				{
-					building_t* t = world_findEnnemyBuilding(g->w, g->player);
+					building_t* t = world_findEnnemyBuilding(g->w, c);
 					if (t != NULL)
-						g->player->go_o = t->o.uuid;
+						c->go_o = t->o.uuid;
 				}
 				else if (k == sfKeyS)
 				{
@@ -233,9 +234,9 @@ void game_loop(game_t* g)
 					if (id < g->u->n_mines)
 					{
 						kindOf_mine_t* t = &g->u->mines[id];
-						mine_t* m = world_findMine(g->w, g->player->o.x, g->player->o.y, t);
+						mine_t* m = world_findMine(g->w, c->o.x, c->o.y, t);
 						if (m != NULL)
-							g->player->go_o = m->o.uuid;
+							c->go_o = m->o.uuid;
 					}
 				}
 			}
@@ -251,16 +252,16 @@ void game_loop(game_t* g)
 
 				sfVector2i pix = {e->x, e->y};
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
-				object_t* o = world_objectAt(g->w, pos.x, pos.y, &g->player->o);
+				object_t* o = world_objectAt(g->w, pos.x, pos.y, &c->o);
 
-				g->player->go_x = pos.x;
-				g->player->go_y = pos.y;
+				c->go_x = pos.x;
+				c->go_y = pos.y;
 				if (o == NULL)
-					g->player->go_o = -1;
+					c->go_o = -1;
 				else
 				{
-					g->player->go_o = o->uuid;
-					g->player->attack = sfKeyboard_isKeyPressed(sfKeyLControl);
+					c->go_o = o->uuid;
+					c->attack = sfKeyboard_isKeyPressed(sfKeyLControl);
 				}
 			}
 			else if (event.type == sfEvtMouseButtonPressed)
@@ -314,9 +315,9 @@ void game_loop(game_t* g)
 			// direction key control
 			if (up || down || left || right)
 			{
-				g->player->go_x = g->player->o.x + 100 * (right - 2*left);
-				g->player->go_y = g->player->o.y + 100 * (down  - 2*up);
-				g->player->go_o = -1;
+				c->go_x = c->o.x + 100 * (right - 2*left);
+				c->go_y = c->o.y + 100 * (down  - 2*up);
+				c->go_o = -1;
 			}
 
 			// hold-and-click control
@@ -327,9 +328,9 @@ void game_loop(game_t* g)
 			{
 				sfVector2i pix = sfMouse_getPosition((sfWindow*) g->g->render);
 				sfVector2f pos = sfRenderWindow_mapPixelToCoords(g->g->render, pix, g->g->world_view);
-				g->player->go_x = pos.x;
-				g->player->go_y = pos.y;
-				g->player->go_o = -1;
+				c->go_x = pos.x;
+				c->go_y = pos.y;
+				c->go_o = -1;
 			}
 		}
 
@@ -337,7 +338,7 @@ void game_loop(game_t* g)
 		sfRenderWindow_clear(g->g->render, sfBlack);
 
 		// set view center
-		sfVector2f pos = {g->player->o.x, g->player->o.y};
+		sfVector2f pos = {c->o.x, c->o.y};
 		sfVector2f size = sfView_getSize(g->g->world_view);
 		pos.x = fmax(pos.x, size.x/2-g->w->o.w/2);
 		pos.y = fmax(pos.y, size.y/2-g->w->o.h/2);
@@ -348,7 +349,7 @@ void game_loop(game_t* g)
 
 		// draw display
 		sfRenderWindow_setView(g->g->render, g->g->world_view);
-		draw_world(g->g, g->a, g->player, g->w, floor(step));
+		draw_world(g->g, g->a, c, g->w, floor(step));
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 		overlay_draw(g, 1);
@@ -373,13 +374,12 @@ void game_loop(game_t* g)
 		}
 
 		// check player statuses
-		character_t* c = g->player;
 		for (size_t i = 0; i < N_STATUSES; i++)
 		{
 			float max = character_maxOfStatus(c, i);
 			float p = c->statuses[i] / max;
 			if (g->autoEat[i] && p < 0.5)
-				character_eatFor(g->player, i);
+				character_eatFor(c, i);
 		}
 
 		// do round
