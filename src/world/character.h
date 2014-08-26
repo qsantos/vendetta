@@ -67,19 +67,19 @@ struct character
 void character_init(character_t* c, world_t* w, kindOf_character_t* t);
 void character_exit(character_t* c);
 
-float character_vitality(character_t* c);
-float character_getSkill(character_t* c, int skill);
+float character_vitality     (character_t* c);
+float character_getSkill     (character_t* c, int skill);
 float character_maxOfStatus  (character_t* c, int s);
 float character_maxOfMaterial(character_t* c, kindOf_material_t* m);
-float character_armor(character_t* c);
+float character_armor        (character_t* c);
 
 void character_addStatus(character_t* c, int s, float q);
-void character_weary   (character_t* c, float f);
-void character_train   (character_t* c, int skill, float work);
-void character_workAt  (character_t* c, object_t* o, float duration);
-char character_attack  (character_t* c, object_t* o);
-void character_move    (character_t* c, float duration, float dx, float dy);
-void character_doRound (character_t* c, float duration);
+void character_weary    (character_t* c, float f);
+void character_train    (character_t* c, int skill, float work);
+void character_workAt   (character_t* c, object_t* o, float duration);
+char character_attack   (character_t* c, object_t* o);
+void character_move     (character_t* c, float duration, float dx, float dy);
+void character_doRound  (character_t* c, float duration);
 
 char character_eat   (character_t* c, int material);
 void character_eatFor(character_t* c, int status);
