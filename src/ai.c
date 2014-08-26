@@ -127,6 +127,9 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 		// do not replace the building
 		if (keep)
 		{
+			if (rand() % 60 != 0)
+				return 1;
+
 			float price = is_item ? u->items[id].price : u->materials[id].price;
 			price *= amount;
 			if (c->inventory.money < price)
