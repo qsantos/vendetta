@@ -137,7 +137,7 @@ char ai_get(character_t* c, char is_item, int id, float amount, char keep)
 			}
 
 			// try and buy it
-			building_t* b = world_findSale(c->w, c, is_item, id);
+			building_t* b = world_findSale(c->w, c->o.x, c->o.y, is_item, id);
 			if (b == NULL)
 				return 1;
 

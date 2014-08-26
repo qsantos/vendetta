@@ -71,19 +71,18 @@ void   world_setLandIJ(world_t* w, int i, int j, short l);
 
 void world_doRound(world_t* w, float duration);
 
-object_t*   world_objectAt    (world_t* w, float x, float y, object_t* ignore);
-mine_t*     world_findMine    (world_t* w, float x, float y, kindOf_mine_t* t);
-building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* t);
+object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore);
+
+mine_t*      world_findMine           (world_t* w, float x, float y, kindOf_mine_t* t);
+building_t*  world_findBuilding       (world_t* w, float x, float y, kindOf_building_t* t);
+building_t*  world_findEnnemyBuilding (world_t* w, float x, float y, character_t* c);
+building_t*  world_findSale           (world_t* w, float x, float y, char is_item, int id);
+character_t* world_findEnnemyCharacter(world_t* w, character_t* c);
 
 mine_t*     world_addMine     (world_t* w, float x, float y, kindOf_mine_t* t);
 
 char        world_canBuild    (world_t* w, float x, float y, kindOf_building_t* t);
 building_t* world_addBuilding (world_t* w, float x, float y, kindOf_building_t* t, character_t* c);
 void        world_delBuilding (world_t* w, building_t* b);
-
-character_t* world_findEnnemyCharacter(world_t* w, character_t* c);
-building_t*  world_findEnnemyBuilding (world_t* w, character_t* c);
-
-building_t* world_findSale(world_t* w, character_t*c, char is_item, int id);
 
 #endif

@@ -402,7 +402,7 @@ int overlay_catch(game_t* g, int t)
 			}
 			else if (i == 11)
 			{
-				building_t* t = world_findEnnemyBuilding(g->w, c);
+				building_t* t = world_findEnnemyBuilding(g->w, c->o.x, c->o.y, c);
 				if (t != NULL)
 					c->go_o = t->o.uuid;
 			}
