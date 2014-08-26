@@ -181,101 +181,112 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 	return NULL;
 }
 
-mine_t* findMine_chunk(chunk_t* c, float x, float y, kindOf_mine_t* t)
+/*
+Goes around the origin following an anti-clockwise direction. Returns
+0 when it completed the cycle.
+*/
+static char cycle(int* _x, int* _y)
 {
-	mine_t* ret = NULL;
-	float min_d = -1;
-	for (size_t i = 0; i < c->n_mines; i++)
+	int x = *_x;
+	int y = *_y;
+
+	if (x == 0 && y == 0)
 	{
-		mine_t* m = c->mines[i];
-		if (m->t != t)
-			continue;
-		float d = object_distance(&m->o, x, y);
-		if (d < min_d || min_d < 0)
+		return 0;
+	}
+	else if (x >= 0)
+	{
+		if (y >= 0)
 		{
-			ret = m;
-			min_d = d;
+			if (x > y)
+				y++;
+			else
+				x--;
 		}
-	}
-	return ret;
-}
-#define CHECK(I,J) do { \
-	if (!(0 <= (I) && (I) < w->chunk_rows && 0 <= (J) && (J) < w->chunk_cols)) \
-		continue; \
-	mine_t* m = findMine_chunk(CHUNK(w, I, J), x, y, t); \
-	if (m == NULL) \
-		continue; \
-	float d = object_distance(&m->o, x, y); \
-	if (d < min_d || min_d < 0) \
-	{ \
-		ret = m; \
-		min_d = d; \
-	}\
-} while(0)
-mine_t* findMine_radius(world_t* w, float x, float y, kindOf_mine_t* t, int i, int j, int radius)
-{
-	mine_t* ret = NULL;
-	float min_d = -1;
-	for (int a = -radius; a <= radius; a++)
-	{
-		CHECK(i-radius, j+a);
-		CHECK(i+radius, j+a);
-		CHECK(i+a, j-radius);
-		CHECK(i+a, j+radius);
-	}
-	return ret;
-}
-mine_t* world_findMine(world_t* w, float x, float y, kindOf_mine_t* t)
-{
-	int i = (y + w->o.h/2)/TILE_SIZE;
-	int j = (x + w->o.w/2)/TILE_SIZE;
-	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols))
-		return NULL;
-	int ch = w->chunks[0].rows;
-	int cw = w->chunks[0].cols;
-	i /= ch;
-	j /= cw;
-
-	mine_t* ret = NULL;
-	float min_d = -1;
-	for (int radius = 0; ret == NULL || 1.4142*min_d >= (radius-1)*ch*TILE_SIZE; radius++)
-	{
-		mine_t* m = findMine_radius(w, x, y, t, i, j, radius);
-		if (m == NULL)
-			continue;
-		float d = object_distance(&m->o, x, y);
-		if (d < min_d || min_d < 0)
+		else
 		{
-			ret = m;
-			min_d = d;
-		}
-	}
-	return ret;
-}
-
-building_t* world_findBuilding(world_t* w, float x, float y, kindOf_building_t* t)
-{
-	pool_t* p = &w->objects;
-	building_t* ret = NULL;
-	float min_d = -1;
-	for (size_t i = 0; i < p->n_objects; i++)
-	{
-		building_t* m = building_get(p, i);
-		if (m == NULL)
-			continue;
-
-		if (t == NULL || m->t == t)
-		{
-			float d = object_distance(&m->o, x, y);
-			if (min_d < 0 || d < min_d)
+			if (-y > x)
+				x++;
+			else
 			{
-				ret = m;
-				min_d = d;
+				y++;
+				if (y == 0)
+					return 0;
 			}
 		}
 	}
-	return ret;
+	else
+	{
+		if (y >= 0)
+		{
+			if (y > -x)
+				x--;
+			else
+				y--;
+		}
+		else
+		{
+			if (-x > -y)
+				y--;
+			else
+				x++;
+		}
+	}
+
+	*_y = y;
+	*_x = x;
+	return 1;
 }
+
+#define LOOKFOR(FNAME, TYPE, FILTER, ...) \
+TYPE##_t* FNAME(world_t* w, float x, float y, __VA_ARGS__) \
+{ \
+	int i = (y + w->o.h/2)/TILE_SIZE; \
+	int j = (x + w->o.w/2)/TILE_SIZE; \
+	if (!(0 <= i && i < w->rows && 0 <= j && j < w->cols)) \
+		return NULL; \
+	int ch = w->chunks[0].rows; \
+	int cw = w->chunks[0].cols; \
+	i /= ch; \
+	j /= cw; \
+ \
+	TYPE##_t* ret = NULL; \
+	float min_d = -1; \
+	float max_r = w->chunk_rows > w->chunk_cols ? w->chunk_rows : w->chunk_cols; \
+	for (int radius = 0; radius < max_r; radius++) \
+	{ \
+		int di = radius; \
+		int dj = 0; \
+		do \
+		{ \
+			int ti = i + di; \
+			int tj = j + dj; \
+			if (!(0 <= ti && ti < w->chunk_rows && 0 <= tj && tj < w->chunk_cols)) \
+				continue; \
+			chunk_t* c = CHUNK(w, i+di, j+dj); \
+			for (size_t i = 0; i < c->n_##TYPE##s; i++) \
+			{ \
+				TYPE##_t* obj = c->TYPE##s[i]; \
+				{ FILTER; } \
+				float d = object_distance(&obj->o, x, y); \
+				if (d < min_d || min_d < 0) \
+				{ \
+					ret = obj; \
+					min_d = d; \
+				} \
+			} \
+		} \
+		while (cycle(&di, &dj)); \
+		if (ret == NULL) \
+			continue; \
+		if (1.4142*min_d <= (radius-1)*ch*TILE_SIZE) \
+			break; \
+	} \
+	return ret; \
+}
+
+LOOKFOR(world_findMine,     mine,     if (obj->t != t) continue, kindOf_mine_t* t)
+LOOKFOR(world_findBuilding, building, if (obj->t != t) continue, kindOf_building_t* t)
 
 static char canBuild_aux(chunk_t* c, object_t* o);
 char world_canMine(world_t* w, float x, float y)
