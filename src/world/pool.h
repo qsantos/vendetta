@@ -28,6 +28,9 @@ struct pool
 	size_t n_objects;
 	size_t a_objects;
 	object_t** objects;
+
+	size_t n_indices;
+	ssize_t* indices;
 };
 
 void pool_init(pool_t* p);
@@ -36,6 +39,11 @@ void pool_exit(pool_t* p);
 object_t* pool_new(pool_t* p, uuid_t uuid, size_t size);
 object_t* pool_get(pool_t* p, uuid_t uuid);
 void      pool_del(pool_t* p, object_t* a);
+
+// internal
+void pool_push(pool_t* p, object_t* o);
+void pool_pop (pool_t* p);
+void pool_swap(pool_t* p, size_t a, size_t b);
 
 #include "projectile.h"
 #include "character.h"
