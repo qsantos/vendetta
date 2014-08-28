@@ -34,12 +34,15 @@ void swbuilding_exit(swbuilding_t* w)
 	subwindow_exit(&w->w);
 }
 
-size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr)
+size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr, char buy)
 {
 	size_t cur = 0;
 
 	// result components
-	cur += snprintf(buffer+cur, n-cur, "Fabriquer ");
+	if (buy)
+		cur += snprintf(buffer+cur, n-cur, "Acheter ");
+	else
+		cur += snprintf(buffer+cur, n-cur, "Fabriquer ");
 	for (int i = 0; i < tr->n_res; i++)
 	{
 		component_t* c = &tr->res[i];
@@ -51,17 +54,19 @@ size_t swbuilding_tooltip(char* buffer, size_t n, universe_t* u, transform_t* tr
 
 		if (c->amount != 1)
 			cur += snprintf(buffer+cur, n-cur, " (×%.0f)", floor(c->amount));
-		cur += snprintf(buffer+cur, n-cur, "\n\n");
 	}
 
 	// required components
-	if (tr->n_req != 0)
-		cur += snprintf(buffer+cur, n-cur, "Requiert");
-	for (int i = 0; i < tr->n_req; i++)
+	if (!buy)
 	{
-		component_t* c = &tr->req[i];
-		char* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
-		cur += snprintf(buffer+cur, n-cur, "\n%.1f %s", floor(c->amount), name);
+		if (tr->n_req != 0)
+			cur += snprintf(buffer+cur, n-cur, "\n\nRequiert");
+		for (int i = 0; i < tr->n_req; i++)
+		{
+			component_t* c = &tr->req[i];
+			char* name = c->is_item ? u->items[c->id].name: u->materials[c->id].name;
+			cur += snprintf(buffer+cur, n-cur, "\n%.1f %s", floor(c->amount), name);
+		}
 	}
 
 	return cur;
@@ -250,7 +255,8 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g)
 	char buffer[1024];
 	building_t* b = building_get(&g->w->objects, g->player->inBuilding);
 	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
-	swbuilding_tooltip(buffer, 1024, g->u, tr);
+	char buy = g->player->o.uuid != b->owner;
+	swbuilding_tooltip(buffer, 1024, g->u, tr, buy);
 	draw_tooltip(g->g, g->a, buffer);
 	return 2;
 }
