@@ -40,16 +40,18 @@ void world_exit(world_t* w)
 	pool_t* p = &w->objects;
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		object_t* o = pool_get(&w->objects, i);
-		if (o == NULL)
-			continue;
+		object_t* o = p->objects[i];
 
-		if (o->t == O_CHARACTER)
-			character_exit((character_t*) o);
-		else if (o->t == O_MINE)
-			mine_exit((mine_t*) o);
-		else if (o->t == O_BUILDING)
-			building_exit((building_t*) o);
+		switch (o->t)
+		{
+			case O_NONE:                                           break;
+			case O_PROJECTILE: projectile_exit((projectile_t*) o); break;
+			case O_BUILDING:   building_exit  ((building_t*) o);   break;
+			case O_MINE:       mine_exit      ((mine_t*) o);       break;
+			case O_CHARACTER:  character_exit ((character_t*) o);  break;
+			case O_CHUNK:      chunk_exit     ((chunk_t*) o);      break;
+			case O_WORLD:                                          break;
+		}
 	}
 	pool_exit(p);
 
@@ -121,21 +123,19 @@ void world_doRound(world_t* w, float duration)
 	pool_t* p = &w->objects;
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = character_get(p, i);
-		if (c != NULL)
-			character_doRound(c, duration);
+		object_t* o = p->objects[i];
+		if (o->t == O_CHARACTER)
+			character_doRound((character_t*) o, duration);
 	}
 
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		projectile_t* q = projectile_get(p, i);
-		if (q == NULL)
-			continue;
-
-		if (projectile_doRound(q, duration))
-			continue;
-
-		pool_del(p, &q->o);
+		object_t* o = p->objects[i];
+		if (o->t == O_PROJECTILE)
+		{
+			if (!projectile_doRound((projectile_t*) o, duration))
+				pool_del(p, o);
+		}
 	}
 	pool_upd(p);
 }
@@ -145,17 +145,17 @@ object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
 	pool_t* p = &w->objects;
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = character_get(p, i);
-		if (c == NULL)
+		object_t* o = p->objects[i];
+		if (o->t != O_CHARACTER || o == ignore)
 			continue;
 
-		if (&c->o == ignore)
-			continue;
+		character_t* c = (character_t*) o;
 		building_t* b = character_get_inBuilding(c);
 		if (b != NULL || !c->alive)
 			continue;
-		if (object_isAt(&c->o, x, y))
-			return &c->o;
+
+		if (object_isAt(o, x, y))
+			return o;
 	}
 
 	chunk_t* c = world_chunkXY(w, x, y);
@@ -299,12 +299,14 @@ character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
 	float min_d = -1;
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* t = character_get(p, i);
-		if (t == NULL)
+		object_t* o = p->objects[i];
+		if (o->t != O_CHARACTER)
 			continue;
 
+		character_t* t = (character_t*) o;
 		if (t == c)
 			continue;
+
 		building_t* b = character_get_inBuilding(t);
 		if (b != NULL || !t->alive)
 			continue;

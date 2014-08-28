@@ -69,9 +69,10 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 	pool_t* p = &g->w->objects;
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = character_get(&g->w->objects, i);
-		if (c == NULL)
+		object_t* o = p->objects[i];
+		if (o->t != O_CHARACTER)
 			continue;
+		character_t* c = (character_t*) o;
 
 		if (g->player == NULL)
 			g->player = c;

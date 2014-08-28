@@ -246,13 +246,13 @@ void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w, int
 	s.x += 64;
 	s.y += 64;
 
-	object_t o = {0, 0, O_NONE, x.x, x.y+s.y/2, s.x, s.y};
+	object_t view = {0, 0, O_NONE, x.x, x.y+s.y/2, s.x, s.y};
 
 	// draw chunks (fist lands, then mines, then buildings)
 	for (size_t i = 0; i < w->n_chunks; i++)
 	{
 		chunk_t* c = &w->chunks[i];
-		if (object_overlaps(&c->o, &o))
+		if (object_overlaps(&c->o, &view))
 		{
 			draw_chunkLands(g, a, player, c, step);
 			for (ssize_t i = c->n_mines-1; i >= 0; i--)
@@ -263,18 +263,18 @@ void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w, int
 	}
 
 	pool_t* p = &w->objects;
-	for (ssize_t i = p->n_objects-1; i >= 0; i--)
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = character_get(p, i);
-		if (c != NULL && object_overlaps(&c->o, &o))
-			draw_character(g, a, player, c);
+		object_t* o = p->objects[i];
+		if (o->t == O_CHARACTER && object_overlaps(o, &view))
+			draw_character(g, a, player, (character_t*) o);
 	}
 
-	for (ssize_t i = p->n_objects-1; i >= 0; i--)
+	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		projectile_t* q = projectile_get(p, i);
-		if (q != NULL && object_overlaps(&q->o, &o))
-			draw_projectile(g, a, player, q);
+		object_t* o = p->objects[i];
+		if (o->t == O_PROJECTILE && object_overlaps(o, &view))
+			draw_projectile(g, a, player, (projectile_t*) o);
 	}
 
 	for (ssize_t i = w->events.n-1; i >= 0; i--)
