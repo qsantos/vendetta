@@ -144,7 +144,7 @@ void world_load(world_t* w, FILE* f)
 	CLINE("%u characters\n", &n_characters);
 	for (size_t i = 0; i < n_characters; i++)
 	{
-		object_t o;
+		object_t o = {0, 0, O_CHARACTER, 0, 0, 0, 0};
 		int t;
 		int ai;
 		int alive;
@@ -153,14 +153,12 @@ void world_load(world_t* w, FILE* f)
 		uuid_t go_o;
 		uuid_t hasBuilding;
 		uuid_t inBuilding;
-		o.t = O_CHARACTER;
 		CLINE("%li %f %f %f %f %i %i %i %f %f %li %li %li\n",
 			&o.uuid, &o.x, &o.y, &o.w, &o.h,
 			&t, &ai,
 			&alive, &go_x, &go_y, &go_o,
 			&hasBuilding, &inBuilding);
 
-		// uuid = i
 		character_t* c = character_new(p, o.uuid);
 		character_init(c, w, &u->characters[t]);
 		c->o = o;
@@ -194,14 +192,13 @@ void world_load(world_t* w, FILE* f)
 	CLINE("%u buildings\n", &n_buildings);
 	for (size_t i = 0; i < n_buildings; i++)
 	{
-		object_t o;
+		object_t o = {0, 0, O_BUILDING, 0, 0, 0, 0};
 		int t;
 		uuid_t owner;
 		float build_progress;
 		float life;
 		float work_progress;
 		unsigned work_n;
-		o.t = O_BUILDING;
 		CLINE("%li %f %f %f %f %i %li %f %f %f %u\n",
 			&o.uuid, &o.x, &o.y, &o.w, &o.h,
 			&t,

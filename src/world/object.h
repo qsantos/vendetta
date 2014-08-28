@@ -31,9 +31,9 @@ typedef enum
 {
 	O_NONE,
 	O_PROJECTILE,
-	O_CHARACTER,
-	O_MINE,
 	O_BUILDING,
+	O_MINE,
+	O_CHARACTER,
 	O_CHUNK,
 	O_WORLD,
 } otype_t;
@@ -45,9 +45,12 @@ typedef signed long   uuid_t;
 
 struct object
 {
-	otype_t t;
+	// object management
 	uuid_t uuid;
+	char dead;
 
+	// properties
+	otype_t t;
 	float x;
 	float y;
 	float w;

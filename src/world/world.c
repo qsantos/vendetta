@@ -137,6 +137,7 @@ void world_doRound(world_t* w, float duration)
 
 		pool_del(p, &q->o);
 	}
+	pool_upd(p);
 }
 
 object_t* world_objectAt(world_t* w, float x, float y, object_t* ignore)
@@ -320,7 +321,7 @@ character_t* world_findEnnemyCharacter(world_t* w, character_t* c)
 static char canBuild_aux(chunk_t* c, object_t* o);
 char world_canMine(world_t* w, float x, float y)
 {
-	object_t o = {O_BUILDING, 0, x, y, 32, 32};
+	object_t o = {0, 0, O_BUILDING, x, y, 32, 32};
 	if (!object_contains(&w->o, &o))
 		return 0;
 
@@ -374,7 +375,7 @@ static char canBuild_aux(chunk_t* c, object_t* o)
 }
 char world_canBuild(world_t* w, float x, float y, kindOf_building_t* t)
 {
-	object_t o = {O_BUILDING, 0, x, y, t->width, t->height};
+	object_t o = {0, 0, O_BUILDING, x, y, t->width, t->height};
 	if (!object_contains(&w->o, &o))
 		return 0;
 
