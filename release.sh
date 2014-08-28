@@ -44,3 +44,5 @@ mv deps/win64/*.dll .
 mv *.dll deps/win64/
 rm $release
 mv vendetta.exe vendetta
+
+make -C src destroy
