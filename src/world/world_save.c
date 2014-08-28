@@ -44,18 +44,22 @@ void world_save(world_t* w, FILE* f)
 	fprintf(f, "seed = %#x\n", w->seed);
 	fprintf(f, "%ix%i\n", w->rows, w->cols);
 
-	// characters
 	pool_t* p = &w->objects;
+
+	// character count
 	size_t n_characters = 0;
 	for (size_t i = 0; i < p->n_objects; i++)
-		if (character_get(p, i) != NULL)
+		if (p->objects[i]->t == O_CHARACTER)
 			n_characters++;
 	fprintf(f, "%u characters\n", (unsigned) n_characters);
+
+	// characters
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		character_t* c = character_get(p, i);
-		if (c == NULL)
+		object_t* o = p->objects[i];
+		if (o->t != O_CHARACTER)
 			continue;
+		character_t* c = (character_t*) o;
 
 		int t = c->t - u->characters;
 		int ai = c->ai == NULL ? -1 : c->ai - u->bots;
@@ -84,17 +88,20 @@ void world_save(world_t* w, FILE* f)
 		fprintf(f, "\n");
 	}
 
-	// buildings
+	// count buildings
 	size_t n_buildings = 0;
 	for (size_t i = 0; i < p->n_objects; i++)
-		if (building_get(p, i) != NULL)
+		if (p->objects[i]->t == O_BUILDING)
 			n_buildings++;
 	fprintf(f, "%u buildings\n", (unsigned) n_buildings);
+
+	// buildings
 	for (size_t i = 0; i < p->n_objects; i++)
 	{
-		building_t* b = building_get(p, i);
-		if (b == NULL)
+		object_t* o = p->objects[i];
+		if (o->t != O_BUILDING)
 			continue;
+		building_t* b = (building_t*) o;
 
 		int t = b->t - u->buildings;
 
