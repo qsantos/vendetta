@@ -153,6 +153,11 @@ void character_doWork(character_t* c, object_t* o, float duration)
 		work = transform_apply(tr, &c->inventory, work);
 		character_train(c, skill, work);
 	}
+	else if (o->t == O_CHARACTER)
+	{
+		character_t* t = (character_t*) o;
+		c->inBuilding = t->inBuilding;
+	}
 	else if (o->t == O_BUILDING)
 	{
 		building_t* b = (building_t*) o;

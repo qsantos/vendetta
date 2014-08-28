@@ -305,7 +305,10 @@ int overlay_cursor(game_t* g)
 			{
 				character_t* c = (character_t*) o;
 				if (c != g->player)
-					cursor = 9;
+				{
+					if (sfKeyboard_isKeyPressed(sfKeyLControl))
+						cursor = 9;
+				}
 
 				if (c->ai != NULL)
 				{
