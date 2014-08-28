@@ -418,23 +418,32 @@ size_t character_currentAction(character_t* c, char* buffer, size_t n)
 	{
 		character_t* t = (character_t*) o;
 		const char* name = t->ai == NULL ? "ennemi" : t->ai->name;
-		if (t != c)
+		if (t == c)
+			cur += snprintf(buffer+cur, n-cur, "S'admirer");
+		else if (c->attack)
 			cur += snprintf(buffer+cur, n-cur, "Attaquer %s", name);
 		else
-			cur += snprintf(buffer+cur, n-cur, "S'admirer");
+			cur += snprintf(buffer+cur, n-cur, "Suivre %s", name);
 	}
 	else if (o->t == O_BUILDING)
 	{
 		building_t* b = (building_t*) o;
 		kindOf_building_t* t = b->t;
 		const char* name = t->name;
-		if (b->owner != c->o.uuid)
+		if (c->attack)
 		{
 			cur += snprintf(buffer+cur, n-cur, "Attaquer %s", name);
 		}
 		else if (moving)
 		{
 			cur += snprintf(buffer+cur, n-cur, "Se diriger vers %s", name);
+		}
+		else if (b->owner != c->o.uuid)
+		{
+			if (b->open)
+				cur += snprintf(buffer+cur, n-cur, "Inspecter la marchandise");
+			else
+				cur += snprintf(buffer+cur, n-cur, "Attendre à l'abri des intempéries");
 		}
 		else if (b->build_progress != 1)
 		{
