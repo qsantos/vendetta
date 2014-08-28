@@ -310,6 +310,7 @@ char ov_build_catch(ov_build_t* o, game_t* g, int t)
 		pos.y += b->height / 2;
 		if (character_buildAt(g->player, b, pos.x, pos.y))
 			o->selected = NULL;
+		pool_upd(&g->w->objects); // home may have been removed
 		return 1;
 	}
 

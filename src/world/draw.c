@@ -246,7 +246,7 @@ void draw_world(graphics_t* g, assets_t* a, character_t* player, world_t* w, int
 	s.x += 64;
 	s.y += 64;
 
-	object_t o = {O_NONE, 0, x.x, x.y+s.y/2, s.x, s.y};
+	object_t o = {0, 0, O_NONE, x.x, x.y+s.y/2, s.x, s.y};
 
 	// draw chunks (fist lands, then mines, then buildings)
 	for (size_t i = 0; i < w->n_chunks; i++)

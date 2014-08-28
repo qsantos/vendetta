@@ -51,6 +51,7 @@ object_t* pool_new(pool_t* p, uuid_t uuid, size_t size)
 
 	object_t* o = (object_t*) CALLOC(char, size);
 	o->uuid = uuid >= 0 ? uuid : (uuid_t) p->n_indices;
+	o->dead = 0;
 	pool_push(p, o);
 	return o;
 }
@@ -73,14 +74,29 @@ object_t* pool_get(pool_t* p, uuid_t uuid)
 
 void pool_del(pool_t* p, object_t* a)
 {
+	(void) p;
+
 	if (a == NULL)
 		return;
 
-	size_t idx = p->indices[a->uuid];
-	pool_swap(p, idx, p->n_objects-1);
-	pool_pop(p);
+	a->dead = 1;
+}
 
-	free(a);
+void pool_upd(pool_t* p)
+{
+	size_t idx = 0;
+	while (idx < p->n_objects)
+	{
+		object_t* o = p->objects[idx];
+		if (o->dead)
+		{
+			pool_swap(p, idx, p->n_objects-1);
+			pool_pop(p);
+			free(o);
+		}
+		else
+			idx++;
+	}
 }
 
 void pool_push(pool_t* p, object_t* o)

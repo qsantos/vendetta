@@ -183,6 +183,7 @@ void game_loop(game_t* g)
 				else if (k == sfKeyDelete)
 				{
 					character_delHome(c);
+					pool_upd(&g->w->objects); // actually deletes
 				}
 				else if (k == sfKeyB)
 				{

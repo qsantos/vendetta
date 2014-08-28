@@ -39,6 +39,7 @@ void pool_exit(pool_t* p);
 object_t* pool_new(pool_t* p, uuid_t uuid, size_t size);
 object_t* pool_get(pool_t* p, uuid_t uuid);
 void      pool_del(pool_t* p, object_t* a);
+void      pool_upd(pool_t* p);
 
 // internal
 void pool_push(pool_t* p, object_t* o);
