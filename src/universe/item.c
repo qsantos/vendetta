@@ -64,7 +64,7 @@ size_t kindOf_item_info(kindOf_item_t* it, char* buffer, size_t n, universe_t* u
 {
 	size_t cur = 0;
 
-	cur += snprintf(buffer+cur, n-cur, "%s (%s)", it->name, u->skills[it->skill].name);
+	cur += snprintf(buffer+cur, n-cur, "%s", it->name);
 
 	if (it->range != 0)
 		cur += snprintf(buffer+cur, n-cur, "\nPortée : %.1f", it->range);
