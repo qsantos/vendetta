@@ -94,6 +94,7 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 	}
 	if (s->quickstart)
 	{
+		g->player->inventory.money = 10000;
 		float* m = g->player->inventory.materials;
 		for (size_t i = 0; i < g->u->n_materials; i++)
 		{
