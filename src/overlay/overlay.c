@@ -375,7 +375,7 @@ int overlay_catch(game_t* g, int t)
 			}
 			else if (i == 7)
 			{
-				game_save_n(g, "game.save");
+				game_save(g, "game.save");
 			}
 		}
 		else if (w == 1) // orders

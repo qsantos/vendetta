@@ -24,10 +24,11 @@
 
 #include "mem.h"
 #include "file.h"
-#include "world/world.h"
-#include "world/draw.h"
-#include "overlay/overlay.h"
 #include "widgets.h"
+#include "world/draw.h"
+#include "world/save.h"
+#include "world/load.h"
+#include "overlay/overlay.h"
 
 void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 {
@@ -39,6 +40,9 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 	g->u = CALLOC(universe_t, 1);
 	g->w = CALLOC(   world_t, 1);
 
+	for (size_t i = 0; i < N_STATUSES; i++)
+		g->autoEat[i] = 0;
+
 	 overlay_init(g->o, g);
 	universe_init(g->u, g);
 	   world_init(g->w, g);
@@ -47,7 +51,7 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 
 	if (load)
 	{
-		game_load_n(g, "game.save");
+		game_load(g, "game.save");
 	}
 	else
 	{
@@ -55,9 +59,6 @@ void game_init(game_t* g, settings_t* s, graphics_t* gr, assets_t* a, char load)
 		g->w->cols = s->map_width;
 		world_genmap(g->w, s->seed);
 		world_start(g->w);
-
-		for (size_t i = 0; i < N_STATUSES; i++)
-			g->autoEat[i] = 0;
 	}
 
 	sfVector2u size = sfRenderWindow_getSize(g->g->render);
@@ -221,7 +222,7 @@ void game_loop(game_t* g)
 				}
 				else if (k == sfKeyS)
 				{
-					game_save_n(g, "game.save");
+					game_save(g, "game.save");
 				}
 				else if (k == sfKeySpace)
 				{
@@ -397,33 +398,7 @@ void game_loop(game_t* g)
 	sfClock_destroy(clock);
 }
 
-void game_save(game_t* g, FILE* f)
-{
-	for (size_t i = 0; i < N_STATUSES; i++)
-		fprintf(f, "%i/", g->autoEat[i]);
-	fprintf(f, "\n");
-	world_save(g->w, f);
-}
-
-#define CLINE(...) do { \
-	if (fscanf(f, __VA_ARGS__) < 0){ \
-		fprintf(stderr, "Missing line in save\n"); \
-		exit(1); \
-	} \
-	} while (0);
-void game_load(game_t* g, FILE* f)
-{
-	for (size_t i = 0; i < N_STATUSES; i++)
-	{
-		int v;
-		CLINE("%i/", &v);
-		g->autoEat[i] = v;
-	}
-	CLINE("\n");
-	world_load(g->w, f);
-}
-
-void game_save_n(game_t* g, const char* filename)
+void game_save(game_t* g, const char* filename)
 {
 	FILE* f = fopen(filename, "w");
 	if (f == NULL)
@@ -431,13 +406,23 @@ void game_save_n(game_t* g, const char* filename)
 		fprintf(stderr, "Could not open '%s' for writing\n", filename);
 		exit(1);
 	}
-	game_save(g, f);
+
+	cfg_t* root = cfg_new();
+
+	cfg_t* autoEat = cfg_new();
+	save_listb(autoEat, g->autoEat, N_STATUSES);
+	cfg_put_group(root, "autoEat", autoEat);
+
+	save_world(root, g->w);
+	cfg_write_json(root, f);
+	cfg_del(root);
+
 	fclose(f);
 
 	overlay_message(g, "Game saved", 2);
 }
 
-void game_load_n(game_t* g, const char* filename)
+void game_load(game_t* g, const char* filename)
 {
 	FILE* f = fopen(filename, "r");
 	if (f == NULL)
@@ -445,7 +430,15 @@ void game_load_n(game_t* g, const char* filename)
 		fprintf(stderr, "Could not load game\n");
 		exit(1);
 	}
-	game_load(g, f);
+
+	cfg_t* root = cfg_load_json(f);
+
+	cfg_t* autoEat = cfg_get_group(root, "autoEat");
+	load_listb(autoEat, g->autoEat, N_STATUSES);
+
+	load_world(root, g->w);
+	cfg_del(root);
+
 	fclose(f);
 
 	overlay_message(g, "Game loaded", 2);
