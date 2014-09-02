@@ -23,9 +23,11 @@
 #include <stdio.h>
 #include <string.h>
 
-// those functions are in the GNU extension and I like portability
-
+// those functions are in gcc's GNU extension but I like portability
 char*   strdup (const char* s);
 ssize_t getline(char **lineptr, size_t *n, FILE *stream);
+
+// similar to getline(), but for tokens
+ssize_t gettoken(char **tokenptr, size_t *n, FILE *stream);
 
 #endif
