@@ -115,6 +115,8 @@
 <Unit filename="world/event.h" />
 <Unit filename="world/inventory.c" />
 <Unit filename="world/inventory.h" />
+<Unit filename="world/load.c" />
+<Unit filename="world/load.h" />
 <Unit filename="world/mine.c" />
 <Unit filename="world/mine.h" />
 <Unit filename="world/object.c" />
