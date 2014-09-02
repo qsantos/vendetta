@@ -55,7 +55,7 @@ void load_listf_dic(cfg_t* cfg, float* l, size_t n)
 
 		if (idx >= n)
 		{
-			fprintf(stderr, "Invalid index %u (max %zu) with value (%.9g)\n", idx, n, v);
+			fprintf(stderr, "Invalid index %u (max %u) with value (%.9g)\n", idx, (unsigned) n, v);
 		}
 
 		l[idx] = v;

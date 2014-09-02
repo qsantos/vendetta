@@ -35,7 +35,7 @@ void save_listf_dic(cfg_t* cfg, float* l, size_t n, float default_value)
 		if (l[i] != default_value)
 		{
 			char buffer[32];
-			snprintf(buffer, 32, "%zu", i);
+			snprintf(buffer, 32, "%u", (unsigned) i);
 			cfg_put_float(cfg, buffer, l[i]);
 		}
 	}

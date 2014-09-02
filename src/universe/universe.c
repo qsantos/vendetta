@@ -65,14 +65,14 @@ void universe_init(universe_t* u, game_t* g)
 	);
 
 	if (g->s->verbosity >= 1)
-		fprintf(stderr, "Loaded %u bots\n", (unsigned) u->n_bots);
+		fprintf(stderr, "Loaded% 4i bots\n", (int) u->n_bots);
 
 	// load characters
 	u->n_characters = 0;
 	u->characters = NULL;
 	rec_find(u, g, "data/characters/");
 	if (g->s->verbosity >= 1)
-		fprintf(stderr, "Loaded %u characters\n", (unsigned) u->n_characters);
+		fprintf(stderr, "Loaded% 4i characters\n", (int) u->n_characters);
 
 	u->tmp_materials = NULL;
 	u->tmp_items = NULL;
@@ -111,12 +111,12 @@ void universe_init(universe_t* u, game_t* g)
 
 	if (g->s->verbosity >= 1)
 	{
-		fprintf(stderr, "Loaded %u event\n",       (unsigned) u->n_events);
-		fprintf(stderr, "Loaded %u materials\n",   (unsigned) u->n_materials);
-		fprintf(stderr, "Loaded %u mines\n",       (unsigned) u->n_mines);
-		fprintf(stderr, "Loaded %u items\n",       (unsigned) u->n_items);
-		fprintf(stderr, "Loaded %u item skills\n", (unsigned) u->n_iskills);
-		fprintf(stderr, "Loaded %u buildings\n",   (unsigned) u->n_buildings);
+		fprintf(stderr, "Loaded% 4i kinds of event\n",      (int) u->n_events);
+		fprintf(stderr, "Loaded% 4i kinds of material\n",   (int) u->n_materials);
+		fprintf(stderr, "Loaded% 4i kinds of mine\n",       (int) u->n_mines);
+		fprintf(stderr, "Loaded% 4i kinds of item\n",       (int) u->n_items);
+		fprintf(stderr, "Loaded% 4i kinds of item skill\n", (int) u->n_iskills);
+		fprintf(stderr, "Loaded% 4i kinds of building\n",   (int) u->n_buildings);
 	}
 
 	cfg_ini_exit(&ini);
