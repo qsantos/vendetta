@@ -26,6 +26,9 @@
 
 void draw_cursor(graphics_t* gr, assets_t* a, int t)
 {
+	if (t < 0)
+		return;
+
 	sfVector2i imouse = sfMouse_getPositionRenderWindow(gr->render);
 	sfVector2f mouse = {imouse.x, imouse.y};
 

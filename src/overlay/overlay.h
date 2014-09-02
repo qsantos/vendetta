@@ -19,6 +19,29 @@
 #ifndef O_OVERLAY_H
 #define O_OVERLAY_H
 
+typedef enum
+{
+	CURSOR_IGNORE   = -2,
+	CURSOR_HIDE     = -1,
+	CURSOR_DEFAULT  =  0,
+	CURSOR_GATHER   =  1,
+	CURSOR_MAKE     =  2,
+	CURSOR_NOBUILD  =  3,
+	CURSOR_BUILD    =  4,
+	CURSOR_HOME     =  5,
+	CURSOR_CASTLE   =  6,
+	CURSOR_ENTER    =  7,
+	CURSOR_ENTER2   =  8,
+	CURSOR_ATTACK   =  9,
+	CURSOR_DEFEND   = 10,
+	CURSOR_EAT      = 11,
+	CURSOR_EQUIP    = 12,
+	CURSOR_TAKE     = 13,
+	CURSOR_RESURECT = 14,
+	CURSOR_LOOT     = 15,
+	CURSOR_WRITE    = 16,
+} cursor_t;
+
 typedef struct overlay overlay_t;
 
 #include "swbuilding.h"

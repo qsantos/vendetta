@@ -239,7 +239,7 @@ int overlay_draw(game_t* g, char do_draw)
 
 int overlay_cursor(game_t* g)
 {
-	int cursor = -1;
+	int cursor = CURSOR_IGNORE;
 	int i = overlay_draw(g, 0);
 	if (i >= 0)
 	{
@@ -289,12 +289,12 @@ int overlay_cursor(game_t* g)
 		{
 		}
 	}
-	else if ((cursor =    ov_build_cursor(&g->o->build,       g)) >= 0);
-	else if ((cursor =  swbuilding_cursor(&g->o->swbuilding,  g)) >= 0);
-	else if ((cursor =     switems_cursor(&g->o->switems,     g)) >= 0);
-	else if ((cursor = swmaterials_cursor(&g->o->swmaterials, g)) >= 0);
-	else if ((cursor =    swskills_cursor(&g->o->swskills,    g)) >= 0);
-	else if ((cursor = swequipment_cursor(&g->o->swequipment, g)) >= 0);
+	else if ((cursor =    ov_build_cursor(&g->o->build,       g)) != CURSOR_IGNORE);
+	else if ((cursor =  swbuilding_cursor(&g->o->swbuilding,  g)) != CURSOR_IGNORE);
+	else if ((cursor =     switems_cursor(&g->o->switems,     g)) != CURSOR_IGNORE);
+	else if ((cursor = swmaterials_cursor(&g->o->swmaterials, g)) != CURSOR_IGNORE);
+	else if ((cursor =    swskills_cursor(&g->o->swskills,    g)) != CURSOR_IGNORE);
+	else if ((cursor = swequipment_cursor(&g->o->swequipment, g)) != CURSOR_IGNORE);
 	else
 	{
 		sfVector2f pos = world_mouse(g);
@@ -307,7 +307,7 @@ int overlay_cursor(game_t* g)
 				if (c != g->player)
 				{
 					if (sfKeyboard_isKeyPressed(sfKeyLControl))
-						cursor = 9;
+						cursor = CURSOR_ATTACK;
 				}
 
 				if (c->ai != NULL)
@@ -317,7 +317,7 @@ int overlay_cursor(game_t* g)
 			}
 			else if (o->t == O_MINE)
 			{
-				cursor = 1;
+				cursor = CURSOR_GATHER;
 
 				mine_t* m = (mine_t*) o;
 				transform_t* tr = &m->t->harvest;
@@ -341,21 +341,21 @@ int overlay_cursor(game_t* g)
 				if (b->owner != g->player->o.uuid)
 				{
 					if (sfKeyboard_isKeyPressed(sfKeyLControl))
-						cursor = 9;
+						cursor = CURSOR_ATTACK;
 					else if (b->build_progress == 1)
-						cursor = 7;
+						cursor = CURSOR_ENTER;
 				}
 				else if (b->build_progress == 1)
-					cursor = 7;
+					cursor = CURSOR_ENTER;
 				else
-					cursor = 4;
+					cursor = CURSOR_BUILD;
 
 				draw_tooltip(g->g, g->a, b->t->name);
 			}
 		}
 	}
 
-	return cursor < 0 ? 0 : cursor;
+	return cursor == CURSOR_IGNORE ? CURSOR_DEFAULT : cursor;
 }
 
 int overlay_catch(game_t* g, int t)

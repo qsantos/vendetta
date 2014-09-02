@@ -229,7 +229,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g)
 
 	kindOf_building_t* b = o->selected;
 	if (b == NULL)
-		return caught ? 4 : -1;
+		return caught ? CURSOR_BUILD : CURSOR_IGNORE;
 
 	sfRenderWindow_setView(g->g->render, g->g->world_view);
 
@@ -263,7 +263,7 @@ int ov_build_cursor(ov_build_t* o, game_t* g)
 	sfRenderWindow_drawRectangleShape(g->g->render, shape, NULL);
 
 	sfRenderWindow_setView(g->g->render, g->g->overlay_view);
-	return 4;
+	return CURSOR_HIDE;
 }
 
 char ov_build_catch(ov_build_t* o, game_t* g, int t)

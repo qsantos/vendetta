@@ -94,9 +94,9 @@ int swskills_draw(swskills_t* w, game_t* g, char do_draw)
 int swskills_cursor(swskills_t* w, game_t* g)
 {
 	if (!subwindow_cursor(&w->w, g->g))
-		return -1;
+		return CURSOR_IGNORE;
 
-	return 0;
+	return CURSOR_DEFAULT;
 }
 
 char swskills_catch(swskills_t* w, game_t* g, int t)

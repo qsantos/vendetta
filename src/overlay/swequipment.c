@@ -126,13 +126,13 @@ int swequipment_draw(swequipment_t* w, game_t* g, char do_draw)
 int swequipment_cursor(swequipment_t* w, game_t* g)
 {
 	if (!subwindow_cursor(&w->w, g->g))
-		return -1;
+		return CURSOR_IGNORE;
 
 	int i = swequipment_draw(w, g, 0);
 	if (i < 0)
-		return 0;
+		return CURSOR_DEFAULT;
 
-	return 13;
+	return CURSOR_EQUIP;
 }
 
 char swequipment_catch(swequipment_t* w, game_t* g, int t)

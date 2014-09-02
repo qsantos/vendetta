@@ -354,14 +354,12 @@ void game_loop(game_t* g)
 		sfView_setCenter(g->g->world_view, pos);
 		sfListener_setPosition((sfVector3f){pos.x, 0, pos.y});
 
-		// draw display
-		sfRenderWindow_setView(g->g->render, g->g->world_view);
-		draw_world(g->g, g->a, c, g->w, floor(step));
-		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
-
-		overlay_draw(g, 1);
-		int t = overlay_cursor(g);
-		draw_cursor(g->g, g->a, t);
+		// draw
+		sfRenderWindow_setView(g->g->render, g->g->world_view);   // world view
+		draw_world(g->g, g->a, c, g->w, floor(step));             // world
+		sfRenderWindow_setView(g->g->render, g->g->overlay_view); // overlay view
+		overlay_draw(g, 1);                                       // overlay
+		draw_cursor(g->g, g->a, overlay_cursor(g));               // cursor
 		sfRenderWindow_display(g->g->render);
 
 		// check frame duration

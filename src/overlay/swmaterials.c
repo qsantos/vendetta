@@ -106,20 +106,20 @@ int swmaterials_draw(swmaterials_t* w, game_t* g, char do_draw)
 int swmaterials_cursor(swmaterials_t* w, game_t* g)
 {
 	if (!subwindow_cursor(&w->w, g->g))
-		return -1;
+		return CURSOR_IGNORE;
 
 	int i = swmaterials_draw(w, g, 0);
 	if (i < 0)
-		return 0;
+		return CURSOR_DEFAULT;
 
 	char buffer[1024];
 	kindOf_material_info(&g->u->materials[i], buffer, 1024, g->u);
 	draw_tooltip(g->g, g->a, buffer);
 
 	if (g->u->materials[i].edible)
-		return 11;
+		return CURSOR_EAT;
 
-	return 0;
+	return CURSOR_DEFAULT;
 }
 
 char swmaterials_catch(swmaterials_t* w, game_t* g, int t)
