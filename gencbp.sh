@@ -1,5 +1,6 @@
 #!/bin/bash
 cd $(dirname $0)
+cd src/
 cat << EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <CodeBlocks_project_file>
