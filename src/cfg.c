@@ -170,3 +170,88 @@ void cfg_write_json(cfg_t* cfg, FILE* f)
 	write_json_aux(cfg, f, 0);
 	fprintf(f, "\n");
 }
+
+cfg_t* load_json_aux(FILE* f, char** token, size_t* n, char is_array)
+{
+	cfg_t* cfg = cfg_new();
+	char* key = NULL;
+	while (gettoken(token, n, f) >= 0)
+	{
+		if (strcmp(*token, "}") == 0)
+		{
+			if (is_array)
+			{
+				fprintf(stderr, "Unmatched '['\n");
+				exit(1);
+			}
+			return cfg;
+		}
+		else if (strcmp(*token, "]") == 0)
+		{
+			if (!is_array)
+			{
+				fprintf(stderr, "Unmatched '{'\n");
+				exit(1);
+			}
+			return cfg;
+		}
+		else if (strcmp(*token, ":") == 0)
+		{
+		}
+		else if (strcmp(*token, "{") == 0)
+		{
+			cfg_t* group = load_json_aux(f, token, n, 0);
+			cfg_put_group(cfg, key, group);
+			free(key);
+			key = NULL;
+		}
+		else if (strcmp(*token, "[") == 0)
+		{
+			cfg_t* group = load_json_aux(f, token, n, 1);
+			cfg_put_group(cfg, key, group);
+			free(key);
+			key = NULL;
+		}
+		else if (strcmp(*token, ",") == 0)
+		{
+		}
+		else
+		{
+			if (is_array)
+			{
+				cfg_put_raw(cfg, NULL, *token, E_LITERAL);
+			}
+			else if (key == NULL)
+			{
+				key = *token;
+				key[strlen(key)-1] = 0;
+				key = strdup(key+1);
+			}
+			else
+			{
+				cfg_put_raw(cfg, key, *token, E_LITERAL);
+				free(key);
+				key = NULL;
+			}
+		}
+	}
+	fprintf(stderr, "Unexpected end of file\n");
+	exit(1);
+	return NULL;
+}
+cfg_t* cfg_load_json(FILE* f)
+{
+	char* token = NULL;
+	size_t n = 0;
+
+	gettoken(&token, &n, f);
+	if (strcmp(token, "{") != 0)
+	{
+		fprintf(stderr, "Unexpected token '%s'\n", token);
+		exit(1);
+	}
+
+	cfg_t* ret = load_json_aux(f, &token, &n, 0);
+	free(token);
+	return ret;
+}

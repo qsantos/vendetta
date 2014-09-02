@@ -66,4 +66,6 @@ cfg_t*   cfg_get_group(cfg_t* cfg, char* key);
 
 void cfg_write_json(cfg_t* cfg, FILE* f);
 
+cfg_t* cfg_load_json(FILE* f);
+
 #endif
