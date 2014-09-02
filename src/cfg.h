@@ -62,4 +62,8 @@ long int cfg_get_int  (cfg_t* cfg, char* key);
 float    cfg_get_float(cfg_t* cfg, char* key);
 cfg_t*   cfg_get_group(cfg_t* cfg, char* key);
 
+#include <stdio.h>
+
+void cfg_write_json(cfg_t* cfg, FILE* f);
+
 #endif

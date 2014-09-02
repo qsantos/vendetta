@@ -126,3 +126,47 @@ cfg_t* cfg_get_group(cfg_t* cfg, char* key)
 			return cfg->entries[i].d.group;
 	return NULL;
 }
+
+static void fprint_indent(FILE* f, int indent)
+{
+	for (int i = 0; i < indent; i++)
+		fprintf(f, "  ");
+}
+static void write_json_aux(cfg_t* cfg, FILE* f, int indent)
+{
+	char is_list = cfg->entries[0].key == NULL;
+	if (is_list)
+		fprintf(f, "[\n");
+	else
+		fprintf(f, "{\n");
+	for (size_t i = 0; i < cfg->n_entries; i++)
+	{
+		cfg_entry_t* e = &cfg->entries[i];
+
+		if (e->t == E_GROUP && e->d.group->n_entries == 0)
+			continue;
+
+		fprint_indent(f, indent+1);
+		if (e->key != NULL)
+			fprintf(f, "\"%s\": ", e->key);
+
+		switch (e->t)
+		{
+			case E_LITERAL: fprintf(f, "%s",     e->d.str);          break;
+			case E_STRING:  fprintf(f, "\"%s\"", e->d.str);          break;
+			case E_GROUP:   write_json_aux(e->d.group, f, indent+1); break;
+		}
+
+		fprintf(f, ", \n");
+	}
+	fprint_indent(f, indent);
+	if (is_list)
+		fprintf(f, "]");
+	else
+		fprintf(f, "}");
+}
+void cfg_write_json(cfg_t* cfg, FILE* f)
+{
+	write_json_aux(cfg, f, 0);
+	fprintf(f, "\n");
+}
