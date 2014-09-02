@@ -76,10 +76,6 @@ float character_armor        (character_t* c);
 void character_addStatus(character_t* c, int s, float q);
 void character_weary    (character_t* c, float f);
 void character_train    (character_t* c, int skill, float work);
-void character_workAt   (character_t* c, object_t* o, float duration);
-char character_attack   (character_t* c, object_t* o);
-void character_move     (character_t* c, float duration, float dx, float dy);
-void character_doRound  (character_t* c, float duration);
 
 char character_eat   (character_t* c, int material);
 void character_eatFor(character_t* c, int status);
@@ -96,5 +92,11 @@ building_t* character_get_inBuilding (character_t* c);
 building_t* character_get_hasBuilding(character_t* c);
 
 size_t character_currentAction(character_t* c, char* buffer, size_t n);
+
+// character_round.c
+void character_doWork  (character_t* c, object_t* o, float duration);
+char character_doAttack(character_t* c, object_t* o);
+void character_doMove  (character_t* c, float duration, float dx, float dy);
+void character_doRound (character_t* c, float duration);
 
 #endif

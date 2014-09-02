@@ -104,6 +104,7 @@
 <Unit filename="world/building.h" />
 <Unit filename="world/character.c" />
 <Unit filename="world/character.h" />
+<Unit filename="world/character_round.c" />
 <Unit filename="world/chunk.c" />
 <Unit filename="world/chunk.h" />
 <Unit filename="world/draw.c" />
