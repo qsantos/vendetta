@@ -24,6 +24,10 @@
 
 #include "../widgets.h"
 
+#define CATCH_MONEY (-3)
+#define CATCH_MAKE  (-2)
+#define CATCH_NONE  (-1)
+
 void swbuilding_init(swbuilding_t* w, game_t* g)
 {
 	subwindow_init(&w->w, g->g, "Bâtiment", 1024-SW_WIDTH*3, 0);
@@ -77,7 +81,7 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 	if (do_draw)
 	{
 		if (!subwindow_draw(&w->w, g->g, g->a))
-			return -1;
+			return CATCH_NONE;
 	}
 
 	sfVector2f mouse;
@@ -90,8 +94,8 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		if (do_draw)
 			sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
-		w->w.height = 0;
-		return -1;
+		w->w.height = 0; // get rid of the scroll bar
+		return CATCH_NONE;
 	}
 
 	kindOf_building_t* t = b->t;
@@ -125,7 +129,7 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		caught |= sfText_contains(text, mouse);
 
 	if (caught)
-		return -3;
+		return CATCH_MONEY;
 
 	y += 20;
 
@@ -178,7 +182,7 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		y += 32;
 
 		if (caught)
-			return -2;
+			return CATCH_MAKE;
 	}
 
 	y += 20;
@@ -240,7 +244,7 @@ int swbuilding_draw(swbuilding_t* w, game_t* g, char do_draw)
 		sfRenderWindow_setView(g->g->render, g->g->overlay_view);
 
 	w->w.height = y;
-	return -1;
+	return CATCH_NONE;
 }
 
 int swbuilding_cursor(swbuilding_t* w, game_t* g)
@@ -249,12 +253,12 @@ int swbuilding_cursor(swbuilding_t* w, game_t* g)
 		return CURSOR_IGNORE;
 
 	int i = swbuilding_draw(w, g, 0);
-	if (i == -1 || i == -3)
+	if (i == CATCH_NONE || i == CATCH_MONEY)
 		return CURSOR_DEFAULT;
 
 	char buffer[1024];
 	building_t* b = building_get(&g->w->objects, g->player->inBuilding);
-	transform_t* tr = i >= 0 ? &b->t->items[i] : &b->t->make;
+	transform_t* tr = i == CATCH_MAKE ? &b->t->make : &b->t->items[i];
 	char buy = g->player->o.uuid != b->owner;
 	swbuilding_tooltip(buffer, 1024, g->u, tr, buy);
 	draw_tooltip(g->g, g->a, buffer);
@@ -271,7 +275,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 		return subwindow_catch(&w->w, g->g, t);
 
 	int i = swbuilding_draw(w, g, 0);
-	if (i == -1)
+	if (i == CATCH_NONE)
 		return subwindow_catch(&w->w, g->g, t);
 
 	character_t* c = g->player;
@@ -279,7 +283,7 @@ char swbuilding_catch(swbuilding_t* w, game_t* g, int t)
 	char isOwner = b->owner == c->o.uuid;
 
 	// take money
-	if (i == -3)
+	if (i == CATCH_MONEY)
 	{
 		if (isOwner)
 			building_withdraw(b, &c->inventory);

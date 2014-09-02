@@ -26,6 +26,15 @@
 #include "../widgets.h"
 #include "../string.h"
 
+#define CATCH_NONE  (-1)
+#define CATCH_BUTTON (0)
+#define CATCH_ORDER  (1)
+#define CATCH_STATUS (2)
+#define CATCH_NTYPES (3)
+#define CATCH_CODE(TYPE, IDX) (CATCH_NTYPES*(IDX)+TYPE)
+#define CATCH_TYPE(CODE) ((CODE)%3)
+#define CATCH_IDX( CODE) ((CODE)/3)
+
 void overlay_init(overlay_t* o, game_t* g)
 {
 	   ov_build_init(&o->build);
@@ -96,7 +105,7 @@ static int overlay_buttons(game_t* g, char do_draw)
 		sfRenderWindow_drawSprite(g->g->render, sprite, NULL);
 	else if (sfSprite_contains(sprite, g->o->mouse))
 		return i;
-	return -1;
+	return CATCH_NONE;
 }
 static int overlay_orders(game_t* g, char do_draw)
 {
@@ -121,7 +130,7 @@ static int overlay_orders(game_t* g, char do_draw)
 
 		x += 28;
 	}
-	return -1;
+	return CATCH_NONE;
 }
 static int overlay_statuses(game_t* g, char do_draw)
 {
@@ -169,26 +178,26 @@ static int overlay_statuses(game_t* g, char do_draw)
 
 		y += 30;
 	}
-	return -1;
+	return CATCH_NONE;
 }
 int overlay_draw(game_t* g, char do_draw)
 {
 	g->o->mouse = overlay_mouse(g);
 
 	int i = overlay_buttons(g, do_draw);
-	if (i >= 0)
-		return 3*i+0;
+	if (i != CATCH_NONE)
+		return CATCH_CODE(CATCH_BUTTON, i);
 
 	i = overlay_orders(g, do_draw);
-	if (i >= 0)
-		return 3*i+1;
+	if (i != CATCH_NONE)
+		return CATCH_CODE(CATCH_ORDER, i);
 
 	i = overlay_statuses(g, do_draw);
-	if (i >= 0)
-		return 3*i+2;
+	if (i != CATCH_NONE)
+		return CATCH_CODE(CATCH_STATUS, i);
 
 	if (!do_draw)
-		return -1;
+		return CATCH_NONE;
 
 	   ov_build_draw(&g->o->build,       g, 1);
 	swequipment_draw(&g->o->swequipment, g, 1);
@@ -234,7 +243,7 @@ int overlay_draw(game_t* g, char do_draw)
 		sfRenderWindow_drawText(g->g->render, text, NULL);
 	}
 
-	return -1;
+	return CATCH_NONE;
 }
 
 int overlay_cursor(game_t* g)
@@ -362,63 +371,63 @@ int overlay_catch(game_t* g, int t)
 {
 	character_t* c = g->player;
 	int i = overlay_draw(g, 0);
-	if (i >= 0)
+	if (i != CATCH_NONE)
 	{
-		char w = i % 3;
-		i /= 3;
-		if (w == 0) // buttons
+		int type = CATCH_TYPE(i);
+		int idx  = CATCH_IDX (i);
+		if (type == CATCH_BUTTON)
 		{
-			if (0 <= i && i <= 5)
+			if (0 <= idx && idx <= 5)
 			{
 				if (t == sfMouseLeft)
-					g->o->sw[i]->visible ^= 1;
+					g->o->sw[idx]->visible ^= 1;
 			}
-			else if (i == 7)
+			else if (idx == 7)
 			{
 				game_save(g, "game.save");
 			}
 		}
-		else if (w == 1) // orders
+		else if (type == CATCH_ORDER)
 		{
-			if (i == 0)
+			if (idx == 0)
 			{
 			}
-			else if (i == 1)
+			else if (idx == 1)
 			{
 				building_t* b = building_get(&g->w->objects, c->hasBuilding);
 				if (b != NULL)
 					character_goto(c, b->o.uuid);
 			}
-			else if (i <= 9)
+			else if (idx <= 9)
 			{
-				i -= 2;
-				kindOf_mine_t* t = &g->u->mines[i];
+				idx -= 2;
+				kindOf_mine_t* t = &g->u->mines[idx];
 				mine_t* m = world_findMine(g->w, c->o.x, c->o.y, t);
 				if (m != NULL)
 					character_goto(c, m->o.uuid);
 			}
-			else if (i == 10)
+			else if (idx == 10)
 			{
 				character_t* t = world_findEnnemyCharacter(g->w, c);
 				if (t != NULL)
 					character_attack(c, t->o.uuid);
 			}
-			else if (i == 11)
+			else if (idx == 11)
 			{
 				building_t* t = world_findEnnemyBuilding(g->w, c->o.x, c->o.y, c);
 				if (t != NULL)
 					character_attack(c, t->o.uuid);
 			}
 		}
-		else if (w == 2) // statuses
+		else if (type == CATCH_STATUS)
 		{
 			if (t == sfMouseLeft)
 			{
-				character_eatFor(c, i);
+				character_eatFor(c, idx);
 			}
 			else if (t == sfMouseRight)
 			{
-				g->autoEat[i] ^= 1;
+				g->autoEat[idx] ^= 1;
 			}
 		}
 		return 1;
