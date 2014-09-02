@@ -16,7 +16,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "world_gen.h"
+#include "world.h"
 
 #include <math.h>
 

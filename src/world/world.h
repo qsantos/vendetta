@@ -85,4 +85,13 @@ char        world_canBuild    (world_t* w, float x, float y, kindOf_building_t* 
 building_t* world_addBuilding (world_t* w, float x, float y, kindOf_building_t* t, character_t* c);
 void        world_delBuilding (world_t* w, building_t* b);
 
+// world_gen.c
+void world_genmap  (world_t* w, unsigned int seed);
+void world_start   (world_t* w);
+void world_randMine(world_t* w, int type);
+
+// world_save.c
+void world_save(world_t* w, FILE* f);
+void world_load(world_t* w, FILE* f);
+
 #endif

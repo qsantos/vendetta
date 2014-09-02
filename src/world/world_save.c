@@ -16,11 +16,10 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 \*/
 
-#include "world_save.h"
+#include "world.h"
 
 #include <stdlib.h>
 
-#include "world_gen.h"
 #include "../mem.h"
 
 static void save_object(object_t* o, FILE* f)

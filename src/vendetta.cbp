@@ -126,9 +126,7 @@
 <Unit filename="world/world.c" />
 <Unit filename="world/world.h" />
 <Unit filename="world/world_gen.c" />
-<Unit filename="world/world_gen.h" />
 <Unit filename="world/world_save.c" />
-<Unit filename="world/world_save.h" />
 
 </Project>
 </CodeBlocks_project_file>
