@@ -20,6 +20,8 @@
 <Unit filename="ai.h" />
 <Unit filename="assets.c" />
 <Unit filename="assets.h" />
+<Unit filename="cfg.c" />
+<Unit filename="cfg.h" />
 <Unit filename="file.c" />
 <Unit filename="file.h" />
 <Unit filename="game.c" />
