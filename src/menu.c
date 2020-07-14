@@ -35,7 +35,7 @@ static char mainmenu(settings_t* s, graphics_t* gr, assets_t* a, char do_draw)
 	// new buttons can easily be added 
 	const char* labels[] =
 	{
-		"Jouer !",
+		"Jouer !",
 		"Configurer",
 		"Charger",
 		"Quitter",

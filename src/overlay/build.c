@@ -196,12 +196,12 @@ void ov_build_tooltip(char* buffer, size_t n, game_t* g, kindOf_building_t* b)
 	{
 		int id = b->make.res[0].id;
 		kindOf_material_t* m = &g->u->materials[id];
-		cur += snprintf(buffer+cur, n-cur, "\n\nPermet de produire : %s", m->name);
+		cur += snprintf(buffer+cur, n-cur, "\n\nPermet de produire : %s", m->name);
 	}
 
 	// list items
 	if (b->n_items != 0)
-		cur += snprintf(buffer+cur, n-cur, "\n\nPermet de fabriquer :");
+		cur += snprintf(buffer+cur, n-cur, "\n\nPermet de fabriquer :");
 	for (size_t i = 0; i < b->n_items; i++)
 	{
 		int id = b->items[i].res[0].id;
