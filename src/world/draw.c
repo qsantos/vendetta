@@ -223,9 +223,16 @@ void draw_chunkLands(graphics_t* g, assets_t* a, character_t* player, chunk_t* c
 {
 	(void) player;
 
-	static sfRenderStates states = {sfBlendAlpha, {{1,0,0,0,1,0,0,0,1}}, NULL, NULL};
-	if (states.texture == NULL)
+	static sfRenderStates states = {
+		.blendMode={0},
+		.transform={{1,0,0,0,1,0,0,0,1}},
+		.texture=NULL,
+		.shader=NULL,
+	};
+	if (states.texture == NULL) {
+		states.blendMode = sfBlendAlpha;
 		states.texture = assets_loadImage(a, "data/lands.png");
+	}
 
 	sfVertexArray* array = c->array;
 	if (step != c->water_step)
