@@ -46,7 +46,7 @@ struct cfg
 	cfg_entry_t* entries;
 };
 
-cfg_t* cfg_new();
+cfg_t* cfg_new(void);
 void   cfg_del(cfg_t* cfg);
 
 void cfg_put_raw  (cfg_t* cfg, char* key, const char* str, cfg_etype_t t);
