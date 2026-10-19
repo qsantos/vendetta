@@ -1,5 +1,6 @@
 //! `#perf`: where the time goes, per second, under the FPS counter: the simulation's ticks,
-//! the frame's drawing and input, the autosave, and the time between frames.
+//! the frame's work (split into the map, the interface with input, and the copy to the screen),
+//! the autosave, and the time between frames.
 
 #[cfg(target_arch = "wasm32")]
 #[link(wasm_import_module = "env")]
@@ -22,11 +23,14 @@ pub fn now() -> f64 {
 pub enum Part {
     Tick,
     Frame,
+    Map,
+    Hud,
+    Present,
     Save,
     Interval,
 }
 
-const NAMES: [&str; 4] = ["tick", "frame", "save", "interval"];
+const NAMES: [&str; 7] = ["tick", "frame", "  map", "  hud", "  present", "save", "interval"];
 
 #[derive(Default, Clone, Copy)]
 struct Stat {
@@ -37,9 +41,9 @@ struct Stat {
 
 #[derive(Default)]
 pub struct Perf {
-    current: [Stat; 4],
+    current: [Stat; 7],
     /// The last full second, shown.
-    shown: [Stat; 4],
+    shown: [Stat; 7],
     since: f64,
     last_frame: f64,
 }

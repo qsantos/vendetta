@@ -266,6 +266,7 @@ async fn main() {
 
         set_camera(&camera(&target, view_f));
         clear_background(BLACK);
+        let map_start = perf::now();
         let overview = (zoom < render::OVERVIEW_ZOOM).then_some(()).and_then(|()| {
             if terrain_overview.is_none() {
                 terrain_overview = render::terrain_overview(&world, &textures);
@@ -275,7 +276,10 @@ async fn main() {
         render::draw_world(&world, &rules, &textures, cam, player, view, overview);
         effects.draw(&textures, cam, view, zoom);
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
+        // (changing the camera submits the map's drawings)
         set_camera(&camera(&target, hud_f));
+        let hud_start = perf::now();
+        perf.add(perf::Part::Map, hud_start - map_start);
         hud.draw_comments(&world, |x, y| ((((x as i32 - cam.0) as f32) * zoom / ui) as i32, (((y as i32 - cam.1) as f32) * zoom / ui) as i32));
         let radial_was_open = hud.radial_open();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
@@ -347,8 +351,12 @@ async fn main() {
         if show_perf {
             hud.debug_lines(&perf.lines());
         }
+        let present_start = perf::now();
+        perf.add(perf::Part::Hud, present_start - hud_start);
         present(&target);
-        perf.add(perf::Part::Frame, perf::now() - frame_start);
+        let end = perf::now();
+        perf.add(perf::Part::Present, end - present_start);
+        perf.add(perf::Part::Frame, end - frame_start);
 
         // The wheel: scrolls the window lists under it (done by the HUD), rotates the radial
         // buttons, zooms the map, or scales the rest of the interface.
