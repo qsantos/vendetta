@@ -95,7 +95,23 @@ pub struct WorldSetup {
     /// `Jeu.ini Vitesse`
     pub speed: i64,
     pub confrontation: bool,
+    /// Which castles roads join.
+    pub roads: Roads,
 }
+
+/// How roads join castles.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Roads {
+    /// The original's ring in fief order: 1 → 2 → … → last → 1, wherever they are.
+    #[default]
+    Ring,
+    /// Not in the original: each castle to its nearest castles, plus whatever keeps them all
+    /// connected (a minimum spanning tree).
+    Nearest,
+}
+
+/// Castles [`Roads::Nearest`] joins each castle to.
+const ROAD_NEIGHBOURS: usize = 2;
 
 impl Default for WorldSetup {
     /// The original's defaults (`Partie.ini`, `Jeu.ini`) where they exist.
@@ -113,6 +129,7 @@ impl Default for WorldSetup {
             castle_life_coef: 1.0,
             speed: 10,
             confrontation: false,
+            roads: Roads::Ring,
         }
     }
 }
@@ -188,7 +205,7 @@ impl World {
                 world.generate_terrain(rules, setup.world_type);
                 world.place_castles_randomly();
                 world.init_castles(rules);
-                world.build_roads(rules, setup.world_type);
+                world.build_roads(rules, setup.world_type, setup.roads);
                 world.place_resources(rules);
             }
         }
@@ -544,7 +561,7 @@ impl World {
     }
 
     /// `ClsJeuMonde.Contruire_Routes2`: a ring of jittery roads between castles.
-    fn build_roads(&mut self, rules: &Rules, world_type: usize) {
+    fn build_roads(&mut self, rules: &Rules, world_type: usize, roads: Roads) {
         let road = rules.world_types[world_type].road;
         if road == 0 {
             return;
@@ -558,8 +575,11 @@ impl World {
         let max_x = (self.terrain.width as i32 * CELL) as i64;
         let max_y = (self.terrain.height as i32 * CELL) as i64;
         let nf = self.castles.len();
-        for i in 0..nf {
-            let j = (i + 1) % nf;
+        let links = match roads {
+            Roads::Ring => (0..nf).map(|i| (i, (i + 1) % nf)).collect(),
+            Roads::Nearest => self.nearest_links(),
+        };
+        for (i, j) in links {
             let (a, b) = (&self.castles[i], &self.castles[j]);
             let mut x = clng(a.x as f64 + a.w as f64 / 2.0);
             let mut y = clng(a.y as f64 + a.h as f64 / 2.0);
@@ -596,6 +616,10 @@ impl World {
                     break;
                 }
             }
+        }
+        // Pave around each castle (the original did it after each castle's road; paving draws
+        // nothing, so this is the same).
+        for i in 0..nf {
             let a = &self.castles[i];
             let (ax, ay, aw, ah) = (a.x, a.y, a.w, a.h);
             let mut kx = ax - 16;
@@ -609,6 +633,43 @@ impl World {
             }
         }
         self.terrain.reshape();
+    }
+
+    /// [`Roads::Nearest`]: the pairs of castles to join, each castle to its nearest ones plus a
+    /// minimum spanning tree (Prim's), so all are connected; in a stable order.
+    fn nearest_links(&self) -> Vec<(usize, usize)> {
+        let centre = |c: &crate::building::Building| (c.x as f64 + c.w as f64 / 2.0, c.y as f64 + c.h as f64 / 2.0);
+        let centres: Vec<(f64, f64)> = self.castles.iter().map(centre).collect();
+        let dist = |a: usize, b: usize| (centres[a].0 - centres[b].0).hypot(centres[a].1 - centres[b].1);
+        let n = centres.len();
+        let mut links = std::collections::BTreeSet::new();
+        let pair = |a: usize, b: usize| (a.min(b), a.max(b));
+        for i in 0..n {
+            let mut others: Vec<usize> = (0..n).filter(|&j| j != i).collect();
+            others.sort_by(|&a, &b| dist(i, a).total_cmp(&dist(i, b)));
+            for &j in others.iter().take(ROAD_NEIGHBOURS) {
+                links.insert(pair(i, j));
+            }
+        }
+        // Prim's algorithm from castle 0.
+        let mut in_tree = vec![false; n];
+        let mut best: Vec<(f64, usize)> = vec![(f64::INFINITY, 0); n];
+        if n > 0 {
+            best[0] = (0.0, 0);
+        }
+        for _ in 0..n {
+            let Some(u) = (0..n).filter(|&k| !in_tree[k]).min_by(|&a, &b| best[a].0.total_cmp(&best[b].0)) else { break };
+            in_tree[u] = true;
+            if u != best[u].1 {
+                links.insert(pair(u, best[u].1));
+            }
+            for v in (0..n).filter(|&v| !in_tree[v]) {
+                if dist(u, v) < best[v].0 {
+                    best[v] = (dist(u, v), u);
+                }
+            }
+        }
+        links.into_iter().collect()
     }
 
     /// Writes a cell by pixel position, ignoring out-of-range indices like the original's
