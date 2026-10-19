@@ -7,8 +7,9 @@
 use crate::economy::Res;
 use crate::rules::Rules;
 use crate::world::World;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Order {
     /// `PersoDeplacer`: walk so that the character's top-left lands on (x, y).
     Move { perso: usize, x: i64, y: i64 },
@@ -148,11 +149,11 @@ pub enum Order {
     CancelEffect { perso: usize, effect: usize },
 }
 
-impl World {
-    /// Executes one command (`Lire_Commandes`).
-    pub(crate) fn apply_order(&mut self, rules: &Rules, order: &Order) -> Res {
+impl Order {
+    /// The character the order is for.
+    pub fn perso(&self) -> usize {
         use Order::*;
-        let perso = match *order {
+        match *self {
             Move { perso, .. }
             | Harvest { perso, .. }
             | FindResource { perso, .. }
@@ -214,7 +215,15 @@ impl World {
             | Formation { perso, .. }
             | AttackAllies { perso }
             | CancelEffect { perso, .. } => perso,
-        };
+        }
+    }
+}
+
+impl World {
+    /// Executes one command (`Lire_Commandes`).
+    pub(crate) fn apply_order(&mut self, rules: &Rules, order: &Order) -> Res {
+        use Order::*;
+        let perso = order.perso();
         let p = self.persos.get_mut(perso).ok_or(())?;
         let f = p.fief;
         let nr = rules.resources.len();

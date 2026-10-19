@@ -24,7 +24,7 @@ fn load() -> Option<(Files, Rules)> {
 
 /// 64-bit FNV-1a of the saved world: everything that persists, the random generator included.
 fn hash(world: &World) -> u64 {
-    world.save().iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| (h ^ b as u64).wrapping_mul(0x0100_0000_01b3))
+    world.digest()
 }
 
 /// Plays `world` up to each checkpoint tick, giving the player `orders` at their ticks, and
@@ -128,6 +128,8 @@ fn several_players() {
     assert_eq!(humans.len(), 3);
     assert!(humans.iter().all(|&i| !world.persos[i].ai));
     assert_eq!(humans.iter().map(|&i| world.persos[i].fief).collect::<Vec<_>>(), [0, 0, 2]);
+    assert_eq!(world.humans(&[0, 0, 2]), humans.iter().map(|&i| Some(i)).collect::<Vec<_>>());
+    assert_eq!(world.humans(&[2, 0, 0]), [Some(humans[2]), Some(humans[0]), Some(humans[1])]);
     let orders = [
         (5, Order::FindResource { perso: humans[0], kind: 2 }),
         (5, Order::FindResource { perso: humans[1], kind: 3 }),

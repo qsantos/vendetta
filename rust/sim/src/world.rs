@@ -379,6 +379,27 @@ impl World {
         self.persos.iter().filter(|p| p.fief == fief && p.alive()).count()
     }
 
+    /// The characters of the human players whose fiefs are `players` (`WorldSetup::players`),
+    /// in that order: each took the first free citizen of its fief, so the k-th human of a fief
+    /// is its k-th player character.
+    pub fn humans(&self, players: &[usize]) -> Vec<Option<usize>> {
+        let mut taken = vec![0; self.fiefs.len()];
+        players
+            .iter()
+            .map(|&f| {
+                let t = taken.get_mut(f)?;
+                let k = *t;
+                *t += 1;
+                self.persos.iter().enumerate().filter(|(_, p)| p.player && p.fief == f).nth(k).map(|(i, _)| i)
+            })
+            .collect()
+    }
+
+    /// A digest of the whole world (of its save), to check that two copies are the same.
+    pub fn digest(&self) -> u64 {
+        self.save().iter().fold(0xcbf2_9ce4_8422_2325, |h, &b| (h ^ b as u64).wrapping_mul(0x0100_0000_01b3))
+    }
+
     /// Victory (standard rules) for team `team`: every enemy fief has lost its castle and all
     /// its citizens.
     pub fn victorious(&self, team: i64) -> bool {
