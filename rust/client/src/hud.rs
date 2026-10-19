@@ -163,15 +163,8 @@ fn fill_no_pen(l: i32, t: i32, r: i32, b: i32, c: Color) {
 /// `Afficher_Barre_Statut` (horizontal): black framed box, white `min2` part, coloured `min1`
 /// part. `colour = None` picks red/orange/green from the ratio.
 pub fn status_bar(min1: f64, min2: f64, max: f64, x: i32, y: i32, w: i32, h: i32, colour: Option<Color>) {
-    let (mut x, mut y, mut w, mut h) = (x, y, w, h);
-    if x < 0 {
-        w += x;
-        x = 0;
-    }
-    if y < 0 {
-        h += y;
-        y = 0;
-    }
+    // The original clamps the bar's left and top edges to the screen, squeezing the bars of
+    // buildings and characters partly off screen; here they simply slide off it.
     if w <= 0 || h <= 0 {
         return;
     }
