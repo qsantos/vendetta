@@ -168,17 +168,45 @@ fn smooth_checkerboard(img: &mut RgbaImage) {
     if !any {
         return;
     }
+    // The test above misses each area's edge pixels, whose outer neighbours break the
+    // pattern, leaving a dotted outline. Add the edge pixels that continue the pattern: a
+    // transparent pixel enclosed by opaque ones, or an opaque one of the same colour as a
+    // dithered pixel diagonal to it. (A transparent pixel outside a sprite has transparent
+    // neighbours, so no halo grows around dithered sprite edges.)
+    for _ in 0..2 {
+        let mut grown = checker.clone();
+        for y in 1..h - 1 {
+            for x in 1..w - 1 {
+                let k = (y * w + x) as usize;
+                let in_checker = |dx: i64, dy: i64| checker[((y + dy) * w + x + dx) as usize];
+                if checker[k] || ![(1, 0), (-1, 0), (0, 1), (0, -1)].iter().any(|&(dx, dy)| in_checker(dx, dy)) {
+                    continue;
+                }
+                let p = *img.get_pixel(x as u32, y as u32);
+                grown[k] = if p[3] == 0 {
+                    [(1, 0), (-1, 0), (0, 1), (0, -1)].iter().filter(|&&(dx, dy)| opaque(img, x + dx, y + dy)).count() >= 3
+                } else {
+                    [(1, 1), (-1, 1), (1, -1), (-1, -1)].iter().any(|&(dx, dy)| {
+                        let q = img.get_pixel((x + dx) as u32, (y + dy) as u32);
+                        in_checker(dx, dy) && q[3] != 0 && q.0[..3] == p.0[..3]
+                    })
+                };
+            }
+        }
+        checker = grown;
+    }
     let src = img.clone();
     for y in 1..h - 1 {
         for x in 1..w - 1 {
             if !checker[(y * w + x) as usize] {
                 continue;
             }
+            // Average the dithered pixels around (not the frame next to the area).
             let (mut n, mut r, mut g, mut b) = (0u32, 0u32, 0u32, 0u32);
             for dy in -1..=1 {
                 for dx in -1..=1 {
                     let p = src.get_pixel((x + dx) as u32, (y + dy) as u32);
-                    if p[3] != 0 {
+                    if p[3] != 0 && checker[((y + dy) * w + x + dx) as usize] {
                         n += 1;
                         r += p[0] as u32;
                         g += p[1] as u32;
