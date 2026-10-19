@@ -141,6 +141,14 @@ impl Windows {
 }
 
 impl Hud {
+    /// Whether the mouse is over an open window, and whether that window scrolls.
+    pub fn over_window(&self, world: &World, player: usize, m: (i32, i32)) -> Option<bool> {
+        (0..8)
+            .filter(|&i| self.window_visible(world, player, i))
+            .find(|&i| inside(m, self.windows.pos[i].0, self.windows.pos[i].1, W, H))
+            .map(|i| i <= 1)
+    }
+
     fn window_visible(&self, world: &World, player: usize, i: usize) -> bool {
         let p = &world.persos[player];
         match i {
@@ -261,7 +269,12 @@ impl Hud {
                     return true;
                 }
             }
-            let wheel = mouse_wheel().1;
+            // The wheel scrolls the lists when the cursor is over one of these windows.
+            let over = [0, 1].iter().any(|&i| {
+                let (x, y) = self.windows.pos[i];
+                self.window_visible(world, player, i) && inside(m, x, y, W, H)
+            });
+            let wheel = if over { mouse_wheel().1 } else { 0.0 };
             if wheel > 0.0 {
                 self.windows.scroll = self.windows.scroll.saturating_sub(1);
             } else if wheel < 0.0 {

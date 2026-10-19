@@ -279,8 +279,8 @@ impl Hud {
     }
 
     /// What is drawn over everything: the building footprint, the cursor and the FPS.
-    pub fn overlay(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, cam: (i32, i32), hover: Option<(i32, usize)>) {
-        let placement = self.draw_placement(world, rules, player, input, cam);
+    /// `placement` is the cursor type from [`Hud::draw_placement`].
+    pub fn overlay(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, placement: Option<i32>, hover: Option<(i32, usize)>) {
         let cursor = placement.unwrap_or(match hover {
             Some((c, _)) if c <= 17 => c,
             _ => 0,

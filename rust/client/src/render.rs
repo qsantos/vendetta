@@ -1,7 +1,6 @@
 //! Drawing the world, following `FrmMoteur2D`'s frame composition.
 
 use crate::assets::Textures;
-use crate::layout::{screen_h, screen_w};
 use crate::hud::{status_bar, status_bar_v};
 use macroquad::prelude::*;
 use sim::rules::Rules;
@@ -126,16 +125,16 @@ fn blit(tex: &Texture2D, x: i32, y: i32, src: Rect) {
 }
 
 /// `ClsAffTerrain.AfficheFast`: one 16×16 tile per visible cell.
-fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32)) {
+fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32, i32)) {
     let Some(tiles) = textures.get(TILESET) else { return };
     let t = &world.terrain;
     let (cx0, cy0) = (cam.0.div_euclid(CELL), cam.1.div_euclid(CELL));
-    for j in 0..=screen_h() / CELL {
+    for j in 0..=view.1 / CELL {
         let cy = cy0 + j;
         if cy < 0 || cy >= t.height as i32 {
             continue;
         }
-        for i in 0..=screen_w() / CELL {
+        for i in 0..=view.0 / CELL {
             let cx = cx0 + i;
             if cx < 0 || cx >= t.width as i32 {
                 continue;
@@ -152,8 +151,9 @@ fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32)) {
     }
 }
 
-pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize) {
-    draw_terrain(world, textures, cam);
+/// `view` is the size of the visible area in world pixels.
+pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32)) {
+    draw_terrain(world, textures, cam, view);
     if let Some(tex) = textures.get(RESOURCES) {
         let s = RESOURCE_SIZE as f32;
         for r in &world.resources {

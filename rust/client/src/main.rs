@@ -7,7 +7,7 @@ mod storage;
 mod text;
 
 use macroquad::prelude::*;
-use layout::{MIN_H, MIN_W, screen_h, screen_w};
+use layout::{MIN_H, MIN_W};
 use macroquad::experimental::coroutines::start_coroutine;
 use sim::files::Files;
 use sim::rules::Rules;
@@ -23,44 +23,63 @@ fn window_conf() -> Conf {
     }
 }
 
-/// Scale from game pixels to window pixels: 1, unless the window is smaller than the
-/// minimum logical screen.
-fn scale() -> f32 {
-    (screen_width() / MIN_W).min(screen_height() / MIN_H).min(1.0)
+/// Map zooms and interface scales the mouse wheel steps through.
+const ZOOMS: [f32; 7] = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
+const UI_SCALES: [f32; 8] = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
+
+/// The next value of `steps` after `v`, upward or downward.
+fn step(steps: &[f32], v: f32, up: bool) -> f32 {
+    if up {
+        steps.iter().copied().find(|&s| s > v + 1e-3).unwrap_or(v)
+    } else {
+        steps.iter().rev().copied().find(|&s| s < v - 1e-3).unwrap_or(v)
+    }
 }
 
-/// Draws the game frame to the window.
+/// Map zoom and interface scale, kept across sessions.
+struct Scales {
+    zoom: f32,
+    ui: f32,
+}
+
+impl Scales {
+    fn load() -> Scales {
+        let saved = storage::load("settings").and_then(|b| String::from_utf8(b).ok()).and_then(|text| {
+            let mut v = text.split_whitespace().map(|x| x.parse::<f32>().ok());
+            Some(Scales { zoom: v.next()??, ui: v.next()?? })
+        });
+        // By default the interface fits the original's minimum screen of 800×600.
+        saved.unwrap_or_else(|| Scales { zoom: 1.0, ui: (screen_width() / MIN_W).min(screen_height() / MIN_H).min(1.0) })
+    }
+
+    fn store(&self) {
+        storage::store("settings", format!("{} {}", self.zoom, self.ui).as_bytes());
+    }
+}
+
+/// Draws the frame to the window.
 fn present(target: &RenderTarget) {
     set_default_camera();
     clear_background(BLACK);
-    let s = scale();
-    draw_texture_ex(
-        &target.texture,
-        0.0,
-        0.0,
-        WHITE,
-        DrawTextureParams {
-            dest_size: Some(vec2(screen_w() as f32 * s, screen_h() as f32 * s)),
-            flip_y: true,
-            ..Default::default()
-        },
-    );
+    let size = vec2(target.texture.width(), target.texture.height());
+    draw_texture_ex(&target.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(size), flip_y: true, ..Default::default() });
 }
 
-/// Mouse position in game pixels (`SourisX/Y`), clamped to the screen like the original.
-fn mouse_in_frame() -> (i32, i32) {
-    let (mx, my) = mouse_position();
-    let s = scale();
-    (((mx / s) as i32).clamp(0, screen_w()), ((my / s) as i32).clamp(0, screen_h()))
+/// A camera drawing `size` units over the whole render target.
+fn camera(target: &RenderTarget, size: (i32, i32)) -> Camera2D {
+    let mut c = Camera2D::from_display_rect(Rect::new(0.0, 0.0, size.0 as f32, size.1 as f32));
+    c.render_target = Some(target.clone());
+    c
 }
 
-/// `Scrolling_Immediat`: centre the player's top-left corner, clamped to the map.
-fn follow(world: &World, player: usize) -> (i32, i32) {
+/// `Scrolling_Immediat`: centre the player's top-left corner, clamped to the map. `view` is
+/// the visible area in world pixels.
+fn follow(world: &World, player: usize, view: (i32, i32)) -> (i32, i32) {
     let p = &world.persos[player];
-    let max_x = world.terrain.width as i32 * 16 - screen_w();
-    let max_y = world.terrain.height as i32 * 16 - screen_h();
-    let x = (p.x as i32 - screen_w() / 2).min(max_x).max(0);
-    let y = (p.y as i32 - screen_h() / 2).min(max_y).max(0);
+    let max_x = world.terrain.width as i32 * 16 - view.0;
+    let max_y = world.terrain.height as i32 * 16 - view.1;
+    let x = (p.x as i32 - view.0 / 2).min(max_x).max(0);
+    let y = (p.y as i32 - view.1 / 2).min(max_y).max(0);
     (x, y)
 }
 
@@ -86,7 +105,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     progress.message(&progress.label(2));
     let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
     // Resume the saved game if there is one that fits these rules.
-    let saved = storage::load().and_then(|bytes| match World::load(&rules, &bytes) {
+    let saved = storage::load("save").and_then(|bytes| match World::load(&rules, &bytes) {
         Ok(world) => Some(world),
         Err(e) => {
             warn!("discarding the saved game: {e}");
@@ -135,40 +154,48 @@ async fn main() {
 
 
     let mut target = render_target(1, 1);
-    let mut frame_cam = Camera2D::default();
-
-    let mut cam = follow(&world, player);
+    let mut scales = Scales::load();
+    let mut view = (0, 0);
+    let mut cam = (0, 0);
     let mut orders = Vec::new();
     let mut last_tick = get_time();
     loop {
-        // The game screen follows the window size.
-        let s = scale();
-        let (w, h) = ((screen_width() / s) as i32, (screen_height() / s) as i32);
+        // The frame covers the window; the map and the interface each have their own scale.
+        let (w, h) = (screen_width() as i32, screen_height() as i32);
         if (w, h) != (target.texture.width() as i32, target.texture.height() as i32) {
-            layout::set_screen(w, h);
             target = render_target(w as u32, h as u32);
             target.texture.set_filter(FilterMode::Nearest);
-            frame_cam = Camera2D::from_display_rect(Rect::new(0.0, 0.0, w as f32, h as f32));
-            frame_cam.render_target = Some(target.clone());
-            cam = follow(&world, player);
         }
-        let (mx, my) = mouse_in_frame();
-        let input = hud::Input::poll((mx, my));
-        // What is under the cursor (`Obstacle` on the cursor's top-left).
-        let (wx, wy) = (mx + cam.0, my + cam.1);
+        let new_view = ((w as f32 / scales.zoom) as i32, (h as f32 / scales.zoom) as i32);
+        if new_view != view {
+            view = new_view;
+            cam = follow(&world, player, view);
+        }
+        let hud_size = ((w as f32 / scales.ui) as i32, (h as f32 / scales.ui) as i32);
+        layout::set_screen(hud_size.0, hud_size.1);
+
+        let (mx, my) = mouse_position();
+        // The interface's mouse (`SourisX/Y`), clamped to the screen like the original.
+        let (hx, hy) = (((mx / scales.ui) as i32).clamp(0, hud_size.0), ((my / scales.ui) as i32).clamp(0, hud_size.1));
+        let input = hud::Input::poll((hx, hy));
+        // What is under the cursor on the map (`Obstacle` on the cursor's top-left).
+        let (wx, wy) = (cam.0 + (mx / scales.zoom) as i32, cam.1 + (my / scales.zoom) as i32);
         let (hover, hit) = world.obstacle_at(&rules, player, wx, wy, 0, 0);
 
-        set_camera(&frame_cam);
+        set_camera(&camera(&target, view));
         clear_background(BLACK);
-        render::draw_world(&world, &rules, &textures, cam, player);
+        render::draw_world(&world, &rules, &textures, cam, player, view);
+        let placement = hud.draw_placement(&world, &rules, player, (wx, wy), cam);
+        set_camera(&camera(&target, hud_size));
+        let radial_was_open = hud.radial_open();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
-        let placed = !on_ui && hud.map_input(&world, &rules, player, &input, cam, &mut orders);
+        let placed = !on_ui && hud.map_input(&world, &rules, player, &input, (wx, wy), &mut orders);
         if !on_ui && !placed && input.right_pressed {
             // Right click on the map: the radial buttons (`FrmMoteur2D.frm:943-961`).
             match hover {
-                0 | 16 | 999 => hud.open_radial((mx, my), 4),
-                1 => hud.open_radial((mx, my), 1),
-                4..=8 | 12 => hud.open_radial((mx, my), 0),
+                0 | 16 | 999 => hud.open_radial((hx, hy), 4),
+                1 => hud.open_radial((hx, hy), 1),
+                4..=8 | 12 => hud.open_radial((hx, hy), 0),
                 // TODO: 9-11 "Chargez!" (army attack)
                 _ => {}
             }
@@ -193,23 +220,37 @@ async fn main() {
                 },
             });
         }
-        hud.overlay(&world, &rules, &textures, player, &input, cam, (!on_ui).then_some((hover, hit)));
+        hud.overlay(&world, &rules, &textures, player, &input, placement, (!on_ui).then_some((hover, hit)));
         present(&target);
+
+        // The wheel: scrolls the window lists under it (done by the HUD), rotates the radial
+        // buttons, zooms the map, or scales the rest of the interface.
+        let wheel = mouse_wheel().1;
+        if wheel != 0.0 && !radial_was_open {
+            let up = wheel > 0.0;
+            match hud.over_window(&world, player, (hx, hy)) {
+                Some(true) => {}
+                Some(false) => scales.ui = step(&UI_SCALES, scales.ui, up),
+                None if on_ui => scales.ui = step(&UI_SCALES, scales.ui, up),
+                None => scales.zoom = step(&ZOOMS, scales.zoom, up),
+            }
+            scales.store();
+        }
 
         // One tick whenever a tick's worth of time has passed; extra time is dropped.
         if !hud.paused() && get_time() - last_tick > 1.0 / TICKS_PER_SECOND {
             last_tick = get_time();
             world.step(&rules, &orders);
             orders.clear();
-            cam = follow(&world, player);
+            cam = follow(&world, player, view);
         }
         if get_time() - last_save > AUTOSAVE_INTERVAL {
             last_save = get_time();
-            storage::store(&world.save());
+            storage::store("save", &world.save());
         }
         // Ctrl+N: a new game, until the setup screens exist.
         if (is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl)) && is_key_pressed(KeyCode::N) {
-            storage::clear();
+            storage::remove("save");
             storage::restart();
         }
         next_frame().await;
