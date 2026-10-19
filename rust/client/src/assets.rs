@@ -1,11 +1,48 @@
 //! Loading game files and textures, from disk natively or over HTTP in the browser.
 
 use crate::loading::Progress;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::Poll;
 use macroquad::prelude::*;
 use sim::files::{Files, key};
 use std::collections::HashMap;
 
 pub const ROOT: &str = "assets";
+
+/// Downloads in flight at once. Each request costs a round trip; overlapping them hides
+/// most of that latency (browsers queue beyond their own per-server limit).
+const PARALLEL: usize = 16;
+
+/// Runs `jobs` with at most `PARALLEL` in flight, handing each result to `done` as it
+/// completes. Every pending job is polled whenever this is: macroquad's downloads never
+/// wake their waker, they rely on being polled each frame.
+async fn run_parallel<T>(jobs: Vec<Pin<Box<dyn Future<Output = T> + Send>>>, mut done: impl FnMut(T)) {
+    let mut queue = jobs.into_iter();
+    let mut running: Vec<Pin<Box<dyn Future<Output = T> + Send>>> = Vec::new();
+    std::future::poll_fn(|cx| {
+        while running.len() < PARALLEL {
+            match queue.next() {
+                Some(job) => running.push(job),
+                None => break,
+            }
+        }
+        let mut i = 0;
+        while i < running.len() {
+            if let Poll::Ready(v) = running[i].as_mut().poll(cx) {
+                drop(running.swap_remove(i));
+                done(v);
+                if let Some(job) = queue.next() {
+                    running.push(job);
+                }
+            } else {
+                i += 1;
+            }
+        }
+        if running.is_empty() { Poll::Ready(()) } else { Poll::Pending }
+    })
+    .await
+}
 
 /// `manifest.txt`: every converted file with its size in bytes (`path<TAB>size`).
 pub struct Manifest {
@@ -64,16 +101,33 @@ impl Manifest {
 pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<Files, String> {
     let label = progress.label(1);
     let mut files = Files::new();
-    for (path, size) in &manifest.entries {
+    for (path, _) in &manifest.entries {
         files.add_listing(path);
-        if !Manifest::is_data(path) {
-            continue;
-        }
-        let data = load_file(&format!("{ROOT}/{path}")).await.map_err(|e| format!("{path}: {e}"))?;
-        files.insert(path, data);
-        progress.add(*size, &label);
     }
-    Ok(files)
+    // Owned values: the borrowing closures would not be `Send` for the coroutine.
+    let wanted: Vec<(String, u64)> = manifest.entries.iter().filter(|(p, _)| Manifest::is_data(p)).cloned().collect();
+    let jobs = wanted
+        .into_iter()
+        .map(|(path, size)| -> Pin<Box<dyn Future<Output = _> + Send>> {
+            Box::pin(async move {
+                let data = load_file(&format!("{ROOT}/{path}")).await;
+                (path, size, data)
+            })
+        })
+        .collect();
+    let mut error = None;
+    run_parallel(jobs, |(path, size, data)| match data {
+        Ok(data) => {
+            files.insert(&path, data);
+            progress.add(size, &label);
+        }
+        Err(e) => error = Some(format!("{path}: {e}")),
+    })
+    .await;
+    match error {
+        Some(e) => Err(e),
+        None => Ok(files),
+    }
 }
 
 /// Texture cache keyed like `Files` (case-insensitive, `.bmp` → `.png`).
@@ -94,19 +148,6 @@ impl Textures {
         Textures { real_paths, loaded: HashMap::new() }
     }
 
-    /// Loads (once) the texture for an original image path such as `Images\Decors\Pont.bmp`.
-    pub async fn load(&mut self, path: &str) -> Option<Texture2D> {
-        let k = key(path);
-        if let Some(t) = self.loaded.get(&k) {
-            return Some(t.clone());
-        }
-        let real = self.real_paths.get(&k)?;
-        let t = load_texture(&format!("{ROOT}/{real}")).await.ok()?;
-        t.set_filter(FilterMode::Nearest);
-        self.loaded.insert(k, t.clone());
-        Some(t)
-    }
-
     /// Images among `paths` not loaded yet, without duplicates.
     pub fn missing(&self, paths: &[String]) -> Vec<String> {
         let mut seen = std::collections::HashSet::new();
@@ -120,12 +161,25 @@ impl Textures {
             .collect()
     }
 
-    /// Loads a list of images, counting their bytes into `progress`.
+    /// Loads a list of images, several at once, counting their bytes into `progress`.
     pub async fn load_all(&mut self, manifest: &Manifest, paths: &[String], progress: &Progress, message: &str) {
-        for p in self.missing(paths) {
-            self.load(&p).await;
+        let jobs = self
+            .missing(paths)
+            .into_iter()
+            .map(|p| -> Pin<Box<dyn Future<Output = _> + Send>> {
+                let url = format!("{ROOT}/{}", self.real_paths[&key(&p)]);
+                Box::pin(async move { (p, load_texture(&url).await) })
+            })
+            .collect();
+        let loaded = &mut self.loaded;
+        run_parallel(jobs, |(p, texture)| {
+            if let Ok(t) = texture {
+                t.set_filter(FilterMode::Nearest);
+                loaded.insert(key(&p), t);
+            }
             progress.add(manifest.size(&p), message);
-        }
+        })
+        .await;
     }
 
     pub fn get(&self, path: &str) -> Option<&Texture2D> {
