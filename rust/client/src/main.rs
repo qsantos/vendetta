@@ -99,7 +99,10 @@ async fn main() {
         next_frame().await;
     }
     let Loaded { files, rules, mut world, textures } = match task.retrieve().unwrap() {
-        Ok(l) => l,
+        Ok(l) => {
+            screen.finish();
+            l
+        }
         Err(e) => loop {
             screen.progress.set(0.0, &format!("&Erreur#{e}"));
             screen.draw();

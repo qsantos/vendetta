@@ -6,18 +6,87 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
-  /* Shown behind the canvas until the game draws its first frame. */
-  #boot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-          color: #ddd; font: bold 16px Arial, sans-serif; }
+  /* The loading screen (`Afficher_Image_Chargement`): a random artwork letterboxed to 4:3,
+     a progress bar behind its bottom band, and a bubble saying what is loading. It is
+     shown before the game has even downloaded, and removed when the game is ready. */
+  #loading { position: fixed; inset: 0; z-index: 1; background: #000;
+             display: flex; align-items: center; justify-content: center; }
+  #frame { position: relative; width: min(100vw, calc(100vh * 4 / 3)); aspect-ratio: 4 / 3; }
+  #bar { position: absolute; left: 0; bottom: 0; height: calc(97 / 768 * 100%); width: 0;
+         background: rgb(6, 249, 0); }
+  #art { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #bubble { position: fixed; left: 24px; top: 20px; z-index: 2; pointer-events: none;
+            background: rgb(255, 255, 192); border: 1px solid #000; padding: 1px 2px;
+            color: #000; font: bold 13px Arial, "Liberation Sans", sans-serif; line-height: 16px;
+            white-space: pre; }
+  #bubble .red { color: #f00; }
 </style>
 </head>
 <body>
-<div id="boot">Chargement…</div>
+<div id="loading">
+  <div id="frame"><div id="bar"></div><img id="art" alt=""></div>
+</div>
+<div id="bubble">Chargement…</div>
 <canvas id="glcanvas" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
 <script src="mq_js_bundle.js"></script>
 <script>
   // Right click is a game action, not the browser menu.
   document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  const loadingScreen = document.getElementById("loading");
+  const bar = document.getElementById("bar");
+  const bubble = document.getElementById("bubble");
+
+  // A random artwork from Images/Chargement/; the bar works without it.
+  fetch("assets/manifest.txt")
+    .then((r) => r.text())
+    .then((manifest) => {
+      const arts = manifest.split("\n").filter((p) => p.startsWith("Images/Chargement/"));
+      if (arts.length > 0) {
+        const pick = arts[Math.floor(Math.random() * arts.length)];
+        document.getElementById("art").src = "assets/" + pick;
+      }
+    })
+    .catch(() => {});
+
+  // The bubble follows the cursor, like the original's info-bubbles.
+  document.addEventListener("mousemove", (e) => {
+    bubble.style.left = e.clientX + 24 + "px";
+    bubble.style.top = e.clientY + 20 + "px";
+  });
+
+  // `#` separates lines; a line starting with `&` is red.
+  function showMessage(text) {
+    bubble.replaceChildren();
+    text.split("#").forEach((line, i) => {
+      if (i > 0) bubble.append("\n");
+      const span = document.createElement("span");
+      if (line.startsWith("&")) {
+        span.className = "red";
+        line = line.slice(1);
+      }
+      span.textContent = line;
+      bubble.append(span);
+    });
+    bubble.style.display = text ? "" : "none";
+  }
+
+  // Called by the game while it loads (see client/src/loading.rs).
+  miniquad_add_plugin({
+    name: "vendetta_loading",
+    version: 1,
+    register_plugin: (importObject) => {
+      importObject.env.vendetta_loading = (pct, ptr, len) => {
+        bar.style.width = pct + "%";
+        showMessage(UTF8ToString(ptr, len));
+      };
+      importObject.env.vendetta_loaded = () => {
+        loadingScreen.remove();
+        bubble.remove();
+      };
+    },
+  });
+
   load("client.wasm");
 </script>
 </body>

@@ -1,14 +1,26 @@
 //! The loading screen (`FrmMoteur2D.Afficher_Image_Chargement`): a random artwork from
 //! `Images/Chargement/`, a progress bar along its bottom band and a bubble saying what loads.
 //!
-//! Loading runs as a coroutine (which macroquad requires to be `Send`, hence the mutex) that reports through [`Progress`] while the main loop redraws
-//! the screen every frame, so nothing flickers while files download.
+//! Loading runs as a coroutine (which macroquad requires to be `Send`, hence the mutex) that
+//! reports through [`Progress`]. In the browser the screen itself is HTML in `index.html`
+//! (shown before the game has downloaded); the game only reports progress to it. Natively,
+//! the main loop draws the same screen every frame.
 
 use crate::assets::ROOT;
+#[cfg(not(target_arch = "wasm32"))]
 use crate::text::TextRenderer;
 use macroquad::prelude::*;
 use sim::ini::Ini;
 use std::sync::{Arc, Mutex};
+
+#[cfg(target_arch = "wasm32")]
+#[link(wasm_import_module = "env")]
+unsafe extern "C" {
+    /// `index.html`: sets the bar to `pct` and the bubble to the UTF-8 message.
+    fn vendetta_loading(pct: f64, message: *const u8, len: usize);
+    /// `index.html`: removes the loading screen.
+    fn vendetta_loaded();
+}
 
 #[derive(Default)]
 struct State {
@@ -18,6 +30,9 @@ struct State {
     cursor: Option<Texture2D>,
     /// `Chargement.ini [Chargement_2]` labels by number.
     labels: Ini,
+    /// What the page shows, to only call it on changes.
+    #[cfg(target_arch = "wasm32")]
+    reported: Option<(f64, String)>,
 }
 
 /// Shared between the loading coroutine and the screen.
@@ -38,8 +53,14 @@ impl Progress {
         self.0.lock().unwrap().labels.str_or("Chargement_2", &format!("EtiquetteChargement{n}"), "").to_owned()
     }
 
-    /// Fetches the artwork, cursor and labels; any of them may fail, the bar still works.
+    /// Fetches the labels and, natively, the artwork and cursor (the page has its own); any
+    /// of them may fail, the bar still works.
     pub async fn load_decoration(&self, manifest: &str, lang: &str) {
+        let labels = load_string(&format!("{ROOT}/Donnees/{lang}/Chargement.ini")).await.unwrap_or_default();
+        self.0.lock().unwrap().labels = Ini::parse(&labels);
+        if cfg!(target_arch = "wasm32") {
+            return;
+        }
         let arts: Vec<&str> = manifest.lines().filter(|p| p.starts_with("Images/Chargement/")).collect();
         if !arts.is_empty() {
             rand::srand((miniquad::date::now() * 1000.0) as u64);
@@ -48,10 +69,8 @@ impl Progress {
             self.0.lock().unwrap().art = art;
         }
         let cursor = load_texture(&format!("{ROOT}/Images/Curseurs/ArrowCursor.png")).await.ok();
-        let labels = load_string(&format!("{ROOT}/Donnees/{lang}/Chargement.ini")).await.unwrap_or_default();
         let mut s = self.0.lock().unwrap();
         s.cursor = cursor;
-        s.labels = Ini::parse(&labels);
         for t in s.art.iter().chain(&s.cursor) {
             t.set_filter(FilterMode::Nearest);
         }
@@ -60,19 +79,44 @@ impl Progress {
 
 pub struct LoadingScreen {
     pub progress: Progress,
+    #[cfg(not(target_arch = "wasm32"))]
     font: TextRenderer,
 }
 
 impl LoadingScreen {
+    /// Loading is over: hand the window to the game.
+    pub fn finish(&self) {
+        // SAFETY: a plain call into the page, see `index.html`.
+        #[cfg(target_arch = "wasm32")]
+        unsafe {
+            vendetta_loaded()
+        };
+    }
+
     pub fn new() -> LoadingScreen {
         LoadingScreen {
             progress: Progress::default(),
+            #[cfg(not(target_arch = "wasm32"))]
             font: TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 14.0, 13.0),
+        }
+    }
+
+    /// One frame: tells the page what to show, on changes only.
+    #[cfg(target_arch = "wasm32")]
+    pub fn draw(&self) {
+        let mut s = self.progress.0.lock().unwrap();
+        clear_background(BLACK);
+        let now = Some((s.pct, s.message.clone()));
+        if s.reported != now {
+            // SAFETY: the page reads the message from wasm memory before returning.
+            unsafe { vendetta_loading(s.pct, s.message.as_ptr(), s.message.len()) };
+            s.reported = now;
         }
     }
 
     /// Draws one frame: the artwork fitted to the window (letterboxed, like the original's
     /// 4:3 screen), the bar behind its bottom band, the cursor and the message bubble.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn draw(&self) {
         let s = self.progress.0.lock().unwrap();
         set_default_camera();
