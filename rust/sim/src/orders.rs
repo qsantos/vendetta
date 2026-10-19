@@ -98,6 +98,17 @@ pub enum Order {
     TakeObjects { perso: usize, slot: usize, count: i64 },
     /// `PersoObjetMaisonDeposer`: put an inventory slot (or object type) into the own house.
     DepositObject { perso: usize, object: usize, from_inventory: bool },
+    /// `PersoObjetMaisonDetruire` + `PersoObjetSelectionne`: hold the object of the own house's
+    /// inventory slot `slot` (nothing already held).
+    HoldHouseObject { perso: usize, slot: usize },
+    /// `PersoObjetMaisonCharger`: put the held object into the own house's inventory slot
+    /// `slot`, swapping with what is there.
+    PlaceInHouse { perso: usize, slot: usize },
+    /// `PersoObjetInventaireAjouter` + `PersoObjetMaisonDetruire`: move the own house's
+    /// inventory slot `slot` into the bag.
+    HouseObjectToBag { perso: usize, slot: usize },
+    /// `PersoObjetMaisonAjouter`: put the held object into the own house's inventory.
+    StoreHeldInHouse { perso: usize },
     /// `PersoObjetMaisonAcheter`: buy one crafted object (the UI emits one per unit).
     BuyObject { perso: usize, house: usize, slot: usize },
     /// `PersoObjetChateauVendre`: sell an inventory slot (or object type) to the own castle.
@@ -181,6 +192,10 @@ impl World {
             | StopCraft { perso }
             | TakeObjects { perso, .. }
             | DepositObject { perso, .. }
+            | HoldHouseObject { perso, .. }
+            | PlaceInHouse { perso, .. }
+            | HouseObjectToBag { perso, .. }
+            | StoreHeldInHouse { perso }
             | BuyObject { perso, .. }
             | SellObject { perso, .. }
             | UseService { perso, .. }
@@ -308,6 +323,10 @@ impl World {
             DepositObject { object, from_inventory, .. } => {
                 self.deposit_object(rules, perso, object, perso, from_inventory)?
             }
+            HoldHouseObject { slot, .. } => self.hold_house_object(perso, slot)?,
+            PlaceInHouse { slot, .. } => self.place_in_house(rules, perso, slot)?,
+            HouseObjectToBag { slot, .. } => self.house_object_to_bag(rules, perso, slot)?,
+            StoreHeldInHouse { .. } => self.store_held_in_house(rules, perso)?,
             BuyObject { house, slot, .. } => self.buy_object(rules, perso, slot, house)?,
             SellObject { object, from_inventory, .. } => self.sell_object(rules, perso, object, f, from_inventory)?,
             UseService { house, .. } => self.use_service(rules, house, perso)?,

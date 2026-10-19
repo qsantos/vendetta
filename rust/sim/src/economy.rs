@@ -932,6 +932,62 @@ impl World {
         }
     }
 
+    /// The own house's inventory slot `slot` when perso `i` is alive in its own house.
+    fn own_house_slot(&self, i: usize, slot: usize) -> Result<i64, ()> {
+        let p = &self.persos[i];
+        if !(p.in_own_house && p.alive()) {
+            return Err(());
+        }
+        self.houses[i].inventory.get(slot).copied().ok_or(())
+    }
+
+    /// Inventory window, house view: picks up the object of house inventory slot `slot`.
+    pub fn hold_house_object(&mut self, i: usize, slot: usize) -> Res {
+        let o = self.own_house_slot(i, slot)?;
+        if o < 0 || self.persos[i].selected_object >= 0 {
+            return Err(());
+        }
+        self.persos[i].selected_object = o;
+        self.houses[i].inventory[slot] = -1;
+        Ok(())
+    }
+
+    /// Inventory window, house view: puts the held object in house inventory slot `slot`,
+    /// holding what was there.
+    pub fn place_in_house(&mut self, rules: &Rules, i: usize, slot: usize) -> Res {
+        let o = self.own_house_slot(i, slot)?;
+        let held = self.persos[i].selected_object;
+        if held < 0 || rules.objects[held as usize].inseparable {
+            return Err(());
+        }
+        self.houses[i].inventory[slot] = held;
+        self.persos[i].selected_object = o;
+        Ok(())
+    }
+
+    /// Inventory window, house view: right click moves house inventory slot `slot` to the bag
+    /// (the original lost the object when the bag was full).
+    pub fn house_object_to_bag(&mut self, rules: &Rules, i: usize, slot: usize) -> Res {
+        let o = self.own_house_slot(i, slot)?;
+        if o < 0 || self.persos[i].inventory_full() {
+            return Err(());
+        }
+        self.persos[i].add_new_object(rules, o as usize);
+        self.houses[i].inventory[slot] = -1;
+        Ok(())
+    }
+
+    /// Inventory window, bag view: the house toggle with an object held stores it in the house.
+    pub fn store_held_in_house(&mut self, rules: &Rules, i: usize) -> Res {
+        self.own_house_slot(i, 0)?;
+        let held = self.persos[i].selected_object;
+        if held < 0 || rules.objects[held as usize].inseparable {
+            return Err(());
+        }
+        self.persos[i].selected_object = -1;
+        self.deposit_object_inventory(rules, i, held as usize, i)
+    }
+
     /// `Objet_Deposer_Sol`: drops an object (inventory slot `n`, or object type `n`) and the
     /// selection into a new treasure. Inseparable objects make the original fail.
     pub fn drop_object(&mut self, rules: &Rules, i: usize, n: usize, from_inventory: bool) -> Res {
