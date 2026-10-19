@@ -459,11 +459,33 @@ impl Hud {
                 draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
             }
         };
-        // TODO: equipping (right click) once items exist
+        let held = p.selected_object >= 0;
         for (k, &(ex, ey)) in EQUIPMENT.iter().enumerate() {
-            if let Some(Some(item)) = p.equipped.get(k) {
-                icon(item.object, o.0 + ex, o.1 + ey);
+            let (x, y) = (o.0 + ex, o.1 + ey);
+            let worn = p.equipped.get(k).copied().flatten();
+            if let Some(item) = worn {
+                icon(item.object, x, y);
+            } else if k == 1 && p.two_handed(rules) {
+                // a two-handed weapon also shows, translucent, in the second hand
+                if let Some(Some(item)) = p.equipped.first() {
+                    if let Some(tex) = textures.get(&object_icon(rules, item.object)) {
+                        let src = Rect::new(0.0, 0.0, 32.0, 32.0);
+                        let colour = Color::new(1.0, 1.0, 1.0, 0.5);
+                        draw_texture_ex(tex, x as f32, y as f32, colour, DrawTextureParams { source: Some(src), ..Default::default() });
+                    }
+                }
             }
+            // Left: drop the held object here (equipping it; slots 1 and 7 are the right
+            // side), or take the worn one onto the cursor. Right: put it back in the bag.
+            let right_side = k == 1 || k == 7;
+            let left = if held {
+                Some(Order::EquipHeld { perso, right: right_side })
+            } else {
+                worn.map(|_| Order::HoldEquipped { perso, slot: k })
+            };
+            let tip = worn.map(|it| rules.objects[it.object].name.clone()).unwrap_or_default();
+            let store = worn.map(|_| Order::StoreEquipped { perso, slot: k });
+            hits.push((Rect::new(x as f32, y as f32, 32.0, 32.0), Hit { frame: true, queue: None, tip, left, right: store }));
         }
         // `Ctrl+left`: discard at once — into the own house, sold in a castle, else dropped.
         let in_castle = p.in_castle || p.in_own_castle;
@@ -493,7 +515,8 @@ impl Hud {
             };
             // TODO: the full object tooltip (`Definir_InfoBulle_Objet`)
             let tip = rules.objects[item.object].name.clone();
-            hits.push((Rect::new((o.0 + x) as f32, (o.1 + y) as f32, 32.0, 32.0), Hit { frame: true, queue: None, tip, left: Some(left), right: None }));
+            let equip = Order::EquipObject { perso, slot, right: false };
+            hits.push((Rect::new((o.0 + x) as f32, (o.1 + y) as f32, 32.0, 32.0), Hit { frame: true, queue: None, tip, left: Some(left), right: Some(equip) }));
         }
     }
 
