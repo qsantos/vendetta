@@ -1,4 +1,4 @@
-//! Testing options, from the URL's hash (`#god&size=512&seed=7`) or the command line
+//! Testing options, from the URL's hash (`#god&size=512&seed=7&fiefs=8&villagers=100`) or the command line
 //! (`client god size=512x256`): not in the original, which set worlds up in its menus.
 
 use crate::storage;
@@ -11,6 +11,10 @@ pub struct Options {
     pub size: Option<(usize, usize)>,
     /// `seed=N`: a reproducible world.
     pub seed: Option<u32>,
+    /// `fiefs=N`: number of fiefs, 2 to 16 like the original's setup screen.
+    pub fiefs: Option<usize>,
+    /// `villagers=N`: characters per fief, 1 to 2000 (the original allows 250).
+    pub villagers: Option<usize>,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -31,6 +35,8 @@ impl Options {
                     }
                 }
                 "seed" => o.seed = value.parse().ok(),
+                "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 16)),
+                "villagers" => o.villagers = value.parse::<usize>().ok().map(|n| n.clamp(1, 2000)),
                 _ => {}
             }
         }
@@ -39,7 +45,7 @@ impl Options {
 
     /// The options that shape a new world: a saved game made with others is not resumed.
     pub fn setup_key(&self) -> String {
-        format!("{:?} {:?}", self.size, self.seed)
+        format!("{:?} {:?} {:?} {:?}", self.size, self.seed, self.fiefs, self.villagers)
     }
 }
 

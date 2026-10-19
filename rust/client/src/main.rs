@@ -133,6 +133,19 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
         setup.resources = setup.resources * w * h / (setup.width * setup.height);
         (setup.width, setup.height) = (w, h);
     }
+    if options.fiefs.is_some() || options.villagers.is_some() {
+        // The default fiefs keep their people; extra ones get a random one, like the original's
+        // "Aléatoire", each fief its own team.
+        let mut rng = sim::vb::Rnd::new(setup.seed);
+        let citizens = options.villagers.unwrap_or(setup.fiefs[0].citizens);
+        setup.fiefs = (0..options.fiefs.unwrap_or(setup.fiefs.len()))
+            .map(|i| {
+                let random = (rng.next() * rules.peoples.len() as f64) as usize % rules.peoples.len();
+                let people = setup.fiefs.get(i).map_or(random, |f| f.people);
+                sim::world::FiefSetup { people, team: i as i64 + 1, epoch: 0, citizens }
+            })
+            .collect();
+    }
     // A saved game is resumed only with the setup options it was made with.
     // (Games saved before the options existed had the default setup.)
     let default_key = options::Options::default().setup_key();
