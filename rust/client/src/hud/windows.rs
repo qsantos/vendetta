@@ -493,8 +493,8 @@ impl Hud {
         for slot in 0..p.inventory.len().min(32) {
             let (x, y) = (32 + 32 * (slot as i32 % 8), 209 + 32 * (slot as i32 / 8));
             let Some(item) = p.inventory[slot] else {
-                // an empty slot puts back what is held
-                let back = (p.selected_object >= 0).then_some(Order::Unselect { perso });
+                // an empty slot receives what is held
+                let back = held.then_some(Order::PlaceHeld { perso, slot });
                 hits.push((Rect::new((o.0 + x) as f32, (o.1 + y) as f32, 32.0, 32.0), Hit { frame: true, queue: None, tip: String::new(), left: back, right: None }));
                 continue;
             };
@@ -510,6 +510,9 @@ impl Hud {
                 } else {
                     Order::DropObject { perso, object: slot, from_inventory: true }
                 }
+            } else if held {
+                // stack with the same object, or swap with this one
+                Order::PlaceHeld { perso, slot }
             } else {
                 Order::HoldObject { perso, slot }
             };
