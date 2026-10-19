@@ -2,6 +2,7 @@
 //! hitting a target (`Deplacement1/2`), damage (`Perso_Attaquer_Perso`), kills and looting
 //! (`Perso_Tuer_Perso`), buildings (`Perso_Attaquer_Batiment`), area attacks and trampling.
 
+use crate::building::Building;
 use crate::event::NumberKind;
 use crate::perso::action;
 use crate::rules::Rules;
@@ -14,6 +15,13 @@ pub const ATTACK_PERSO: i32 = 300;
 pub const ATTACK_HOUSE: i32 = 301;
 pub const ATTACK_CASTLE: i32 = 302;
 pub const ATTACK_GROUND: i32 = 303;
+
+/// A building that can be hit.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Target {
+    House(usize),
+    Castle(usize),
+}
 
 /// Whether the box (x, y, w, h) is within `r` of the box of `(px, py, pw, ph)`.
 fn within(r: f64, (px, py, pw, ph): (i64, i64, i32, i32), (x, y, w, h): (i64, i64, i32, i32)) -> bool {
@@ -309,8 +317,12 @@ impl World {
             // TODO: area attacks (`Perso_Attaquer_Surface`)
         } else if act == ATTACK_PERSO {
             self.hit_perso(rules, i, k, true);
-        } else {
-            // TODO: attacking buildings (`Perso_Attaquer_Batiment`)
+        } else if act == ATTACK_HOUSE {
+            let h = self.persos[i].house_target;
+            self.hit_building(rules, i, Target::House(h), h, -1);
+        } else if act == ATTACK_CASTLE {
+            let c = self.persos[i].castle_target;
+            self.hit_building(rules, i, Target::Castle(c), k, c as i64);
         }
         // The per-object costs are only paid with a main weapon.
         let p = &self.persos[i];
@@ -595,6 +607,178 @@ impl World {
                     self.stop(rules, j);
                 }
             }
+        }
+    }
+
+    // ---------------------------------------------------------------- buildings
+
+    pub fn building(&self, b: Target) -> &Building {
+        match b {
+            Target::House(h) => &self.houses[h],
+            Target::Castle(c) => &self.castles[c],
+        }
+    }
+
+    fn building_mut(&mut self, b: Target) -> &mut Building {
+        match b {
+            Target::House(h) => &mut self.houses[h],
+            Target::Castle(c) => &mut self.castles[c],
+        }
+    }
+
+    /// `Definir_Vie = v` of a building. Castles are of type 0, which gives and takes no
+    /// object, and no market.
+    fn set_building_life(&mut self, rules: &Rules, b: Target, v: f64) {
+        match b {
+            Target::House(h) => self.set_house_life(rules, h, v),
+            Target::Castle(c) => {
+                self.castles[c].set_life(v);
+            }
+        }
+    }
+
+    /// `Perso_Attaquer_Batiment(a, b, d, NoChateau)`: a blow of up to `MaxDegatBatiment`
+    /// attack points (a kamikaze spends what it takes), scaled by the demolition skill; the
+    /// attack bar (the chef's for a projectile) pays without limit and trains demolition.
+    /// `d` is the owner (the attacker's target perso for a castle); `castle` is the fief of a
+    /// castle, -1 for a house; a castle hit as a house (area attacks) is looted as one.
+    pub fn hit_building(&mut self, rules: &Rules, a: usize, b: Target, d: usize, castle: i64) {
+        let c = &rules.combat;
+        let p = &self.persos[a];
+        let shooter = if p.projectile { p.chef as usize } else { a };
+        let att = self.persos[shooter].attack;
+        let life = self.building(b).life;
+        let mut spent = life;
+        if spent > c.max_building_damage && (!p.kamikaze || p.projectile) {
+            spent = c.max_building_damage;
+        }
+        if spent > att {
+            spent = att;
+        } else if spent < 1.0 {
+            spent = 1.0;
+        }
+        // The projectile's own copy of its chef's demolition skill.
+        let damage = spent * c.building_damage_coef * p.special[1].bonus as f64 / rules.start_special as f64;
+        self.set_building_life(rules, b, life - damage);
+        let m = self.building(b);
+        let (bx, by, bw, bh) = (m.x as f64, m.y as f64, m.w as f64, m.h as f64);
+        let x = bx + bw / 4.0 + self.rng.next() * bw / 2.0;
+        self.number(x, by, damage, NumberKind::Damage, false);
+        // No combat experience, but demolition.
+        let s = &mut self.persos[shooter];
+        s.attack -= spent;
+        s.train_special(rules, 1, spent);
+        let p = &self.persos[a];
+        // The one credited: the chef of a summon.
+        let credited = if p.invocation() { p.chef as usize } else { a };
+        // The one blamed: the chef of a kamikaze summon.
+        let culprit = if p.kamikaze && p.invocation() { p.chef as usize } else { a };
+        if !self.building(b).visible() {
+            self.stop(rules, a);
+            self.building_mut(b).under_construction = false;
+            if let Ok(f) = usize::try_from(castle) {
+                self.effect(rules.effect_castle_destroyed, bx, by, bw, bh);
+                for j in 0..self.persos.len() {
+                    let q = &self.persos[j];
+                    let lost = q.alive() && q.fief == f;
+                    if self.rng.next() > 0.6 && lost {
+                        self.say_now(rules, j, 12);
+                    }
+                }
+                self.persos[credited].frags[2] += 1;
+            } else {
+                self.loot_building(rules, b);
+                self.persos[credited].frags[1] += 1;
+                self.say_now(rules, d, 5);
+                self.effect(rules.effect_house_destroyed, bx, by, bw, bh);
+                // An AI goes for the owner, who was inside.
+                let chase = self.persos[a].ai && self.persos[d].in_own_house;
+                if self.rng.next() < 0.9 && chase {
+                    let owner = self.building(b).owner;
+                    self.attack_perso(rules, a, owner);
+                }
+            }
+        } else if let Ok(f) = usize::try_from(castle) {
+            let x = bx + self.rng.next() * bw / 2.0 - bw / 4.0;
+            let y = by + self.rng.next() * bh / 2.0 - bh / 4.0;
+            let effect = self.persos[a].attack_effect(rules);
+            self.effect(effect, x, y, bw, bh);
+            // The castle's defenders may fight back, and complain.
+            for j in 0..self.persos.len() {
+                let q = &self.persos[j];
+                if q.alive() && q.fief == f && !q.invocation() && !q.ai_selfish {
+                    if self.rng.next() > 0.92 && self.persos[j].ai {
+                        self.attack_perso(rules, j, culprit);
+                    }
+                    if self.rng.next() > 0.9 {
+                        self.say(rules, j, 11);
+                    }
+                }
+            }
+            if self.rng.next() > 0.9 {
+                self.call_for_help(rules, a);
+            }
+        } else {
+            let x = bx + self.rng.next() * bw - bw / 2.0;
+            let y = by + self.rng.next() * bh - bh / 2.0;
+            let effect = self.persos[a].attack_effect(rules);
+            self.effect(effect, x, y, bw, bh);
+            let q = &self.persos[d];
+            if q.alive() && q.ai && !q.invocation() {
+                let busy = q.action == ATTACK_PERSO;
+                if self.rng.next() > 0.75 && !busy {
+                    self.attack_perso(rules, d, a);
+                }
+            }
+            let m = self.building(b);
+            let damaged = m.life_with_repair() < m.max_life as f64 / 2.0;
+            if self.rng.next() > 0.65 && damaged {
+                self.call_for_help(rules, d);
+            }
+            self.say(rules, d, 4);
+        }
+    }
+
+    /// `Perso_Piller_Batiment`: a destroyed house leaves a treasure with half its till, half
+    /// the stock of a shop, and each stocked object with a chance of one half. Quirk: the last
+    /// object slot is skipped.
+    fn loot_building(&mut self, rules: &Rules, b: Target) {
+        let c = &rules.combat;
+        let m = self.building(b);
+        // The original uses the width for Y too.
+        let half = TREASURE_SIZE as f64 / 2.0;
+        let x = clng(m.x as f64 + m.w as f64 / 2.0 - half) as i32;
+        let y = clng(m.y as f64 + m.w as f64 / 2.0 - half) as i32;
+        let t = self.treasure_create(rules, x, y);
+        let m = self.building(b);
+        let (money, kind, stock) = (m.money, m.kind, m.stock());
+        let product = rules.buildings[kind].product;
+        let shop = m.shop && product > 0 && stock > 0.0;
+        let stocks: Vec<f64> = if m.factory && stock > 0.0 {
+            (0..m.object_slots().saturating_sub(1)).map(|s| m.object_stock(s)).collect()
+        } else {
+            Vec::new()
+        };
+        let tr = &mut self.treasures[t];
+        tr.set_money(rules, tr.money() + money * c.house_loot_money);
+        if shop {
+            let r = product as usize;
+            tr.set_resource(rules, r, tr.resource(r) + stock * c.house_loot_resources);
+        }
+        for (s, n) in stocks.into_iter().enumerate() {
+            let mut j = 0.0;
+            while j <= n - 1.0 {
+                if c.house_loot_objects > self.rng.next() {
+                    let o = rules.buildings[kind].objects[s];
+                    self.treasures[t].add_object(rules, o);
+                }
+                j += 1.0;
+            }
+        }
+        if self.treasures[t].empty() {
+            self.treasures.remove(t);
+        } else {
+            self.treasure_check(rules, t);
         }
     }
 

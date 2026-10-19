@@ -197,3 +197,35 @@ fn ghosts_resurrect_in_their_castle() {
     assert_eq!(p.bars[0], p.bonus_max[0] as f64);
     assert_eq!(w.fiefs[0].dead, 0);
 }
+
+/// A blow on a house spends at most 20 attack points, scaled by the demolition skill; a
+/// destroyed house leaves half its till in a treasure.
+#[test]
+fn houses_are_hit_and_destroyed() {
+    use sim::combat::Target;
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let a = fighter(&mut w, &rules, 0, 100, 100);
+    let o = fighter(&mut w, &rules, 1, 400, 400);
+    let kind = rules.buildings.iter().position(|b| b.service == 0 && b.product < 0 && !b.factory).unwrap();
+    w.create_house(&rules, o, 120, 100, kind, o);
+    let max = w.houses[o].max_life as f64;
+    w.houses[o].set_life(max);
+    w.houses[o].money = 40.0;
+    w.persos[a].attack = 50.0;
+    w.hit_building(&rules, a, Target::House(o), o, -1);
+    let skill = w.persos[a].special[1].bonus as f64 / rules.start_special as f64;
+    let spent = rules.combat.max_building_damage;
+    assert_eq!(w.houses[o].life, max - spent * rules.combat.building_damage_coef * skill);
+    assert_eq!(w.persos[a].attack, 50.0 - spent);
+
+    let treasures = w.treasures.len();
+    w.houses[o].life = 1.0;
+    w.persos[a].attack = 50.0;
+    w.hit_building(&rules, a, Target::House(o), o, -1);
+    assert!(!w.houses[o].visible());
+    assert_eq!(w.persos[a].attack, 50.0 - 1.0);
+    assert_eq!(w.persos[a].frags[1], 1);
+    assert_eq!(w.treasures.len(), treasures + 1);
+    assert_eq!(w.treasures.last().unwrap().money(), 20.0);
+}
