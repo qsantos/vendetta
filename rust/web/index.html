@@ -30,10 +30,12 @@
   #menu form, #main { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70);
                border-radius: 12px; padding: 20px 28px; min-width: 300px; }
   #menu h1 { margin: 0 0 16px; font-size: 22px; text-align: center; }
-  #menu label { display: flex; justify-content: space-between; align-items: center;
+  #menu label { display: grid; grid-template-columns: 1fr 200px; align-items: center;
                 gap: 16px; margin: 8px 0; }
-  #menu input[type=number], #menu select { width: 200px; font: inherit; }
-  #menu fieldset { border: 1px solid rgb(120, 150, 70); margin: 14px 0 0; }
+  #menu input[type=number], #menu select { width: 100%; box-sizing: border-box; font: inherit; }
+  #menu input[type=checkbox] { justify-self: start; margin: 0; }
+  /* only a line above, so that its fields stay in the form's columns */
+  #menu fieldset { border: none; border-top: 1px solid rgb(120, 150, 70); margin: 14px 0 0; padding: 0; }
   #menu .buttons { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
   #menu button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 6px 14px; }
   #main { display: flex; flex-direction: column; gap: 12px; }
