@@ -3,6 +3,7 @@
 mod bars;
 mod bubbles;
 mod buttons;
+mod shortcuts;
 mod windows;
 
 pub use buttons::Input;
@@ -45,6 +46,8 @@ pub struct Strings {
     pub info_tips: Vec<String>,
     /// `BarresStatutSeuilMessage1/2`, around the threshold tooltip.
     pub threshold: [String; 2],
+    /// `BoutonRaccourciObjetEtiquette`: "Equiper Objets ".
+    pub shortcut: String,
     pub closed: [String; 2],
     pub abandoned: [String; 2],
     pub percent: String,
@@ -79,6 +82,7 @@ impl Strings {
                 globals.find("EtiquetteVieRestante").unwrap_or("").to_owned(),
                 globals.find("EtiquetteViesRestantes").unwrap_or("").to_owned(),
             ],
+            shortcut: interface.find("BoutonRaccourciObjetEtiquette").unwrap_or("").to_owned(),
             threshold: ["BarresStatutSeuilMessage1", "BarresStatutSeuilMessage2"].map(|k| interface.find(k).unwrap_or("").to_owned()),
             info_tips: (1..=9).map(|i| interface.find(&format!("BoutonInfosInfoBulle{i}")).unwrap_or("").to_owned()).collect(),
             move_tips: (1..=23)
@@ -108,6 +112,10 @@ pub struct Hud {
     radial_angle: [f32; 2],
     /// The left release that follows a click closing the radial buttons is not a map click.
     swallow_release: bool,
+    /// Object shortcut keys.
+    shortcuts: shortcuts::Shortcuts,
+    /// The bag or equipment object under the cursor, for binding it with a digit.
+    hovered_object: Option<usize>,
     /// `FileFabricationObjets`: crafting slots queued in the own workshop.
     craft_queue: Vec<usize>,
     /// Automatic restoring of the status bars.
@@ -209,7 +217,7 @@ impl Hud {
         self.small_font.set_scale(scale);
     }
 
-    pub fn new(strings: Strings, window_strings: WindowStrings) -> Hud {
+    pub fn new(strings: Strings, window_strings: WindowStrings, objects: usize) -> Hud {
         let font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), FONT_PX);
         let small_font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 8.0 * 96.0 / 72.0);
         Hud {
@@ -229,6 +237,8 @@ impl Hud {
             build_cache: Vec::new(),
             auto: bars::AutoRestore::load(),
             craft_queue: Vec::new(),
+            shortcuts: shortcuts::Shortcuts::load(objects),
+            hovered_object: None,
             fps: 0,
             frames: 0,
             fps_timer: get_time(),
@@ -282,7 +292,7 @@ impl Hud {
 
         self.draw_statistics(world, rules);
         self.draw_epoch(world, rules, p);
-        self.draw_object_slots(textures);
+        self.draw_object_slots(world, rules, textures, player);
         self.refresh_build_buttons(world, rules, player);
         self.slide_buttons(world, rules, player, input.mouse);
         self.draw_move_buttons(textures, world, player);
@@ -368,34 +378,6 @@ impl Hud {
     }
 
     /// The 9 object shortcut slots ("1".."9") at the top left.
-    /// The 9 object shortcut slots. Only the sprite's 3-pixel frame is drawn: its labels are
-    /// low-resolution pixels, so they are written with the small font instead.
-    fn draw_object_slots(&self, textures: &Textures) {
-        let Some(tex) = textures.get(OBJETS) else { return };
-        // Alt and Shift show the other key sets (`BoutonRaccourciObjetDecalageY`).
-        let alt = is_key_down(KeyCode::LeftAlt) || is_key_down(KeyCode::RightAlt);
-        let shift = is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift);
-        let set = if alt { 1 } else if shift { 2 } else { 0 };
-        for i in 0..9 {
-            // TODO: bound objects; a slot whose objects are equipped uses the dim row
-            let enabled = false;
-            let row = enabled as i32 + 2 * set;
-            let (x, y) = (56 + 32 * i, 0);
-            for (sx, sy, w, h) in [(0, 0, 32, 3), (0, 29, 32, 3), (0, 3, 3, 26), (29, 3, 3, 26)] {
-                let src = Rect::new((32 * i + sx) as f32, (32 * row + sy) as f32, w as f32, h as f32);
-                draw_texture_ex(tex, (x + sx) as f32, (y + sy) as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
-            }
-            let label = match set {
-                1 => format!("Alt {}", i + 1),
-                2 => format!("Maj{}", i + 1),
-                _ => (i + 1).to_string(),
-            };
-            let colour = if enabled { Color::from_rgba(24, 24, 24, 255) } else { WHITE };
-            // The sprite's labels have their cap tops 4 px into the cell.
-            self.small_font.draw(&label, x + 4, y + 12, colour);
-        }
-    }
-
     /// `Afficher_Action`: the player's current action.
     fn action_message(&self, rules: &Rules, p: &Perso) -> String {
         // Harvesting shows the skill and the carried quantity instead.

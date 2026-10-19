@@ -163,7 +163,7 @@ async fn main() {
     };
     let player = world.persos.iter().position(|p| p.player).unwrap();
     let mut last_save = get_time();
-    let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"));
+    let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"), rules.objects.len());
 
 
     let mut target = render_target(1, 1);

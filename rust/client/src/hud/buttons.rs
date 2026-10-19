@@ -320,9 +320,11 @@ impl Hud {
         }
 
         // Object shortcut slots
-        // TODO: shortcut slots
         if !on_ui {
-            on_ui = (0..9).any(|i| inside(m, 56 + 32 * i, 0, 32, 32));
+            if let Some(t) = self.object_slot_buttons(world, rules, player, input, orders) {
+                on_ui = true;
+                tip = t;
+            }
         }
         // Status bars
         if !on_ui {
@@ -335,6 +337,7 @@ impl Hud {
         on_ui |= m.0 <= 0 || m.1 <= 0 || m.0 >= screen_w() || m.1 >= screen_h();
 
         self.keyboard(world, player, orders);
+        self.shortcut_keys(world, rules, player, orders);
         self.tooltip(m, &tip);
         on_ui
     }
