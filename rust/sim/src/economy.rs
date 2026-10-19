@@ -1351,6 +1351,7 @@ impl World {
     /// other persos heading to it stop, those heading further down the list are renumbered.
     pub fn treasure_pickup(&mut self, rules: &Rules, i: usize, k: usize) {
         let t = self.treasures.remove(k);
+        self.show_treasure(rules, i, &t);
         let p = &mut self.persos[i];
         p.set_money(p.money() + t.money());
         for r in 0..rules.resources.len() {
@@ -1368,6 +1369,29 @@ impl World {
                     p.treasure_target -= 1;
                 }
             }
+        }
+    }
+
+    /// What perso `i` found in treasure `t`, floating over it (not in the original, which showed
+    /// nothing): the money as a number, then a line per resource and object.
+    fn show_treasure(&mut self, rules: &Rules, i: usize, t: &crate::treasure::Treasure) {
+        let p = &self.persos[i];
+        let (x, y) = (p.x as f64 + p.w as f64 / 2.0, p.y as f64);
+        self.number(x, y, t.money(), crate::event::NumberKind::Money, false);
+        let mut lines: Vec<String> = (0..rules.resources.len())
+            .filter(|&r| t.resource(r) >= 1.0)
+            .map(|r| format!("+{} {}", t.resource(r).floor(), rules.resources[r].name))
+            .collect();
+        let mut objects: Vec<usize> = t.objects.clone();
+        objects.sort_unstable();
+        objects.dedup();
+        for o in objects {
+            let n = t.objects.iter().filter(|&&x| x == o).count();
+            let obj = &rules.objects[o];
+            lines.push(if n > 1 { format!("{n} {}", obj.plural) } else { obj.name.clone() });
+        }
+        for (n, line) in lines.into_iter().enumerate() {
+            self.text(x, y - 11.0 * (n + 1) as f64, line, crate::event::NumberKind::Money);
         }
     }
 

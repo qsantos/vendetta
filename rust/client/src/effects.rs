@@ -46,6 +46,15 @@ struct Floating {
     age: i32,
 }
 
+/// `Combat.ini [Degats]`: damage red, heal blue, money yellow.
+fn number_colour(kind: NumberKind) -> Color {
+    match kind {
+        NumberKind::Damage => Color::from_rgba(255, 0, 0, 255),
+        NumberKind::Heal => Color::from_rgba(0, 0, 255, 255),
+        NumberKind::Money => Color::from_rgba(255, 255, 0, 255),
+    }
+}
+
 enum SoundState {
     Loading(Coroutine<Option<Sound>>),
     Ready(Sound),
@@ -123,18 +132,14 @@ impl Effects {
                 Event::Number { x, y, value, kind, critical } => {
                     let text = value.to_string();
                     let size = if *critical { CRITICAL_SIZE } else { NUMBER_SIZE };
-                    let colour = match kind {
-                        NumberKind::Damage => Color::from_rgba(255, 0, 0, 255),
-                        NumberKind::Heal => Color::from_rgba(0, 0, 255, 255),
-                        NumberKind::Money => Color::from_rgba(255, 255, 0, 255),
-                    };
+                    let colour = number_colour(*kind);
                     let x = x - text.len() as i64 * size / 2;
                     let y = y + NUMBER_OFFSET_Y;
                     self.floating.push(Floating { x: x as i32, y: y as i32, text, colour, critical: *critical, age: 0 });
                 }
-                Event::Text { x, y, text } => {
+                Event::Text { x, y, text, kind } => {
                     let x = x + 4 - text.chars().count() as i64 * NUMBER_SIZE / 2;
-                    let colour = Color::from_rgba(255, 0, 0, 255);
+                    let colour = number_colour(*kind);
                     self.floating.push(Floating { x: x as i32, y: (y - 16) as i32, text: text.clone(), colour, critical: false, age: 0 });
                 }
                 Event::Effect { effect, sound: _, x, y, w, h } => {

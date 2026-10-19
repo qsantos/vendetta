@@ -22,9 +22,10 @@ pub enum Event {
     /// client applies `Combat.ini [Degats]`: the offsets, the font size, bigger when
     /// `critical`). Values that round to 0 are not emitted, like the original.
     Number { x: i64, y: i64, value: i64, kind: NumberKind, critical: bool },
-    /// `AffDegat.Ajouter_Texte`: a line in the damage colour, e.g. the name of an effect caught
-    /// on a hit; (x, y) as for `Number`, the original also shifts it 4 px right and 10 px up.
-    Text { x: i64, y: i64, text: String },
+    /// `AffDegat.Ajouter_Texte`: a line in the colour of `kind`, e.g. the name of an effect
+    /// caught on a hit (damage); (x, y) as for `Number`, the original also shifts it 4 px right
+    /// and 10 px up.
+    Text { x: i64, y: i64, text: String, kind: NumberKind },
     /// `Activer_Effet`: animation `effect` (0-based, `Parametres_Effets.ini`) centred on the
     /// box (x, y, w, h). The original plays sound `sound` (the same index, `Effet_Son`) when
     /// the animation shows on screen.
@@ -41,8 +42,8 @@ impl World {
     }
 
     /// `AffDegat.Ajouter_Texte`
-    pub(crate) fn text(&mut self, x: f64, y: f64, text: String) {
-        self.events.push(Event::Text { x: clng(x), y: clng(y), text });
+    pub(crate) fn text(&mut self, x: f64, y: f64, text: String, kind: NumberKind) {
+        self.events.push(Event::Text { x: clng(x), y: clng(y), text, kind });
     }
 
     /// `Activer_Effet`: nothing for a negative effect.

@@ -885,7 +885,7 @@ impl World {
                 q.add_effect(rules, e, duration, duration, Some((owner, skill)));
                 let (x, y) = (q.x as f64 + q.w as f64 / 2.0, q.y as f64 - 9.0 * n as f64);
                 let text = o.effect_name[q.female as usize].clone();
-                self.text(x, y, text);
+                self.text(x, y, text, crate::event::NumberKind::Damage);
             }
         }
     }
