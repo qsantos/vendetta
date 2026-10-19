@@ -33,6 +33,13 @@
 <!-- build-web.sh appends ?v=<hash> to these two URLs so they can be cached for good -->
 <script src="mq_js_bundle.js"></script>
 <script>
+  // Digits are the object keys: keep Firefox's quick find (' is 4 on AZERTY, /) and similar
+  // shortcuts from taking them.
+  window.addEventListener("keydown", (e) => {
+    if (/^(Digit\d|Quote|Slash)$/.test(e.code) && !e.ctrlKey && !e.metaKey) e.preventDefault();
+  });
+</script>
+<script>
   // Right click is a game action, not the browser menu.
   document.addEventListener("contextmenu", (e) => e.preventDefault());
 
