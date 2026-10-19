@@ -413,8 +413,21 @@ impl Hud {
     /// What is drawn over everything: the building footprint, the cursor and the FPS.
     /// `placement` is the cursor type from [`Hud::draw_placement`].
     pub fn overlay(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, placement: Option<i32>, hover: Option<(i32, usize)>) {
-        // `Afficher_Objet_Curseur`: the held object under the cursor.
-        let held = world.persos[player].selected_object;
+        // `Afficher_Objet_Curseur`: the money and resources selected, in a bubble under the
+        // cursor (at most what is owned, `Ressources_Verifications`), then the held object.
+        let p = &world.persos[player];
+        let mut lines = Vec::new();
+        if p.selected_money.min(p.money()) > 0.0 {
+            lines.push(format!("Argent : {}", p.selected_money.min(p.money()) as i64));
+        }
+        for (r, resource) in rules.resources.iter().enumerate() {
+            let n = p.selected_resources.get(r).map_or(0.0, |&n| n.min(p.resource(r)));
+            if n >= 1.0 {
+                lines.push(format!("{} : {}", resource.name, n as i64));
+            }
+        }
+        self.tooltip((input.mouse.0 - 12, input.mouse.1 - 12), &lines.join("#"));
+        let held = p.selected_object;
         if held >= 0 {
             let path = format!("{}.bmp", rules.objects[held as usize].image);
             if let Some(tex) = textures.get(&path) {
