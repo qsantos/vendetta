@@ -1110,7 +1110,13 @@ impl World {
                 .ok()
                 .and_then(|s| rules.buildings[kind].objects.get(s))
                 .map(|&o| rules.objects[o].skill);
-            self.persos[i].slow_recovery(rules, skill);
+            self.persos[i].slow_fatigue(rules, skill);
+            // TODO: trampling (`Perso_Pietinement`)
+            self.persos[i].slow_recovery(rules);
+            if !self.persos[i].alive() {
+                // A negative regeneration killed it.
+                self.kill(rules, i);
+            }
             let p = &mut self.persos[i];
             if p.poison >= 1 {
                 let poison = p.poison as f64;

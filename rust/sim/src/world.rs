@@ -401,10 +401,9 @@ impl World {
             p.quick_recovery(rules);
             // Deplacement1
             p.update_vitality();
-            // TODO: tracking combat and giving targets (`EnCombat`, action 205)
-            // Deplacement2: TODO acting on targets in range; otherwise Deplacement3
-            self.move_step(rules, i);
-            self.persos[i].advance_frame();
+            self.track_target(rules, i);
+            // Deplacement2, which walks (Deplacement3) unless the target is in range
+            self.act_or_move(rules, i);
             let msg = self.work(rules, i);
             if let Some(m) = msg {
                 if self.rng.next() > 0.99 || self.player == Some(i) {
@@ -415,10 +414,13 @@ impl World {
     }
 
     /// `Deplacement3`, with its effects on the target house.
-    fn move_step(&mut self, rules: &Rules, i: usize) {
-        let ht = self.persos[i].house_target;
-        let before = self.persos[i].action;
-        match self.persos[i].step_move(rules, &self.terrain) {
+    pub(crate) fn move_step(&mut self, rules: &Rules, i: usize) {
+        let p = &self.persos[i];
+        let ht = p.house_target;
+        let before = p.action;
+        // Chasing a moving target only plans two steps ahead, again every tick.
+        let chase = before == crate::combat::ATTACK_PERSO && self.persos[p.perso_target].moving;
+        match self.persos[i].step_move(rules, &self.terrain, chase) {
             None => {}
             Some(true) => {
                 if before == action::GO_BUILD && !self.houses[ht].visible() {

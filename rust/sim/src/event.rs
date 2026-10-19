@@ -40,6 +40,11 @@ impl World {
         }
     }
 
+    /// `AffDegat.Ajouter_Texte`
+    pub(crate) fn text(&mut self, x: f64, y: f64, text: String) {
+        self.events.push(Event::Text { x: clng(x), y: clng(y), text });
+    }
+
     /// `Activer_Effet`: nothing for a negative effect.
     pub(crate) fn effect(&mut self, effect: i64, x: f64, y: f64, w: f64, h: f64) {
         if let Ok(effect) = usize::try_from(effect) {

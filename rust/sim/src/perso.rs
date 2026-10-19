@@ -285,8 +285,9 @@ pub struct Perso {
     /// `CibleX/Y`, `ProjectileCible`: the ground target of action 303.
     pub ground_target: (i64, i64),
     pub ground_target_kind: i64,
-    /// `DureeRechargeAttaque`, `DureeRechargeAttaqueMax`, `DureeRechargeAttaqueObjet`, `ForcerAttaque`.
-    // TODO: attack cooldowns (combat)
+    /// `DureeRechargeAttaque` (ticks before the next blow), `DureeRechargeAttaqueMax`,
+    /// `DureeRechargeAttaqueObjet` (the weapons' reload time), `ForcerAttaque` (the first blow
+    /// after an order does not wait for a full attack bar).
     pub reload: i64,
     pub reload_max: i64,
     pub reload_object: i64,
@@ -760,14 +761,14 @@ impl Perso {
 
     /// The character's own part of `Deplacement3`: one step and the action transitions.
     /// Returns whether it is still walking, or None while stunned.
-    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain) -> Option<bool> {
+    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, chase: bool) -> Option<bool> {
         if self.stun > 0 {
             self.stun -= 1;
             // TODO: projectiles die when stunned
             return None;
         }
         self.update_step(rules, terrain);
-        if self.walk(rules, terrain) {
+        if self.walk(rules, terrain, chase) {
             // TODO: projectile collisions
             if self.action > 99 && self.action % 2 == 0 && self.action < 200 {
                 self.action += 1;
@@ -793,12 +794,12 @@ impl Perso {
     }
 
     /// `Marcher3`: one step along the path; returns whether still moving.
-    fn walk(&mut self, rules: &Rules, terrain: &Terrain) -> bool {
+    fn walk(&mut self, rules: &Rules, terrain: &Terrain, chase: bool) -> bool {
         if !self.moving {
             return false;
         }
         if self.dest != self.path_dest || !self.path_complete {
-            self.compute_path(rules, terrain);
+            self.compute_path(rules, terrain, chase);
             self.path_dest = self.dest;
         }
         let step = self.step as f64;
@@ -831,16 +832,16 @@ impl Perso {
         self.moving
     }
 
-    /// `Calculer_Chemin`: greedy 8-neighbour search toward the destination.
-    fn compute_path(&mut self, rules: &Rules, terrain: &Terrain) {
+    /// `Calculer_Chemin`: greedy 8-neighbour search toward the destination; when chasing a
+    /// moving target, only two steps, and the path is recomputed on the next tick.
+    fn compute_path(&mut self, rules: &Rules, terrain: &Terrain, chase: bool) {
         self.path.clear();
         let i = CELL as i64;
         let d = (16.0 * 0.7f64).round_ties_even() as i64;
         const PATHFINDING: i64 = 1; // Jeu.ini Regle3
         if !self.bonus_flying && self.alive() && PATHFINDING > 0 {
-            // TODO: chasing a moving target limits the search to 2 steps per tick
-            let max_steps = 1024;
-            self.path_complete = true;
+            let max_steps = if chase { 2 } else { 1024 };
+            self.path_complete = !chase;
             let (dir_x, dir_y) = self.dest;
             let (mut tx, mut ty) = (0i64, 0i64);
             let mut prev_choice: i64 = -1;

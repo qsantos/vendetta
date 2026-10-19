@@ -225,11 +225,11 @@ impl Perso {
         (self.bars[i] + self.recovery[i]).min(self.bonus_max[i] as f64)
     }
 
-    /// `Definir_Vie` setter. Returns true when the character dies: the caller must then run
-    /// `World::kill` (`Vivant = False`).
+    /// `Definir_Vie` setter. Returns true, leaving the bar as it is, when the character dies:
+    /// the caller must then run `World::kill` (`Vivant = False`), which stops it while it is
+    /// still alive, like the original, then empties the bar.
     pub fn set_life(&mut self, rules: &Rules, v: f64) -> bool {
         if self.alive() && v <= 0.0 {
-            self.bars[0] = 0.0;
             return true;
         }
         if v < self.bars[0] {
@@ -344,17 +344,19 @@ impl Perso {
             let v = self.defense + RECOVERY_DEFENSE * self.vitality * self.bonus_max[5] as f64 / self.max[5] as f64;
             self.set_defense(rules, v);
         }
-        // TODO: attack reload countdown (`DureeRechargeAttaque`, combat)
+        if self.reload > 0 {
+            self.reload = (self.reload - 1).max(0);
+        }
     }
 
-    /// The living branch of `RecuperationLente`, every 10th tick: fatigue, food, regeneration.
-    /// `craft_skill` is the item skill of the object being crafted at home.
-    pub(crate) fn slow_recovery(&mut self, rules: &Rules, craft_skill: Option<usize>) {
+    /// The start of the living branch of `RecuperationLente`, every 10th tick: walking and
+    /// working tire (the caller then tramples, `Perso_Pietinement`). `craft_skill` is the item
+    /// skill of the object being crafted at home.
+    pub(crate) fn slow_fatigue(&mut self, rules: &Rules, craft_skill: Option<usize>) {
         let base = rules.start_max_resources as f64;
         if self.moving {
             self.set_bar(rules, 1, self.bars[1] - FATIGUE_WALK);
             self.set_bar(rules, 3, self.bars[3] - DEMORALISATION_WALK);
-            // TODO: trampling (`Perso_Pietinement`, combat)
         } else {
             let work = |p: &mut Perso, level: f64| {
                 p.set_bar(rules, 1, p.bars[1] - FATIGUE_WORK * level);
@@ -364,7 +366,7 @@ impl Perso {
                 action::IDLE | action::AT_HOME => {
                     let regen = if self.action == action::IDLE { REGEN_IDLE } else { REGEN_REST };
                     let v = self.bars[0] + regen[0] * self.bonus_max[0] as f64;
-                    self.set_life(rules, v);
+                    self.set_life_dying(rules, v);
                     for i in 1..4 {
                         self.set_bar(rules, i, self.bars[i] + regen[i] * self.bonus_max[i] as f64);
                     }
@@ -387,13 +389,18 @@ impl Perso {
                 _ => {}
             }
         }
+    }
+
+    /// The rest of the living branch of `RecuperationLente`: food, combat fatigue,
+    /// regeneration, income, effects and recharges.
+    pub(crate) fn slow_recovery(&mut self, rules: &Rules) {
         for i in 0..4 {
             if self.recovery[i] > 0.0 {
                 let s = RECOVERY[i] * self.bonus_max[i] as f64;
                 let gain = if self.recovery[i] >= s { s } else { self.recovery[i] };
                 let v = self.bars[i] + gain;
                 if i == 0 {
-                    self.set_life(rules, v);
+                    self.set_life_dying(rules, v);
                 } else {
                     self.set_bar(rules, i, v);
                 }
@@ -415,7 +422,7 @@ impl Perso {
             fight(self);
         }
         let v = self.bars[0] + self.bonus_regen[0] * self.bonus_max[0] as f64;
-        self.set_life(rules, v);
+        self.set_life_dying(rules, v);
         for i in 1..4 {
             self.set_bar(rules, i, self.bars[i] + self.bonus_regen[i] * self.bonus_max[i] as f64);
         }
@@ -428,6 +435,14 @@ impl Perso {
         }
         self.tick_effects(rules);
         self.tick_recharges();
+    }
+
+    /// `Definir_Vie` where the death cannot be handled at once (a negative regeneration): the
+    /// bar empties and `World::slow_tick` kills afterwards.
+    fn set_life_dying(&mut self, rules: &Rules, v: f64) {
+        if self.set_life(rules, v) {
+            self.bars[0] = 0.0;
+        }
     }
 
     /// `Manger_Ressources_Coef`
