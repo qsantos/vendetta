@@ -356,7 +356,8 @@ impl World {
         }
         for j in 0..self.persos[i].equipped.len() {
             if self.persos[i].equipped[j].is_some() {
-                // TODO: `Objet_Ranger` (items); then the original sells inventory slot 0.
+                // The original then sells inventory slot 0, whatever it holds.
+                self.persos[i].store(rules, j);
                 let _ = self.sell_object(rules, i, 0, nf, true);
             }
             if self.persos[i].money() >= price {
@@ -516,6 +517,7 @@ impl World {
     }
 
     /// `Objet_Equiper`: equip, or use, the object of inventory slot `slot`.
-    // TODO: equipping and using objects (items, spec 03 §5.4)
-    pub fn equip_object(&mut self, _rules: &Rules, _i: usize, _slot: usize) {}
+    pub fn equip_object(&mut self, rules: &Rules, i: usize, slot: usize) {
+        self.equip_object_at(rules, i, Some(slot), false);
+    }
 }

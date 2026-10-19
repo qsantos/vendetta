@@ -240,7 +240,7 @@ impl World {
                     self.markets_remove(self.persos[owner].fief, h);
                 }
                 if t.loss_object >= 0 {
-                    self.persos[owner].remove_object(t.loss_object as usize);
+                    self.persos[owner].remove_object(rules, t.loss_object as usize);
                 }
             }
         }
@@ -575,7 +575,7 @@ impl World {
             if p.resource_boosted(rules, r) {
                 let s = &p.resource_skills[r];
                 speed = speed * (s.xp.level as f64 + base) / (s.bonus as f64 + base);
-                // TODO: equipped objects boosting this skill gain XP (items)
+                p.train_objects(rules, |o| o.bonus_resource[r] > 0, speed);
             }
             p.train(rules, Trained::Resource(r), speed);
         }
@@ -608,8 +608,13 @@ impl World {
         }
         let p = &mut self.persos[i];
         if p.action != action::IDLE && p.action != action::AT_HOME {
-            p.train(rules, Trained::Service(s - 1), srv.speed * speed * srv.xp_coef);
-            // TODO: equipped objects boosting this skill gain XP (items)
+            let gain = srv.speed * speed * srv.xp_coef;
+            p.train(rules, Trained::Service(s - 1), gain);
+            if p.service_boosted(rules, s - 1) {
+                // Quirk: the objects are checked on the next service's skill (`[s]`, not `[s-1]`);
+                // the original fails on the last service.
+                p.train_objects(rules, |o| o.bonus_service.get(s).is_some_and(|&b| b > 0), gain);
+            }
         }
     }
 
@@ -621,8 +626,11 @@ impl World {
         let base = rules.start_special as f64;
         let v = BUILD_SPEED * p.vitality * (p.special[0].bonus as f64 + base) / base * t.build_speed;
         self.set_house_life(rules, h, self.houses[h].life_with_repair() + v);
-        self.persos[i].train(rules, Trained::Special(0), v * XP_BUILD * XP_SPECIAL);
-        // TODO: equipped objects boosting this skill gain XP (items)
+        let p = &mut self.persos[i];
+        p.train(rules, Trained::Special(0), v * XP_BUILD * XP_SPECIAL);
+        if p.special_boosted(rules, 0) {
+            p.train_objects(rules, |o| o.bonus_special[0] > 0, v * XP_BUILD * XP_SPECIAL);
+        }
         if self.houses[h].complete() {
             if self.houses[h].owner == i {
                 self.persos[i].action = action::GO_HOME;
@@ -664,7 +672,9 @@ impl World {
         let mut v = CRAFT_SPEED * p.vitality * p.objects[c].bonus as f64;
         p.craft_progress += v;
         v = v * XP_OBJECT * XP_CRAFT * obj.craft_xp * p.objects[c].carac as f64 / p.objects[c].bonus as f64;
-        // TODO: equipped objects boosting this skill gain XP (items)
+        if p.object_boosted(rules, c) {
+            p.train_objects(rules, |o| o.bonus_object[c] > 0, v);
+        }
         p.train(rules, Trained::Object(c), v);
         if p.craft_progress >= obj.craft_time as f64 {
             p.craft_progress = 0.0;
@@ -991,10 +1001,9 @@ impl World {
                 // TODO: the "house destroyed" visual effect
             }
             let p = &mut self.persos[i];
-            for s in &mut p.equipped {
-                if s.is_some_and(|it| rules.objects[it.object].emperor) {
-                    // TODO: `Objet_Equipes_Detruire` also runs `Actualiser_Bonus` (items)
-                    *s = None;
+            for s in 0..p.equipped.len() {
+                if p.equipped[s].is_some_and(|it| rules.objects[it.object].emperor) {
+                    p.destroy_equipped(rules, s);
                 }
             }
             for s in 0..p.inventory.len() {
@@ -1009,7 +1018,7 @@ impl World {
     // ---------------------------------------------------------------- life and death
 
     /// `Vivant = False`
-    // TODO: the death effect, temporary effects, invocations and soldiers (combat)
+    // TODO: the death effect, invocations and soldiers (combat)
     pub fn kill(&mut self, rules: &Rules, i: usize) {
         let p = &mut self.persos[i];
         p.deaths += 1;
@@ -1020,6 +1029,7 @@ impl World {
         p.recovery = [0.0; 4];
         p.stun = 0;
         p.resurrection_time = 100.0;
+        p.effects_on_death(rules);
         p.team = self.fiefs[p.fief].team;
         if !p.invocation() {
             self.fiefs[p.fief].dead += 1;
@@ -1047,7 +1057,11 @@ impl World {
                     p.set_resource(r, q);
                 }
             }
-            // TODO: missing race equipment is given back (items)
+            for &o in &race.equipment {
+                if p.object_count(o) == 0 {
+                    p.add_race_object(rules, o);
+                }
+            }
             for i in 1..4 {
                 p.bars[i] = p.bonus_max[i] as f64;
             }
@@ -1074,6 +1088,11 @@ impl World {
                 .and_then(|s| rules.buildings[kind].objects.get(s))
                 .map(|&o| rules.objects[o].skill);
             self.persos[i].slow_recovery(rules, skill);
+            let p = &mut self.persos[i];
+            if p.poison >= 1 && p.set_life(rules, p.bars[0] - p.poison as f64) {
+                self.kill(rules, i);
+                // TODO: the poisoner gets the kill (`Perso_Tuer_Perso(PoisonLanceur)`, combat)
+            }
         } else if p.in_own_castle {
             let f = p.fief;
             if self.castles[f].visible() {

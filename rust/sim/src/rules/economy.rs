@@ -85,11 +85,13 @@ pub struct BuildingType {
     pub playable: bool,
 }
 
-/// `ParamObjets`, only the fields the economy needs so far.
-// TODO: equipment bonuses, usage and effects (items)
+/// `ParamObjets`. Indices are 0-based, -1 for none, unless stated otherwise.
 #[derive(Debug, Clone)]
 pub struct ObjectType {
     pub name: String,
+    /// `NomEffetM/F`: the name of the temporary effect, per sex.
+    pub effect_name: BySex<String>,
+    pub description: String,
     /// Icon sheet (32×32 frames stacked vertically), e.g. `Images\Objets\Epee`.
     pub image: String,
     pub plural: String,
@@ -100,6 +102,8 @@ pub struct ObjectType {
     /// `Superposable`: stack size.
     pub stack: i64,
     pub emperor: bool,
+    /// Equipment slot family: 0 one hand, 1 two hands, 2 armour, 3 helmet, 4 shoes, 5 back,
+    /// 6 one-hand ring, 7 two-hand ring, 8 arms, 9 necklace, 10 mount.
     pub category: i64,
     /// Item skill index (`Competence`).
     pub skill: usize,
@@ -112,20 +116,119 @@ pub struct ObjectType {
     pub craft_xp: f64,
     /// `PrixVente`
     pub price: i64,
-    pub usable: bool,
-    pub single_use: bool,
-    /// `PerteRessourceIndice`, `PerteRessourceQuantite`: ammunition.
+    /// `BonusVie/Energie/Magie/Moral/Attaque/Defense`: bonuses to the 6 maxima.
+    pub bonus: [i64; 6],
+    /// `BonusPorteeAttaque`: range bonus in pixels (an Integer).
+    pub range_bonus: f64,
+    /// `LanceProjectile`: race of the projectile, 0 or -1 for none (only > 0 counts).
+    pub launcher: i64,
+    /// `ProjectileSupplementaire` (a Single).
+    pub extra_projectiles: f64,
+    /// `EffetAttaque`: visual effect index.
+    pub attack_effect: i64,
+    /// `AttaqueResistance`: resistance opposed to the attack (and to the effect).
+    pub attack_resistance: i64,
+    /// `SurfaceAttaque`: area radius.
+    pub area: i64,
+    /// `AttaqueAutomatique`
+    pub auto_attack: bool,
+    /// `AttaqueCauseEffet`: object applied as a temporary effect on hit.
+    pub attack_cause_effect: i64,
+    /// `BonusDeplacement` (non-flyers), `BonusVitesse` (everybody), `BonusVitalite` (Singles).
+    pub bonus_move: f64,
+    pub bonus_speed: f64,
+    pub bonus_vitality: f64,
+    /// `BonusCompetencesSpeciales/Ressources/Services/Objets`. Services are indexed like the
+    /// character's service skills (`(n)` → `[n-2]`).
+    pub bonus_special: Vec<i64>,
+    pub bonus_resource: Vec<i64>,
+    pub bonus_service: Vec<i64>,
+    pub bonus_object: Vec<i64>,
+    /// `BonusResistance(k)` (Singles), subtracted from the resistance multipliers.
+    pub bonus_resistances: Vec<f64>,
+    pub bonus_armour: i64,
+    pub bonus_max_resources: i64,
+    /// `BonusVitesseRegenerationVie/Energie/Magie/Moral` (Singles).
+    pub bonus_regen: [f64; 4],
+    /// `PerteVie/Energie/Magie/Moral`: cost per use or attack.
+    pub cost: [f64; 4],
+    /// `PerteArgent` (a Long).
+    pub cost_money: i64,
+    /// `PerteRessourceIndice` (0 when absent, like the original), `PerteRessourceQuantite`:
+    /// ammunition.
     pub ammo: i64,
     pub ammo_quantity: f64,
-    pub talent_price: i64,
-    /// `BonusPorteeAttaque`: range bonus in pixels.
-    pub range_bonus: f64,
+    /// `Poison` (a Single).
+    pub poison: f64,
+    /// `FichierApparenceM/F`: overlay sprite file, "" for none.
+    pub appearance: BySex<String>,
+    /// `ApparenceLargeur/Hauteur`: overlay frame size, 0 for the character's.
+    pub appearance_size: (i64, i64),
+    /// `ApparenceDecalageX/Y` and `ApparenceAvantPlan` (stored inverted) per direction 1..4.
+    pub appearance_offset: [(i64, i64); 5],
+    pub appearance_front: [bool; 5],
+    /// `ChangerApparencePerso`: metamorphosis.
+    pub change_look: bool,
+    pub usable: bool,
+    pub single_use: bool,
     /// `UtilisationMort`: usable while dead.
     pub use_when_dead: bool,
+    /// `PorteeUtilisation`: radius of the effects of a use.
+    pub use_range: i64,
+    /// `Experience`: item skill XP per use.
+    pub experience: f64,
     /// `Invocation`: race summoned, -1 for none (the relative `+N` forms of mods are not handled).
     pub invocation: i64,
+    /// `InvocationIA_Fichier`
+    pub invocation_ai: String,
+    /// `Quantite`, `QuantiteMax` (Singles).
+    pub quantity: f64,
+    pub quantity_max: f64,
+    /// `GainVie/Energie/Magie/Moral`: instant gain on use.
+    pub gain: [f64; 4],
+    /// `GainArgent`, `GainRessource(r)` (Singles): income per slow tick while equipped.
+    pub gain_money: f64,
+    pub gain_resources: Vec<f64>,
+    /// `Impot`: tax spell.
+    pub tax: bool,
+    pub resurrection: i64,
+    pub berserk: i64,
+    pub self_resurrection: bool,
+    /// `CreerObjet`, `CreerObjetAllie`, `CreerObjetEnnemi`.
+    pub create_object: [i64; 3],
+    /// `Duree`: temporary effect duration in slow ticks (0 permanent, -1 never expires).
+    pub duration: i64,
+    /// `DureeRecharge`, `DureeRechargeAttaque`, `RechargesMultiples` (a Single).
+    pub recharge: i64,
+    pub attack_recharge: i64,
+    pub charges: f64,
+    /// `EffetAnnuleRestaureObjet`, `EffetAnnulationImpossible`, `EffetAnnulationMort`.
+    pub effect_restores: bool,
+    pub effect_uncancellable: bool,
+    pub effect_ends_at_death: bool,
+    /// `UtilisationAutomatique`: used once at the start.
+    pub auto_use: bool,
+    /// `Monture`, `Volant`.
+    pub mount: bool,
+    pub flying: bool,
+    pub talent_price: i64,
     /// `FabricationBatiment`: building IDs this object is appended to (mods).
     made_in: Vec<String>,
+}
+
+impl ObjectType {
+    /// `Objet_ChangerApparence`: draws an overlay.
+    pub fn has_overlay(&self) -> bool {
+        !self.appearance[0].is_empty()
+    }
+
+    /// `ClsJeuObjet.PerteSiAttaque`: attacking with it costs something.
+    pub fn cost_on_attack(&self) -> bool {
+        self.cost.iter().any(|&c| c > 0.0)
+            || self.single_use
+            || self.cost_money > 0
+            || self.ammo >= 0 && self.ammo_quantity > 0.0
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -311,12 +414,52 @@ pub fn load(files: &Files, lang: &str, suffix: &str, params: &Params, epochs: us
         })
         .collect();
 
+    let srv = ini(files, &format!("Donnees/{lang}/Services.ini"))?;
+    let services: Vec<Service> = (1..=srv.int_or("Services", "NombreServices", 0))
+        .map(|k| {
+            let s = format!("Service_{k}");
+            Service {
+                name: srv.str_or(&s, "Nom", "").to_owned(),
+                description: srv.str_or(&s, "Description", "").to_owned(),
+                speed: srv.num_or(&s, "VitesseCreation", 0.0),
+                raw: clng(srv.num_or(&s, "TypeMatierePremiere", 0.0)),
+                raw_quantity: srv.num_or(&s, "QuantiteMatierePremiere", 0.0),
+                price: srv.num_or(&s, "Prix", 0.0),
+                coef: single(srv.num_or(&s, "Coefficient", 0.0)),
+                skill_name: srv.str_or(&s, "NomCompetence", "").to_owned(),
+                effect: clng(srv.num_or(&s, "Effet", 0.0)),
+                xp_coef: srv.num_or(&s, "CoefExp", 0.0),
+            }
+        })
+        .collect();
+
+    let spec = ini(files, &format!("Donnees/{lang}/Competences_Speciales.ini"))?;
+    let special_skills: Vec<String> = (1..=spec.int_or("Competences_Speciales", "NombreCompetencesSpeciales", 0))
+        .map(|k| spec.str_or("Competences_Speciales", &format!("CompetencesSpeciales{k}"), "").to_owned())
+        .collect();
+
+    let nspec = params.list(Kind::CompetencesObjets).len();
+    let nserv = services.len();
+    let nresist = params.list(Kind::Resistances).len();
+    let nspecial = special_skills.len();
     let mut objects: Vec<ObjectType> = params
         .list(Kind::Objets)
         .iter()
         .map(|r| {
             let name = r.get_l("Nom", suffix).unwrap_or("").to_owned();
             let skill = r.get("Competence").map(|id| params.find_id(Kind::CompetencesObjets, id).unwrap_or(0));
+            let ints = |key: &str, n: usize| indexed(r, key, n).into_iter().map(clng).collect::<Vec<_>>();
+            // `BonusCompetencesServices(n)` fills `[n-2]`.
+            let mut bonus_service = vec![0; nserv.saturating_sub(1)];
+            for (k, j, v) in &r.fields {
+                if k == "BonusCompetencesServices" && *j >= 2 && ((*j - 2) as usize) < bonus_service.len() {
+                    bonus_service[(*j - 2) as usize] = clng(vb_val(v));
+                }
+            }
+            let reference = |key: &str| r.get(key).map(|v| clng(vb_val(v) - 1.0)).unwrap_or(-1);
+            let dir = |c: char| r.get(&format!("ApparenceDecalageX{c}")).map_or(0, |v| clng(vb_val(v)));
+            let diry = |c: char| r.get(&format!("ApparenceDecalageY{c}")).map_or(0, |v| clng(vb_val(v)));
+            let front = |c: char| r.get(&format!("ApparenceAvantPlan{c}")).is_some_and(|v| vb_val(v) == 0.0);
             ObjectType {
                 // `Images\Objets\<Image>` (default: the name), or `<CheminImage><Image>`.
                 image: {
@@ -327,6 +470,11 @@ pub fn load(files: &Files, lang: &str, suffix: &str, params: &Params, epochs: us
                     }
                 },
                 plural: r.get_l("NomPluriel", suffix).filter(|s| !s.is_empty()).unwrap_or(&name).to_owned(),
+                effect_name: [
+                    super::last_of(r, &["NomEffet", "NomEffetM"], 0, suffix).unwrap_or("").to_owned(),
+                    super::last_of(r, &["NomEffet", "NomEffetF"], 0, suffix).unwrap_or("").to_owned(),
+                ],
+                description: r.get_l("Description", suffix).unwrap_or("").to_owned(),
                 name,
                 secret: r.flag("Secret"),
                 unique: r.flag("Unique"),
@@ -336,19 +484,76 @@ pub fn load(files: &Files, lang: &str, suffix: &str, params: &Params, epochs: us
                 emperor: r.flag("Empereur"),
                 category: int(r, "Categorie"),
                 skill: skill.unwrap_or(0),
-                price_resources: indexed(r, "PrixRessources", nr).into_iter().map(clng).collect(),
+                price_resources: ints("PrixRessources", nr),
                 epoch: int(r, "Epoque"),
                 craft_time: int(r, "DureeFabrication"),
                 craft_xp: single(r.num("CoefXPFabrication", 1.0)),
                 price: int(r, "PrixVente"),
+                bonus: ["BonusVie", "BonusEnergie", "BonusMagie", "BonusMoral", "BonusAttaque", "BonusDefense"]
+                    .map(|k| int(r, k)),
+                range_bonus: int(r, "BonusPorteeAttaque") as f64,
+                // Jeu.ini `AfficherProjectiles = 1`.
+                launcher: r.get("LanceProjectile").map_or(0, |v| clng(vb_val(v) - 1.0)),
+                extra_projectiles: single(r.num("ProjectileSupplementaire", 0.0)),
+                attack_effect: reference("EffetAttaque"),
+                attack_resistance: reference("AttaqueResistance"),
+                area: int(r, "SurfaceAttaque"),
+                auto_attack: r.flag("AttaqueAutomatique"),
+                attack_cause_effect: reference("AttaqueCauseEffet"),
+                bonus_move: single(r.num("BonusDeplacement", 0.0)),
+                bonus_speed: single(r.num("BonusVitesse", 0.0)),
+                bonus_vitality: single(r.num("BonusVitalite", 0.0)),
+                bonus_special: ints("BonusCompetencesSpeciales", nspecial),
+                bonus_resource: ints("BonusCompetencesRessources", nr),
+                bonus_service,
+                bonus_object: ints("BonusCompetencesObjets", nspec),
+                bonus_resistances: indexed(r, "BonusResistance", nresist).into_iter().map(single).collect(),
+                bonus_armour: int(r, "BonusArmure"),
+                bonus_max_resources: int(r, "BonusMaxRessources"),
+                bonus_regen: ["Vie", "Energie", "Magie", "Moral"]
+                    .map(|k| single(r.num(&format!("BonusVitesseRegeneration{k}"), 0.0))),
+                cost: ["PerteVie", "PerteEnergie", "PerteMagie", "PerteMoral"].map(|k| r.num(k, 0.0)),
+                cost_money: int(r, "PerteArgent"),
+                ammo: r.get("PerteRessourceIndice").map_or(0, |v| clng(vb_val(v) - 1.0)),
+                ammo_quantity: single(r.num("PerteRessourceQuantite", 0.0)),
+                poison: single(r.num("Poison", 0.0)),
+                appearance: [
+                    super::last_of(r, &["FichierApparence", "FichierApparenceM"], 0, "\0").unwrap_or("").to_owned(),
+                    super::last_of(r, &["FichierApparence", "FichierApparenceF"], 0, "\0").unwrap_or("").to_owned(),
+                ],
+                appearance_size: (int(r, "ApparenceLargeur"), int(r, "ApparenceHauteur")),
+                appearance_offset: [(0, 0), (dir('H'), diry('H')), (dir('D'), diry('D')), (dir('B'), diry('B')), (dir('G'), diry('G'))],
+                appearance_front: [false, front('H'), front('D'), front('B'), front('G')],
+                change_look: r.flag("ChangerApparencePerso"),
                 usable: r.flag("Utilisable"),
                 single_use: r.flag("UtilisationUnique"),
-                ammo: clng(r.num("PerteRessourceIndice", 0.0) - 1.0),
-                ammo_quantity: single(r.num("PerteRessourceQuantite", 0.0)),
-                talent_price: r.get("PrixTalents").or(r.get("PrixTalent")).map(|v| clng(vb_val(v))).unwrap_or(0),
-                range_bonus: r.num("BonusPorteeAttaque", 0.0),
                 use_when_dead: r.flag("UtilisationMort"),
-                invocation: r.get("Invocation").map(|v| clng(vb_val(v) - 1.0)).unwrap_or(-1),
+                use_range: int(r, "PorteeUtilisation"),
+                experience: r.num("Experience", 0.0),
+                invocation: reference("Invocation"),
+                invocation_ai: r.get("InvocationIA_Fichier").unwrap_or("").to_owned(),
+                quantity: single(r.num("Quantite", 0.0)),
+                quantity_max: single(r.num("QuantiteMax", 0.0)),
+                gain: ["GainVie", "GainEnergie", "GainMagie", "GainMoral"].map(|k| r.num(k, 0.0)),
+                gain_money: single(r.num("GainArgent", 0.0)),
+                gain_resources: indexed(r, "GainRessource", nr).into_iter().map(single).collect(),
+                tax: r.flag("Impot"),
+                resurrection: int(r, "Resurrection"),
+                berserk: int(r, "Berserk"),
+                self_resurrection: r.flag("SelfResurrection"),
+                create_object: ["CreerObjet", "CreerObjetAllie", "CreerObjetEnnemi"].map(reference),
+                duration: int(r, "Duree"),
+                // Jeu.ini `Regle2 = 1`.
+                recharge: int(r, "DureeRecharge"),
+                attack_recharge: int(r, "DureeRechargeAttaque"),
+                charges: single(r.num("RechargesMultiples", 0.0)),
+                effect_restores: r.flag("EffetAnnuleRestaureObjet"),
+                effect_uncancellable: r.flag("EffetAnnulationImpossible"),
+                effect_ends_at_death: r.flag("EffetAnnulationMort"),
+                auto_use: r.flag("UtilisationAutomatique"),
+                mount: r.flag("Monture"),
+                flying: r.flag("Volant"),
+                talent_price: r.get("PrixTalents").or(r.get("PrixTalent")).map(|v| clng(vb_val(v))).unwrap_or(0),
                 made_in: r.all("FabricationBatiment").map(str::to_owned).collect(),
             }
         })
@@ -447,30 +652,6 @@ pub fn load(files: &Files, lang: &str, suffix: &str, params: &Params, epochs: us
                 min_value: clng(tresors.num_or(&s, "ValeurMin", 0.0)),
             }
         })
-        .collect();
-
-    let srv = ini(files, &format!("Donnees/{lang}/Services.ini"))?;
-    let services = (1..=srv.int_or("Services", "NombreServices", 0))
-        .map(|k| {
-            let s = format!("Service_{k}");
-            Service {
-                name: srv.str_or(&s, "Nom", "").to_owned(),
-                description: srv.str_or(&s, "Description", "").to_owned(),
-                speed: srv.num_or(&s, "VitesseCreation", 0.0),
-                raw: clng(srv.num_or(&s, "TypeMatierePremiere", 0.0)),
-                raw_quantity: srv.num_or(&s, "QuantiteMatierePremiere", 0.0),
-                price: srv.num_or(&s, "Prix", 0.0),
-                coef: single(srv.num_or(&s, "Coefficient", 0.0)),
-                skill_name: srv.str_or(&s, "NomCompetence", "").to_owned(),
-                effect: clng(srv.num_or(&s, "Effet", 0.0)),
-                xp_coef: srv.num_or(&s, "CoefExp", 0.0),
-            }
-        })
-        .collect();
-
-    let spec = ini(files, &format!("Donnees/{lang}/Competences_Speciales.ini"))?;
-    let special_skills = (1..=spec.int_or("Competences_Speciales", "NombreCompetencesSpeciales", 0))
-        .map(|k| spec.str_or("Competences_Speciales", &format!("CompetencesSpeciales{k}"), "").to_owned())
         .collect();
 
     let decors = params

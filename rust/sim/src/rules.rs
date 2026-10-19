@@ -121,6 +121,20 @@ pub struct Race {
     pub no_start_resources: bool,
     /// `RestaurationComplete`
     pub full_restore: bool,
+    /// `Equipement(j)`: starting equipment.
+    pub equipment: Vec<usize>,
+    /// `Objet(j)` then the common objects of `[Races]`: talent objects.
+    pub objects: Vec<usize>,
+    /// `UtilisationMonture`: may ride mounts.
+    pub mount: bool,
+    /// `Resistances(k)` after the statuses and the clamp (Singles).
+    pub resistances: Vec<f64>,
+    /// `EffetAttaque`, `AttaqueResistance` (both default to 0), `AttaqueCauseEffet` (-1).
+    pub attack_effect: i64,
+    pub attack_resistance: i64,
+    pub attack_cause_effect: i64,
+    /// `ApparenceVerouillee`: equipment overlays other than mounts are not drawn.
+    pub look_locked: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -181,6 +195,11 @@ pub struct Rules {
     pub comment_duration: f64,
     /// `IA2s`: every `.ia` file, the root folder first, then each sub-folder.
     pub ais: Vec<AiFile>,
+    /// `[Resistance_k] Nom` (Physique, Projectiles, Feu, …).
+    pub resistances: Vec<String>,
+    /// `ResistanceMinimum`, `ResistanceMaximum` (Singles).
+    pub resistance_min: f64,
+    pub resistance_max: f64,
 }
 
 fn ini(files: &Files, path: &str) -> Result<Ini, String> {
@@ -333,6 +352,28 @@ impl Rules {
         let pint = |k: &str, d: i64| persos.int_or("Personnages", k, d);
 
         const STATS: [&str; 6] = ["Vie", "Energie", "Magie", "Moral", "Attaque", "Defense"];
+        let res_globals = params.global(Kind::Resistances);
+        let res_default = val(res_globals.get("Defaut")) as f32 as f64;
+        let resistance_min = val(res_globals.get("Minimum")) as f32 as f64;
+        let resistance_max = val(res_globals.get("Maximum")) as f32 as f64;
+        let nresist = params.list(Kind::Resistances).len();
+        let statuses: Vec<Vec<f64>> = params
+            .list(Kind::Statuts)
+            .iter()
+            .map(|r| {
+                (1..=nresist as i64)
+                    .map(|k| {
+                        let v = last_of(r, &["Resistance", "Resistances"], k, "\0");
+                        v.map_or(res_default, |v| crate::ini::vb_val(v) as f32 as f64)
+                    })
+                    .collect()
+            })
+            .collect();
+        // Object references `v` → `v-1`; slots never assigned stay 0.
+        let objects_of = |r: &Record, count: &str, key: &str| -> Vec<usize> {
+            (1..=r.int(count, 0)).map(|j| crate::vb::clng(r.num_j(key, j, 1.0) - 1.0).max(0) as usize).collect()
+        };
+        let common = objects_of(params.global(Kind::Races), "NombreObjets", "Objet");
         let races = params
             .list(Kind::Races)
             .iter()
@@ -381,7 +422,7 @@ impl Rules {
                     auto_resurrection: r.flag("AutoResurrection"),
                     speaks: r.flag("Parole"),
                     special_comments: r.int("CommentairesSpecifique", 0) - 1,
-                    range: r.num("PorteeAttaque", 0.0),
+                    range: crate::vb::clng(r.num("PorteeAttaque", 0.0)) as f64,
                     coef_special: coefs(r, "CoefCompSpeciale", nspec, nspec),
                     coef_resource: coefs(r, "CoefCompRessource", nres, nres),
                     coef_service: coefs(r, "CoefCompService", nserv, nserv.saturating_sub(1)),
@@ -403,6 +444,36 @@ impl Rules {
                         .map(|v| crate::ini::vb_val(v) != 0.0)
                         .unwrap_or(false),
                     full_restore: r.flag("RestaurationComplete"),
+                    equipment: objects_of(r, "NombreEquipement", "Equipement"),
+                    objects: objects_of(r, "NombreObjets", "Objet").into_iter().chain(common.iter().copied()).collect(),
+                    mount: r.flag("UtilisationMonture"),
+                    resistances: {
+                        let mut v: Vec<f64> = (1..=nresist as i64)
+                            .map(|k| {
+                                let x = last_of(r, &["Resistance", "Resistances"], k, "\0");
+                                x.map_or(res_default, |x| crate::ini::vb_val(x) as f32 as f64)
+                            })
+                            .collect();
+                        let mut list: Vec<usize> = Vec::new();
+                        for st in r.all("Statut") {
+                            match crate::ini::vb_val(st) as i64 {
+                                0 => list.clear(),
+                                n => list.push((n - 1).max(0) as usize),
+                            }
+                        }
+                        for st in list.iter().filter_map(|&k| statuses.get(k)) {
+                            for (x, &y) in v.iter_mut().zip(st) {
+                                if y != res_default {
+                                    *x = y;
+                                }
+                            }
+                        }
+                        v.iter().map(|&x| x.clamp(resistance_min, resistance_max)).collect()
+                    },
+                    attack_effect: r.get("EffetAttaque").map_or(0, |v| crate::vb::clng(crate::ini::vb_val(v) - 1.0)),
+                    attack_resistance: r.get("AttaqueResistance").map_or(0, |v| crate::vb::clng(crate::ini::vb_val(v) - 1.0)),
+                    attack_cause_effect: r.get("AttaqueCauseEffet").map_or(-1, |v| crate::vb::clng(crate::ini::vb_val(v) - 1.0)),
+                    look_locked: r.flag("ApparenceVerouillee"),
                 }
             })
             .map(|mut race| {
@@ -499,6 +570,9 @@ impl Rules {
             comments,
             comment_duration,
             ais,
+            resistances: params.list(Kind::Resistances).iter().map(|r| r.get("Nom").unwrap_or("").to_owned()).collect(),
+            resistance_min,
+            resistance_max,
         })
     }
 

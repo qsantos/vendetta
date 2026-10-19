@@ -208,8 +208,20 @@ impl World {
                     p.choose_ai = false;
                 }
             }
-            p.update_bonus(rules);
             world.persos[i] = p;
+        }
+        // The race's free talents (`Changer_Race_Personnage_Equipement` for the NPCs; the player
+        // gets the same ones as its preselected talents, `Charger_Sauvegarde_Tresor`).
+        for i in 0..world.persos.len() {
+            if world.player == Some(i) {
+                world.persos[i].load_talents(rules);
+            } else {
+                world.persos[i].give_talents(rules);
+            }
+            world.special_uses();
+        }
+        for p in &mut world.persos {
+            p.update_bonus(rules);
         }
         for f in 0..world.fiefs.len() {
             world.markets_refresh(f);
@@ -224,6 +236,7 @@ impl World {
             let (people, team) = (self.fiefs[f].people, self.fiefs[f].team);
             for _ in 0..self.fiefs[f].citizens {
                 let mut p = Perso::new(rules, &mut self.rng, f, team, false);
+                p.numero = self.persos.len();
                 p.perso_target = self.persos.len();
                 let (race, ai_file) = self.draw_race(rules, people);
                 p.change_race(rules, &mut self.rng, race, false);
@@ -339,7 +352,7 @@ impl World {
                 self.treasure_generate(rules);
             }
         }
-        // TODO: special uses of objects (`Gestion_Utilisation_Speciale`)
+        self.special_uses();
         // TODO: scenario events (`Evenements_Lancer "Jouer"`)
         // Actualiser_Affichage_Batiments
         for m in &mut self.houses {

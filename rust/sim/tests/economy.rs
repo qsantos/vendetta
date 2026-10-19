@@ -346,8 +346,14 @@ fn crafting_and_selling_an_object() {
     let stock_before: Vec<f64> = w.fiefs[f].resources.clone();
     run(&mut w, &rules, &[Order::TakeObjects { perso: i, slot: 0, count: 1 }]);
     assert_eq!(w.persos[i].object_count(o), 1);
+    // `IA_Equiper` characters (the player included) wear a new object when its slot is free.
+    let in_bag = |w: &World| w.persos[i].inventory.iter().position(|s| s.is_some_and(|it| it.object == o));
+    if in_bag(&w).is_none() {
+        let e = w.persos[i].equipped.iter().position(|s| s.is_some_and(|it| it.object == o)).unwrap();
+        run(&mut w, &rules, &[Order::StoreEquipped { perso: i, slot: e }]);
+    }
     let money = w.persos[i].money();
-    let slot = w.persos[i].inventory.iter().position(|s| s.is_some_and(|it| it.object == o)).unwrap();
+    let slot = in_bag(&w).unwrap();
     run(&mut w, &rules, &[Order::SellObject { perso: i, object: slot, from_inventory: true }]);
     assert_eq!(w.persos[i].money(), money + obj.price as f64);
     assert_eq!(w.persos[i].object_count(o), 0);

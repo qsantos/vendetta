@@ -65,6 +65,23 @@ pub enum Order {
     HoldObject { perso: usize, slot: usize },
     /// `PersoObjetDeSelectionne`
     Unselect { perso: usize },
+    /// `PersoObjetEquiper` (`PersoObjetEquiperADroite` with `right`): equip inventory slot
+    /// `slot`, or use it if it is usable (potions, spells). Whatever it displaces goes back to
+    /// the bag. `right` puts a one-hand weapon or a ring in the second slot (1 or 7).
+    EquipObject { perso: usize, slot: usize, right: bool },
+    /// The same with the held object (`selected_object`), e.g. dropped on equipment slot 1 or 7
+    /// for `right`.
+    EquipHeld { perso: usize, right: bool },
+    /// `PersoObjetEquipesRanger`: put equipment slot `slot` back in the bag (nothing if the bag
+    /// is full). Slot 1 means slot 0 when it holds a two-handed weapon, as on screen.
+    StoreEquipped { perso: usize, slot: usize },
+    /// Equipment click: take the object of equipment slot `slot` onto the cursor (anything
+    /// already held goes back to the bag first). Slot 1 means slot 0 under a two-handed weapon.
+    HoldEquipped { perso: usize, slot: usize },
+    /// Inventory click while holding an object: stack it on inventory slot `slot` (same object,
+    /// stack not full), swap it with a single object there (the latter becomes held), or put it
+    /// in the slot if empty. A full stack or a stack of another object is left alone.
+    PlaceHeld { perso: usize, slot: usize },
     /// `PersoAllerVendre`: sell the selection at castle `target`, or at market house `target`.
     GoSell { perso: usize, target: usize, market: bool },
     /// `PersoVendreObjetsSelectionnees`: sell the selection to fief `fief` right away.
@@ -137,6 +154,11 @@ impl World {
             | SelectObject { perso, .. }
             | HoldObject { perso, .. }
             | Unselect { perso }
+            | EquipObject { perso, .. }
+            | EquipHeld { perso, .. }
+            | StoreEquipped { perso, .. }
+            | HoldEquipped { perso, .. }
+            | PlaceHeld { perso, .. }
             | GoSell { perso, .. }
             | SellSelection { perso, .. }
             | DropSelection { perso }
@@ -228,6 +250,29 @@ impl World {
                 p.selected_object = item.object as i64;
             }
             Unselect { .. } => p.clear_selection(rules),
+            EquipObject { slot, right, .. } => {
+                check(slot, p.inventory.len())?;
+                self.equip_object_at(rules, perso, Some(slot), right);
+            }
+            EquipHeld { right, .. } => {
+                self.equip_object_at(rules, perso, None, right);
+            }
+            StoreEquipped { slot, .. } => {
+                check(slot, p.equipped.len())?;
+                let slot = if slot == 1 && p.two_handed(rules) { 0 } else { slot };
+                p.store(rules, slot);
+            }
+            HoldEquipped { slot, .. } => {
+                check(slot, p.equipped.len())?;
+                let slot = if slot == 1 && p.two_handed(rules) { 0 } else { slot };
+                p.clear_selection(rules);
+                p.selected_object = p.equipped[slot].map_or(-1, |it| it.object as i64);
+                p.destroy_equipped(rules, slot);
+            }
+            PlaceHeld { slot, .. } => {
+                check(slot, p.inventory.len())?;
+                p.place_held(rules, slot);
+            }
             GoSell { target, market, .. } => self.go_sell(rules, perso, target, market)?,
             SellSelection { fief, .. } => {
                 check(fief, self.fiefs.len())?;

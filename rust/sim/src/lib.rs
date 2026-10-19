@@ -5,6 +5,7 @@ pub mod building;
 pub mod combat;
 pub mod economy;
 pub mod fief;
+pub mod items;
 pub mod files;
 pub mod ia_file;
 pub mod ini;

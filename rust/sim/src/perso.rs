@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use crate::files::Files;
+use crate::items::{Recharge, TempEffect};
 use crate::rules::Rules;
 use crate::stats::{XP_COEFS, XP_OBJECT, XP_RESOURCE, XP_SERVICE, XP_SPECIAL};
 use crate::terrain::{CELL, Terrain};
@@ -73,8 +74,8 @@ pub struct Skill {
     pub xp: Xp,
 }
 
-/// An inventory slot (`ClsJeuObjet`, only what the economy needs).
-// TODO: cached object parameters for equipment (items)
+/// An inventory or equipment slot (`ClsJeuObjet`); the object's parameters are read from
+/// `Rules::objects`. Equipped items always count 1.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Item {
     pub object: usize,
@@ -83,6 +84,8 @@ pub struct Item {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Perso {
+    /// `Numero`: this character's index in `World::persos`.
+    pub numero: usize,
     pub name: String,
     pub female: bool,
     pub race: usize,
@@ -116,6 +119,10 @@ pub struct Perso {
     pub gain_experience: bool,
     pub armour: i64,
     pub bonus_armour: i64,
+    /// `Resistances` (race) and `BonusResistances` (with items and effects): damage
+    /// multipliers and effect chances, lower is better.
+    pub resistances: Vec<f64>,
+    pub bonus_resistances: Vec<f64>,
 
     /// Special skills: 0 build, 1 demolish, 2 critical hit, 3 bargaining.
     pub special: Vec<Skill>,
@@ -141,8 +148,13 @@ pub struct Perso {
     /// Object type held, -1 for none.
     pub selected_object: i64,
     pub inventory: Vec<Option<Item>>,
-    // TODO: equipment (items)
+    /// `ObjetsEquipes`: 0 main hand, 1 second hand, then the slot is the object category
+    /// (2 armour, 3 helmet, 4 shoes, 5 back, 6/7 rings, 8 arms, 9 necklace, 10 mount).
     pub equipped: Vec<Option<Item>>,
+    /// `EffetsTemp`: temporary effects, in order.
+    pub effects: Vec<TempEffect>,
+    /// `EffetsRecharge`: objects that are recharging.
+    pub recharges: Vec<Recharge>,
     /// `IndiceObjet`: slot of the house's object list being crafted.
     pub craft_slot: i64,
     /// `EtatFabricationObjet`
@@ -167,7 +179,9 @@ pub struct Perso {
     /// Current step length (`Longueur_Pas`) and its accelerated value (`Longueur_PasTemp`).
     pub step: i64,
     pub step_temp: i64,
+    /// `Volant` (race) and `Definir_Volant` (`BonusVolant`, race or an object).
     pub flying: bool,
+    pub bonus_flying: bool,
     pub stun: i64,
     path: Vec<(i64, i64)>,
     path_dest: (i64, i64),
@@ -241,8 +255,34 @@ pub struct Perso {
     pub range: f64,
     pub bonus_range: f64,
     /// `LanceProjectile`: the projectile race of the weapon, -1 for none.
-    // TODO: set by equipped objects (items)
     pub launcher: i64,
+    /// `NombreProjectiles`: 1 + the objects' extra projectiles.
+    pub projectile_count: i64,
+    /// `EffetAttaque` (race visual), `AttaqueResistance` and `BonusAttaqueResistance`.
+    pub attack_effect: i64,
+    pub attack_resistance: i64,
+    pub bonus_attack_resistance: i64,
+    /// `SurfaceAttaque`, `BonusSurfaceAttaque`: area radius of every attack, 0 for none.
+    pub area: i64,
+    pub bonus_area: i64,
+    /// `AttaqueCauseEffet` (race) and `BonusAttaqueCauseEffet`: objects applied on hit.
+    pub attack_cause_effect: i64,
+    pub bonus_attack_cause_effect: Vec<i64>,
+    /// `AttaqueAutomatique`
+    pub auto_attack: bool,
+    /// `PerteVie/Energie/Magie/Moral`, `PerteArgent`: cost of an attack (equipped objects).
+    pub costs: [f64; 4],
+    pub cost_money: f64,
+    /// `Poison`: life lost per slow tick; `PoisonLanceur`: who gets the kill, -1 for none.
+    pub poison: i64,
+    pub poisoner: i64,
+    /// `ChoisirApparence` (whole-sheet look or metamorphosis) and `ApparenceVerouillee`.
+    pub choose_look: bool,
+    pub look_locked: bool,
+    /// `ApparenceObjet`: objects whose overlay is drawn, in order; `Monture`: 1-based index of
+    /// the mount's overlay in it, 0 for none.
+    pub overlays: Vec<usize>,
+    pub mount: usize,
     /// `CibleX/Y`, `ProjectileCible`: the ground target of action 303.
     pub ground_target: (i64, i64),
     pub ground_target_kind: i64,
@@ -253,7 +293,6 @@ pub struct Perso {
     pub reload_object: i64,
     pub force_attack: bool,
     /// `PerteRessourceIndice`, `PerteRessourceQuantite`: ammunition of the equipped weapons.
-    // TODO: set by equipped objects (items)
     pub ammo: i64,
     pub ammo_quantity: f64,
     /// `NumeroObjetUtilise`: an object waiting for `Gestion_Utilisation_Speciale`, -1 for none.
@@ -270,6 +309,7 @@ impl Perso {
         let frame = rng.below(3) as u8;
         let nr = rules.resources.len();
         let mut p = Perso {
+            numero: 0,
             name: String::new(),
             female: false,
             race: 0,
@@ -293,6 +333,8 @@ impl Perso {
             gain_experience: true,
             armour: 0,
             bonus_armour: 0,
+            resistances: Vec::new(),
+            bonus_resistances: Vec::new(),
             special: skills(rules.special_skills.len(), rules.start_special, XP_SPECIAL),
             resource_skills: skills(nr, rules.start_max_resources, XP_RESOURCE),
             services: skills(rules.services.len().saturating_sub(1), rules.start_service, XP_SERVICE),
@@ -309,6 +351,8 @@ impl Perso {
             selected_object: -1,
             inventory: vec![None; rules.inventory_size],
             equipped: vec![None; rules.equipped_size],
+            effects: Vec::new(),
+            recharges: Vec::new(),
             craft_slot: 0,
             craft_progress: 0.0,
             x: 0,
@@ -326,6 +370,7 @@ impl Perso {
             step: 0,
             step_temp: 0,
             flying: false,
+            bonus_flying: false,
             stun: 0,
             path: Vec::new(),
             path_dest: (0, 0),
@@ -378,6 +423,23 @@ impl Perso {
             range: 0.0,
             bonus_range: 0.0,
             launcher: -1,
+            projectile_count: 1,
+            attack_effect: 0,
+            attack_resistance: 0,
+            bonus_attack_resistance: 0,
+            area: 0,
+            bonus_area: 0,
+            attack_cause_effect: -1,
+            bonus_attack_cause_effect: Vec::new(),
+            auto_attack: false,
+            costs: [0.0; 4],
+            cost_money: 0.0,
+            poison: 0,
+            poisoner: -1,
+            choose_look: false,
+            look_locked: false,
+            overlays: Vec::new(),
+            mount: 0,
             ground_target: (0, 0),
             ground_target_kind: 0,
             reload: 0,
@@ -421,7 +483,10 @@ impl Perso {
         }
         self.w = r.size.0;
         self.h = r.size.1;
+        self.choose_look = r.whole_sheet;
+        self.look_locked = r.look_locked;
         self.max = r.base;
+        self.resistances.clone_from(&r.resistances);
         self.gain_experience = r.experience;
         self.flying = r.flying;
         self.armour = r.armour;
@@ -430,6 +495,9 @@ impl Perso {
         self.speaks = r.speaks;
         self.special_comments = r.special_comments;
         self.range = r.range;
+        self.attack_effect = r.attack_effect;
+        self.attack_cause_effect = r.attack_cause_effect;
+        self.attack_resistance = r.attack_resistance;
         self.kamikaze = r.kamikaze;
         self.incommandable = r.incommandable;
         if !no_equipment {
@@ -438,9 +506,18 @@ impl Perso {
                     *have = start;
                 }
             }
-            // TODO: race equipment (`Race_Equipement`), then `Actualiser_Bonus`
+            if !r.equipment.is_empty() {
+                for &o in &r.equipment {
+                    self.add_race_object(rules, o);
+                }
+                self.update_bonus(rules);
+            }
         }
-        // TODO: unequip mounts the race cannot ride
+        for s in 0..self.equipped.len() {
+            if self.equipped[s].is_some_and(|it| rules.objects[it.object].mount) && !r.mount {
+                self.store(rules, s);
+            }
+        }
         self.adjust_bonus(rules);
         self.untargetable = r.untargetable;
         self.ai_equip = r.ai_equip;
@@ -639,8 +716,8 @@ impl Perso {
             return;
         }
         let mut l = (self.bonus_move as f64 * self.vitality).floor();
-        if !self.flying {
-            l = (l * speed_coef(rules, terrain, self.x, self.y + self.h as i64 - 16)).floor();
+        if !self.bonus_flying {
+            l = (l * self.speed_coef_effect(rules, terrain)).floor();
         }
         let mut l = l as i64;
         if l < 1 && self.bonus_move != 0 {
@@ -650,6 +727,25 @@ impl Perso {
         }
         self.step_temp = (self.step_temp + self.acceleration).min(l);
         self.step = self.step_temp;
+    }
+
+    /// `ClsJeuMonde.CoefVitesse`: the terrain's speed coefficient; a terrain with an effect
+    /// (water) applies it unless the character is immune.
+    fn speed_coef_effect(&mut self, rules: &Rules, terrain: &Terrain) -> f64 {
+        let (x, y) = (self.x, self.y + self.h as i64 - 16);
+        let t = terrain.index_at(x as f64, y as f64);
+        if t > 0 && (t as usize) < terrain.category.len() - 1 {
+            let ty = &rules.terrains[terrain.category[t as usize] as usize];
+            if let Ok(e) = usize::try_from(ty.effect) {
+                let o = &rules.objects[e];
+                if self.resistance(o.attack_resistance) > rules.resistance_min {
+                    self.add_effect(rules, e, o.duration, o.duration, None);
+                }
+            }
+            ty.speed
+        } else {
+            1.0
+        }
     }
 
     /// The character's own part of `Deplacement3`: one step and the action transitions.
@@ -669,7 +765,7 @@ impl Perso {
             Some(true)
         } else {
             // TODO: projectiles die on arrival
-            self.direction = if self.flying { Dir::Down } else { Dir::None };
+            self.direction = if self.bonus_flying { Dir::Down } else { Dir::None };
             self.dest = (self.x, self.y);
             self.step_temp = 0;
             if self.action % 2 == 1 && self.action < 100 {
@@ -681,7 +777,7 @@ impl Perso {
 
     /// Walk-cycle frame, after `Deplacement3`.
     pub(crate) fn advance_frame(&mut self) {
-        if self.moving || self.flying {
+        if self.moving || self.bonus_flying {
             self.frame = (self.frame + 1) % 4;
         }
     }
@@ -731,7 +827,7 @@ impl Perso {
         let i = CELL as i64;
         let d = (16.0 * 0.7f64).round_ties_even() as i64;
         const PATHFINDING: i64 = 1; // Jeu.ini Regle3
-        if !self.flying && self.alive() && PATHFINDING > 0 {
+        if !self.bonus_flying && self.alive() && PATHFINDING > 0 {
             // TODO: chasing a moving target limits the search to 2 steps per tick
             let max_steps = 1024;
             self.path_complete = true;

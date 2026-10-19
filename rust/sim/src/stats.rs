@@ -29,6 +29,10 @@ pub const XP_SERVICE: f64 = 20.0;
 pub const XP_OBJECT: f64 = 20.0;
 /// `CoefExpCompConstruction`, `Destruction`, `CoupCritique`, `Marchandage`.
 const XP_SPECIAL_COEFS: [f64; 4] = [0.00075, 0.0025, 0.00125 * 4.0 * 4.0, 0.02 / 20.0];
+/// `CoefExpComp*Objet`: share of that XP for the objects boosting the skill.
+const XP_SPECIAL_OBJECT_COEFS: [f64; 4] = [0.05, 1.0, 1.0, 1.0];
+/// `CoefExpCompObjetsVie/Energie/Magie/Moral/Attaque/Defense`: object XP per bar loss.
+const XP_BAR_OBJECT_COEFS: [f64; 6] = [0.2, 2.0, 0.2, 10.0, 0.1, 0.16];
 pub const XP_CRAFT: f64 = 0.0025;
 /// Money is clamped to `[0, MAX_MONEY]`.
 pub const MAX_MONEY: f64 = 10_000_000.0;
@@ -77,8 +81,49 @@ impl Perso {
     /// `Gestion_Niveau_Comp_Speciale`
     pub fn train_special(&mut self, rules: &Rules, i: usize, score: f64) {
         let score = if i == 2 { score.min(self.attack) } else { score };
-        self.train(rules, Trained::Special(i), score * XP_SPECIAL_COEFS[i] * XP_SPECIAL);
-        // TODO: equipped objects boosting this skill gain XP too (items)
+        let gain = score * XP_SPECIAL_COEFS[i] * XP_SPECIAL;
+        self.train(rules, Trained::Special(i), gain);
+        if self.special_boosted(rules, i) {
+            self.train_objects(rules, |o| o.bonus_special[i] > 0, gain * XP_SPECIAL_OBJECT_COEFS[i]);
+        }
+    }
+
+    /// `Bonus_CompetenceSpeciales`: an item boosts special skill `i`.
+    pub fn special_boosted(&self, rules: &Rules, i: usize) -> bool {
+        let s = &self.special[i];
+        s.bonus as f64 > s.carac as f64 * rules.races[self.race].coef_special[i]
+    }
+
+    /// `Bonus_CompetenceServices`: an item boosts service skill `i` (service `i + 1`).
+    pub fn service_boosted(&self, rules: &Rules, i: usize) -> bool {
+        let s = &self.services[i];
+        s.bonus as f64 > s.carac as f64 * rules.races[self.race].coef_service[i]
+    }
+
+    /// `Bonus_CompetenceObjets`: an item boosts item skill `i`.
+    pub fn object_boosted(&self, rules: &Rules, i: usize) -> bool {
+        let s = &self.objects[i];
+        s.bonus as f64 > s.carac as f64 * rules.races[self.race].coef_object[i]
+    }
+
+    /// `Definir_BonusVie` etc.: the items' share of maximum `i`.
+    fn item_bonus(&self, rules: &Rules, i: usize) -> f64 {
+        (self.bonus_max[i] as f64 - self.max[i] as f64 * rules.races[self.race].coef[i] as f32 as f64).floor()
+    }
+
+    /// The object loop of the bar setters: objects boosting bar `i` train with the loss, read
+    /// again each time since levelling up rescales the bars.
+    fn train_bar_objects(&mut self, rules: &Rules, i: usize, gain: impl Fn(&Perso) -> f64) {
+        if self.item_bonus(rules, i) > 0.0 {
+            for s in 0..self.equipped.len() {
+                if let Some(it) = self.equipped[s]
+                    && rules.objects[it.object].bonus[i] > 0
+                {
+                    let g = gain(self);
+                    self.train(rules, Trained::Object(rules.objects[it.object].skill), g);
+                }
+            }
+        }
     }
 
     /// `Ajuster_Bonus`: effective values reset to the base ones.
@@ -99,27 +144,44 @@ impl Perso {
         for s in self.services.iter_mut().chain(&mut self.objects) {
             s.bonus = s.carac;
         }
+        self.bonus_resistances.clone_from(&self.resistances);
         self.bonus_max_resources = r.bonus_max_resources;
+        self.bonus_attack_resistance = self.attack_resistance;
+        self.bonus_area = self.area;
         self.bonus_armour = self.armour;
+        self.mount = 0;
+        self.bonus_flying = self.flying;
     }
 
     /// `Actualiser_Bonus`: recomputes every effective value and rescales the bars.
     pub fn update_bonus(&mut self, rules: &Rules) {
         let r = &rules.races[self.race];
+        self.overlays.clear();
         self.bonus_vitality = 1.0;
         self.bonus_berserk = self.berserk;
-        self.ammo = 0;
-        self.ammo_quantity = 0.0;
-        self.reload_object = 0;
         self.generating = false;
+        self.auto_attack = false;
+        self.bonus_attack_cause_effect.clear();
+        if self.attack_cause_effect >= 0 {
+            self.bonus_attack_cause_effect.push(self.attack_cause_effect);
+        }
         self.gain_money = 0.0;
         self.gain_resources.iter_mut().for_each(|g| *g = 0.0);
         let old = self.bonus_max;
+        self.costs = [0.0; 4];
+        self.cost_money = 0.0;
+        self.ammo = 0;
+        self.ammo_quantity = 0.0;
+        self.poison = 0;
+        self.poisoner = -1;
+        self.reload_object = 0;
+        self.projectile_count = 1;
         self.adjust_bonus(rules);
-        // TODO: equipped objects and temporary effects (`Ajouter_Bonus_Objet`, item skill bonuses)
+        self.add_skill_bonuses(rules);
         for (s, c) in self.objects.iter_mut().zip(&r.coef_object) {
             s.bonus = clng(s.bonus as f64 * c);
         }
+        self.add_object_bonuses(rules);
         for i in 0..6 {
             self.bonus_max[i] = clng(self.bonus_max[i] as f64 * r.coef[i] as f32 as f64);
         }
@@ -173,7 +235,9 @@ impl Perso {
         if v < self.bars[0] {
             let gain = (self.bars[0] - v) * self.max[0] as f64 / self.bonus_max[0] as f64;
             self.train(rules, Trained::Bar(0), gain);
-            // TODO: objects with a Vie bonus gain XP (items)
+            self.train_bar_objects(rules, 0, |p| {
+                (p.bars[0] - v) * p.max[0] as f64 / p.bonus_max[0] as f64 * XP_BAR_OBJECT_COEFS[0]
+            });
         }
         self.bars[0] = v.min(self.bonus_max[0] as f64);
         false
@@ -185,7 +249,11 @@ impl Perso {
             let loss = self.bars[i] - v;
             let gain = if i == 2 { loss * self.max[2] as f64 / self.bonus_max[2] as f64 } else { loss };
             self.train(rules, Trained::Bar(i), gain);
-            // TODO: objects with a bonus on this bar gain XP (items)
+            self.train_bar_objects(rules, i, |p| {
+                let loss = p.bars[i] - v;
+                let loss = if i == 2 { loss * p.max[2] as f64 / p.bonus_max[2] as f64 } else { loss };
+                loss * XP_BAR_OBJECT_COEFS[i]
+            });
         }
         if v < 0.0 {
             self.bars[i] = 0.0;
@@ -202,6 +270,9 @@ impl Perso {
         if v < self.attack {
             let gain = (self.attack - v) * self.max[4] as f64 / self.bonus_max[4] as f64;
             self.train(rules, Trained::Bar(4), gain);
+            self.train_bar_objects(rules, 4, |p| {
+                (p.attack - v) * p.max[4] as f64 / p.bonus_max[4] as f64 * XP_BAR_OBJECT_COEFS[4]
+            });
         }
         self.attack = v;
     }
@@ -212,6 +283,9 @@ impl Perso {
         if v < self.defense {
             let gain = (self.defense - v) * self.max[5] as f64 / self.bonus_max[5] as f64;
             self.train(rules, Trained::Bar(5), gain);
+            self.train_bar_objects(rules, 5, |p| {
+                (p.defense - v) * p.max[5] as f64 / p.bonus_max[5] as f64 * XP_BAR_OBJECT_COEFS[5]
+            });
         }
         self.defense = v;
     }
@@ -352,7 +426,8 @@ impl Perso {
                 self.set_resource(r, self.resources[r] + self.gain_resources[r]);
             }
         }
-        // TODO: temporary effects, recharges and poison (items, combat)
+        self.tick_effects(rules);
+        self.tick_recharges();
     }
 
     /// `Manger_Ressources_Coef`
@@ -412,10 +487,25 @@ impl Perso {
         }
     }
 
-    /// `Objet_Ajouter_Inventaire` with `NouveauObjet`.
+    /// `Objet_Ajouter_Inventaire` with `NouveauObjet`: like `add_object`, but a character with
+    /// `IA_Equiper` equips a new non-usable object at once when its slot is free.
     pub fn add_new_object(&mut self, rules: &Rules, object: usize) {
-        self.add_object(rules, object);
-        // TODO: auto-equip new objects when `IA_Equiper` and the slot is free (items)
+        for s in 0..self.inventory.len() {
+            match &mut self.inventory[s] {
+                None => {
+                    self.inventory[s] = Some(Item { object, count: 1 });
+                    if self.ai_equip != 0 && self.slot_free(rules, object) && !rules.objects[object].usable {
+                        self.equip(rules, Some(s), false);
+                    }
+                    return;
+                }
+                Some(item) if item.object == object && item.count < rules.objects[object].stack => {
+                    item.count += 1;
+                    return;
+                }
+                _ => {}
+            }
+        }
     }
 
     /// `Decharger` on an inventory slot: one fewer, or empty.
@@ -451,10 +541,9 @@ impl Perso {
     }
 
     /// `Objet_Supprimer`: destroys one object of this type, equipped first.
-    pub fn remove_object(&mut self, object: usize) {
+    pub fn remove_object(&mut self, rules: &Rules, object: usize) {
         if let Some(i) = self.equipped.iter().position(|s| s.is_some_and(|it| it.object == object)) {
-            self.equipped[i] = None;
-            // TODO: unequipping restores the look and runs `Actualiser_Bonus` (items)
+            self.destroy_equipped(rules, i);
             return;
         }
         if let Some(i) = self.inventory.iter().position(|s| s.is_some_and(|it| it.object == object)) {
