@@ -8,6 +8,8 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* the game loads behind the menus: nothing to show (or composite) until one is started */
+  canvas.waiting { visibility: hidden; }
   /* The loading screen (`Afficher_Image_Chargement`): a random artwork letterboxed to 4:3,
      a progress bar behind its bottom band, and a bubble saying what is loading. It is
      shown before the game has even downloaded, and removed when the game is ready. */
@@ -139,7 +141,7 @@
   <div id="frame"><div id="bar"></div><img id="art" alt=""></div>
 </div>
 <div id="bubble" hidden>Chargement…</div>
-<canvas id="glcanvas" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
+<canvas id="glcanvas" class="waiting" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
 <!-- build-web.sh appends ?v=<hash> to these two URLs so they can be cached for good -->
 <script src="mq_js_bundle.js"></script>
 <script>
@@ -302,6 +304,13 @@
   let socket = null;
   const netInbox = [];
   let netStarted = false;
+  // The game's canvas, hidden while it loads behind the menus; once shown it takes the keyboard
+  // (the focus miniquad gave it at load does not hold on a hidden element).
+  function showGame() {
+    const canvas = document.getElementById("glcanvas");
+    canvas.classList.remove("waiting");
+    canvas.focus();
+  }
   function begin(items) {
     const kept = items.filter((o) => o !== "new");
     try {
@@ -312,6 +321,7 @@
     document.getElementById("menu").hidden = true;
     loadingScreen.hidden = false;
     bubble.hidden = false;
+    showGame();
   }
 
   // Persistent blobs: gzip-compressed in IndexedDB (database "vendetta", store "blobs"),
@@ -517,6 +527,7 @@
       document.getElementById("menu").hidden = true;
       loadingScreen.hidden = false;
       bubble.hidden = false;
+      showGame();
     };
     // Connects to the server (`ws` next to the page), then sends `first`.
     const connect = (first) => {
