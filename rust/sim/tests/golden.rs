@@ -130,6 +130,11 @@ fn several_players() {
     assert_eq!(humans.iter().map(|&i| world.persos[i].fief).collect::<Vec<_>>(), [0, 0, 2]);
     assert_eq!(world.humans(&[0, 0, 2]), humans.iter().map(|&i| Some(i)).collect::<Vec<_>>());
     assert_eq!(world.humans(&[2, 0, 0]), [Some(humans[2]), Some(humans[0]), Some(humans[1])]);
+    // named after their players, the one without a name keeping its citizen's
+    let named = World::create(&rules, &files, &WorldSetup { seed: 6, players: vec![0, 0, 2], names: vec!["Alice".into(), "".into(), "Carol".into()], ..Default::default() }).unwrap();
+    let names: Vec<&str> = humans.iter().map(|&i| named.persos[i].name.as_str()).collect();
+    assert_eq!((names[0], names[2]), ("Alice", "Carol"));
+    assert_eq!(names[1], world.persos[humans[1]].name);
     let orders = [
         (5, Order::FindResource { perso: humans[0], kind: 2 }),
         (5, Order::FindResource { perso: humans[1], kind: 3 }),

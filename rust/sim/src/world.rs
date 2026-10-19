@@ -102,6 +102,9 @@ pub struct WorldSetup {
     pub roads: Roads,
     /// The fief of each human player (several may share one): each takes over a citizen of it.
     pub players: Vec<usize>,
+    /// The human players' names, in the order of `players`; a missing or empty one keeps the
+    /// citizen's own.
+    pub names: Vec<String>,
 }
 
 /// How roads join castles.
@@ -136,6 +139,7 @@ impl Default for WorldSetup {
             confrontation: false,
             roads: Roads::Ring,
             players: vec![0],
+            names: Vec::new(),
         }
     }
 }
@@ -221,9 +225,12 @@ impl World {
         world.place_persos();
         // Each human player takes over the first free citizen of their fief; the first one is
         // `NoPerso` (the original's local player).
-        for &fief in &setup.players {
+        for (k, &fief) in setup.players.iter().enumerate() {
             if let Some(i) = world.persos.iter().position(|p| p.fief == fief && !p.player) {
                 world.persos[i].player = true;
+                if let Some(name) = setup.names.get(k).filter(|n| !n.is_empty()) {
+                    world.persos[i].name = name.clone();
+                }
                 world.player.get_or_insert(i);
             }
         }
