@@ -6,7 +6,11 @@ cd "$(dirname "$0")"
 cargo build --release -p client --target wasm32-unknown-unknown
 mkdir -p dist
 cp -f target/wasm32-unknown-unknown/release/client.wasm web/favicon.ico dist/
-cp -f "$(find ~/.cargo/registry/src -path '*macroquad-0.4.*/js/mq_js_bundle.js' | sort | tail -1)" dist/
+# The bundle's quad_net plugin assigns an undeclared `register_plugin`, which strict mode
+# rejects: declare it.
+sed -e 's/function i(){}register_plugin=function(e){e.env.ws_connect/var register_plugin;function i(){}register_plugin=function(e){e.env.ws_connect/' \
+    "$(find ~/.cargo/registry/src -path '*macroquad-0.4.*/js/mq_js_bundle.js' | sort | tail -1)" >dist/mq_js_bundle.js
+grep -q 'var register_plugin;' dist/mq_js_bundle.js
 # Version the game and the loader by content, so a new build gets new URLs.
 wasm=$(sha256sum dist/client.wasm | cut -c1-16)
 bundle=$(sha256sum dist/mq_js_bundle.js | cut -c1-16)
