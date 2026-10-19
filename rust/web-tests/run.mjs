@@ -30,6 +30,7 @@ const SCENES = {
   start: { hash: "seed=1", steps: [["move", 512, 600]] },
   inventory: { hash: "seed=1", steps: [["key", "KeyI"], ["move", 512, 600]] },
   resources: { hash: "seed=1", steps: [["key", "KeyR"], ["move", 512, 600]] },
+  character: { hash: "seed=1", steps: [["key", "KeyP"], ["move", 250, 270], ["wait", 0.3]] },
   // The skills window, every skill shown (its 4th sort button).
   skills: { hash: "seed=1", steps: [["key", "KeyT"], ["left", 222, 437], ["move", 512, 740]] },
   bestiary: { hash: "seed=1", steps: [["key", "KeyU"], ["move", 512, 740]] },
