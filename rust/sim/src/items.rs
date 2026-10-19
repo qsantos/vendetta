@@ -568,45 +568,6 @@ impl Perso {
         }
     }
 
-    /// `Objets_Utilisation_Automatique`: uses every inventory object marked for it. The original
-    /// runs `Gestion_Utilisation_Speciale` after each one.
-    pub(crate) fn auto_use(&mut self, rules: &Rules) {
-        for s in 0..self.inventory.len() {
-            if let Some(it) = self.inventory[s]
-                && rules.objects[it.object].auto_use
-            {
-                self.equip(rules, Some(s), false);
-                // TODO: `Gestion_Utilisation_Speciale` (combat); for now the use is dropped.
-                self.used_object = -1;
-            }
-        }
-    }
-
-    /// `Changer_Race_Personnage_Equipement`: the race's free talent objects, then their
-    /// automatic use.
-    pub fn give_talents(&mut self, rules: &Rules) {
-        for &o in &rules.races[self.race].objects {
-            if rules.objects[o].talent_price <= 0 {
-                if rules.objects[o].change_look {
-                    self.choose_look = false;
-                }
-                self.add_race_object(rules, o);
-            }
-        }
-        self.auto_use(rules);
-    }
-
-    /// `Charger_Sauvegarde_Tresor` with the free talents a new character preselects: each one
-    /// not owned yet is added, then the automatic uses run.
-    pub fn load_talents(&mut self, rules: &Rules) {
-        for &o in &rules.races[self.race].objects {
-            if rules.objects[o].talent_price <= 0 && self.object_count(o) == 0 {
-                self.add_race_object(rules, o);
-                self.auto_use(rules);
-            }
-        }
-    }
-
     /// `Objet_Ajouter_Inventaire(..., IA_Equiper > 0)`, used for race objects.
     pub(crate) fn add_race_object(&mut self, rules: &Rules, o: usize) {
         if self.ai_equip > 0 {
@@ -628,12 +589,42 @@ impl World {
         r
     }
 
-    /// `Gestion_Utilisation_Speciale`: the effects of the objects used this tick.
-    // TODO: invocations, projectiles, area effects, gains, taxes and effects on self (combat);
-    // for now the uses are dropped so that the characters can use objects again.
-    pub(crate) fn special_uses(&mut self) {
-        for p in &mut self.persos {
-            p.used_object = -1;
+    /// `Objets_Utilisation_Automatique`: perso `i` uses every inventory object marked for it,
+    /// each followed by `Gestion_Utilisation_Speciale` for everybody.
+    pub(crate) fn auto_use(&mut self, rules: &Rules, i: usize) {
+        for s in 0..self.persos[i].inventory.len() {
+            if let Some(it) = self.persos[i].inventory[s]
+                && rules.objects[it.object].auto_use
+            {
+                self.equip_object_at(rules, i, Some(s), false);
+                self.special_uses(rules);
+            }
+        }
+    }
+
+    /// `Changer_Race_Personnage_Equipement`: the race's free talent objects, then their
+    /// automatic use.
+    pub fn give_talents(&mut self, rules: &Rules, i: usize) {
+        let p = &mut self.persos[i];
+        for &o in &rules.races[p.race].objects {
+            if rules.objects[o].talent_price <= 0 {
+                if rules.objects[o].change_look {
+                    p.choose_look = false;
+                }
+                p.add_race_object(rules, o);
+            }
+        }
+        self.auto_use(rules, i);
+    }
+
+    /// `Charger_Sauvegarde_Tresor` with the free talents a new character preselects: each one
+    /// not owned yet is added, then the automatic uses run.
+    pub fn load_talents(&mut self, rules: &Rules, i: usize) {
+        for &o in &rules.races[self.persos[i].race].objects {
+            if rules.objects[o].talent_price <= 0 && self.persos[i].object_count(o) == 0 {
+                self.persos[i].add_race_object(rules, o);
+                self.auto_use(rules, i);
+            }
         }
     }
 }

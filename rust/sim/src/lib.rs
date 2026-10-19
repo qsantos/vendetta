@@ -15,6 +15,7 @@ pub mod params;
 pub mod perso;
 pub mod rules;
 pub mod save;
+pub mod special;
 pub mod stats;
 pub mod terrain;
 pub mod treasure;

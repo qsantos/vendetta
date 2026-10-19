@@ -207,7 +207,7 @@ fn houses_are_hit_and_destroyed() {
     let mut w = world(&files, &rules);
     let a = fighter(&mut w, &rules, 0, 100, 100);
     let o = fighter(&mut w, &rules, 1, 400, 400);
-    let kind = rules.buildings.iter().position(|b| b.service == 0 && b.product < 0 && !b.factory).unwrap();
+    let kind = rules.buildings.iter().position(|b| b.owner_race < 0 && !b.emperor).unwrap();
     w.create_house(&rules, o, 120, 100, kind, o);
     let max = w.houses[o].max_life as f64;
     w.houses[o].set_life(max);
@@ -268,4 +268,65 @@ fn trampling_crushes_weaker_enemies() {
     w.trample(&rules, a);
     let res = w.persos[d].resistance(w.persos[a].bonus_attack_resistance);
     assert_eq!(w.persos[d].bars[0], life - 15.0 * rules.combat.damage_coef * res);
+}
+
+const GOLEM: usize = 43; // Golem de pierre: summons a race-30 golem
+
+/// Using a summoning object creates a soldier next to its chef, which counts it, follows its
+/// orders and drops out of the count when it dies.
+#[test]
+fn summoning_a_soldier() {
+    use sim::items::Equip;
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = fighter(&mut w, &rules, 0, 300, 300);
+    let o = &rules.objects[GOLEM];
+    let race = o.invocation as usize;
+    let n = w.persos.len();
+    w.persos[i].add_object(&rules, GOLEM);
+    let slot = w.persos[i].inventory.iter().position(|s| s.is_some_and(|it| it.object == GOLEM)).unwrap();
+    assert_eq!(w.equip_object_at(&rules, i, Some(slot), false), Equip::Used);
+    w.step(&rules, &[]);
+    assert_eq!(w.persos.len(), n + 1, "a new slot");
+    let g = n;
+    let s = &w.persos[g];
+    assert_eq!((s.race, s.chef, s.fief, s.team), (race, i as i64, w.persos[i].fief, w.persos[i].team));
+    assert!(s.alive() && s.ai && s.invocation());
+    assert_eq!(w.persos[i].soldiers, 1);
+    assert_eq!(w.houses.len(), w.persos.len());
+    // Placed on the right of its chef, then lined up in formation 0, above it.
+    assert_eq!((s.x, s.y), (w.persos[i].x + w.persos[i].w as i64, w.persos[i].y));
+    assert_eq!(s.chef_offset, (0, -24));
+    // The chef's attack order sends it too.
+    let enemy = w.persos.iter().position(|p| p.fief == 1).unwrap();
+    w.attack_perso(&rules, i, enemy);
+    assert_eq!((w.persos[g].action, w.persos[g].perso_target, w.persos[g].ai_order), (300, enemy, 1));
+    w.kill(&rules, g);
+    assert_eq!(w.persos[i].soldiers, 0);
+    // A new summon takes the dead one's slot.
+    w.persos[i].add_object(&rules, GOLEM);
+    let slot = w.persos[i].inventory.iter().position(|s| s.is_some_and(|it| it.object == GOLEM)).unwrap();
+    w.persos[i].recharges.clear();
+    w.persos[i].bars[2] = w.persos[i].bonus_max[2] as f64;
+    assert_eq!(w.equip_object_at(&rules, i, Some(slot), false), Equip::Used);
+    w.step(&rules, &[]);
+    assert_eq!(w.persos.len(), n + 1);
+    assert!(w.persos[g].alive());
+    assert_eq!(w.persos[i].soldiers, 1);
+}
+
+/// A guard tower is built and owned by a guard summoned for it (`CreerProprietaire`).
+#[test]
+fn owner_invocations() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = fighter(&mut w, &rules, 0, 300, 300);
+    let kind = rules.buildings.iter().position(|b| b.owner_race >= 0).unwrap();
+    let n = w.persos.len();
+    w.create_house(&rules, i, 320, 300, kind, i);
+    assert_eq!(w.persos.len(), n + 1);
+    let g = &w.persos[n];
+    assert_eq!((g.race as i64, g.chef), (rules.buildings[kind].owner_race, i as i64));
+    assert!(w.houses[n].visible() && w.houses[n].kind == kind);
+    assert!(!w.houses[i].visible(), "the builder keeps no house");
 }

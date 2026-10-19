@@ -1,11 +1,16 @@
 //! Speech lines, orders to soldiers and calls for help (`ClsJeuCommentaires`, `ModDialogue`).
 
 use crate::rules::Rules;
+use crate::vb::clng;
 use crate::world::World;
 
 /// `ChanceRepondreAide`, `ChanceRepondreOrdre`.
 const HELP_CHANCE: f64 = 3.0;
 const ORDER_REPLY_CHANCE: f64 = 0.1;
+/// `IntervalSoldatsX`, `IntervalSoldatsY`: room between soldiers in formation.
+const SOLDIER_SPACING: i64 = 24;
+/// `NombreFormations`
+const FORMATIONS: i64 = 5;
 
 impl World {
     /// `Commentaires.Message(n, perso)`: a random line of type `n` (the race's own type if it
@@ -121,6 +126,73 @@ impl World {
             };
             let n = if (0..=2).contains(&kind) && sent > 1 { n + 1 } else { n };
             self.say_now(rules, c, n);
+        }
+    }
+
+    /// `Ordonner_Formation(c, ChangerFormation, SansCommentaires)`: chef `c`'s free soldiers
+    /// line up in rows around it (formation 0 a block above, 1 and 2 rows above and below, 3
+    /// and 4 columns left and right), walking there unless the chef is fighting. `change` first
+    /// switches to the next formation.
+    pub fn order_formation(&mut self, rules: &Rules, c: usize, change: bool, silent: bool) {
+        let p = &mut self.persos[c];
+        if change {
+            p.formation = (p.formation + 1) % FORMATIONS;
+        }
+        let s = SOLDIER_SPACING;
+        // `Rangee` (a Long): soldiers per row.
+        let mut row = clng((p.soldiers as f64).sqrt().floor() * 1.5);
+        if row == 0 {
+            row = 1;
+        }
+        let half = |row: i64| clng(s as f64 * row as f64 / 2.0 - s as f64 / 2.0);
+        let (mut x, mut y) = match p.formation {
+            0 => {
+                row = clng(row as f64 / 1.5);
+                (half(row), clng(s as f64 * row as f64 / 2.0 + s as f64 / 2.0))
+            }
+            1 | 2 => (half(row), 0),
+            3 | 4 => (0, half(row)),
+            _ => (0, 0),
+        };
+        let formation = p.formation;
+        let mut j = 0;
+        let mut i = 0;
+        while i < self.persos.len() {
+            let q = &self.persos[i];
+            if q.chef == c as i64 && q.alive() && q.ai_order == 0 && q.attitude == 0 && !q.incommandable && !q.choose_ai {
+                let wrap = j % row == 0;
+                match formation {
+                    0 | 1 | 2 if wrap => {
+                        y += if formation == 2 { s } else { -s };
+                        x -= s * (row - 1);
+                    }
+                    0 | 1 | 2 => x += s,
+                    3 | 4 if wrap => {
+                        x += if formation == 4 { s } else { -s };
+                        y -= s * (row - 1);
+                    }
+                    3 | 4 => y += s,
+                    _ => {}
+                }
+                j += 1;
+                // Not on the chef: the same soldier takes the next place.
+                if x == 0 && y == 0 {
+                    continue;
+                }
+                let chef = &self.persos[c];
+                let (fighting, (dx, dy)) = (chef.fighting(), chef.dest);
+                let q = &mut self.persos[i];
+                q.chef_offset = (x, y);
+                if !fighting {
+                    q.go_to(dx + x, dy + y);
+                    q.chef_post = q.dest;
+                }
+            }
+            i += 1;
+        }
+        if !silent {
+            let line = if self.persos[c].moving { 23 } else { 22 };
+            self.say(rules, c, line);
         }
     }
 

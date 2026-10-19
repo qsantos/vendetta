@@ -187,31 +187,38 @@ impl World {
 
     /// `ClsJeuBatiment.Creer`: perso `owner` starts building a house of type `kind` at (x, y)
     /// as house `h`, demolishing the previous one, and pays for it. Affordability is not checked.
+    /// For a type with `CreerProprietaire` (guard towers, caravans), a new summon of that race
+    /// builds and owns it instead.
     pub fn create_house(&mut self, rules: &Rules, h: usize, x: i32, y: i32, kind: usize, owner: usize) {
         let t = &rules.buildings[kind];
-        // TODO: `CreerProprietaire`: an invocation of race `t.owner_race` owns the house
-        // (towers, markets); without invocations the builder owns it.
-        if self.houses[h].built {
-            self.demolish(rules, h, owner, true);
+        if let Ok(race) = usize::try_from(t.owner_race)
+            && !self.persos[owner].invocation()
+        {
+            let k = self.create_invocation(rules, race, 1.0, h, -1, false, 0, "");
+            self.create_house(rules, k, x, y, kind, k);
+        } else {
+            if self.houses[h].built {
+                self.demolish(rules, h, owner, true);
+            }
+            let p = &self.persos[owner];
+            let m = &mut self.houses[h];
+            m.x = x;
+            m.y = y;
+            m.set_kind(rules, kind);
+            m.shoot = t.shoot;
+            m.built = false;
+            let base = rules.start_special as f64;
+            m.max_life = clng(((p.special[0].carac as f64 - base) / base * 0.5 + 1.0) * t.max_life as f64);
+            m.life = m.max_life as f64 * START_LIFE;
+            m.money = 0.0;
+            m.set_stock_raw(0.0);
+            m.max_stock = (t.max_stock * p.special[0].bonus as f64 / base).floor();
+            m.inventory.iter_mut().for_each(|o| *o = -1);
+            let p = &mut self.persos[owner];
+            p.craft_progress = 0.0;
+            p.set_visible(true);
+            self.go_home(owner, h, false);
         }
-        let p = &self.persos[owner];
-        let m = &mut self.houses[h];
-        m.x = x;
-        m.y = y;
-        m.set_kind(rules, kind);
-        m.shoot = t.shoot;
-        m.built = false;
-        let base = rules.start_special as f64;
-        m.max_life = clng(((p.special[0].carac as f64 - base) / base * 0.5 + 1.0) * t.max_life as f64);
-        m.life = m.max_life as f64 * START_LIFE;
-        m.money = 0.0;
-        m.set_stock_raw(0.0);
-        m.max_stock = (t.max_stock * p.special[0].bonus as f64 / base).floor();
-        m.inventory.iter_mut().for_each(|o| *o = -1);
-        let p = &mut self.persos[owner];
-        p.craft_progress = 0.0;
-        p.set_visible(true);
-        self.go_home(owner, h, false);
         let p = &mut self.persos[owner];
         if !p.invocation() {
             p.set_money(p.money() - t.price_money as f64);

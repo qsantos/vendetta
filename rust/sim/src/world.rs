@@ -219,11 +219,10 @@ impl World {
         // gets the same ones as its preselected talents, `Charger_Sauvegarde_Tresor`).
         for i in 0..world.persos.len() {
             if world.player == Some(i) {
-                world.persos[i].load_talents(rules);
+                world.load_talents(rules, i);
             } else {
-                world.persos[i].give_talents(rules);
+                world.give_talents(rules, i);
             }
-            world.special_uses();
         }
         for p in &mut world.persos {
             p.update_bonus(rules);
@@ -358,7 +357,7 @@ impl World {
                 self.treasure_generate(rules);
             }
         }
-        self.special_uses();
+        self.special_uses(rules);
         // TODO: scenario events (`Evenements_Lancer "Jouer"`)
         // Actualiser_Affichage_Batiments
         for m in &mut self.houses {
