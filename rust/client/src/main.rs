@@ -106,6 +106,8 @@ struct Loaded {
     god: bool,
     test_effects: Vec<(usize, Option<i64>)>,
     test_recharges: Vec<(usize, i64)>,
+    test_emperor: bool,
+    test_advance: Option<f64>,
     show_perf: bool,
     music: music::Music,
     effects: effects::Effects,
@@ -174,7 +176,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files).await;
-    Ok(Loaded { god: options.god, test_effects: options.effects, test_recharges: options.recharges, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { god: options.god, test_effects: options.effects, test_recharges: options.recharges, test_emperor: options.emperor, test_advance: options.advance, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -186,7 +188,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { god, test_effects, test_recharges, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { god, test_effects, test_recharges, test_emperor, test_advance, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -200,6 +202,16 @@ async fn main() {
     let player = world.persos.iter().position(|p| p.player).unwrap();
     if god {
         world.god = Some(player);
+    }
+    let fief = world.persos[player].fief;
+    if test_emperor {
+        world.change_emperor(&rules, fief, player as i64, false);
+    }
+    if let Some(pct) = test_advance {
+        let speed = world.epoch_speed;
+        world.fiefs[fief].change_epoch(&rules, &mut world.castles[fief], speed);
+        let f = &mut world.fiefs[fief];
+        f.epoch_timer = (f.epoch_timer as f64 * (1.0 - pct / 100.0)) as i64;
     }
     for (object, left) in test_effects.into_iter().filter(|&(o, _)| o < rules.objects.len()) {
         let p = &mut world.persos[player];

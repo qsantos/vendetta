@@ -47,6 +47,8 @@ const SCENES = {
   effects: { hash: "seed=1&effects=148+149:3+112", steps: [["move", 360, 16]] },
   // Recharging objects on the shortcut slots: their clocks.
   recharges: { hash: "seed=1&recharges=40:5+41:25+42:3", steps: [["move", 512, 600]] },
+  // The epoch box while changing epoch, and the emperor's life bar under it.
+  epoch: { hash: "seed=1&emperor&advance=40", steps: [["move", 512, 600]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
 };
 

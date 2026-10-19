@@ -37,6 +37,10 @@ pub struct Options {
     /// `recharges=40:5+41:25`: give the player these objects, recharging for so many seconds,
     /// bound to the shortcut keys 1, 2…, to show their recharge clocks.
     pub recharges: Vec<(usize, i64)>,
+    /// `emperor`: the player rules its fief.
+    pub emperor: bool,
+    /// `advance=N`: the player's fief is N % into changing epoch.
+    pub advance: Option<f64>,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -52,6 +56,8 @@ impl Options {
                 "god" => o.god = true,
                 "perf" => o.perf = true,
                 "new" => o.new = true,
+                "emperor" => o.emperor = true,
+                "advance" => o.advance = value.parse::<f64>().ok().map(|v| v.clamp(0.0, 100.0)),
                 "test" => TEST.store(true, Ordering::Relaxed),
                 "size" => {
                     let (w, h) = value.split_once(['x', 'X']).unwrap_or((value, value));

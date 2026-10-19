@@ -188,12 +188,20 @@ fn fill_no_pen(l: i32, t: i32, r: i32, b: i32, c: Color) {
 /// `Afficher_Barre_Statut` (horizontal): black framed box, white `min2` part, coloured `min1`
 /// part. `colour = None` picks red/orange/green from the ratio.
 pub fn status_bar(min1: f64, min2: f64, max: f64, x: i32, y: i32, w: i32, h: i32, colour: Option<Color>) {
+    status_bar_framed(min1, min2, max, x, y, w, h, colour, BLACK);
+}
+
+/// [`status_bar`] with its frame in GDI's current `ForeColor` `frame`, rather than black.
+pub fn status_bar_framed(min1: f64, min2: f64, max: f64, x: i32, y: i32, w: i32, h: i32, colour: Option<Color>, frame: Color) {
     // The original clamps the bar's left and top edges to the screen, squeezing the bars of
     // buildings and characters partly off screen; here they simply slide off it.
     if w <= 0 || h <= 0 {
         return;
     }
     draw_rectangle(x as f32, y as f32, w as f32, h as f32, BLACK);
+    if frame != BLACK {
+        outline(x, y, x + w, y + h, frame);
+    }
     if max <= 0.0 {
         return;
     }
@@ -458,14 +466,38 @@ impl Hud {
         self.text(ax(816), ay(745) - 16 * lines, &self.statistics, WHITE_);
     }
 
-    /// `Afficher_Epoques`: grey box with the fief's epoch name, centred on x=528.
+    /// `Afficher_Epoques`: grey box with the fief's epoch name, centred on x=528; while the
+    /// epoch changes, a white bar of its progress instead of the black box. Under it, the
+    /// emperor's life bar and title.
     fn draw_epoch(&self, world: &World, rules: &Rules, p: &Perso) {
-        // TODO: progress bar while changing epoch, emperor life bar
-        draw_rectangle(cx(438) as f32, 0.0, 180.0, 18.0, BLACK);
-        outline(cx(438), 0, cx(618), 18, GREY);
-        let name = &rules.epochs[world.fiefs[p.fief].epoch].name;
-        let x = cx(528) - clng(name.chars().count() as f64 * 3.25) as i32;
-        self.text(x, 0, name, GREY);
+        // `EpoqueHauteur`, `EpoqueLargeur`, `EpoqueDecalageX/Y` around (528, 0)
+        const H: i32 = 22;
+        const W: i32 = 180;
+        const DY: i32 = -4;
+        let left = cx(438);
+        let f = &world.fiefs[p.fief];
+        let centred = |s: &str| cx(528) - clng(s.chars().count() as f64 * 3.25) as i32;
+        match rules.epochs.get(f.epoch + 1).filter(|_| f.changing_epoch) {
+            Some(next) => {
+                // Drawn from y=-4, the bar is clipped to the screen: 18 high from y=0.
+                let d = next.duration as f64 * world.epoch_speed;
+                status_bar_framed(d - f.epoch_timer as f64, 0.0, d, left, 0, W, H + DY, Some(WHITE_), GREY);
+            }
+            None => {
+                draw_rectangle(left as f32, 0.0, W as f32, (H + DY) as f32, BLACK);
+                outline(left, 0, left + W, H + DY, GREY);
+            }
+        }
+        let name = &rules.epochs[f.epoch].name;
+        self.text(centred(name), 0, name, GREY);
+        if let Some(e) = usize::try_from(f.emperor).ok().and_then(|e| world.persos.get(e)) {
+            // `ForeColor` is still the epoch's grey.
+            let y = H + DY - 1;
+            let total = e.bar_total(0);
+            status_bar_framed(e.bars[0].clamp(0.0, total.max(0.0)), total, e.bonus_max[0] as f64, left, y, W, H - 4, None, GREY);
+            let title = format!("{} {}", rules.epochs[f.epoch].emperor_title[e.female as usize], e.name);
+            self.text(centred(&title), y, &title, GREY);
+        }
     }
 
     /// The 9 object shortcut slots ("1".."9") at the top left.
