@@ -205,6 +205,28 @@ impl World {
             && (!t.emperor || p.emperor)
     }
 
+    /// [`World::can_build`] counting what demolishing perso `i`'s finished house gives back,
+    /// since building a new one demolishes it first. For the player's buttons: the original
+    /// only checks what the perso holds, so a building could need a Del first.
+    pub fn can_build_replacing(&self, rules: &Rules, i: usize, kind: usize) -> bool {
+        let (p, t, m) = (&self.persos[i], &rules.buildings[kind], &self.houses[i]);
+        let (mut money, mut resources): (f64, Vec<f64>) = (p.money(), (0..t.price_resources.len()).map(|r| p.resource(r)).collect());
+        if m.built && m.max_life > 0 {
+            let old = &rules.buildings[m.kind];
+            let share = |q: f64| q * RECYCLING * m.life / m.max_life as f64;
+            money += share(old.price_money as f64);
+            for (r, have) in resources.iter_mut().enumerate() {
+                let q = old.price_resources.get(r).copied().unwrap_or(0);
+                if q > 0 {
+                    *have = (*have + share(q as f64)).min(p.max_resource(r));
+                }
+            }
+        }
+        money >= t.price_money as f64
+            && t.price_resources.iter().zip(&resources).all(|(&q, &have)| have >= q as f64)
+            && (!t.emperor || p.emperor)
+    }
+
     /// `ClsJeuBatiment.Creer`: perso `owner` starts building a house of type `kind` at (x, y)
     /// as house `h`, demolishing the previous one, and pays for it. Affordability is not checked.
     /// For a type with `CreerProprietaire` (guard towers, caravans), a new summon of that race

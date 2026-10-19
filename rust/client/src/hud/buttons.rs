@@ -103,7 +103,7 @@ impl Hud {
             None => (world.houses[player].visible() || p.in_house) as i32,
             Some(k) => {
                 if world.fiefs[p.fief].epoch as i64 >= rules.buildings[k].epoch - 1 {
-                    (p.alive() && world.can_build(rules, player, k)) as i32
+                    (p.alive() && world.can_build_replacing(rules, player, k)) as i32
                 } else {
                     2
                 }
