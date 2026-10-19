@@ -378,3 +378,40 @@ fn hold_and_put_back_an_object() {
     assert_eq!(w.persos[p].selected_object, -1);
     assert!(w.persos[p].inventory.iter().any(|s| s.is_some_and(|it| it.object == o)));
 }
+
+/// Two human players of the same fief: one hands the object it holds to the other, each
+/// order acting on its own character only.
+#[test]
+fn a_player_gives_to_another() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = World::create(&rules, &files, &WorldSetup { seed: 3, players: vec![0, 0], ..Default::default() }).unwrap();
+    let humans: Vec<usize> = (0..w.persos.len()).filter(|&i| w.persos[i].player).collect();
+    let (a, b) = (humans[0], humans[1]);
+    for p in &mut w.persos {
+        p.ai = false;
+    }
+    for &i in &humans {
+        w.persos[i].set_visible(true);
+    }
+    w.persos[b].x = w.persos[a].x + 40;
+    w.persos[b].y = w.persos[a].y;
+    let o = rules.buildings.iter().find(|b| b.factory).unwrap().objects[0];
+    // In the bag or worn (a new object is put on when it can be).
+    let count = |w: &World, i: usize| w.persos[i].inventory.iter().chain(&w.persos[i].equipped).flatten().filter(|it| it.object == o).count();
+    w.persos[a].add_object(&rules, o);
+    let before = count(&w, b);
+    let slot = w.persos[a].inventory.iter().position(|s| s.is_some_and(|it| it.object == o)).unwrap();
+    w.step(&rules, &[Order::HoldObject { perso: a, slot }]);
+    assert_eq!(w.persos[a].selected_object, o as i64);
+    assert_eq!(w.persos[b].selected_object, -1, "the other player holds nothing");
+    w.step(&rules, &[Order::Give { perso: a, target: b }]);
+    for _ in 0..100 {
+        if count(&w, b) > before {
+            break;
+        }
+        w.step(&rules, &[]);
+    }
+    assert_eq!(count(&w, b), before + 1, "the object reached the other player");
+    assert_eq!(w.persos[a].selected_object, -1);
+    assert_eq!(count(&w, a), 0);
+}
