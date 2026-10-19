@@ -25,6 +25,8 @@
 //!   after a rejoin;
 //! - `{"t":"wait","ready":n,"players":m}`: n of the m players are ready;
 //! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
+//! - `{"t":"presence","player":k,"online":b}`: a player of the game in progress left or came
+//!   back (and, to a player coming back, each one still away);
 //! - `{"t":"desync","tick":n}`, `{"t":"error","message":…}` (with `"code":"version"` for a
 //!   different build).
 //!
@@ -284,6 +286,7 @@ async fn connection(mut socket: WebSocket, rooms: Arc<Rooms>) {
     let Some(k) = room.index(id).filter(|&k| room.players[k].conn == conn) else { return };
     if room.started {
         room.players[k].tx = None;
+        room.broadcast(&json!({"t": "presence", "player": k, "online": false}));
         if room.players.iter().all(|p| p.tx.is_none()) {
             room.empty_since = Some(Instant::now());
         }
@@ -353,6 +356,12 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
             *joined = Some((code, p.id));
             room.empty_since = None;
             room.send(k, &room.start(k, true));
+            for j in (0..room.players.len()).filter(|&j| room.players[j].tx.is_none()) {
+                room.send(k, &json!({"t": "presence", "player": j, "online": false}));
+            }
+            for j in (0..room.players.len()).filter(|&j| j != k) {
+                room.send(j, &json!({"t": "presence", "player": k, "online": true}));
+            }
         }
         msg => {
             let Some((code, id)) = joined.as_ref() else { return error(tx, "pas dans une partie") };

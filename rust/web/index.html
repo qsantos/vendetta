@@ -603,6 +603,13 @@
       };
     };
     let retry = 0;
+    // Leaving the page ends the connection, so that the others are told at once (a page kept
+    // in the back-forward cache would otherwise keep it open, unanswered).
+    window.addEventListener("pagehide", () => {
+      const ws = socket;
+      socket = null;
+      if (ws) ws.close();
+    });
     const name = () => {
       const n = $("name").value.trim();
       if (!n) fail("Choisissez un nom.");

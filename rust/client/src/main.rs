@@ -258,7 +258,7 @@ async fn main() {
             next_frame().await;
         },
     };
-    let mut net = options.me.map(|me| net::Net::new(&world, &options.players, me, world.tick));
+    let mut net = options.me.map(|me| net::Net::new(&world, &options.players, &options.names, me, world.tick));
     let mut player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
     // In network play, the world starts with the server's first tick, once the players are ready.
     // Coming back to a game in progress, the ticks missed are played first, as fast as can be.
@@ -525,6 +525,9 @@ async fn main() {
         if options.perf {
             hud.debug_lines(&perf.lines());
         }
+        if let Some(net) = &net {
+            hud.absent_lines(&net.absent());
+        }
         let present_start = perf::now();
         perf.add(perf::Part::Hud, present_start - hud_start);
         // (going back to the default camera submits the interface's drawings)
@@ -589,6 +592,9 @@ async fn main() {
             }
             if ticks > 0 {
                 cam = follow(&world, player, view);
+            }
+            for notice in net.take_notices() {
+                hud.add_notice(&notice);
             }
             if std::mem::take(&mut net.closed) {
                 hud.add_notice("&Connexion au serveur perdue : reconnexion…");

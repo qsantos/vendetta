@@ -153,6 +153,8 @@ async fn rejoining_a_game_in_progress() {
     send(&mut b, json!({"t": "ready"})).await;
     next(&mut b, "tick").await;
     drop(b);
+    let gone = next(&mut a, "presence").await;
+    assert_eq!((gone["player"].clone(), gone["online"].clone()), (json!(1), json!(false)));
 
     // a wrong token is turned away
     let mut c = connect(port).await;
@@ -168,6 +170,8 @@ async fn rejoining_a_game_in_progress() {
     send(&mut b, json!({"t": "rejoin", "room": code.to_lowercase(), "token": token})).await;
     let start = next(&mut b, "start").await;
     assert_eq!((start["you"].clone(), start["resume"].clone()), (json!(1), json!(true)));
+    let back = next(&mut a, "presence").await;
+    assert_eq!((back["player"].clone(), back["online"].clone()), (json!(1), json!(true)));
     // nothing live before it asks for what it missed, which would come first
     assert!(quiet(&mut b).await);
     send(&mut b, json!({"t": "since", "have": 2})).await;

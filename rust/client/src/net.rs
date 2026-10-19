@@ -48,6 +48,11 @@ const DIGEST_EVERY: u64 = 50;
 pub struct Net {
     /// Each player's character, by their place in the room.
     humans: Vec<Option<usize>>,
+    /// Each player's name and whether it is connected.
+    names: Vec<String>,
+    online: Vec<bool>,
+    /// What to say in the message log (players leaving and coming back).
+    notices: Vec<String>,
     me: usize,
     /// The ticks received and not played yet, each with its orders.
     ticks: VecDeque<Vec<Order>>,
@@ -69,8 +74,9 @@ pub struct Net {
 
 impl Net {
     /// `have`: how many ticks the world played (from a save, or none).
-    pub fn new(world: &World, players: &[usize], me: usize, have: u64) -> Net {
-        Net { humans: world.humans(players), me, ticks: VecDeque::new(), received: have, asked: None, in_flight: 0, desync: None, closed: false, reconnected: false, waiting: (0, 0) }
+    pub fn new(world: &World, players: &[usize], names: &[String], me: usize, have: u64) -> Net {
+        let names = (0..players.len()).map(|k| names.get(k).cloned().unwrap_or_else(|| format!("Joueur {}", k + 1))).collect();
+        Net { humans: world.humans(players), names, online: vec![true; players.len()], notices: Vec::new(), me, ticks: VecDeque::new(), received: have, asked: None, in_flight: 0, desync: None, closed: false, reconnected: false, waiting: (0, 0) }
     }
 
     /// The local player's character.
@@ -146,10 +152,30 @@ impl Net {
                     self.in_flight = 0;
                     self.reconnected = true;
                 }
+                Some("presence") => {
+                    let k = msg["player"].as_u64().unwrap_or(u64::MAX) as usize;
+                    let online = msg["online"].as_bool().unwrap_or(true);
+                    if let Some(name) = self.names.get(k)
+                        && self.online[k] != online
+                    {
+                        self.online[k] = online;
+                        self.notices.push(if online { format!("{name} est revenu.") } else { format!("&{name} s'est déconnecté.") });
+                    }
+                }
                 Some("wait") => self.waiting = (msg["ready"].as_u64().unwrap_or(0), msg["players"].as_u64().unwrap_or(0)),
                 _ => {}
             }
         }
+    }
+
+    /// What to say in the message log since last time.
+    pub fn take_notices(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.notices)
+    }
+
+    /// The players not connected, as lines for the screen (`&` for red).
+    pub fn absent(&self) -> Vec<String> {
+        (0..self.names.len()).filter(|&k| !self.online[k]).map(|k| format!("&{} : déconnecté", self.names[k])).collect()
     }
 
     /// The next tick's orders, if it came.
