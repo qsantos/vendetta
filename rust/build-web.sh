@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")"
 cargo build --release -p client --target wasm32-unknown-unknown
 mkdir -p dist
-cp -f target/wasm32-unknown-unknown/release/client.wasm dist/
+cp -f target/wasm32-unknown-unknown/release/client.wasm web/favicon.ico dist/
 cp -f "$(find ~/.cargo/registry/src -path '*macroquad-0.4.*/js/mq_js_bundle.js' | sort | tail -1)" dist/
 # Version the game and the loader by content, so a new build gets new URLs.
 wasm=$(sha256sum dist/client.wasm | cut -c1-16)
