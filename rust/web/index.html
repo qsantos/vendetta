@@ -135,9 +135,10 @@
       let pendingRead = null;
       importObject.env.vendetta_store = (kptr, klen, ptr, len) => {
         const key = UTF8ToString(kptr, klen);
+        // the only copy: it goes to the worker, which hands it back for `blobs`
         const value = new Uint8Array(wasm_memory.buffer, ptr, len).slice();
-        blobs.set(key, value);
-        persist(key, value);
+        if (worker) persist(key, value);
+        else blobs.set(key, value);
       };
       importObject.env.vendetta_stored_size = (kptr, klen) => {
         const key = UTF8ToString(kptr, klen);
@@ -202,9 +203,9 @@
       try {
         const packed = await transform(value, new CompressionStream("gzip"));
         await request(await db, "readwrite", (s) => s.put(packed, key));
-        postMessage({ key });
+        postMessage({ key, value }, [value.buffer]);
       } catch (e) {
-        postMessage({ key, error: String(e) });
+        postMessage({ key, value, error: String(e) }, [value.buffer]);
       }
     };`;
   let worker = null;
@@ -218,10 +219,10 @@
     busy.add(key);
     worker.postMessage({ key, value }, [value.buffer]);
   };
+  /// Hands `value` to the worker; `blobs` gets it back once stored (the game reads blobs only
+  /// as it starts, so the old value meanwhile does not matter).
   const persist = (key, value) => {
-    if (!worker) return;
-    // the worker gets its own copy: `blobs` keeps this one
-    waiting.set(key, value.slice());
+    waiting.set(key, value);
     send(key);
   };
   /// Resolves once every write is stored.
@@ -238,8 +239,9 @@
         blobs.set(keys[i], await transform(values[i], new DecompressionStream("gzip")));
       }
       worker = new Worker(URL.createObjectURL(new Blob([workerCode], { type: "text/javascript" })));
-      worker.onmessage = ({ data: { key, error } }) => {
+      worker.onmessage = ({ data: { key, value, error } }) => {
         if (error) console.warn("cannot save " + key + ":", error);
+        if (!waiting.has(key)) blobs.set(key, value);
         busy.delete(key);
         send(key);
         if (busy.size === 0 && waiting.size === 0) onIdle.splice(0).forEach((r) => r());
