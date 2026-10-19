@@ -117,8 +117,8 @@ fn draw_work_state(world: &World, rules: &Rules, i: usize, cam: (i32, i32)) {
     }
 }
 
-fn draw_persos(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32)) {
-    for p in world.persos.iter().rev() {
+fn draw_persos(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), view: (i32, i32)) {
+    for p in world.persos.iter().rev().filter(|p| in_view(p.x as i32, p.y as i32, p.w, p.h, cam, view)) {
         // The player's ghost is drawn, translucent: the original's `AfficherFantomes` option,
         // off by default there, but otherwise a dead player sees nothing of themselves.
         if !p.visible() || !(p.alive() || p.player) {
@@ -279,6 +279,13 @@ fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32,
 }
 
 /// `view` is the size of the visible area in world pixels.
+/// Whether a box of the map, give or take what sticks out of it (bars, mounts, worn objects),
+/// is in the view at `cam` of size `view`: what is not is skipped before any drawing work.
+fn in_view(x: i32, y: i32, w: i32, h: i32, cam: (i32, i32), view: (i32, i32)) -> bool {
+    const MARGIN: i32 = 64;
+    x + w + MARGIN > cam.0 && y + h + MARGIN > cam.1 && x - MARGIN < cam.0 + view.0 && y - MARGIN < cam.1 + view.1
+}
+
 /// `overview`: draw the terrain from that image ([`terrain_overview`]) instead of its tiles.
 pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32), overview: Option<&Texture2D>) {
     match overview {
@@ -290,26 +297,27 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
     }
     if let Some(tex) = textures.get(RESOURCES) {
         let s = RESOURCE_SIZE as f32;
-        for r in &world.resources {
+        for r in world.resources.iter().filter(|r| in_view(r.x, r.y, RESOURCE_SIZE, RESOURCE_SIZE, cam, view)) {
             blit(tex, r.x - cam.0, r.y - cam.1, Rect::new(r.kind as f32 * s, 0.0, s, s));
         }
     }
     // Afficher_Batiments: houses, then castles.
-    for m in world.houses.iter().filter(|m| m.visible()) {
+    let houses = || world.houses.iter().filter(|m| m.visible() && in_view(m.x, m.y, m.w, m.h, cam, view));
+    for m in houses() {
         let Some(tex) = textures.get(&format!("{}.bmp", rules.buildings[m.kind].image)) else { continue };
         let (w, h) = (m.w as f32, m.h as f32);
         let src = Rect::new(m.animation as f32 * w, m.state(rules) as f32 * h, w, h);
         blit(tex, m.x - cam.0, m.y - cam.1, src);
     }
     // Life bars of damaged houses (drawn after all houses here; they never overlap a house).
-    for m in world.houses.iter().filter(|m| m.visible()) {
+    for m in houses() {
         let v = m.life_with_repair();
         if v < m.max_life as f64 {
             status_bar(v, v, m.max_life as f64, m.x - cam.0, m.y - cam.1 + m.h, m.w, 5, None);
         }
     }
     for (fief, c) in world.fiefs.iter().zip(&world.castles) {
-        if !c.visible() {
+        if !c.visible() || !in_view(c.x, c.y, c.w, c.h, cam, view) {
             continue;
         }
         let Some(tex) = textures.get(&castle_image(rules, fief.people)) else { continue };
@@ -329,14 +337,14 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
             }
         }
     }
-    for d in &world.decors {
+    for d in world.decors.iter().filter(|d| in_view(d.x, d.y, d.w, d.h, cam, view)) {
         let Some(tex) = textures.get(&decor_image(&rules.decors[d.kind].image)) else { continue };
         let src = Rect::new(d.frame as f32 * d.w as f32, 0.0, d.w as f32, d.h as f32);
         blit(tex, d.x - cam.0, d.y - cam.1, src);
     }
     if let Some(tex) = textures.get(TREASURES) {
         let s = TREASURE_SIZE as f32;
-        for t in &world.treasures {
+        for t in world.treasures.iter().filter(|t| in_view(t.x, t.y, TREASURE_SIZE, TREASURE_SIZE, cam, view)) {
             blit(tex, t.x - cam.0, t.y - cam.1, Rect::new(t.tier as f32 * s, 0.0, s, s));
         }
     }
@@ -346,5 +354,5 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
         }
     }
     draw_work_state(world, rules, player, cam);
-    draw_persos(world, rules, textures, cam);
+    draw_persos(world, rules, textures, cam, view);
 }
