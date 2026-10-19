@@ -8,6 +8,8 @@ unsafe extern "C" {
     /// Size of the stored value, 0 for none; the page keeps it decoded for `vendetta_read`.
     fn vendetta_stored_size(key: *const u8, key_len: usize) -> usize;
     fn vendetta_read(data: *mut u8);
+    /// Size of the URL's hash (without '#'), kept for `vendetta_read`.
+    fn vendetta_hash_size() -> usize;
     fn vendetta_remove(key: *const u8, key_len: usize);
     fn vendetta_reload();
 }
@@ -43,6 +45,22 @@ pub fn load(key: &str) -> Option<Vec<u8>> {
     }
     #[cfg(not(target_arch = "wasm32"))]
     std::fs::read(file(key)).ok()
+}
+
+/// The options given to the game: the URL's hash in the browser, the arguments natively.
+pub fn options_text() -> String {
+    #[cfg(target_arch = "wasm32")]
+    {
+        // SAFETY: the page writes exactly the announced length into the buffer.
+        let len = unsafe { vendetta_hash_size() };
+        let mut bytes = vec![0; len];
+        if len > 0 {
+            unsafe { vendetta_read(bytes.as_mut_ptr()) };
+        }
+        String::from_utf8_lossy(&bytes).into_owned()
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    std::env::args().skip(1).collect::<Vec<_>>().join("&")
 }
 
 pub fn remove(key: &str) {

@@ -4,6 +4,7 @@ mod layout;
 mod effects;
 mod loading;
 mod music;
+mod options;
 mod render;
 mod storage;
 mod text;
@@ -104,6 +105,7 @@ const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
 const AUTOSAVE_INTERVAL: f64 = 5.0;
 
 struct Loaded {
+    god: bool,
     music: music::Music,
     effects: effects::Effects,
     files: Files,
@@ -120,9 +122,23 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let files = assets::load_files(&manifest, &progress).await?;
     let rules = Rules::load(&files, "Francais")?;
     progress.message(&progress.label(2));
-    let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
+    let options = options::Options::load();
+    let mut setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
+    if let Some(seed) = options.seed {
+        setup.seed = seed;
+    }
+    if let Some((w, h)) = options.size {
+        // as many resource nodes per cell as the default 128×128 world
+        setup.resources = setup.resources * w * h / (setup.width * setup.height);
+        (setup.width, setup.height) = (w, h);
+    }
+    // A saved game is resumed only with the setup options it was made with.
+    // (Games saved before the options existed had the default setup.)
+    let default_key = options::Options::default().setup_key();
+    let saved_key = storage::load("setup").unwrap_or_else(|| default_key.into_bytes());
+    let same_setup = saved_key == options.setup_key().as_bytes();
     // Resume the saved game if there is one that fits these rules.
-    let saved = storage::load("save").and_then(|bytes| match World::load(&rules, &bytes) {
+    let saved = storage::load("save").filter(|_| same_setup).and_then(|bytes| match World::load(&rules, &bytes) {
         Ok(world) => Some(world),
         Err(e) => {
             warn!("discarding the saved game: {e}");
@@ -131,7 +147,10 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     });
     let world = match saved {
         Some(world) => world,
-        None => World::create(&rules, &files, &setup)?,
+        None => {
+            storage::store("setup", options.setup_key().as_bytes());
+            World::create(&rules, &files, &setup)?
+        }
     };
     let mut textures = assets::Textures::new(&manifest);
     let (terrain, persos) = render::images(&rules, &world);
@@ -143,7 +162,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files, &manifest);
-    Ok(Loaded { music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { god: options.god, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -155,7 +174,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { mut music, mut effects, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
+    let Loaded { god, mut music, mut effects, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -167,6 +186,9 @@ async fn main() {
         },
     };
     let player = world.persos.iter().position(|p| p.player).unwrap();
+    if god {
+        world.god = Some(player);
+    }
     // The game starts with a "Debut" track (`FrmMoteur2D.frm:405`).
     music.play(music::DEBUT, false);
     let mut last_save = get_time();

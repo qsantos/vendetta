@@ -154,6 +154,12 @@
         pendingRead = Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
         return pendingRead.length;
       };
+      // Options in the URL's hash (see client/src/options.rs), read like a stored value.
+      importObject.env.vendetta_hash_size = () => {
+        pendingRead = new TextEncoder().encode(decodeURIComponent(location.hash.slice(1)));
+        return pendingRead.length;
+      };
+      window.addEventListener("hashchange", () => location.reload());
       importObject.env.vendetta_read = (ptr) => {
         new Uint8Array(wasm_memory.buffer, ptr, pendingRead.length).set(pendingRead);
         pendingRead = null;
