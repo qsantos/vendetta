@@ -81,8 +81,10 @@ impl LoadingScreen {
         let scale = (w / 1024.0).min(h / 768.0);
         let (iw, ih) = (1024.0 * scale, 768.0 * scale);
         let (ix, iy) = (((w - iw) / 2.0).floor(), ((h - ih) / 2.0).floor());
-        // The original's fill colour: `CLng(Pourcentage * 2.5 * 255)` read as &HBBGGRR.
-        let v = (s.pct * 2.5 * 255.0).round() as u32;
+        // The original's fill colour is `CLng(Pourcentage * 2.5 * 255)` read as &HBBGGRR. It only
+        // changed at a few milestones there; recomputed continuously it flickers through
+        // red, green and black, so use its value at 100% (green).
+        let v = (100.0f64 * 2.5 * 255.0).round() as u32;
         let colour = Color::from_rgba((v & 0xFF) as u8, ((v >> 8) & 0xFF) as u8, ((v >> 16) & 0xFF) as u8, 255);
         let band = 97.0 * scale;
         draw_rectangle(ix, iy + ih - band, iw * s.pct as f32 / 100.0, band, colour);
