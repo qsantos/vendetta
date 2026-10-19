@@ -2,6 +2,15 @@
 //! (`client god size=512x256`): not in the original, which set worlds up in its menus.
 
 use crate::storage;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static TEST: AtomicBool = AtomicBool::new(false);
+
+/// `test`: a still, reproducible scene for the rendering tests (`web-tests/`): the world does
+/// not advance, nothing is read from or written to storage, no FPS counter, no music.
+pub fn test_mode() -> bool {
+    TEST.load(Ordering::Relaxed)
+}
 
 #[derive(Default)]
 pub struct Options {
@@ -34,6 +43,7 @@ impl Options {
             match key.to_ascii_lowercase().as_str() {
                 "god" => o.god = true,
                 "perf" => o.perf = true,
+                "test" => TEST.store(true, Ordering::Relaxed),
                 "size" => {
                     let (w, h) = value.split_once(['x', 'X']).unwrap_or((value, value));
                     if let (Ok(w), Ok(h)) = (w.parse(), h.parse()) {

@@ -363,7 +363,9 @@ impl Hud {
         if let (None, Some((code, hit))) = (placement, hover) {
             self.terrain_bubble(world, rules, player, code, hit, input.mouse);
         }
-        self.text(ax(940), 0, &format!("{}{:02}", self.strings.fps, self.fps), WHITE_);
+        if !crate::options::test_mode() {
+            self.text(ax(940), 0, &format!("{}{:02}", self.strings.fps, self.fps), WHITE_);
+        }
     }
 
     /// `Afficher_Stastistiques`: one line per active fief, bottom-aligned at y=745.

@@ -20,6 +20,9 @@ fn file(key: &str) -> String {
 }
 
 pub fn store(key: &str, bytes: &[u8]) {
+    if crate::options::test_mode() {
+        return;
+    }
     #[cfg(target_arch = "wasm32")]
     // SAFETY: the page copies the key and bytes out of wasm memory before returning.
     unsafe {
@@ -32,6 +35,9 @@ pub fn store(key: &str, bytes: &[u8]) {
 }
 
 pub fn load(key: &str) -> Option<Vec<u8>> {
+    if crate::options::test_mode() {
+        return None;
+    }
     #[cfg(target_arch = "wasm32")]
     {
         // SAFETY: the page writes exactly the announced length into the buffer.
@@ -64,6 +70,9 @@ pub fn options_text() -> String {
 }
 
 pub fn remove(key: &str) {
+    if crate::options::test_mode() {
+        return;
+    }
     #[cfg(target_arch = "wasm32")]
     // SAFETY: the page reads the key out of wasm memory before returning.
     unsafe {

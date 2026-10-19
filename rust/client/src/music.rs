@@ -49,6 +49,9 @@ impl Music {
     /// 256 s, or right away when the mood changes and the change is not optional. Combat
     /// does not interrupt a boss track.
     pub fn play(&mut self, category: usize, optional: bool) {
+        if crate::options::test_mode() {
+            return;
+        }
         let optional = optional || (category == COMBAT && self.category == Some(BOSS));
         let due = get_time() > self.started + INTERVAL;
         if self.tracks[category].is_empty() || !(due || (self.category != Some(category) && !optional)) {

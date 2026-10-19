@@ -375,7 +375,7 @@ async fn main() {
         }
 
         // One tick whenever a tick's worth of time has passed; extra time is dropped.
-        if !hud.paused() && get_time() - last_tick > 1.0 / TICKS_PER_SECOND {
+        if !hud.paused() && !options::test_mode() && get_time() - last_tick > 1.0 / TICKS_PER_SECOND {
             last_tick = get_time();
             perf.time(perf::Part::Tick, || world.step(&rules, &orders));
             orders.clear();
@@ -406,7 +406,9 @@ async fn main() {
         } else {
             music.play(music::VILLE, true);
         }
-        music.update();
+        if !options::test_mode() {
+            music.update();
+        }
         next_frame().await;
     }
 }
