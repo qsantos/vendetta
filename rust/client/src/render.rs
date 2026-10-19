@@ -213,9 +213,9 @@ fn blit(tex: &Sprite, x: i32, y: i32, src: Rect) {
     );
 }
 
-/// Below this many screen pixels per map pixel (tiles under 4 pixels), the map is drawn from
-/// an [`Overview`] rather than sprite by sprite.
-pub const OVERVIEW_ZOOM: f32 = 0.25;
+/// Below this many screen pixels per map pixel (from the 3/8 zoom step, where tiles are 6
+/// pixels), the map is drawn from an [`Overview`] rather than sprite by sprite.
+pub const OVERVIEW_ZOOM: f32 = 0.45;
 
 /// What the map looks like zoomed far out (not in the original, which did not zoom out): one
 /// pixel per cell, the terrain in each tile's average colour, with houses, resource nodes and
