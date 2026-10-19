@@ -90,6 +90,8 @@ pub struct BuildingType {
 #[derive(Debug, Clone)]
 pub struct ObjectType {
     pub name: String,
+    /// Icon sheet (32×32 frames stacked vertically), e.g. `Images\Objets\Epee`.
+    pub image: String,
     pub plural: String,
     pub secret: bool,
     pub unique: bool,
@@ -316,6 +318,14 @@ pub fn load(files: &Files, lang: &str, suffix: &str, params: &Params, epochs: us
             let name = r.get_l("Nom", suffix).unwrap_or("").to_owned();
             let skill = r.get("Competence").map(|id| params.find_id(Kind::CompetencesObjets, id).unwrap_or(0));
             ObjectType {
+                // `Images\Objets\<Image>` (default: the name), or `<CheminImage><Image>`.
+                image: {
+                    let image = r.get("Image").filter(|s| !s.is_empty()).unwrap_or(&name);
+                    match r.get("CheminImage").filter(|s| !s.is_empty()) {
+                        Some(path) => format!("{path}{image}"),
+                        None => format!("Images\\Objets\\{image}"),
+                    }
+                },
                 plural: r.get_l("NomPluriel", suffix).filter(|s| !s.is_empty()).unwrap_or(&name).to_owned(),
                 name,
                 secret: r.flag("Secret"),
