@@ -213,7 +213,7 @@ async fn main() {
     // When the next tick is due.
     let mut next_tick = get_time();
     // Made the first time the map is zoomed far out.
-    let mut terrain_overview = None;
+    let mut overview: Option<render::Overview> = None;
     // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
     let mut pressed_on_map = false;
     let mut perf = perf::Perf::default();
@@ -259,20 +259,31 @@ async fn main() {
         set_camera(&camera(view_f));
         clear_background(BLACK);
         let map_start = perf::now();
-        let overview = (zoom < render::OVERVIEW_ZOOM).then_some(()).and_then(|()| {
-            if terrain_overview.is_none() {
-                terrain_overview = render::terrain_overview(&world, &textures);
+        let overview = if zoom < render::OVERVIEW_ZOOM {
+            if overview.is_none() {
+                overview = render::Overview::new(&world, &textures);
             }
-            terrain_overview.as_ref()
-        });
+            overview.as_mut().map(|o| {
+                o.update(&world);
+                &*o
+            })
+        } else {
+            None
+        };
+        // Zoomed far out, effects, numbers and speech would be illegible clutter.
+        let far = overview.is_some();
         render::draw_world(&world, &rules, &textures, cam, player, view, overview);
-        effects.draw(&textures, cam, view, zoom);
+        if !far {
+            effects.draw(&textures, cam, view, zoom);
+        }
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         // (changing the camera submits the map's drawings)
         set_camera(&camera(hud_f));
         let hud_start = perf::now();
         perf.add(perf::Part::Map, hud_start - map_start);
-        hud.draw_comments(&world, |x, y| ((((x as i32 - cam.0) as f32) * zoom / ui) as i32, (((y as i32 - cam.1) as f32) * zoom / ui) as i32));
+        if !far {
+            hud.draw_comments(&world, |x, y| ((((x as i32 - cam.0) as f32) * zoom / ui) as i32, (((y as i32 - cam.1) as f32) * zoom / ui) as i32));
+        }
         let radial_was_open = hud.radial_open();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
         if input.left_pressed {

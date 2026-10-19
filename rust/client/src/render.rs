@@ -213,41 +213,88 @@ fn blit(tex: &Sprite, x: i32, y: i32, src: Rect) {
     );
 }
 
-/// Below this many screen pixels per map pixel (tiles under 4 pixels), the terrain is drawn
-/// from [`terrain_overview`] rather than tile by tile.
+/// Below this many screen pixels per map pixel (tiles under 4 pixels), the map is drawn from
+/// an [`Overview`] rather than sprite by sprite.
 pub const OVERVIEW_ZOOM: f32 = 0.25;
 
-/// The terrain with one pixel per cell, each the average colour of its tile: what the map
-/// looks like zoomed far out (not in the original, which did not zoom out).
-pub fn terrain_overview(world: &World, textures: &Textures) -> Option<Texture2D> {
-    let tiles = textures.pixels(TILESET)?;
-    let (cols, rows) = (tiles.width() / CELL as usize, tiles.height() / CELL as usize);
-    let mut average = vec![[0u8; 4]; cols * rows];
-    for (k, avg) in average.iter_mut().enumerate() {
-        let (tx, ty) = (k % cols * CELL as usize, k / cols * CELL as usize);
-        let (mut sum, mut n) = ([0u32; 3], 0);
-        for y in ty..ty + CELL as usize {
-            for x in tx..tx + CELL as usize {
-                let p = &tiles.bytes[(y * tiles.width() + x) * 4..][..4];
-                if p[3] > 0 {
-                    (0..3).for_each(|c| sum[c] += p[c] as u32);
-                    n += 1;
+/// What the map looks like zoomed far out (not in the original, which did not zoom out): one
+/// pixel per cell, the terrain in each tile's average colour, with houses, resource nodes and
+/// characters (in their fief's colour) stamped on it. Remade once per tick and drawn as one
+/// image: tens of thousands of sprites would cover a pixel or two each.
+pub struct Overview {
+    /// The terrain alone, RGBA.
+    terrain: Vec<u8>,
+    width: usize,
+    height: usize,
+    texture: Texture2D,
+    tick: Option<u64>,
+}
+
+impl Overview {
+    pub fn new(world: &World, textures: &Textures) -> Option<Overview> {
+        let tiles = textures.pixels(TILESET)?;
+        let (cols, rows) = (tiles.width() / CELL as usize, tiles.height() / CELL as usize);
+        let mut average = vec![[0u8; 4]; cols * rows];
+        for (k, avg) in average.iter_mut().enumerate() {
+            let (tx, ty) = (k % cols * CELL as usize, k / cols * CELL as usize);
+            let (mut sum, mut n) = ([0u32; 3], 0);
+            for y in ty..ty + CELL as usize {
+                for x in tx..tx + CELL as usize {
+                    let p = &tiles.bytes[(y * tiles.width() + x) * 4..][..4];
+                    if p[3] > 0 {
+                        (0..3).for_each(|c| sum[c] += p[c] as u32);
+                        n += 1;
+                    }
                 }
             }
+            if n > 0 {
+                *avg = [(sum[0] / n) as u8, (sum[1] / n) as u8, (sum[2] / n) as u8, 255];
+            }
         }
-        if n > 0 {
-            *avg = [(sum[0] / n) as u8, (sum[1] / n) as u8, (sum[2] / n) as u8, 255];
+        let t = &world.terrain;
+        let mut terrain = Vec::with_capacity(t.width * t.height * 4);
+        for k in 0..t.width * t.height {
+            let tile = t.category[k] as usize * cols + t.shape[k] as usize;
+            terrain.extend(average.get(tile).copied().unwrap_or([0, 0, 0, 255]));
         }
+        let texture = Texture2D::from_rgba8(t.width as u16, t.height as u16, &terrain);
+        texture.set_filter(FilterMode::Nearest);
+        Some(Overview { terrain, width: t.width, height: t.height, texture, tick: None })
     }
-    let t = &world.terrain;
-    let mut bytes = Vec::with_capacity(t.width * t.height * 4);
-    for k in 0..t.width * t.height {
-        let tile = t.category[k] as usize * cols + t.shape[k] as usize;
-        bytes.extend(average.get(tile).copied().unwrap_or([0, 0, 0, 255]));
+
+    /// Stamps what is on the map, once per tick.
+    pub fn update(&mut self, world: &World) {
+        if self.tick == Some(world.tick) {
+            return;
+        }
+        self.tick = Some(world.tick);
+        let mut bytes = self.terrain.clone();
+        let (w, h) = (self.width as i32, self.height as i32);
+        let mut fill = |x: i32, y: i32, bw: i32, bh: i32, colour: [u8; 4]| {
+            for cy in (y / CELL).max(0)..((y + bh.max(1) - 1) / CELL + 1).min(h) {
+                for cx in (x / CELL).max(0)..((x + bw.max(1) - 1) / CELL + 1).min(w) {
+                    let k = (cy * w + cx) as usize * 4;
+                    bytes[k..k + 4].copy_from_slice(&colour);
+                }
+            }
+        };
+        for r in &world.resources {
+            fill(r.x, r.y, RESOURCE_SIZE, RESOURCE_SIZE, [96, 96, 96, 255]);
+        }
+        for m in world.houses.iter().filter(|m| m.visible()) {
+            fill(m.x, m.y, m.w, m.h, [120, 84, 48, 255]);
+        }
+        for p in world.persos.iter().filter(|p| p.visible() && p.alive()) {
+            fill(p.x as i32 + p.w / 2, p.y as i32 + p.h / 2, 1, 1, fief_colour(p.fief));
+        }
+        self.texture.update_from_bytes(self.width as u32, self.height as u32, &bytes);
     }
-    let texture = Texture2D::from_rgba8(t.width as u16, t.height as u16, &bytes);
-    texture.set_filter(FilterMode::Nearest);
-    Some(texture)
+}
+
+/// A bright colour per fief, the hues spread by the golden ratio.
+fn fief_colour(fief: usize) -> [u8; 4] {
+    let c = macroquad::color::hsl_to_rgb((fief as f32 * 0.618_034).fract(), 1.0, 0.5);
+    [(c.r * 255.0) as u8, (c.g * 255.0) as u8, (c.b * 255.0) as u8, 255]
 }
 
 /// `ClsAffTerrain.AfficheFast`: one 16×16 tile per visible cell.
@@ -285,15 +332,22 @@ fn in_view(x: i32, y: i32, w: i32, h: i32, cam: (i32, i32), view: (i32, i32)) ->
     x + w + MARGIN > cam.0 && y + h + MARGIN > cam.1 && x - MARGIN < cam.0 + view.0 && y - MARGIN < cam.1 + view.1
 }
 
-/// `overview`: draw the terrain from that image ([`terrain_overview`]) instead of its tiles.
-pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32), overview: Option<&Texture2D>) {
-    match overview {
-        Some(o) => {
-            let size = vec2((world.terrain.width as i32 * CELL) as f32, (world.terrain.height as i32 * CELL) as f32);
-            draw_texture_ex(o, -cam.0 as f32, -cam.1 as f32, WHITE, DrawTextureParams { dest_size: Some(size), ..Default::default() });
+/// `overview`: draw the map from it ([`Overview`]), with only the castles and a marker on the
+/// player as sprites.
+pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32), overview: Option<&Overview>) {
+    if let Some(o) = overview {
+        let size = vec2((world.terrain.width as i32 * CELL) as f32, (world.terrain.height as i32 * CELL) as f32);
+        draw_texture_ex(&o.texture, -cam.0 as f32, -cam.1 as f32, WHITE, DrawTextureParams { dest_size: Some(size), ..Default::default() });
+        draw_castles(world, rules, textures, cam, view);
+        if let Some(p) = world.persos.get(player) {
+            // a ring around the player, a hundredth of the view wide
+            let r = view.0.max(view.1) as f32 / 100.0;
+            let (x, y) = ((p.x as i32 - cam.0) as f32 + p.w as f32 / 2.0, (p.y as i32 - cam.1) as f32 + p.h as f32 / 2.0);
+            draw_circle_lines(x, y, r, r / 4.0, WHITE);
         }
-        None => draw_terrain(world, textures, cam, view),
+        return;
     }
+    draw_terrain(world, textures, cam, view);
     if let Some(tex) = textures.get(RESOURCES) {
         let s = RESOURCE_SIZE as f32;
         for r in world.resources.iter().filter(|r| in_view(r.x, r.y, RESOURCE_SIZE, RESOURCE_SIZE, cam, view)) {
@@ -315,6 +369,29 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
             status_bar(v, v, m.max_life as f64, m.x - cam.0, m.y - cam.1 + m.h, m.w, 5, None);
         }
     }
+    draw_castles(world, rules, textures, cam, view);
+    for d in world.decors.iter().filter(|d| in_view(d.x, d.y, d.w, d.h, cam, view)) {
+        let Some(tex) = textures.get(&decor_image(&rules.decors[d.kind].image)) else { continue };
+        let src = Rect::new(d.frame as f32 * d.w as f32, 0.0, d.w as f32, d.h as f32);
+        blit(tex, d.x - cam.0, d.y - cam.1, src);
+    }
+    if let Some(tex) = textures.get(TREASURES) {
+        let s = TREASURE_SIZE as f32;
+        for t in world.treasures.iter().filter(|t| in_view(t.x, t.y, TREASURE_SIZE, TREASURE_SIZE, cam, view)) {
+            blit(tex, t.x - cam.0, t.y - cam.1, Rect::new(t.tier as f32 * s, 0.0, s, s));
+        }
+    }
+    if let Some(p) = world.persos.get(player) {
+        if p.visible() && p.alive() {
+            draw_selection(p, rules, cam);
+        }
+    }
+    draw_work_state(world, rules, player, cam);
+    draw_persos(world, rules, textures, cam, view);
+}
+
+/// Castles, with their life and their next age's progress.
+fn draw_castles(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), view: (i32, i32)) {
     for (fief, c) in world.fiefs.iter().zip(&world.castles) {
         if !c.visible() || !in_view(c.x, c.y, c.w, c.h, cam, view) {
             continue;
@@ -336,22 +413,4 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
             }
         }
     }
-    for d in world.decors.iter().filter(|d| in_view(d.x, d.y, d.w, d.h, cam, view)) {
-        let Some(tex) = textures.get(&decor_image(&rules.decors[d.kind].image)) else { continue };
-        let src = Rect::new(d.frame as f32 * d.w as f32, 0.0, d.w as f32, d.h as f32);
-        blit(tex, d.x - cam.0, d.y - cam.1, src);
-    }
-    if let Some(tex) = textures.get(TREASURES) {
-        let s = TREASURE_SIZE as f32;
-        for t in world.treasures.iter().filter(|t| in_view(t.x, t.y, TREASURE_SIZE, TREASURE_SIZE, cam, view)) {
-            blit(tex, t.x - cam.0, t.y - cam.1, Rect::new(t.tier as f32 * s, 0.0, s, s));
-        }
-    }
-    if let Some(p) = world.persos.get(player) {
-        if p.visible() && p.alive() {
-            draw_selection(p, rules, cam);
-        }
-    }
-    draw_work_state(world, rules, player, cam);
-    draw_persos(world, rules, textures, cam, view);
 }
