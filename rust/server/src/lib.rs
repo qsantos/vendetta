@@ -1,0 +1,285 @@
+//! The network play server: a lobby, then a relay of the players' orders in lockstep.
+//!
+//! It never runs the simulation. Players gather in a room (a short code, case-insensitive),
+//! each picking a fief, and the host sets the world's options and starts the game. Every client
+//! then builds the same world from those options and a seed, and the server broadcasts a tick
+//! every `TICK` with the orders received since the previous one: clients step their world once
+//! per tick received, applying those orders, so all copies stay the same. Clients report a
+//! digest of their world now and then, and everyone is told if two differ.
+//!
+//! Messages are JSON text, tagged by `t`. From a client:
+//! - `{"t":"create","name":…}`, `{"t":"join","room":…,"name":…}`: enter a new or existing room;
+//! - `{"t":"fief","fief":n}`: pick a fief (from 1);
+//! - `{"t":"settings","items":[…]}` (host): the world options, as in the URL's hash;
+//! - `{"t":"start"}` (host);
+//! - `{"t":"order","order":…}`: an order for the next tick, passed on as it is;
+//! - `{"t":"hash","tick":n,"hash":h}`: the world's digest after tick n.
+//!
+//! From the server:
+//! - `{"t":"lobby","room":…,"you":k,"host":k,"players":[{"name","fief","online"}],"items":[…]}`;
+//! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"you":k}`;
+//! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
+//! - `{"t":"desync","tick":n}`, `{"t":"error","message":…}`.
+//!
+//! Players are numbered by their place in the room, which the start fixes.
+
+use axum::Router;
+use axum::extract::State;
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
+use axum::response::Response;
+use serde::Deserialize;
+use serde_json::{Value, json};
+use std::collections::HashMap;
+use std::hash::{BuildHasher, RandomState};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+
+/// The simulation's pace (`Jeu.ini Vitesse`, 10 ticks a second).
+pub const TICK: Duration = Duration::from_millis(100);
+/// Room codes: no letters that look alike (0/O, 1/I/L).
+const CODE_CHARS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+const CODE_LEN: usize = 4;
+/// The world options the host may set (see the client's `options.rs`).
+const SETTINGS: [&str; 5] = ["size", "fiefs", "villagers", "roads", "seed"];
+/// The default number of fiefs (`WorldSetup`).
+const DEFAULT_FIEFS: usize = 4;
+
+#[derive(Deserialize)]
+#[serde(tag = "t", rename_all = "lowercase")]
+enum In {
+    Create { name: String },
+    Join { room: String, name: String },
+    Fief { fief: usize },
+    Settings { items: Vec<String> },
+    Start,
+    Order { order: Value },
+    Hash { tick: u64, hash: u64 },
+}
+
+struct Player {
+    id: u64,
+    name: String,
+    fief: usize,
+    /// Its connection; none once gone (its character then stands still).
+    tx: Option<UnboundedSender<String>>,
+}
+
+#[derive(Default)]
+struct Room {
+    players: Vec<Player>,
+    host: u64,
+    items: Vec<String>,
+    started: bool,
+    /// The orders for the next tick, by player.
+    pending: Vec<(usize, Value)>,
+    /// The first digest reported for each recent tick.
+    hashes: HashMap<u64, u64>,
+    desync: bool,
+}
+
+impl Room {
+    fn fiefs(&self) -> usize {
+        self.items.iter().find_map(|o| o.strip_prefix("fiefs=")?.parse().ok()).unwrap_or(DEFAULT_FIEFS)
+    }
+
+    fn index(&self, id: u64) -> Option<usize> {
+        self.players.iter().position(|p| p.id == id)
+    }
+
+    fn send(&self, k: usize, msg: &Value) {
+        if let Some(tx) = &self.players[k].tx {
+            let _ = tx.send(msg.to_string());
+        }
+    }
+
+    fn broadcast(&self, msg: &Value) {
+        let text = msg.to_string();
+        for tx in self.players.iter().filter_map(|p| p.tx.as_ref()) {
+            let _ = tx.send(text.clone());
+        }
+    }
+
+    fn send_lobby(&self, code: &str) {
+        let host = self.index(self.host).unwrap_or(0);
+        let players: Vec<Value> = self.players.iter().map(|p| json!({"name": p.name, "fief": p.fief, "online": p.tx.is_some()})).collect();
+        for k in 0..self.players.len() {
+            self.send(k, &json!({"t": "lobby", "room": code, "you": k, "host": host, "players": players, "items": self.items}));
+        }
+    }
+}
+
+#[derive(Default)]
+struct Rooms {
+    rooms: Mutex<HashMap<String, Room>>,
+    random: RandomState,
+}
+
+impl Rooms {
+    fn random(&self, n: u64) -> u64 {
+        self.random.hash_one((n, std::time::SystemTime::now()))
+    }
+}
+
+/// The app: `/ws` for the game, and the files of `dist` (the built page) if given.
+pub fn app(dist: Option<PathBuf>) -> Router {
+    let router = Router::new().route("/ws", axum::routing::get(upgrade)).with_state(Arc::new(Rooms::default()));
+    match dist {
+        Some(dir) => router.fallback_service(tower_http::services::ServeDir::new(dir)),
+        None => router,
+    }
+}
+
+async fn upgrade(ws: WebSocketUpgrade, State(rooms): State<Arc<Rooms>>) -> Response {
+    ws.on_upgrade(move |socket| connection(socket, rooms))
+}
+
+fn error(tx: &UnboundedSender<String>, message: &str) {
+    let _ = tx.send(json!({"t": "error", "message": message}).to_string());
+}
+
+async fn connection(mut socket: WebSocket, rooms: Arc<Rooms>) {
+    let (tx, mut rx) = unbounded_channel::<String>();
+    let id = rooms.random(0);
+    // The room code, once in one.
+    let mut joined: Option<String> = None;
+    loop {
+        tokio::select! {
+            out = rx.recv() => {
+                let Some(text) = out else { break };
+                if socket.send(Message::Text(text.into())).await.is_err() {
+                    break;
+                }
+            }
+            msg = socket.recv() => {
+                let text = match msg {
+                    Some(Ok(Message::Text(text))) => text,
+                    Some(Ok(_)) => continue,
+                    _ => break,
+                };
+                match serde_json::from_str::<In>(&text) {
+                    Ok(msg) => handle(&rooms, id, &tx, &mut joined, msg),
+                    Err(e) => error(&tx, &format!("message invalide : {e}")),
+                }
+            }
+        }
+    }
+    // Gone: a player of a game in progress keeps its place, one in the lobby leaves it.
+    let Some(code) = joined else { return };
+    let mut all = rooms.rooms.lock().unwrap();
+    let Some(room) = all.get_mut(&code) else { return };
+    if let Some(k) = room.index(id) {
+        if room.started {
+            room.players[k].tx = None;
+        } else {
+            room.players.remove(k);
+            if room.host == id
+                && let Some(p) = room.players.first()
+            {
+                room.host = p.id;
+            }
+        }
+    }
+    if room.players.iter().all(|p| p.tx.is_none()) {
+        all.remove(&code);
+    } else if !room.started {
+        room.send_lobby(&code);
+    }
+}
+
+fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mut Option<String>, msg: In) {
+    let mut all = rooms.rooms.lock().unwrap();
+    match msg {
+        In::Create { .. } | In::Join { .. } if joined.is_some() => error(tx, "déjà dans une partie"),
+        In::Create { name } => {
+            let code = loop {
+                let mut n = rooms.random(1);
+                let code: String = (0..CODE_LEN)
+                    .map(|_| {
+                        let c = CODE_CHARS[(n % CODE_CHARS.len() as u64) as usize] as char;
+                        n /= CODE_CHARS.len() as u64;
+                        c
+                    })
+                    .collect();
+                if !all.contains_key(&code) {
+                    break code;
+                }
+            };
+            let room = Room { players: vec![Player { id, name: clean(&name), fief: 1, tx: Some(tx.clone()) }], host: id, ..Default::default() };
+            room.send_lobby(&code);
+            all.insert(code.clone(), room);
+            *joined = Some(code);
+        }
+        In::Join { room: code, name } => {
+            let code = code.trim().to_uppercase();
+            let Some(room) = all.get_mut(&code) else { return error(tx, "partie introuvable") };
+            if room.started {
+                return error(tx, "la partie a déjà commencé");
+            }
+            // each one a fief of its own while there are some
+            let fief = room.players.len() % room.fiefs() + 1;
+            room.players.push(Player { id, name: clean(&name), fief, tx: Some(tx.clone()) });
+            room.send_lobby(&code);
+            *joined = Some(code);
+        }
+        msg => {
+            let Some(code) = joined.as_deref() else { return error(tx, "pas dans une partie") };
+            let Some(room) = all.get_mut(code) else { return };
+            let Some(k) = room.index(id) else { return };
+            match msg {
+                In::Fief { fief } if !room.started && (1..=room.fiefs()).contains(&fief) => {
+                    room.players[k].fief = fief;
+                    room.send_lobby(code);
+                }
+                In::Settings { items } if !room.started && room.host == id => {
+                    room.items = items.into_iter().filter(|o| SETTINGS.iter().any(|s| o.starts_with(&format!("{s}=")))).collect();
+                    let fiefs = room.fiefs();
+                    for p in &mut room.players {
+                        p.fief = p.fief.min(fiefs);
+                    }
+                    room.send_lobby(code);
+                }
+                In::Start if !room.started && room.host == id => {
+                    room.started = true;
+                    let seed = room.items.iter().find_map(|o| o.strip_prefix("seed=")?.parse::<u32>().ok()).unwrap_or(rooms.random(2) as u32);
+                    room.items.retain(|o| !o.starts_with("seed="));
+                    let fiefs: Vec<usize> = room.players.iter().map(|p| p.fief).collect();
+                    for k in 0..room.players.len() {
+                        room.send(k, &json!({"t": "start", "items": room.items, "seed": seed, "players": fiefs, "you": k}));
+                    }
+                    tokio::spawn(ticker(rooms.clone(), code.to_owned()));
+                }
+                In::Order { order } if room.started => room.pending.push((k, order)),
+                In::Hash { tick, hash } if room.started => {
+                    let first = *room.hashes.entry(tick).or_insert(hash);
+                    room.hashes.retain(|&t, _| t + 1000 > tick);
+                    if first != hash && !room.desync {
+                        room.desync = true;
+                        room.broadcast(&json!({"t": "desync", "tick": tick}));
+                    }
+                }
+                _ => error(tx, "pas maintenant"),
+            }
+        }
+    }
+}
+
+/// A name of 1 to 24 printable characters.
+fn clean(name: &str) -> String {
+    let name: String = name.chars().filter(|c| !c.is_control()).take(24).collect();
+    if name.trim().is_empty() { "Joueur".to_owned() } else { name.trim().to_owned() }
+}
+
+/// Broadcasts a tick every `TICK` while the room lasts.
+async fn ticker(rooms: Arc<Rooms>, code: String) {
+    let mut interval = tokio::time::interval(TICK);
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+    for n in 0u64.. {
+        interval.tick().await;
+        let mut all = rooms.rooms.lock().unwrap();
+        let Some(room) = all.get_mut(&code) else { return };
+        let orders: Vec<Value> = room.pending.drain(..).map(|(k, o)| json!([k, o])).collect();
+        room.broadcast(&json!({"t": "tick", "n": n, "orders": orders}));
+    }
+}

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["sim", "client", "assetconv"]
+members = ["sim", "client", "assetconv", "server"]
 
 [profile.dev]
 opt-level = 1
