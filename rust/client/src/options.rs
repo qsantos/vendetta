@@ -15,6 +15,9 @@ pub struct Options {
     pub fiefs: Option<usize>,
     /// `villagers=N`: characters per fief, 1 to 2000 (the original allows 250).
     pub villagers: Option<usize>,
+    /// `roads=ring`: the original's ring of roads in fief order, instead of joining each
+    /// castle to its nearest ones.
+    pub ring_roads: bool,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -35,6 +38,7 @@ impl Options {
                     }
                 }
                 "seed" => o.seed = value.parse().ok(),
+                "roads" => o.ring_roads = value.eq_ignore_ascii_case("ring"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
                 "villagers" => o.villagers = value.parse::<usize>().ok().map(|n| n.clamp(1, 2000)),
                 _ => {}
@@ -45,7 +49,7 @@ impl Options {
 
     /// The options that shape a new world: a saved game made with others is not resumed.
     pub fn setup_key(&self) -> String {
-        format!("{:?} {:?} {:?} {:?}", self.size, self.seed, self.fiefs, self.villagers)
+        format!("{:?} {:?} {:?} {:?}{}", self.size, self.seed, self.fiefs, self.villagers, if self.ring_roads { " ring" } else { "" })
     }
 }
 

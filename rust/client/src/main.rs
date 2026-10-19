@@ -125,6 +125,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     progress.message(&progress.label(2));
     let options = options::Options::load();
     let mut setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
+    setup.roads = if options.ring_roads { sim::world::Roads::Ring } else { sim::world::Roads::Nearest };
     if let Some(seed) = options.seed {
         setup.seed = seed;
     }
