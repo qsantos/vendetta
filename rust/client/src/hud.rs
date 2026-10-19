@@ -189,9 +189,17 @@ pub fn status_bar_v(min1: f64, min2: f64, max: f64, x: i32, y: i32, w: i32, h: i
     fill_no_pen(x + 1, top(min1), x + w, y + h, c);
 }
 
+/// The original's font: Arial Bold 10 pt at 96 dpi (Liberation Sans Bold has its metrics).
+const FONT_PX: f32 = 10.0 * 96.0 / 72.0;
+
 impl Hud {
+    /// Screen pixels per interface pixel, for sharp text.
+    pub fn set_scale(&self, scale: f32) {
+        self.font.set_scale(scale);
+    }
+
     pub fn new(strings: Strings, window_strings: WindowStrings) -> Hud {
-        let font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 14.0, 13.0);
+        let font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), FONT_PX);
         Hud {
             strings,
             font,
@@ -223,7 +231,7 @@ impl Hud {
             } else {
                 (line, colour)
             };
-            // Arial Bold 10 pt at 96 dpi: 13 px em, baseline 11 px below the cell top.
+            // GDI places the baseline 11 px below the top of the text cell.
             self.font.draw(line, x, y + 11 + 16 * i as i32, c);
         }
     }

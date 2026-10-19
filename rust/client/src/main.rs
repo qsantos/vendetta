@@ -189,6 +189,7 @@ async fn main() {
         let hud_f = (w as f32 / ui, h as f32 / ui);
         let hud_size = (hud_f.0 as i32, hud_f.1 as i32);
         layout::set_screen(hud_size.0, hud_size.1);
+        hud.set_scale(ui);
 
         let (mx, my) = mouse_position();
         let (mx, my) = (mx * dpi, my * dpi);

@@ -118,7 +118,7 @@ impl LoadingScreen {
         LoadingScreen {
             progress: Progress::default(),
             #[cfg(not(target_arch = "wasm32"))]
-            font: TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 14.0, 13.0),
+            font: TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 10.0 * 96.0 / 72.0),
         }
     }
 
