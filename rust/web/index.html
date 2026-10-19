@@ -41,6 +41,17 @@
   #main { display: flex; flex-direction: column; gap: 12px; }
   #main[hidden], #menu form[hidden] { display: none; }
   #main button { padding: 10px 14px; }
+  /* Network play: entering a room, then the room itself. */
+  #lobby { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70);
+           border-radius: 12px; padding: 20px 28px; min-width: 360px; }
+  #lobby[hidden], #lobby > div[hidden], #lobby [hidden] { display: none; }
+  #lobby input[type=text] { width: 100%; box-sizing: border-box; font: inherit; }
+  #lobby .code { font: bold 28px monospace; letter-spacing: 4px; }
+  #lobby .error { color: #ff8080; min-height: 1.2em; margin: 8px 0 0; text-align: center; }
+  #lobby table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  #lobby td { padding: 3px 4px; }
+  #lobby tr.offline { color: #999; }
+  #lobby .link { font-size: 12px; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -49,6 +60,46 @@
     <h1>Vendetta</h1>
     <button type="button" id="continue" disabled>Continuer</button>
     <button type="button" id="new">Nouveau</button>
+    <button type="button" id="multi">Multijoueur</button>
+  </div>
+  <div id="lobby" hidden>
+    <h1>Multijoueur</h1>
+    <div id="enter">
+      <label>Votre nom <input type="text" id="name" maxlength="24"></label>
+      <div class="buttons"><button type="button" id="create">Créer une partie</button></div>
+      <label>Code de la partie <input type="text" id="code" maxlength="8" autocapitalize="characters"></label>
+      <div class="buttons">
+        <button type="button" id="lobby-back">Retour</button>
+        <button type="button" id="join">Rejoindre</button>
+      </div>
+    </div>
+    <div id="room" hidden>
+      <div>Partie <span class="code" id="room-code"></span></div>
+      <div class="link">Lien à partager : <a id="room-link"></a></div>
+      <table id="players"></table>
+      <fieldset id="room-settings"><legend>Monde (choisi par l'hôte)</legend>
+        <label>Taille de la carte
+          <select name="size">
+            <option value="128">128 × 128</option><option value="192">192 × 192</option>
+            <option value="256">256 × 256</option><option value="384">384 × 384</option>
+            <option value="512">512 × 512</option><option value="640">640 × 640</option>
+            <option value="768">768 × 768</option><option value="1024">1024 × 1024</option>
+          </select></label>
+        <label>Peuples <input type="number" name="fiefs" min="2" max="200" placeholder="4"></label>
+        <label>Villageois par peuple <input type="number" name="villagers" min="1" max="2000" placeholder="10"></label>
+        <label>Routes
+          <select name="roads">
+            <option value="">vers les châteaux proches</option>
+            <option value="ring">en anneau (l'original)</option>
+          </select></label>
+        <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
+      </fieldset>
+      <div class="buttons">
+        <button type="button" id="leave">Quitter</button>
+        <button type="button" id="room-start">Jouer</button>
+      </div>
+    </div>
+    <p class="error" id="lobby-error"></p>
   </div>
   <form hidden>
     <h1>Vendetta</h1>
@@ -88,7 +139,7 @@
   // Digits are the object keys: keep Firefox's quick find (' is 4 on AZERTY, /) and similar
   // shortcuts from taking them.
   window.addEventListener("keydown", (e) => {
-    if (e.target.closest && e.target.closest("form")) return; // the menu's fields
+    if (e.target.closest && e.target.closest("form, #lobby")) return; // the menu's fields
     if (/^(Digit\d|Quote|Slash)$/.test(e.code) && !e.ctrlKey && !e.metaKey) e.preventDefault();
   });
 </script>
@@ -205,6 +256,17 @@
         pendingRead = new TextEncoder().encode(startHash);
         return pendingRead.length;
       };
+      // Network play (see client/src/net.rs and the lobby below): messages for the game wait
+      // in `netInbox`.
+      importObject.env.vendetta_net_send = (ptr, len) => {
+        if (socket && socket.readyState === WebSocket.OPEN) socket.send(UTF8ToString(ptr, len));
+      };
+      importObject.env.vendetta_net_size = () => {
+        const msg = netInbox.shift();
+        if (msg === undefined) return 0;
+        pendingRead = new TextEncoder().encode(msg);
+        return pendingRead.length;
+      };
       // after the pending writes, so that none is lost
       window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
       importObject.env.vendetta_read = (ptr) => {
@@ -223,6 +285,11 @@
   let startHash = "";
   // The settings the game in progress was started with, for "Continuer la partie".
   const lastKey = "vendetta-game";
+  // Network play: the server connection, kept once the game starts, and the messages waiting
+  // for the game (see the lobby below).
+  let socket = null;
+  const netInbox = [];
+  let netStarted = false;
   function begin(items) {
     const kept = items.filter((o) => o !== "new");
     try {
@@ -383,8 +450,140 @@
     };
     document.getElementById("new").addEventListener("click", () => show(true));
     document.getElementById("back").addEventListener("click", () => show(false));
+
+    // Network play (see the server crate): enter a room by creating one or with its code (or a
+    // link with `#room=CODE`), pick a fief; the host sets the world and starts.
+    const $ = (id) => document.getElementById(id);
+    const lobby = $("lobby");
+    const settings = $("room-settings");
+    const nameKey = "vendetta-name";
+    const fail = (text) => ($("lobby-error").textContent = text);
+    const inRoom = (yes) => {
+      $("enter").hidden = yes;
+      $("room").hidden = !yes;
+    };
+    const send = (msg) => socket && socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(msg));
+    const roomValue = (items, k) => (items.find((o) => o.startsWith(k + "=")) || "").slice(k.length + 1);
+    const showLobby = (msg) => {
+      setHash(["room=" + msg.room]);
+      inRoom(true);
+      $("room-code").textContent = msg.room;
+      $("room-link").href = $("room-link").textContent = location.href;
+      const host = msg.you === msg.host;
+      for (const k of fields) {
+        const el = settings.elements[k];
+        if (el !== document.activeElement) el.value = roomValue(msg.items, k) || (k === "size" ? "128" : "");
+        el.disabled = !host;
+      }
+      const fiefs = Number(roomValue(msg.items, "fiefs")) || 4;
+      $("players").replaceChildren(
+        ...msg.players.map((p, k) => {
+          const row = document.createElement("tr");
+          if (!p.online) row.className = "offline";
+          const name = document.createElement("td");
+          name.textContent = p.name + (k === msg.host ? " (hôte)" : "") + (k === msg.you ? " (vous)" : "");
+          const fief = document.createElement("td");
+          if (k === msg.you) {
+            const select = document.createElement("select");
+            for (let f = 1; f <= fiefs; f++) select.add(new Option("Peuple " + f, f, false, f === p.fief));
+            select.addEventListener("change", () => send({ t: "fief", fief: Number(select.value) }));
+            fief.append(select);
+          } else {
+            fief.textContent = "Peuple " + p.fief;
+          }
+          row.append(name, fief);
+          return row;
+        }),
+      );
+      $("room-start").hidden = !host;
+    };
+    // The world: the room's options, its seed, everyone's fief and our place.
+    const startNet = (msg) => {
+      netStarted = true;
+      startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "me=" + msg.you, "play"].join("&");
+      document.getElementById("menu").hidden = true;
+      loadingScreen.hidden = false;
+      bubble.hidden = false;
+      startGame();
+    };
+    // Connects to the server (`ws` next to the page), then sends `first`.
+    const connect = (first) => {
+      fail("");
+      if (socket) socket.close();
+      const url = new URL("ws", location.href);
+      url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+      url.hash = url.search = "";
+      const ws = new WebSocket(url);
+      socket = ws;
+      ws.onopen = () => send(first);
+      ws.onerror = () => fail("Le serveur ne répond pas.");
+      ws.onclose = () => {
+        if (socket !== ws) return;
+        socket = null;
+        if (netStarted) netInbox.push('{"t":"closed"}');
+        else inRoom(false);
+      };
+      ws.onmessage = ({ data }) => {
+        if (netStarted) return netInbox.push(data);
+        const msg = JSON.parse(data);
+        if (msg.t === "error") fail(msg.message.charAt(0).toUpperCase() + msg.message.slice(1) + ".");
+        else if (msg.t === "lobby") showLobby(msg);
+        else if (msg.t === "start") startNet(msg);
+      };
+    };
+    const name = () => {
+      const n = $("name").value.trim();
+      if (!n) fail("Choisissez un nom.");
+      try {
+        localStorage.setItem(nameKey, n);
+      } catch (e) {}
+      return n;
+    };
+    $("create").addEventListener("click", () => name() && connect({ t: "create", name: name() }));
+    $("join").addEventListener("click", () => {
+      const code = $("code").value.trim().toUpperCase();
+      if (!code) return fail("Entrez le code de la partie.");
+      if (name()) connect({ t: "join", room: code, name: name() });
+    });
+    $("leave").addEventListener("click", () => {
+      const ws = socket;
+      socket = null;
+      if (ws) ws.close();
+      inRoom(false);
+      setHash([]);
+    });
+    $("room-start").addEventListener("click", () => send({ t: "start" }));
+    settings.addEventListener("input", () => {
+      const items = [];
+      for (const k of fields) {
+        const v = String(settings.elements[k].value).trim();
+        if (v && !(k === "size" && v === "128")) items.push(k + "=" + v);
+      }
+      send({ t: "settings", items });
+    });
+    const openLobby = (code) => {
+      main.hidden = form.hidden = true;
+      lobby.hidden = false;
+      try {
+        $("name").value = localStorage.getItem(nameKey) || "";
+      } catch (e) {}
+      $("code").value = code;
+      if (code && $("name").value.trim()) $("join").click();
+    };
+    $("lobby-back").addEventListener("click", () => {
+      lobby.hidden = true;
+      show(false);
+    });
+    $("multi").addEventListener("click", () => openLobby(""));
+    // a page opened as a file has no server
+    $("multi").hidden = location.protocol === "file:";
+
+    const room = roomValue(hashItems(), "room");
     if (hashItems().includes("play")) {
       begin(hashItems());
+    } else if (room) {
+      document.getElementById("menu").hidden = false;
+      openLobby(room);
     } else {
       fill();
       document.getElementById("menu").hidden = false;
