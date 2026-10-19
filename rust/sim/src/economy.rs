@@ -24,8 +24,23 @@ pub type Res = Result<(), ()>;
 impl World {
     // ---------------------------------------------------------------- orders
 
+    /// The end of most orders: the soldiers follow (`Ordonner_Chargez` with the chef's own
+    /// target, or back into formation), only while alive for the orders that check it.
+    fn soldiers_follow(&mut self, rules: &Rules, i: usize, check_alive: bool) {
+        let p = &self.persos[i];
+        if p.soldiers > 0 && (p.alive() || !check_alive) {
+            self.order_charge(rules, i, -1, -1, false, false, false);
+        }
+    }
+
+    /// `Aller_A`: walk so that the top-left corner reaches (x, y).
+    pub fn walk_to(&mut self, rules: &Rules, i: usize, x: i64, y: i64) {
+        self.persos[i].go_to(x, y);
+        self.soldiers_follow(rules, i, true);
+    }
+
     /// `Rentrer_Maison`: walk to house `h` to live or work in it (or to build it).
-    pub fn go_home(&mut self, i: usize, h: usize, enter: bool) {
+    pub fn go_home(&mut self, rules: &Rules, i: usize, h: usize, enter: bool) {
         let (p, m) = (&mut self.persos[i], &self.houses[h]);
         if m.visible() {
             let (x, y) = m.entrance_for(p.w, p.h);
@@ -34,11 +49,11 @@ impl World {
             p.house_target = m.owner;
             p.set_visible(true);
         }
-        // TODO: soldiers follow (`Ordonner_Chargez`)
+        self.soldiers_follow(rules, i, true);
     }
 
     /// `Aller_Maison`: walk to someone's house `h` to enter it (or to help build it).
-    pub fn go_to_house(&mut self, i: usize, h: usize, repair: bool) {
+    pub fn go_to_house(&mut self, rules: &Rules, i: usize, h: usize, repair: bool) {
         let (p, m) = (&mut self.persos[i], &self.houses[h]);
         if m.visible() {
             let (x, y) = m.entrance_for(p.w, p.h);
@@ -47,10 +62,11 @@ impl World {
             p.house_target = m.owner;
             p.set_visible(true);
         }
+        self.soldiers_follow(rules, i, true);
     }
 
     /// `Rentrer_Chateau`: back to the own castle; refused when hostile.
-    pub fn go_own_castle(&mut self, i: usize) {
+    pub fn go_own_castle(&mut self, rules: &Rules, i: usize) {
         let p = &mut self.persos[i];
         if p.hostile() {
             return;
@@ -62,10 +78,11 @@ impl World {
             p.action = action::GO_OWN_CASTLE;
             p.set_visible(true);
         }
+        self.soldiers_follow(rules, i, true);
     }
 
     /// `Aller_Chateau`: to an allied castle.
-    pub fn go_to_castle(&mut self, i: usize, c: usize) {
+    pub fn go_to_castle(&mut self, rules: &Rules, i: usize, c: usize) {
         let (p, castle) = (&mut self.persos[i], &self.castles[c]);
         if castle.visible() {
             let (x, y) = castle.entrance_for(p.w, p.h);
@@ -74,10 +91,11 @@ impl World {
             p.castle_target = c;
             p.set_visible(true);
         }
+        self.soldiers_follow(rules, i, false);
     }
 
     /// `Aller_Ressource`: walk to resource node `k` to harvest it.
-    pub fn go_harvest(&mut self, i: usize, k: usize) {
+    pub fn go_harvest(&mut self, rules: &Rules, i: usize, k: usize) {
         let (p, n) = (&mut self.persos[i], &self.resources[k]);
         // The original uses the node width for both axes.
         let half = RESOURCE_SIZE as f64 / 2.0;
@@ -85,16 +103,18 @@ impl World {
         p.resource_target = k;
         p.action = action::GO_HARVEST;
         p.set_visible(true);
+        self.soldiers_follow(rules, i, false);
     }
 
     /// `Aller_Tresor`
-    pub fn go_to_treasure(&mut self, i: usize, k: usize) {
+    pub fn go_to_treasure(&mut self, rules: &Rules, i: usize, k: usize) {
         let (p, t) = (&mut self.persos[i], &self.treasures[k]);
         let half = TREASURE_SIZE as f64 / 2.0;
         p.head_to(clng(t.x as f64 + half - p.w as f64 / 2.0), clng(t.y as f64 + half - p.h as f64 / 2.0));
         p.treasure_target = k;
         p.action = action::GO_TREASURE;
         p.set_visible(true);
+        self.soldiers_follow(rules, i, false);
     }
 
     /// `Aller_Vendre`: sell the selection at castle `k` (or at market house `k`), walking there
@@ -107,7 +127,7 @@ impl World {
                 self.sell_selection(rules, f, i);
             } else {
                 self.houses.get(k).ok_or(())?;
-                self.go_to_house(i, k, false);
+                self.go_to_house(rules, i, k, false);
                 self.persos[i].action = action::GO_SELL_MARKET;
                 self.persos[i].set_visible(true);
             }
@@ -118,9 +138,9 @@ impl World {
                 self.sell_selection(rules, k, i);
             } else {
                 if p.fief == k {
-                    self.go_own_castle(i);
+                    self.go_own_castle(rules, i);
                 } else {
-                    self.go_to_castle(i, k);
+                    self.go_to_castle(rules, i, k);
                 }
                 self.persos[i].action = action::GO_SELL_CASTLE;
                 self.persos[i].set_visible(true);
@@ -130,7 +150,7 @@ impl World {
     }
 
     /// `IA_Trouver_Ressource`: the nearest node of terrain resource type `kind` (node 0 if none).
-    pub fn find_resource(&mut self, i: usize, kind: usize) {
+    pub fn find_resource(&mut self, rules: &Rules, i: usize, kind: usize) {
         let p = &self.persos[i];
         let mut dist = (self.terrain.width as i64 + self.terrain.height as i64) * CELL as i64;
         let mut best = 0;
@@ -142,12 +162,12 @@ impl World {
             }
         }
         if !self.resources.is_empty() {
-            self.go_harvest(i, best);
+            self.go_harvest(rules, i, best);
         }
     }
 
     /// `IA_Trouver_Tresor`: the nearest treasure.
-    pub fn find_treasure(&mut self, i: usize) -> Res {
+    pub fn find_treasure(&mut self, rules: &Rules, i: usize) -> Res {
         if self.treasures.is_empty() {
             return Ok(());
         }
@@ -161,7 +181,7 @@ impl World {
                 best = Some(j);
             }
         }
-        self.go_to_treasure(i, best.ok_or(())?);
+        self.go_to_treasure(rules, i, best.ok_or(())?);
         Ok(())
     }
 
@@ -217,7 +237,7 @@ impl World {
             let p = &mut self.persos[owner];
             p.craft_progress = 0.0;
             p.set_visible(true);
-            self.go_home(owner, h, false);
+            self.go_home(rules, owner, h, false);
         }
         let p = &mut self.persos[owner];
         if !p.invocation() {

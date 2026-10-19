@@ -408,7 +408,7 @@ impl World {
                 let spread = if i % 2 == 0 { i * 32 } else { -i * 32 };
                 let to = |a: f64, p: i64| clng(range * 2.0 / l as f64 * (a - p as f64) + p as f64 + spread as f64);
                 let (x, y) = (to(aim_x, px), to(aim_y as f64, py));
-                self.persos[k].go_to(x, y);
+                self.walk_to(rules, k, x, y);
             } else {
                 // A star of 8 branches around the chef.
                 let m = i / 8 + 1;
@@ -422,7 +422,7 @@ impl World {
                     ATTACK_PERSO => self.attack_perso(rules, k, targets.0),
                     ATTACK_HOUSE => self.attack_house(rules, k, targets.1),
                     ATTACK_CASTLE => self.attack_castle(rules, k, targets.2),
-                    _ => self.persos[k].go_to(cdest.0 + offset.0, cdest.1 + offset.1),
+                    _ => self.walk_to(rules, k, cdest.0 + offset.0, cdest.1 + offset.1),
                 }
                 self.effect_on(effect, k);
                 self.say(rules, k, 33);

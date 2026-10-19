@@ -200,7 +200,7 @@ impl World {
             let p = &self.persos[i];
             if p.invocation() {
                 if self.houses[i].visible() && self.persos[p.chef as usize].alive() && !p.in_own_house {
-                    self.ai_go_home(i);
+                    self.ai_go_home(rules, i);
                 }
             } else {
                 let h = p.house_target;
@@ -209,11 +209,11 @@ impl World {
                     self.ai.persos[i].leave = true;
                 } else if p.action != action::WALK && p.action != action::ENTER_HOUSE {
                     match self.find_house(rules, i, 0, 0, 1) {
-                        Some(k) if !self.poor(i) => self.ai_go_house(i, k),
+                        Some(k) if !self.poor(i) => self.ai_go_house(rules, i, k),
                         _ => {
                             let p = &self.persos[i];
                             if self.castles[p.fief].visible() && !p.in_own_castle {
-                                self.ai_go_castle(i, false);
+                                self.ai_go_castle(rules, i, false);
                             }
                         }
                     }
@@ -306,31 +306,31 @@ impl World {
     // ---------------------------------------------------------------- movement helpers
 
     /// `IA_Rentrer_Maison`
-    fn ai_go_home(&mut self, i: usize) {
-        self.go_home(i, i, false);
+    fn ai_go_home(&mut self, rules: &Rules, i: usize) {
+        self.go_home(rules, i, i, false);
         self.ai.persos[i].leave = false;
     }
 
     /// `IA_Aller_Maison`: someone's house, sometimes to help repair it.
-    fn ai_go_house(&mut self, i: usize, k: usize) {
+    fn ai_go_house(&mut self, rules: &Rules, i: usize, k: usize) {
         if k == i {
-            self.ai_go_home(i);
+            self.ai_go_home(rules, i);
         } else {
             let repair = self.rng.next() < REPAIR_CHANCE;
-            self.go_to_house(i, k, repair);
+            self.go_to_house(rules, i, k, repair);
             self.ai.persos[i].leave = false;
         }
     }
 
     /// `IA_Aller_Tresor`
-    fn ai_go_treasure(&mut self, i: usize, k: usize) {
-        self.go_to_treasure(i, k);
+    fn ai_go_treasure(&mut self, rules: &Rules, i: usize, k: usize) {
+        self.go_to_treasure(rules, i, k);
         self.ai.persos[i].leave = true;
     }
 
     /// `IA_Rentrer_Chateau`: with `market`, the nearest market when it is closer than the castle
     /// (house 0 when there is no market and no castle).
-    fn ai_go_castle(&mut self, i: usize, market: bool) {
+    fn ai_go_castle(&mut self, rules: &Rules, i: usize, market: bool) {
         let nf = self.persos[i].fief;
         if market {
             let p = self.pos(i);
@@ -346,12 +346,12 @@ impl World {
             let c = &self.castles[nf];
             if (d as f64) < dist(p, (c.x as i64, c.y as i64)) || !c.visible() {
                 let repair = self.rng.next() < REPAIR_CHANCE;
-                self.go_to_house(i, l, repair);
+                self.go_to_house(rules, i, l, repair);
             } else {
-                self.go_own_castle(i);
+                self.go_own_castle(rules, i);
             }
         } else {
-            self.go_own_castle(i);
+            self.go_own_castle(rules, i);
         }
         self.ai.persos[i].leave = false;
     }
@@ -382,17 +382,17 @@ impl World {
                 break (x, y);
             }
         };
-        self.persos[i].go_to(x, y);
+        self.walk_to(rules, i, x, y);
     }
 
     /// `IA_Patrouiller_Cercle`: the next point of a circle around perso `t`.
-    fn patrol_circle(&mut self, i: usize, t: usize) {
+    fn patrol_circle(&mut self, rules: &Rules, i: usize, t: usize) {
         let a = self.ai.persos[i].patrol_angle;
         let (p, q) = (&self.persos[i], &self.persos[t]);
         let x = clng((a as f64).cos() * PATROL_RADIUS - p.w as f64 / 2.0 + q.x as f64 + q.w as f64 / 2.0);
         let y = clng((a as f64).sin() * PATROL_RADIUS - p.h as f64 / 2.0 + q.y as f64 + q.h as f64 / 2.0);
         let bm = p.bonus_move;
-        self.persos[i].go_to(x, y);
+        self.walk_to(rules, i, x, y);
         // The original divides by zero for immobile races.
         if bm != 0 {
             let mut a = (a as f64 + 6.28 * PATROL_RADIUS / bm as f64 * 2.0) as f32;
@@ -608,14 +608,14 @@ impl World {
 
     /// `IA_Trouver_Allie`: walk to the nearest such ally (`EnDeplacement` tells whether it is
     /// already there) and target it.
-    fn go_to_ally(&mut self, i: usize, alive: bool, dead: bool) -> bool {
+    fn go_to_ally(&mut self, rules: &Rules, i: usize, alive: bool, dead: bool) -> bool {
         let Some(k) = self.nearest_ally(i, alive, dead) else { return false };
         let (p, q) = (&self.persos[i], &self.persos[k]);
         let (qx, qy) = (q.x, q.y);
         if (p.x - qx).abs() < p.w as i64 && (p.y - qy).abs() < p.h as i64 {
             self.persos[i].moving = false;
         } else {
-            self.persos[i].go_to(qx, qy);
+            self.walk_to(rules, i, qx, qy);
             self.persos[i].moving = true;
         }
         self.persos[i].perso_target = k;
@@ -626,13 +626,13 @@ impl World {
     /// negative index, where the original fails).
     fn gather_resource(&mut self, rules: &Rules, i: usize, r: i64) {
         if let Some(res) = usize::try_from(r).ok().and_then(|r| rules.resources.get(r)) {
-            self.harvest_nearest(i, res.terrain_resource);
+            self.harvest_nearest(rules, i, res.terrain_resource);
         }
     }
 
     /// `IA_Trouver_Ressource`: the nearest node of terrain resource type `t`; node 0 when none
     /// matches.
-    pub fn harvest_nearest(&mut self, i: usize, t: i64) {
+    pub fn harvest_nearest(&mut self, rules: &Rules, i: usize, t: i64) {
         let p = self.pos(i);
         let mut d = self.half_perimeter();
         let mut best = 0;
@@ -644,7 +644,7 @@ impl World {
             }
         }
         if !self.resources.is_empty() {
-            self.go_harvest(i, best);
+            self.go_harvest(rules, i, best);
         }
     }
 
@@ -749,7 +749,7 @@ impl World {
         let pacific = self.persos[i].ai_pacific;
         if pacific {
             if r < 0.1 {
-                self.go_home_or_chef(i);
+                self.go_home_or_chef(rules, i);
             } else if r < 0.2 {
                 self.random_walk(rules, i);
             }
@@ -758,7 +758,7 @@ impl World {
                 self.attack_castle(rules, i, k);
             }
         } else if r < 0.1 {
-            self.go_home_or_chef(i);
+            self.go_home_or_chef(rules, i);
         } else if r < 0.2 {
             self.random_walk(rules, i);
         } else if r < 0.4 {
@@ -770,14 +770,14 @@ impl World {
         }
     }
 
-    fn go_home_or_chef(&mut self, i: usize) {
+    fn go_home_or_chef(&mut self, rules: &Rules, i: usize) {
         let p = &self.persos[i];
         if p.invocation() {
             let c = &self.persos[p.chef as usize];
             let (x, y) = (c.dest.0 + p.chef_offset.0, c.dest.1 + p.chef_offset.1);
-            self.persos[i].go_to(x, y);
+            self.walk_to(rules, i, x, y);
         } else {
-            self.ai_go_castle(i, false);
+            self.ai_go_castle(rules, i, false);
         }
     }
 
@@ -792,17 +792,17 @@ impl World {
                 if !fighting {
                     let c = &self.persos[chef];
                     let (x, y) = (c.dest.0 + p.chef_offset.0, c.dest.1 + p.chef_offset.1);
-                    self.persos[i].go_to(x, y);
+                    self.walk_to(rules, i, x, y);
                 }
             }
             1 => {
                 if !fighting {
-                    self.persos[i].go_to(post.0, post.1);
+                    self.walk_to(rules, i, post.0, post.1);
                 }
             }
             2 => match self.nearest_enemy(i, post.0, post.1) {
                 Some(j) if dist(post, self.pos(j)) <= 384.0 => self.attack_perso(rules, i, j),
-                _ => self.persos[i].go_to(post.0, post.1),
+                _ => self.walk_to(rules, i, post.0, post.1),
             },
             3 => {
                 if !fighting
@@ -826,7 +826,7 @@ impl World {
         if self.persos.get(t).is_some_and(|q| q.alive()) {
             match self.search_assailant(i, t) {
                 Some(k) => self.attack_perso(rules, i, k),
-                None => self.patrol_circle(i, t),
+                None => self.patrol_circle(rules, i, t),
             }
         } else {
             self.persos[i].ai_order = 0;
@@ -875,12 +875,12 @@ impl World {
                     let chef = chef as usize;
                     match self.nearest_enemy(i, -1, -1) {
                         Some(j) if dist(self.pos(chef), self.pos(j)) < 384.0 => self.attack_perso(rules, i, j),
-                        _ => self.patrol_circle(i, chef),
+                        _ => self.patrol_circle(rules, i, chef),
                     }
                 }
             }
             3 => {
-                if self.go_to_ally(i, false, true) {
+                if self.go_to_ally(rules, i, false, true) {
                     let p = &self.persos[i];
                     if !p.moving {
                         if rules.races[p.race].auto_resurrection {
@@ -892,7 +892,7 @@ impl World {
                         }
                     }
                 } else if chef >= 0 {
-                    self.patrol_circle(i, chef as usize);
+                    self.patrol_circle(rules, i, chef as usize);
                 }
             }
             4 => {
@@ -906,7 +906,7 @@ impl World {
                     self.go_give(i, chef as usize);
                 }
                 if !self.persos[i].moving {
-                    let _ = self.find_treasure(i);
+                    let _ = self.find_treasure(rules, i);
                 }
                 if !self.persos[i].moving {
                     self.random_walk(rules, i);
@@ -953,7 +953,7 @@ impl World {
             if self.poor(i) {
                 self.gather_resource(rules, i, ammo);
             } else if let Some(x) = self.find_house(rules, i, ammo, 0, 0) {
-                self.ai_go_house(i, x);
+                self.ai_go_house(rules, i, x);
             } else {
                 self.gather_resource(rules, i, ammo);
             }
@@ -963,7 +963,7 @@ impl World {
         }
         if self.houses[i].visible() {
             if !self.persos[i].in_own_house {
-                self.go_home(i, i, false);
+                self.go_home(rules, i, i, false);
             } else {
                 let p = &self.persos[i];
                 match p.equipped.first().copied().flatten() {
@@ -974,7 +974,7 @@ impl World {
                 if p.attack == p.bonus_max[4] as f64 && p.projectiles == 0 {
                     self.shoot_nearest_enemy(i);
                     if self.persos[i].idle() && self.houses[i].life_with_repair() < self.houses[i].max_life as f64 {
-                        self.go_home(i, i, false);
+                        self.go_home(rules, i, i, false);
                     }
                 }
             }
@@ -1019,7 +1019,7 @@ impl World {
             self.kill(rules, i);
         } else if self.houses[i].life_with_repair() < self.houses[i].max_life as f64 {
             if self.rng.next() < 0.01 {
-                self.go_home(i, i, false);
+                self.go_home(rules, i, i, false);
             }
         } else if p.in_own_castle || p.in_house {
             let m = &self.houses[i];
@@ -1033,13 +1033,13 @@ impl World {
                 let (x, y) = (c.x as f64 + c.w as f64 / 2.0, c.y as f64);
                 self.number(x, y, j, NumberKind::Money, false);
             }
-            self.go_home(i, i, false);
+            self.go_home(rules, i, i, false);
         } else if p.in_own_house {
             if self.rng.next() < 0.005 {
                 let markets = self.fiefs[nf].markets.len();
                 let r = self.rng.next();
                 if self.castles[nf].visible() && r <= 1.0 / (markets + 1) as f64 {
-                    self.go_own_castle(i);
+                    self.go_own_castle(rules, i);
                 } else {
                     let j = self.rng.below(markets as i64) as usize;
                     // The original raises an error when there is no market.
@@ -1047,12 +1047,12 @@ impl World {
                         && k != i
                     {
                         let repair = self.rng.next() < REPAIR_CHANCE;
-                        self.go_to_house(i, k, repair);
+                        self.go_to_house(rules, i, k, repair);
                     }
                 }
             }
         } else {
-            self.go_home(i, i, false);
+            self.go_home(rules, i, i, false);
         }
     }
 

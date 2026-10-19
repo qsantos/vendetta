@@ -183,21 +183,21 @@ impl World {
         let nr = rules.resources.len();
         let check = |i: usize, n: usize| if i < n { Ok(()) } else { Err(()) };
         match *order {
-            Move { x, y, .. } => p.go_to(x, y),
+            Move { x, y, .. } => self.walk_to(rules, perso, x, y),
             Harvest { node, .. } => {
                 check(node, self.resources.len())?;
-                self.go_harvest(perso, node);
+                self.go_harvest(rules, perso, node);
             }
-            FindResource { kind, .. } => self.find_resource(perso, kind),
-            GoOwnCastle { .. } => self.go_own_castle(perso),
+            FindResource { kind, .. } => self.find_resource(rules, perso, kind),
+            GoOwnCastle { .. } => self.go_own_castle(rules, perso),
             GoToCastle { castle, .. } => {
                 check(castle, self.castles.len())?;
-                self.go_to_castle(perso, castle);
+                self.go_to_castle(rules, perso, castle);
             }
-            GoHome { enter, .. } => self.go_home(perso, perso, enter),
+            GoHome { enter, .. } => self.go_home(rules, perso, perso, enter),
             GoToHouse { house, repair, .. } => {
                 check(house, self.houses.len())?;
-                self.go_to_house(perso, house, repair);
+                self.go_to_house(rules, perso, house, repair);
             }
             BuildHouse { x, y, kind, .. } => {
                 check(kind, rules.buildings.len())?;
@@ -206,9 +206,9 @@ impl World {
             Demolish { .. } => self.demolish(rules, perso, perso, false),
             GoToTreasure { treasure, .. } => {
                 check(treasure, self.treasures.len())?;
-                self.go_to_treasure(perso, treasure);
+                self.go_to_treasure(rules, perso, treasure);
             }
-            FindTreasure { .. } => self.find_treasure(perso)?,
+            FindTreasure { .. } => self.find_treasure(rules, perso)?,
             Stop { .. } => self.stop(rules, perso),
             EatFor { bar, .. } => {
                 if bar < 4 {

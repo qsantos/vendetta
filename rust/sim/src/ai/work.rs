@@ -28,7 +28,7 @@ impl World {
             && self.persos[i].ai_equip > 0
             && let Some(k) = self.find_treasure_near(i)
         {
-            self.ai_go_treasure(i, k);
+            self.ai_go_treasure(rules, i, k);
         }
     }
 
@@ -54,7 +54,7 @@ impl World {
                     self.gather_resource(rules, i, 0);
                     return true;
                 } else if let Some(x) = self.find_house(rules, i, 0, 1, 0) {
-                    self.ai_go_house(i, x);
+                    self.ai_go_house(rules, i, x);
                     return true;
                 }
             }
@@ -64,7 +64,7 @@ impl World {
                     self.gather_resource(rules, i, 1);
                     return true;
                 } else if let Some(x) = self.find_house(rules, i, 0, 2, 0) {
-                    self.ai_go_house(i, x);
+                    self.ai_go_house(rules, i, x);
                     return true;
                 } else {
                     self.gather_resource(rules, i, 1);
@@ -77,7 +77,7 @@ impl World {
                     && !self.poor(i)
                     && let Some(x) = self.find_house(rules, i, 0, bar as i64 + 1, 0)
                 {
-                    self.ai_go_house(i, x);
+                    self.ai_go_house(rules, i, x);
                     return true;
                 }
             }
@@ -88,7 +88,7 @@ impl World {
             if self.poor(i) {
                 self.gather_resource(rules, i, ammo);
             } else if let Some(x) = self.find_house(rules, i, ammo, 0, 0) {
-                self.ai_go_house(i, x);
+                self.ai_go_house(rules, i, x);
             } else {
                 self.gather_resource(rules, i, ammo);
             }
@@ -116,7 +116,7 @@ impl World {
         } else if self.persos[i].money() > 1.0 {
             let m = self.raw_material(rules, t);
             if let Some(x) = self.find_house(rules, i, m, 0, 0) {
-                self.ai_go_house(i, x);
+                self.ai_go_house(rules, i, x);
             } else {
                 let m = self.raw_material(rules, t);
                 let p = &self.persos[i];
@@ -128,7 +128,7 @@ impl World {
                     && self.castles[nf].visible()
                     || !self.fiefs[nf].markets.is_empty()
                 {
-                    self.ai_go_castle(i, true);
+                    self.ai_go_castle(rules, i, true);
                 }
             }
         }
@@ -175,21 +175,21 @@ impl World {
             self.castle_trade(rules, i);
             self.ai.persos[i].leave = true;
         } else if self.poor(i) && self.houses[i].money >= 1.0 {
-            self.ai_go_home(i);
+            self.ai_go_home(rules, i);
         } else if self.houses[i].service == SERVICE_BOUNTY {
             if p.bars[0] == p.bar_total(0) {
                 for _ in 0..3 {
                     self.aggressive(rules, i);
                 }
                 if self.persos[i].idle() && self.houses[i].money > 0.0 {
-                    self.ai_go_home(i);
+                    self.ai_go_home(rules, i);
                 }
             }
         } else {
             let h = &self.houses[i];
             let rf = rules.buildings[own].product;
             if p.res(rf) > RAW_MIN && h.stock() < h.max_stock && (rf >= 0 || h.factory || h.service > 0) {
-                self.ai_go_home(i);
+                self.ai_go_home(rules, i);
             } else {
                 // `IA_Stock_Exedentaire(i) Or (…)`: the first term is always true, but the second
                 // still draws three raw materials; so does nothing else, and the final
@@ -198,9 +198,9 @@ impl World {
                     self.raw_material(rules, own);
                 }
                 if self.persos[i].in_own_castle {
-                    self.ai_go_home(i);
+                    self.ai_go_home(rules, i);
                 } else {
-                    self.ai_go_castle(i, true);
+                    self.ai_go_castle(rules, i, true);
                 }
             }
         }
@@ -217,7 +217,7 @@ impl World {
             let allowed = |z: usize| rules.objects[objects[z]].epoch - 1 <= e;
             if objects.is_empty() || !objects.iter().enumerate().any(|(z, _)| allowed(z)) {
                 // The original fails or loops forever here.
-                self.ai_go_castle(i, true);
+                self.ai_go_castle(rules, i, true);
                 return;
             }
             let mut z = loop {
@@ -240,7 +240,7 @@ impl World {
                 {
                     self.take_from_house(rules, i, x, i, 1);
                 }
-                self.ai_go_castle(i, true);
+                self.ai_go_castle(rules, i, true);
             }
         } else if h.shop && (h.stock() <= 1.0 || !self.poor(i)) {
             if h.stock() != h.max_stock {
@@ -248,9 +248,9 @@ impl World {
                 let q = 0.5 * self.persos[i].res(rf);
                 let _ = self.deposit_stock(rules, i, i, q, false);
             }
-            self.ai_go_castle(i, true);
+            self.ai_go_castle(rules, i, true);
         } else {
-            self.ai_go_castle(i, true);
+            self.ai_go_castle(rules, i, true);
         }
     }
 

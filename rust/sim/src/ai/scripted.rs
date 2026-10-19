@@ -31,7 +31,7 @@ impl World {
         let h = &self.houses[i];
         let build = self.ai.persos[i].build;
         if h.visible() && h.life < h.max_life as f64 {
-            self.ai_go_home(i);
+            self.ai_go_home(rules, i);
         } else if build >= 0 && (h.kind as i64 != build || !h.visible()) {
             let b = build as usize;
             if self.can_build(rules, i, b) {
@@ -80,7 +80,7 @@ impl World {
             let m = self.raw_material(rules, t);
             self.gather_resource(rules, i, m);
         } else {
-            self.ai_go_home(i);
+            self.ai_go_home(rules, i);
         }
         true
     }
@@ -102,7 +102,7 @@ impl World {
         } else if self.houses[i].visible() && rules.buildings[self.houses[i].kind].product == r {
             let t = self.houses[i].kind;
             if !p.in_own_house {
-                self.ai_go_home(i);
+                self.ai_go_home(rules, i);
             } else if self.raw_material(rules, t) >= 0 {
                 let m = self.raw_material(rules, t);
                 if self.persos[i].res(m) < 1.0 {
@@ -129,7 +129,7 @@ impl World {
         } else if !p.in_own_house {
             self.seek_object(rules, i, o, q);
             if self.persos[i].idle() {
-                self.ai_go_home(i);
+                self.ai_go_home(rules, i);
             }
         } else if h.factory {
             let objects = &rules.buildings[h.kind].objects;
@@ -310,7 +310,7 @@ impl World {
                                 self.fiefs[nf].sell(rules, v, 0.0, &mut self.persos[i], true);
                             }
                         } else {
-                            self.ai_go_castle(i, true);
+                            self.ai_go_castle(rules, i, true);
                         }
                         break;
                     }
@@ -343,7 +343,7 @@ impl World {
             && !(p.in_house || p.in_own_castle || p.in_castle)
         {
             if let Some(x) = self.find_house(rules, i, r, 0, 0) {
-                self.ai_go_house(i, x);
+                self.ai_go_house(rules, i, x);
                 let s = &mut self.ai.persos[i];
                 s.resource = r;
                 s.quantity = clng(q);
@@ -353,7 +353,7 @@ impl World {
             let m = self.raw_material(rules, self.houses[i].kind);
             let trade = self.castles[nf].visible() || !self.fiefs[nf].markets.is_empty();
             if self.fief_res(nf, m) > q && trade {
-                self.ai_go_castle(i, true);
+                self.ai_go_castle(rules, i, true);
                 let s = &mut self.ai.persos[i];
                 s.resource = r;
                 s.quantity = clng(q);
@@ -436,7 +436,7 @@ impl World {
                     let _ = self.buy_object(rules, i, k, j);
                     self.ai.persos[i].object = -1;
                 } else {
-                    self.ai_go_house(i, j);
+                    self.ai_go_house(rules, i, j);
                 }
                 decided = true;
             }
@@ -448,7 +448,7 @@ impl World {
             for j in 0..h.object_slots().saturating_sub(1) {
                 let h = &self.houses[i];
                 if h.object_stock(j) > 0.0 && objects.get(j).is_some_and(|&x| x as i64 == o) {
-                    self.ai_go_home(i);
+                    self.ai_go_home(rules, i);
                     decided = true;
                 }
             }
@@ -520,7 +520,7 @@ impl World {
             return true;
         }
         if !self.persos[i].in_own_house {
-            self.ai_go_home(i);
+            self.ai_go_home(rules, i);
             return false;
         }
         self.take_money(i, i, 0.0, true);

@@ -915,9 +915,9 @@ impl World {
                 let flee = q.step >= p.step && q.bars[0] < p.bars[0] && !q.ai_bold;
                 if self.rng.next() > 0.9 && flee {
                     if self.houses[d].built {
-                        self.go_home(d, d, false);
+                        self.go_home(rules, d, d, false);
                     } else if self.castles[q.fief].visible() {
-                        self.go_own_castle(d);
+                        self.go_own_castle(rules, d);
                     } else {
                         self.random_walk(rules, d);
                     }

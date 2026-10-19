@@ -99,8 +99,8 @@ impl World {
                 _ => {
                     let (s, chef) = (&self.persos[i], &self.persos[c]);
                     let (x, y) = (chef.dest.0 + s.chef_offset.0, chef.dest.1 + s.chef_offset.1);
+                    self.walk_to(rules, i, x, y);
                     let s = &mut self.persos[i];
-                    s.go_to(x, y);
                     s.chef_post = (s.x, s.y);
                 }
             }
@@ -181,10 +181,10 @@ impl World {
                 }
                 let chef = &self.persos[c];
                 let (fighting, (dx, dy)) = (chef.fighting(), chef.dest);
-                let q = &mut self.persos[i];
-                q.chef_offset = (x, y);
+                self.persos[i].chef_offset = (x, y);
                 if !fighting {
-                    q.go_to(dx + x, dy + y);
+                    self.walk_to(rules, i, dx + x, dy + y);
+                    let q = &mut self.persos[i];
                     q.chef_post = q.dest;
                 }
             }

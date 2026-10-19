@@ -407,3 +407,20 @@ fn healing_and_taxes() {
     assert_eq!(w.persos[j].money(), 90.0);
     assert_eq!(w.persos[i].money(), 10.0);
 }
+
+/// Soldiers follow their chef's moves, keeping their place in the formation.
+#[test]
+fn soldiers_follow_their_chef() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = fighter(&mut w, &rules, 0, 300, 300);
+    let n = w.persos.len();
+    use_object(&mut w, &rules, i, GOLEM);
+    let g = n;
+    assert_eq!(w.persos[g].chef, i as i64);
+    w.persos[g].ai = false;
+    w.step(&rules, &[Order::Move { perso: i, x: 500, y: 300 }]);
+    let off = w.persos[g].chef_offset;
+    assert_eq!(w.persos[g].dest, (500 + off.0, 300 + off.1));
+    assert_eq!(w.persos[g].action, 1);
+}
