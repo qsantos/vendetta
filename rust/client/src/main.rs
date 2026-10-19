@@ -95,6 +95,40 @@ fn follow(world: &World, player: usize, view: (i32, i32)) -> (i32, i32) {
     (axis(p.x, view.0, world.terrain.width), axis(p.y, view.1, world.terrain.height))
 }
 
+/// `TypeCurseur`: what the cursor's top-left (x, y) on the map is over, and its index
+/// (`IndiceCible`), see `FrmMoteur2D.frm:1393-1460`. A ghost can only go to its castle, its
+/// temples and graves (`ObstacleMort`); carrying something, the cursor gives it to allies or
+/// sells it (`ObstacleAmi`).
+fn cursor_type(world: &World, rules: &Rules, player: usize, x: i32, y: i32) -> (i32, usize) {
+    let p = &world.persos[player];
+    let carrying = p.holding();
+    if !p.alive() {
+        return if carrying { (0, 0) } else { world.obstacle_dead(player, x, y) };
+    }
+    let giveable = p.resources_selected || p.selected_money > 0.0 || !rules.objects.get(p.selected_object as usize).is_some_and(|o| o.inseparable);
+    let (cursor, hit) = if carrying {
+        match world.obstacle_ally(player, x, y) {
+            (1, j) if giveable => (14, j),
+            // An allied market buys it.
+            (2, j) if world.houses[j].market && world.houses[j].built => (6, j),
+            (2, j) if giveable => (14, j),
+            (3, j) => (6, j),
+            (4, j) => (8, j),
+            _ => (0, 0),
+        }
+    } else {
+        // Armies are not ported: with one selected, an ally would give 17 (guard).
+        world.obstacle_at(rules, player, x, y, 0, 0)
+    };
+    // Ctrl enters the finished home without repairing it, and repairs a damaged allied house.
+    let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
+    match cursor {
+        4 if ctrl && world.houses[hit].built => (5, hit),
+        7 if ctrl && world.houses[hit].life < world.houses[hit].max_life as f64 => (4, hit),
+        c => (c, hit),
+    }
+}
+
 const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
 
 /// How often the game in progress is saved, in seconds.
@@ -107,6 +141,7 @@ struct Loaded {
     test_effects: Vec<(usize, Option<i64>)>,
     test_recharges: Vec<(usize, i64)>,
     test_emperor: bool,
+    test_hold: Option<usize>,
     test_advance: Option<f64>,
     show_perf: bool,
     music: music::Music,
@@ -176,7 +211,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files).await;
-    Ok(Loaded { god: options.god, test_effects: options.effects, test_recharges: options.recharges, test_emperor: options.emperor, test_advance: options.advance, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { god: options.god, test_effects: options.effects, test_recharges: options.recharges, test_emperor: options.emperor, test_hold: options.hold, test_advance: options.advance, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -188,7 +223,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { god, test_effects, test_recharges, test_emperor, test_advance, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { god, test_effects, test_recharges, test_emperor, test_hold, test_advance, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -204,6 +239,9 @@ async fn main() {
         world.god = Some(player);
     }
     let fief = world.persos[player].fief;
+    if let Some(object) = test_hold.filter(|&o| o < rules.objects.len()) {
+        world.persos[player].selected_object = object as i64;
+    }
     if test_emperor {
         world.change_emperor(&rules, fief, player as i64, false);
     }
@@ -281,15 +319,7 @@ async fn main() {
         // What is under the cursor on the map (`Obstacle` on the cursor's top-left).
         let to_world = |p: f32, c: i32| c + (p / zoom).floor() as i32;
         let (wx, wy) = (to_world(mx, cam.0), to_world(my, cam.1));
-        let (hover, hit) = world.obstacle_at(&rules, player, wx, wy, 0, 0);
-        // Ctrl enters the finished home without repairing it, and repairs a damaged allied
-        // house (`FrmMoteur2D.frm:1447-1456`).
-        let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
-        let hover = match hover {
-            4 if ctrl && world.houses[hit].built => 5,
-            7 if ctrl && world.houses[hit].life < world.houses[hit].max_life as f64 => 4,
-            h => h,
-        };
+        let (hover, hit) = cursor_type(&world, &rules, player, wx, wy);
         // The cursor image is drawn at the interface's scale: its centre on the map.
         let centre = (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1));
 
@@ -353,28 +383,51 @@ async fn main() {
             let p = &world.persos[player];
             let perso = player;
             let held = p.selected_object;
-            orders.push(match hover {
-                // With an object on the cursor: sell it at a castle, drop it on the ground.
-                6 if held >= 0 => Order::GoSell { perso, target: p.fief, market: false },
-                8 if held >= 0 => Order::GoSell { perso, target: hit, market: false },
-                0 | 16 | 999 if held >= 0 => Order::DropObject { perso, object: held as usize, from_inventory: false },
-                1 => Order::Harvest { perso, node: hit },
-                4 if hit == perso => Order::GoHome { perso, enter: false },
-                4 => Order::GoToHouse { perso, house: hit, repair: true },
-                5 => Order::GoHome { perso, enter: true },
-                6 => Order::GoOwnCastle { perso },
-                7 => Order::GoToHouse { perso, house: hit, repair: false },
-                8 => Order::GoToCastle { perso, castle: hit },
-                9 => Order::AttackPerso { perso, target: hit },
-                10 => Order::AttackHouse { perso, house: hit },
-                11 => Order::AttackCastle { perso, castle: hit },
-                13 => Order::GoToTreasure { perso, treasure: hit },
-                _ => Order::Move {
+            let carrying = p.holding() && p.alive();
+            match hover {
+                // Carrying something: sell it in a castle or a market, else drop it, or put
+                // the held object into the own house.
+                0 | 16 | 999 if carrying => {
+                    let market = world.houses.get(p.house_target).is_some_and(|m| m.market && m.built);
+                    if p.in_own_castle || p.in_castle || p.in_house && market {
+                        orders.push(Order::SellSelection { perso, fief: p.castle_target });
+                    } else if held >= 0 && !rules.objects[held as usize].inseparable {
+                        let object = held as usize;
+                        orders.push(if p.in_own_house {
+                            Order::DepositObject { perso, object, from_inventory: false }
+                        } else {
+                            Order::DropObject { perso, object, from_inventory: false }
+                        });
+                        orders.push(Order::SelectObject { perso, object: -1 });
+                    } else {
+                        orders.push(Order::DropSelection { perso });
+                    }
+                }
+                // Quirk: the market test reads the house of the castle's index too.
+                6 if carrying && world.houses.get(hit).is_some_and(|m| m.market && m.built) => {
+                    orders.push(Order::GoSell { perso, target: hit, market: true })
+                }
+                6 if carrying => orders.push(Order::GoSell { perso, target: p.fief, market: false }),
+                // The original reads a stale target here; the castle is meant.
+                8 if carrying => orders.push(Order::GoSell { perso, target: hit, market: false }),
+                1 => orders.push(Order::Harvest { perso, node: hit }),
+                4 if hit == perso => orders.push(Order::GoHome { perso, enter: false }),
+                4 => orders.push(Order::GoToHouse { perso, house: hit, repair: true }),
+                5 => orders.push(Order::GoHome { perso, enter: true }),
+                6 => orders.push(Order::GoOwnCastle { perso }),
+                7 | 12 => orders.push(Order::GoToHouse { perso, house: hit, repair: false }),
+                8 => orders.push(Order::GoToCastle { perso, castle: hit }),
+                9 => orders.push(Order::AttackPerso { perso, target: hit }),
+                10 => orders.push(Order::AttackHouse { perso, house: hit }),
+                11 => orders.push(Order::AttackCastle { perso, castle: hit }),
+                13 => orders.push(Order::GoToTreasure { perso, treasure: hit }),
+                14 => orders.push(Order::Give { perso, target: hit }),
+                _ => orders.push(Order::Move {
                     perso,
                     x: wx as i64 - p.w as i64 / 2,
                     y: wy as i64 - p.h as i64 / 2,
-                },
-            });
+                }),
+            }
         }
         if !on_ui && is_mouse_button_pressed(MouseButton::Middle) {
             // The middle button shoots at the ground, or at the house or castle under it

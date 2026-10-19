@@ -424,3 +424,34 @@ fn soldiers_follow_their_chef() {
     assert_eq!(w.persos[g].dest, (500 + off.0, 300 + off.1));
     assert_eq!(w.persos[g].action, 1);
 }
+
+/// `ObstacleMort`: a ghost's cursor finds its castle and allied temples only; `ObstacleAmi`:
+/// carrying something, allies, their houses and the castles.
+#[test]
+fn ghost_and_ally_cursors() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let a = fighter(&mut w, &rules, 0, 100, 100);
+    let b = w.persos.iter().position(|p| p.fief == 0 && p.numero != a).unwrap();
+    w.persos[b].set_visible(true);
+    (w.persos[b].x, w.persos[b].y) = (300, 300);
+    let temple = rules.buildings.iter().position(|t| t.service == 1).unwrap();
+    w.create_house(&rules, b, 120, 400, temple, b);
+    w.houses[b].built = true;
+    let (own, other) = (&w.castles[0], &w.castles[1]);
+    let (own, other) = ((own.x + 1, own.y + 1), (other.x + 1, other.y + 1));
+    let (hx, hy) = (w.houses[b].x + 1, w.houses[b].y + 1);
+
+    assert_eq!(w.obstacle_ally(a, own.0, own.1), (3, 0));
+    assert_eq!(w.obstacle_ally(a, other.0, other.1), (0, 0));
+    assert_eq!(w.obstacle_ally(a, 301, 301), (1, b));
+    assert_eq!(w.obstacle_ally(a, hx, hy), (2, b));
+    // not oneself
+    assert_ne!(w.obstacle_ally(a, 101, 101).0, 1);
+
+    w.kill(&rules, a);
+    assert_eq!(w.obstacle_dead(a, own.0, own.1), (6, 0));
+    assert_eq!(w.obstacle_dead(a, other.0, other.1), (0, 0));
+    assert_eq!(w.obstacle_dead(a, hx, hy), (12, b));
+    assert_eq!(w.obstacle_dead(a, 301, 301), (0, 0));
+}

@@ -1618,6 +1618,66 @@ impl World {
         (0, 0)
     }
 
+    /// `ObstacleMort`: where the ghost of perso `i` can go, at the point (x, y): 6 its own
+    /// castle, 5 its own temple, 12 an allied temple, 16 a named grave, else 0; with the index
+    /// of what was found. Quirk: another castle there lets the houses under it be tried.
+    pub fn obstacle_dead(&self, i: usize, x: i32, y: i32) -> (i32, usize) {
+        let r = (x, y, 0, 0);
+        let p = &self.persos[i];
+        if let Some(j) = self.castles.iter().position(|c| overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible())
+            && j == p.fief
+        {
+            return (6, j);
+        }
+        let sp = &self.spatial;
+        let house = sp.houses.first(self.houses.len(), Self::reach(r, sp.house_reach, 1), |j| {
+            let m = &self.houses[j];
+            m.visible() && overlaps(r, (m.x, m.y, m.w, m.h))
+        });
+        if let Some(j) = house {
+            let m = &self.houses[j];
+            let temple = m.built && m.service == 1;
+            if temple && j == i {
+                return (5, j);
+            } else if temple && self.persos[j].team == p.team {
+                return (12, j);
+            }
+        }
+        match self.decors.iter().position(|d| overlaps(r, (d.x, d.y, d.w, d.h)) && !d.name.is_empty()) {
+            Some(k) => (16, k),
+            None => (0, 0),
+        }
+    }
+
+    /// `ObstacleAmi`: what perso `i` can give to or sell at, at the point (x, y): 1 an allied
+    /// character, 2 an allied house, 3 its own castle, 4 an allied castle, else 0; with the
+    /// index of what was found.
+    pub fn obstacle_ally(&self, i: usize, x: i32, y: i32) -> (i32, usize) {
+        let r = (x, y, 0, 0);
+        let team = self.persos[i].team;
+        let s = &self.spatial;
+        let near = Self::reach(r, s.perso_reach, crate::spatial::DRIFT as i32 + 1);
+        let ally = s.persos.first(self.persos.len(), near, |j| {
+            let p = &self.persos[j];
+            overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team == team && p.attackable() && j != i
+        });
+        if let Some(j) = ally {
+            return (1, j);
+        }
+        let house = s.houses.first(self.houses.len(), Self::reach(r, s.house_reach, 1), |j| {
+            let m = &self.houses[j];
+            m.visible() && self.persos[j].team == team && j != i && overlaps(r, (m.x, m.y, m.w, m.h))
+        });
+        if let Some(j) = house {
+            return (2, j);
+        }
+        match self.castles.iter().position(|c| c.visible() && overlaps(r, (c.x, c.y, c.w, c.h))) {
+            Some(j) if j == self.persos[i].fief => (3, j),
+            Some(j) if self.fiefs[j].team == team => (4, j),
+            _ => (0, 0),
+        }
+    }
+
     /// Houses of type `kind` built or being built in fief `f` (for `Limite`).
     pub fn houses_of_kind(&self, f: usize, kind: usize) -> usize {
         self.houses.iter().filter(|m| m.visible() && m.kind == kind && self.persos[m.owner].fief == f).count()

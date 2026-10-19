@@ -51,6 +51,8 @@ const SCENES = {
   epoch: { hash: "seed=1&emperor&advance=40", steps: [["move", 512, 600]] },
   // The message log: a tip (F9).
   messages: { hash: "seed=1", steps: [["key", "F9"], ["move", 512, 600]] },
+  // Holding an object over the own castle: the sell cursor and its bubble.
+  sell: { hash: "seed=1&hold=0", steps: [["move", 330, 312]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
 };
 

@@ -5,11 +5,26 @@ use sim::rules::Rules;
 use sim::world::World;
 
 impl Hud {
-    /// The bubble for what the cursor is over (`hover`, `hit` from `World::obstacle_at`).
+    /// The bubble for what the cursor is over (`TypeCurseur` `hover` and `IndiceCible` `hit`).
     pub(super) fn terrain_bubble(&self, world: &World, rules: &Rules, player: usize, hover: i32, hit: usize, m: (i32, i32)) {
         let s = &self.strings;
         let me = &world.persos[player];
+        // Ctrl on a damaged allied house shows the repair cursor over the allied bubble.
+        let hover = if hover == 4 && hit != player { 7 } else { hover };
         let text = match hover {
+            // An object on the cursor: whether a click sells it or drops it.
+            0 if me.selected_object >= 0 => {
+                let inseparable = rules.objects[me.selected_object as usize].inseparable;
+                let market = me.in_house && world.houses.get(me.house_target).is_some_and(|m| m.market);
+                let labels = if me.in_own_castle || me.in_castle || market { &s.sell } else { &s.drop };
+                if inseparable {
+                    labels[1].clone()
+                } else if me.alive() {
+                    labels[0].clone()
+                } else {
+                    return;
+                }
+            }
             1 => {
                 let r = rules.terrain_resources[world.resources[hit].kind].resource;
                 if r < 0 {
@@ -40,8 +55,15 @@ impl Hud {
                 let h = &world.houses[hit];
                 let b = &rules.buildings[h.kind];
                 let female = b.female as usize;
-                let mut t = if hover == 10 { format!("&{}  ", b.name) } else { format!("{} ", b.name) };
-                // TODO: invocation-owned houses show the chef's name
+                let owner = &world.persos[hit];
+                let mut t = if hover == 10 {
+                    format!("&{}  ", b.name)
+                } else if let Some(chef) = usize::try_from(owner.chef).ok().and_then(|c| world.persos.get(c)) {
+                    // A summon's house shows its chief.
+                    format!("{} ({})", b.name, chef.name)
+                } else {
+                    format!("{} ", b.name)
+                };
                 if hover == 7 && (!h.built || h.stock() < 1.0 && !(b.shoot || b.market)) {
                     t += &format!("#&{}", s.closed[female]);
                 }
@@ -70,8 +92,9 @@ impl Hud {
                         _ => ("", &s.lives_left[1]),
                     };
                     format!("{castle}  {t}#{red}{label} : {}", me.resurrections)
+                } else if me.holding() {
+                    s.sell[0].clone()
                 } else {
-                    // TODO: "Vendre" label while carrying an object
                     format!("{castle}  {t}")
                 }
             }
@@ -96,7 +119,13 @@ impl Hud {
                 }
                 format!("{name}  ")
             }
-            // TODO: 0 with an object on the cursor, 12 temple, 14/17 allies
+            12 => format!("{} ", rules.buildings[world.houses[hit].kind].name),
+            // 17 (soldiers guarding an ally) would show the same, but armies are not ported.
+            14 | 17 => {
+                let q = &world.persos[hit];
+                let name = if q.name.is_empty() { &rules.races[q.race].name[q.female as usize] } else { &q.name };
+                format!("{name}  ")
+            }
             _ => return,
         };
         self.tooltip(m, &text);

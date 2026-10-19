@@ -56,6 +56,10 @@ pub struct Strings {
     pub abandoned: [String; 2],
     pub percent: String,
     pub lives_left: [String; 2],
+    /// `EtiquetteObjetVente` and `EtiquetteObjetVenteImpossible`, `EtiquetteObjetDepot` and
+    /// `EtiquetteObjetDepotImpossible`: the bubble of a held object.
+    pub sell: [String; 2],
+    pub drop: [String; 2],
     pub move_tips: Vec<String>,
 }
 
@@ -86,6 +90,8 @@ impl Strings {
                 globals.find("EtiquetteVieRestante").unwrap_or("").to_owned(),
                 globals.find("EtiquetteViesRestantes").unwrap_or("").to_owned(),
             ],
+            sell: ["EtiquetteObjetVente", "EtiquetteObjetVenteImpossible"].map(|k| globals.find(k).unwrap_or("").to_owned()),
+            drop: ["EtiquetteObjetDepot", "EtiquetteObjetDepotImpossible"].map(|k| globals.find(k).unwrap_or("").to_owned()),
             shortcut: interface.find("BoutonRaccourciObjetEtiquette").unwrap_or("").to_owned(),
             threshold: ["BarresStatutSeuilMessage1", "BarresStatutSeuilMessage2"].map(|k| interface.find(k).unwrap_or("").to_owned()),
             info_tips: (1..=9).map(|i| interface.find(&format!("BoutonInfosInfoBulle{i}")).unwrap_or("").to_owned()).collect(),
