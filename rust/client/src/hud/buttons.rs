@@ -387,7 +387,7 @@ impl Hud {
 
     /// The command of move button `i` or its key (`ClsInterface.cls:3955-4050`,
     /// `ClsIntTouches.cls:540-610`). With `right` (a right click) or a modifier, the attack
-    /// buttons also send the soldiers; Ctrl on the home button enters without repairing.
+    /// buttons also send the soldiers; Ctrl (or Shift) on the home button enters without repairing.
     fn move_order(&mut self, world: &World, player: usize, i: usize, right: bool) -> Option<Order> {
         let perso = player;
         let p = &world.persos[player];
@@ -397,7 +397,8 @@ impl Hud {
         let alive = p.alive();
         Some(match i {
             0 => Order::GoOwnCastle { perso },
-            1 => Order::GoHome { perso, enter: ctrl && world.houses[player].built },
+            // Shift too, since browsers keep Ctrl+M (mute the tab).
+            1 => Order::GoHome { perso, enter: (ctrl || shift) && world.houses[player].built },
             2..=9 if alive => Order::FindResource { perso, kind: i - 2 },
             10..=12 if alive => Order::AttackNearest { perso, kind: (i - 10) as u8, send: right || ctrl || shift || alt, ctrl, shift },
             13 if alive => Order::FindTreasure { perso },
