@@ -156,6 +156,20 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     progress.set_total(manifest.data_bytes() + manifest.image_estimate());
     let files = assets::load_files(&manifest, &progress).await?;
     let rules = Rules::load(&files, "Francais")?;
+    let mut textures = assets::Textures::new(&manifest);
+    let (terrain, persos) = render::images(&rules, &manifest);
+    let hud = hud::images(&rules);
+    let all: Vec<String> = terrain.iter().chain(&persos).chain(&hud).cloned().collect();
+    let images: u64 = textures.missing(&all).iter().map(|p| manifest.size(p)).sum();
+    progress.set_total(manifest.data_bytes() + images);
+    textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
+    textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
+    textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
+    let effects = effects::Effects::new(&files).await;
+    // The page loads the game behind its menus: the world waits for a game to be chosen.
+    while !storage::started() {
+        macroquad::experimental::coroutines::wait_seconds(0.05).await;
+    }
     progress.message(&progress.label(2));
     let options = options::Options::load();
     let mut setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
@@ -206,16 +220,6 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             World::create(&rules, &files, &setup)?
         }
     };
-    let mut textures = assets::Textures::new(&manifest);
-    let (terrain, persos) = render::images(&rules, &manifest);
-    let hud = hud::images(&rules);
-    let all: Vec<String> = terrain.iter().chain(&persos).chain(&hud).cloned().collect();
-    let images: u64 = textures.missing(&all).iter().map(|p| manifest.size(p)).sum();
-    progress.set_total(manifest.data_bytes() + images);
-    textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
-    textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
-    textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
-    let effects = effects::Effects::new(&files).await;
     Ok(Loaded { options, created, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 

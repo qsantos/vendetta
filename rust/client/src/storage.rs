@@ -10,6 +10,8 @@ unsafe extern "C" {
     fn vendetta_read(data: *mut u8);
     /// Size of the URL's hash (without '#'), kept for `vendetta_read`.
     fn vendetta_hash_size() -> usize;
+    /// Whether a game was chosen in the page's menus (and so its options are known).
+    fn vendetta_started() -> bool;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -49,6 +51,15 @@ pub fn load(key: &str) -> Option<Vec<u8>> {
     }
     #[cfg(not(target_arch = "wasm32"))]
     std::fs::read(file(key)).ok()
+}
+
+/// Whether a game was chosen in the page's menus; at once natively.
+pub fn started() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    return unsafe { vendetta_started() };
+    #[cfg(not(target_arch = "wasm32"))]
+    true
 }
 
 /// The options given to the game: the URL's hash in the browser, the arguments natively.

@@ -255,7 +255,7 @@
       importObject.env.vendetta_now = () => performance.now() / 1000;
       // Options in the URL's hash (see client/src/options.rs), read like a stored value.
       importObject.env.vendetta_hash_size = () => {
-        pendingRead = new TextEncoder().encode(startHash);
+        pendingRead = new TextEncoder().encode(startHash || "");
         return pendingRead.length;
       };
       // Network play (see client/src/net.rs and the lobby below): messages for the game wait
@@ -269,6 +269,8 @@
         pendingRead = new TextEncoder().encode(msg);
         return pendingRead.length;
       };
+      // The game loads behind the menus, then waits for one to start it (`begin`).
+      importObject.env.vendetta_started = () => startHash !== null;
       // after the pending writes, so that none is lost
       window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
       importObject.env.vendetta_read = (ptr) => {
@@ -284,7 +286,8 @@
   // of the address, so that reloading resumes that world.
   const hashItems = () => decodeURIComponent(location.hash.slice(1)).split("&").filter((o) => o);
   const setHash = (items) => history.replaceState(null, "", location.pathname + location.search + (items.length ? "#" + items.join("&") : ""));
-  let startHash = "";
+  // The options of the game chosen in the menus; none yet.
+  let startHash = null;
   // The settings the game in progress was started with, for "Continuer la partie".
   const lastKey = "vendetta-game";
   // Network play: the server connection, kept once the game starts, and the messages waiting
@@ -302,7 +305,6 @@
     document.getElementById("menu").hidden = true;
     loadingScreen.hidden = false;
     bubble.hidden = false;
-    startGame();
   }
 
   // Persistent blobs: gzip-compressed in IndexedDB (database "vendetta", store "blobs"),
@@ -506,7 +508,6 @@
       document.getElementById("menu").hidden = true;
       loadingScreen.hidden = false;
       bubble.hidden = false;
-      startGame();
     };
     // Connects to the server (`ws` next to the page), then sends `first`.
     const connect = (first) => {
@@ -580,6 +581,8 @@
     // a page opened as a file has no server
     $("multi").hidden = location.protocol === "file:";
 
+    // The game loads at once, behind the menus.
+    startGame();
     const room = roomValue(hashItems(), "room");
     if (hashItems().includes("play")) {
       begin(hashItems());
