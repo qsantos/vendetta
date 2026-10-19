@@ -249,7 +249,7 @@ async fn main() {
         let wheel = mouse_wheel().1;
         if wheel != 0.0 && !radial_was_open {
             let up = wheel > 0.0;
-            match hud.over_window(&world, player, (hx, hy)) {
+            match hud.over_window(&world, &rules, player, (hx, hy)) {
                 // Over a status bar the wheel sets the restoring threshold (done by the HUD).
                 _ if hud.over_status_bar((hx, hy)) => {}
                 Some(true) => {}

@@ -36,7 +36,13 @@ pub fn images(rules: &Rules) -> Vec<String> {
     let mut v: Vec<String> = [ACTION, COMMERCE, TRANSFERT, DEFILEMENT].map(String::from).to_vec();
     v.extend((0..8).flat_map(|i| [background(i, false), background(i, true)]));
     v.extend(rules.resources.iter().map(|r| resource_icon(&r.image)));
+    // icons of everything a workshop can make
+    v.extend(rules.buildings.iter().flat_map(|b| &b.objects).map(|&o| object_icon(rules, o)));
     v
+}
+
+fn object_icon(rules: &Rules, o: usize) -> String {
+    format!("{}.bmp", rules.objects[o].image)
 }
 
 fn resource_icon(image: &str) -> String {
@@ -57,6 +63,7 @@ pub struct WindowStrings {
     empty: String,
     unavailable: String,
     objects: String,
+    craft: String,
     scroll: [String; 2],
     price: String,
     money: String,
@@ -94,6 +101,7 @@ impl WindowStrings {
             empty: s(&f, "EtiquetteStockVide"),
             unavailable: s(&f, "EtiquetteIndisponible"),
             objects: s(&f, "EtiquetteObjets"),
+            craft: s(&f, "BoutonFabriquerEtiquette"),
             scroll: [s(&f, "BoutonDefilement1Etiquette"), s(&f, "BoutonDefilement2Etiquette")],
             price: "Prix".to_owned(),
             // "Argent" from `EtiquetteArgent`, first letter upper-cased
@@ -111,6 +119,8 @@ pub struct Windows {
     dragging: Option<usize>,
     /// Shared scroll offset of the resource lists (windows 0 and 1).
     scroll: usize,
+    /// Scroll offset of the crafting list (`DefilementObjetDecalageX`).
+    craft_scroll: usize,
 }
 
 /// Opaque blit (black drawn) or colour-keyed blit of a sheet cell.
@@ -136,17 +146,31 @@ struct Hit {
 
 impl Windows {
     pub fn new(strings: WindowStrings) -> Windows {
-        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0 }
+        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0 }
     }
 }
 
 impl Hud {
+    /// The list window `i` scrolls, if any: (is the crafting list, last offset).
+    fn scroll_list(&self, world: &World, rules: &Rules, player: usize, i: usize) -> Option<(bool, usize)> {
+        let p = &world.persos[player];
+        if i == 0 && (p.in_house || p.in_own_house) {
+            let h = if p.in_own_house { player } else { p.house_target };
+            let b = &rules.buildings[world.houses[h].kind];
+            if !b.market {
+                // a house: only a workshop with more than 8 objects scrolls
+                return (b.factory && b.objects.len() > 8).then(|| (true, b.objects.len() - 8));
+            }
+        }
+        Some((false, rules.resources.len().saturating_sub(ROWS)))
+    }
+
     /// Whether the mouse is over an open window, and whether that window scrolls.
-    pub fn over_window(&self, world: &World, player: usize, m: (i32, i32)) -> Option<bool> {
+    pub fn over_window(&self, world: &World, rules: &Rules, player: usize, m: (i32, i32)) -> Option<bool> {
         (0..8)
             .filter(|&i| self.window_visible(world, player, i))
             .find(|&i| inside(m, self.windows.pos[i].0, self.windows.pos[i].1, W, H))
-            .map(|i| i <= 1)
+            .map(|i| i <= 1 && self.scroll_list(world, rules, player, i).is_some())
     }
 
     fn window_visible(&self, world: &World, player: usize, i: usize) -> bool {
@@ -241,44 +265,41 @@ impl Hud {
                 return true;
             }
         }
-        // Scroll bars of windows 0/1
-        if [0, 1].iter().any(|&i| self.window_visible(world, player, i)) {
-            let n = rules.resources.len().saturating_sub(ROWS);
-            for i in [0, 1] {
-                if !self.window_visible(world, player, i) {
-                    continue;
-                }
-                let (x, y) = self.windows.pos[i];
-                if inside(m, x + 300, y + 66, 16, 44) {
-                    *tip = self.windows.strings.scroll[0].clone();
-                    if input.left_pressed {
-                        self.windows.scroll = self.windows.scroll.saturating_sub(1);
-                    }
-                    return true;
-                }
-                if inside(m, x + 300, y + 308, 16, 44) {
-                    *tip = self.windows.strings.scroll[1].clone();
-                    if input.left_pressed {
-                        self.windows.scroll = (self.windows.scroll + 1).min(n);
-                    }
-                    return true;
-                }
-                if inside(m, x + 300, y + 110, 16, 198) && is_mouse_button_down(MouseButton::Left) {
-                    let v = (n as f64 * (m.1 - (y + 110)) as f64 / 198.0 + 0.5).floor();
-                    self.windows.scroll = (v.max(0.0) as usize).min(n);
-                    return true;
-                }
+        // Scroll bars of windows 0/1: the resource lists (shared), or a workshop's crafting list.
+        for i in [0, 1] {
+            if !self.window_visible(world, player, i) {
+                continue;
             }
-            // The wheel scrolls the lists when the cursor is over one of these windows.
-            let over = [0, 1].iter().any(|&i| {
-                let (x, y) = self.windows.pos[i];
-                self.window_visible(world, player, i) && inside(m, x, y, W, H)
-            });
-            let wheel = if over { mouse_wheel().1 } else { 0.0 };
-            if wheel > 0.0 {
-                self.windows.scroll = self.windows.scroll.saturating_sub(1);
-            } else if wheel < 0.0 {
-                self.windows.scroll = (self.windows.scroll + 1).min(n);
+            let Some((crafting, n)) = self.scroll_list(world, rules, player, i) else { continue };
+            let (x, y) = self.windows.pos[i];
+            let offset = if crafting { &mut self.windows.craft_scroll } else { &mut self.windows.scroll };
+            if inside(m, x + 300, y + 66, 16, 44) {
+                *tip = self.windows.strings.scroll[0].clone();
+                if input.left_pressed {
+                    *offset = offset.saturating_sub(1);
+                }
+                return true;
+            }
+            if inside(m, x + 300, y + 308, 16, 44) {
+                *tip = self.windows.strings.scroll[1].clone();
+                if input.left_pressed {
+                    *offset = (*offset + 1).min(n);
+                }
+                return true;
+            }
+            if inside(m, x + 300, y + 110, 16, 198) && is_mouse_button_down(MouseButton::Left) {
+                let v = (n as f64 * (m.1 - (y + 110)) as f64 / 198.0 + 0.5).floor();
+                *offset = (v.max(0.0) as usize).min(n);
+                return true;
+            }
+            // The wheel scrolls the list of the window under the cursor.
+            if inside(m, x, y, W, H) {
+                let wheel = mouse_wheel().1;
+                if wheel > 0.0 {
+                    *offset = offset.saturating_sub(1);
+                } else if wheel < 0.0 {
+                    *offset = (*offset + 1).min(n);
+                }
             }
         }
         // Clicks on empty window areas go through to the map, like the original.
@@ -391,6 +412,74 @@ impl Hud {
         }
     }
 
+    /// `Afficher_Objets_Batiment`: what a workshop makes, 8 rows from y=160.
+    fn crafting_list(&self, world: &World, rules: &Rules, textures: &Textures, player: usize, h: usize, o: (i32, i32), hits: &mut Vec<(Rect, Hit)>) {
+        let p = &world.persos[player];
+        let house = &world.houses[h];
+        let objects = &rules.buildings[house.kind].objects;
+        let own = h == player;
+        let perso = player;
+        let epoch = world.fiefs[p.fief].epoch as i64;
+        let rect = |x: i32, y: i32, w: i32, hh: i32| Rect::new((o.0 + x) as f32, (o.1 + y) as f32, w as f32, hh as f32);
+        let first = self.windows.craft_scroll.min(objects.len().saturating_sub(8));
+        for (r, (slot, &obj)) in objects.iter().enumerate().skip(first).take(8).enumerate() {
+            let t = &rules.objects[obj];
+            let y = 160 + 24 * r as i32;
+            self.text(o.0 + 32, o.1 + y, &t.plural, BLACK);
+            Self::separator(o, y);
+            if let Some(tex) = textures.get(&object_icon(rules, obj)) {
+                // the 32×32 icon at three quarters
+                let src = Rect::new(0.0, 0.0, 32.0, 32.0);
+                let params = DrawTextureParams { source: Some(src), dest_size: Some(vec2(24.0, 24.0)), ..Default::default() };
+                draw_texture_ex(tex, (o.0 + 168) as f32, (o.1 + y - 6) as f32, WHITE, params);
+            }
+            let stock = house.object_stock(slot);
+            self.text(o.0 + 200, o.1 + y, &format!("x{}", stock.floor()), BLACK);
+            let locked = t.epoch - 1 > epoch;
+            let state = if locked {
+                2
+            } else if world.can_craft(rules, player, slot as i64, h) {
+                0
+            } else {
+                1
+            };
+            if own || locked {
+                cell(textures, ACTION, o.0 + 232, o.1 + y - 4, 1, state, (24, 24), false);
+            }
+            if own && p.craft_slot == slot as i64 && p.craft_progress > 0.0 && t.craft_time > 0 {
+                let pct = (p.craft_progress / t.craft_time as f64 * 100.0).floor();
+                self.text(o.0 + 264, o.1 + y, &format!("{pct}%"), BLACK);
+            }
+            // Tooltip: "Fabriquer : <name>", the epoch if locked, then the costs.
+            let mut tip = format!("{}{}", self.windows.strings.craft, t.name);
+            if locked {
+                tip += &format!("#&({})", rules.epochs[(t.epoch - 1).max(0) as usize].name);
+            }
+            for (k, &q) in t.price_resources.iter().enumerate().filter(|(_, q)| **q > 0) {
+                let name = rules.resources[k].name.to_lowercase();
+                let have = p.resource(k);
+                tip += &if have >= q as f64 { format!("#({q} {name})") } else { format!("#&({} / {q} {name})", have.floor()) };
+            }
+            if own {
+                let craft = (state == 0 && p.alive()).then_some(Order::Craft { perso, slot: slot as i64 });
+                hits.push((rect(232, y - 4, 24, 24), Hit { tip: tip.clone(), left: craft.clone(), right: Some(Order::StopCraft { perso }) }));
+                // The icon takes a made object, or starts making one when there are none.
+                let icon = if stock >= 1.0 { Some(Order::TakeObjects { perso, slot, count: 1 }) } else { craft };
+                hits.push((rect(168, y - 6, 48, 24), Hit { tip: t.name.clone(), left: icon, right: Some(Order::StopCraft { perso }) }));
+            } else if stock >= 1.0 {
+                hits.push((rect(168, y - 6, 48, 24), Hit { tip: t.name.clone(), left: Some(Order::BuyObject { perso, house: h, slot }), right: None }));
+            }
+        }
+        if objects.len() > 8 {
+            let (x, y) = o;
+            cell(textures, DEFILEMENT, x + 300, y + 66, 0, 0, (16, 44), false);
+            cell(textures, DEFILEMENT, x + 300, y + 308, 1, 0, (16, 44), false);
+            cell(textures, DEFILEMENT, x + 300, y + 110, 2, 0, (16, 198), false);
+            let n = (objects.len() - 8) as i32;
+            cell(textures, DEFILEMENT, x + 300, y + 110 + 182 * first as i32 / n, 3, 0, (16, 16), false);
+        }
+    }
+
     /// Window 0 — Bâtiment: the house view, or the buy view in a castle or a market.
     fn building_window(&self, world: &World, rules: &Rules, textures: &Textures, player: usize, o: (i32, i32), hits: &mut Vec<(Rect, Hit)>) {
         let s = &self.windows.strings;
@@ -423,7 +512,7 @@ impl Hud {
             if btype.factory {
                 let line = if stock < 1.0 { s.empty.clone() } else { format!("{} / {}", stock.floor(), house.max_stock) };
                 self.text(o.0 + 32, o.1 + 138, &format!("{}{line}", s.objects), BLACK);
-                // TODO: crafting list
+                self.crafting_list(world, rules, textures, player, h, o, hits);
             } else if btype.product >= 0 {
                 let res = &rules.resources[btype.product as usize];
                 let line = if stock < 1.0 { format!("{} : {}", res.name, s.empty) } else { format!("{} : {} / {}", res.name, stock.floor(), house.max_stock) };
