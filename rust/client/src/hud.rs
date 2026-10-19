@@ -277,6 +277,17 @@ impl Hud {
 
     /// `ClsIntMessage.Afficher`: `#` breaks lines (16 px apart); a line starting with `&` is red,
     /// with `$` blue. `(x, y)` is the top of the text cell, like GDI `DrawText`.
+    /// The map's view (top-left and size in map pixels), for the minimap's rectangle.
+    pub fn set_view(&mut self, cam: (i32, i32), view: (i32, i32)) {
+        self.windows.view = (cam, view);
+    }
+
+    /// Where the minimap puts the view's top-left corner, when it does (the view then stops
+    /// following the player until the map is closed).
+    pub fn camera(&self) -> Option<(i32, i32)> {
+        self.windows.camera
+    }
+
     /// Lines of text under the FPS counter, in white (the `#perf` timings).
     pub fn debug_lines(&self, lines: &[String]) {
         for (i, line) in lines.iter().enumerate() {

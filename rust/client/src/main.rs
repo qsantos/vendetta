@@ -236,6 +236,10 @@ async fn main() {
         layout::set_screen(hud_size.0, hud_size.1);
         hud.set_scale(ui);
 
+        if let Some(c) = hud.camera() {
+            cam = c;
+        }
+        hud.set_view(cam, view);
         let (mx, my) = mouse_position();
         let (mx, my) = (mx * dpi, my * dpi);
         // The interface's mouse (`SourisX/Y`), clamped to the screen like the original.

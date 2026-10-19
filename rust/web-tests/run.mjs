@@ -31,6 +31,7 @@ const SCENES = {
   inventory: { hash: "seed=1", steps: [["key", "KeyI"], ["move", 512, 600]] },
   resources: { hash: "seed=1", steps: [["key", "KeyR"], ["move", 512, 600]] },
   character: { hash: "seed=1", steps: [["key", "KeyP"], ["move", 250, 270], ["wait", 0.3]] },
+  minimap: { hash: "seed=3&size=256&fiefs=6&villagers=20", steps: [["key", "Tab"], ["move", 600, 740]] },
   // The skills window, every skill shown (its 4th sort button).
   skills: { hash: "seed=1", steps: [["key", "KeyT"], ["left", 222, 437], ["move", 512, 740]] },
   bestiary: { hash: "seed=1", steps: [["key", "KeyU"], ["move", 512, 740]] },

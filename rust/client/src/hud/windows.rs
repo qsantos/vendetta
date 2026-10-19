@@ -9,6 +9,7 @@ use sim::files::Files;
 use sim::ini::Ini;
 use sim::perso::action;
 use sim::rules::Rules;
+use sim::vb::clng;
 use sim::world::{Order, World};
 
 pub const W: i32 = 320;
@@ -166,6 +167,13 @@ pub struct Windows {
     /// `CompetencesTri` (0 none, 1 alphabetical, 2 by score) and `CompetencesAfficherToutes`.
     skill_sort: usize,
     skill_all: bool,
+    /// The minimap's characters, houses and castles, with the tick they were stamped at.
+    minimap: std::cell::RefCell<Option<(u64, Texture2D)>>,
+    /// Holding the right button on the minimap moves the view there (`ScrollingAuto` off)
+    /// until the map is closed: the view's top-left corner.
+    pub camera: Option<(i32, i32)>,
+    /// The map's view, for the minimap's rectangle: top-left and size in map pixels.
+    pub view: ((i32, i32), (i32, i32)),
     /// The skills table, with the tick and sort it was made for.
     skill_cache: std::cell::RefCell<Option<((u64, usize, bool), std::rc::Rc<Vec<SkillRow>>)>>,
 }
@@ -238,7 +246,7 @@ struct Hit {
 
 impl Windows {
     pub fn new(strings: WindowStrings) -> Windows {
-        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false, skill_scroll: 0, bestiary_scroll: 0, skill_sort: 1, skill_all: false, skill_cache: Default::default() }
+        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false, skill_scroll: 0, bestiary_scroll: 0, skill_sort: 1, skill_all: false, skill_cache: Default::default(), minimap: Default::default(), camera: None, view: ((0, 0), (0, 0)) }
     }
 }
 
@@ -327,8 +335,9 @@ impl Hud {
                 3 => self.skills_window(world, rules, textures, player, (x, y)),
                 4 => self.inventory_window(world, rules, textures, player, (x, y), &mut hits),
                 5 => self.bestiary_window(world, rules, textures, player, (x, y)),
+                6 => self.minimap_window(world, player, (x, y)),
                 _ => {
-                    // TODO: windows 6 and 7 contents
+                    // TODO: window 7 contents
                     let title = &self.windows.strings.titles[i];
                     let tx = if i == 4 { 32 } else { 128 };
                     self.text(x + tx, y + 32, title, BLACK);
@@ -416,6 +425,12 @@ impl Hud {
                 }
                 return true;
             }
+        }
+        // The minimap (`CI:2781-2851`).
+        if !self.window_visible(world, player, 6) {
+            self.windows.camera = None;
+        } else if let Some(hit) = self.minimap_input(world, rules, player, input, orders, tip) {
+            return hit;
         }
         // The skills window's sort buttons (`CI:3481-3515`): sort, or show all; back to the top.
         if self.window_visible(world, player, 3) {
@@ -1229,5 +1244,167 @@ impl Hud {
             }
         }
         tip
+    }
+}
+
+/// The minimap's area in its window: from (16, 54), 288 pixels on the map's longer side.
+const MAP_X: i32 = 16;
+const MAP_Y: i32 = 54;
+const MAP_SIZE: i32 = 288;
+
+/// GDI colours of the minimap (`&HBBGGRR` in the original).
+const MAP_OWN: [u8; 4] = [0, 128, 0, 255];
+const MAP_HATCH: Color = Color::new(192.0 / 255.0, 1.0, 192.0 / 255.0, 1.0);
+
+impl Hud {
+    /// Window 6 — Carte: the map's area on screen, (x, y, width, height), centred in the window
+    /// along its shorter side; and the world's size in pixels.
+    fn minimap_area(world: &World, o: (i32, i32)) -> ((i32, i32, i32, i32), (f64, f64)) {
+        let t = &world.terrain;
+        let world_px = ((t.width as i32 * sim::terrain::CELL) as f64, (t.height as i32 * sim::terrain::CELL) as f64);
+        let (cl, ch, dx, dy) = if t.width > t.height {
+            let ch = clng(MAP_SIZE as f64 * t.height as f64 / t.width as f64) as i32;
+            (MAP_SIZE, ch, 0, clng((MAP_SIZE - ch) as f64 / 2.0) as i32)
+        } else {
+            let cl = clng(MAP_SIZE as f64 * t.width as f64 / t.height as f64) as i32;
+            (cl, MAP_SIZE, clng((MAP_SIZE - cl) as f64 / 2.0) as i32, 0)
+        };
+        ((o.0 + MAP_X + dx, o.1 + MAP_Y + dy, cl, ch), world_px)
+    }
+
+    /// The characters, houses and castles on the minimap (`Afficher_InfosCarte`), stamped into
+    /// an image once per tick: castles as 8-pixel squares (light grey for the player's and
+    /// allied fiefs, dark grey for enemies), houses as 5-pixel squares (green the player's,
+    /// blue allied, pink enemy) and characters as discs of radius 3 (green the player and its
+    /// summons, blue allies, red enemies, flickering when fighting), the first ones on top.
+    fn minimap_marks(&self, world: &World, player: usize, (cl, ch): (i32, i32), world_px: (f64, f64)) -> Texture2D {
+        let (w, h) = (cl.max(1) as usize, ch.max(1) as usize);
+        let mut bytes = vec![0u8; w * h * 4];
+        let mut fill = |x: i32, y: i32, colour: [u8; 4]| {
+            if x >= 0 && y >= 0 && (x as usize) < w && (y as usize) < h {
+                let k = (y as usize * w + x as usize) * 4;
+                bytes[k..k + 4].copy_from_slice(&colour);
+            }
+        };
+        let sx = |x: f64| clng(x / world_px.0 * cl as f64) as i32;
+        let sy = |y: f64| clng(y / world_px.1 * ch as f64) as i32;
+        let p = &world.persos[player];
+        for (i, (c, f)) in world.castles.iter().zip(&world.fiefs).enumerate() {
+            if !c.visible() {
+                continue;
+            }
+            let colour = if i == p.fief || f.team == p.team { [224, 224, 224, 255] } else { [64, 64, 64, 255] };
+            let (x, y) = (sx(c.x as f64 + c.w as f64 / 4.0), sy(c.y as f64 + c.h as f64 / 4.0));
+            for dy in 0..8 {
+                for dx in 0..8 {
+                    fill(x + dx, y + dy, colour);
+                }
+            }
+        }
+        for (i, m) in world.houses.iter().enumerate().rev() {
+            if !m.visible() {
+                continue;
+            }
+            let colour = if i == player {
+                MAP_OWN
+            } else if world.persos[i].team == p.team {
+                [192, 192, 255, 255]
+            } else {
+                [255, 192, 192, 255]
+            };
+            let (x, y) = (sx(m.x as f64) + 1, sy(m.y as f64) + 2);
+            for dy in 0..5 {
+                for dx in 0..5 {
+                    fill(x + dx, y + dy, colour);
+                }
+            }
+        }
+        for (i, q) in world.persos.iter().enumerate().rev() {
+            if !q.attackable() {
+                continue;
+            }
+            let colour = if i == player || q.chef == player as i64 {
+                MAP_OWN
+            } else if q.team == p.team {
+                [0, 0, 192, 255]
+            } else if q.fighting() && rand::gen_range(0.0, 1.0) < 0.5 && q.attack < q.bonus_max[4] as f64 && rand::gen_range(0, 2) == 0 {
+                [255, 192, 192, 255]
+            } else {
+                [192, 0, 0, 255]
+            };
+            let (x, y) = (sx(q.x as f64) + 2, sy(q.y as f64) + 2);
+            for dy in -3..=3 {
+                for dx in -3i32..=3 {
+                    if dx * dx + dy * dy <= 9 {
+                        fill(x + dx, y + dy, colour);
+                    }
+                }
+            }
+        }
+        let texture = Texture2D::from_rgba8(w as u16, h as u16, &bytes);
+        texture.set_filter(FilterMode::Nearest);
+        texture
+    }
+
+    /// Window 6 — Carte (`CIF:1304-1449`): the map's area cross-hatched in light green (the
+    /// original only had a picture for shipped maps), the marks, a green cross through the
+    /// player and the view's rectangle.
+    fn minimap_window(&self, world: &World, player: usize, o: (i32, i32)) {
+        self.text(o.0 + 128, o.1 + 32, &self.windows.strings.titles[6], BLACK);
+        let ((x, y, cl, ch), world_px) = Self::minimap_area(world, o);
+        // `FillStyle 6`: a cross-hatch of 8 pixels, aligned on the screen, and the box's border
+        for hx in (x..x + cl).filter(|v| v % 8 == 0) {
+            draw_rectangle(hx as f32, y as f32, 1.0, ch as f32, MAP_HATCH);
+        }
+        for hy in (y..y + ch).filter(|v| v % 8 == 0) {
+            draw_rectangle(x as f32, hy as f32, cl as f32, 1.0, MAP_HATCH);
+        }
+        outline(x, y, x + cl, y + ch, MAP_HATCH);
+        let mut cache = self.windows.minimap.borrow_mut();
+        if !matches!(&*cache, Some((tick, _)) if *tick == world.tick) {
+            *cache = Some((world.tick, self.minimap_marks(world, player, (cl, ch), world_px)));
+        }
+        if let Some((_, marks)) = &*cache {
+            draw_texture(marks, x as f32, y as f32, WHITE);
+        }
+        let sx = |v: f64| x + clng(v / world_px.0 * cl as f64) as i32;
+        let sy = |v: f64| y + clng(v / world_px.1 * ch as f64) as i32;
+        let green = Color::from_rgba(0, 128, 0, 255);
+        let p = &world.persos[player];
+        draw_rectangle(x as f32, (sy(p.y as f64) + 2) as f32, cl as f32, 1.0, green);
+        draw_rectangle((sx(p.x as f64) + 2) as f32, y as f32, 1.0, ch as f32, green);
+        let ((cx, cy), (vw, vh)) = self.windows.view;
+        outline(sx(cx as f64), sy(cy as f64), sx((cx + vw) as f64), sy((cy + vh) as f64), green);
+    }
+
+    /// The minimap's clicks: the right button held moves the view there; a left click attacks
+    /// the enemy character there (a ghost walks instead) or walks there; hovering an enemy shows
+    /// its name. Returns whether the mouse is on the map.
+    fn minimap_input(&mut self, world: &World, rules: &Rules, player: usize, input: &Input, orders: &mut Vec<Order>, tip: &mut String) -> Option<bool> {
+        let ((x, y, cl, ch), world_px) = Self::minimap_area(world, self.windows.pos[6]);
+        let m = input.mouse;
+        if !inside(m, x, y, cl, ch) {
+            return None;
+        }
+        let wx = (m.0 - x) as f64 / cl as f64 * world_px.0;
+        let wy = (m.1 - y) as f64 / ch as f64 * world_px.1;
+        let p = &world.persos[player];
+        let perso = player;
+        if is_mouse_button_down(MouseButton::Right) {
+            self.windows.camera = Some((clng(wx) as i32, clng(wy) as i32));
+        } else if let (9, enemy) = world.obstacle_at(rules, player, clng(wx) as i32, clng(wy) as i32, p.w, p.h) {
+            if input.left_pressed {
+                orders.push(if p.alive() {
+                    Order::AttackPerso { perso, target: enemy }
+                } else {
+                    Order::Move { perso, x: clng(wx), y: clng(wy) }
+                });
+            } else {
+                *tip = format!("&{} ", world.persos[enemy].name);
+            }
+        } else if input.left_pressed {
+            orders.push(Order::Move { perso, x: clng(wx), y: clng(wy) });
+        }
+        Some(true)
     }
 }
