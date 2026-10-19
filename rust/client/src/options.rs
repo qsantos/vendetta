@@ -31,6 +31,9 @@ pub struct Options {
     pub perf: bool,
     /// `new`: a new world, not the saved one (the page then takes `new` out of the address).
     pub new: bool,
+    /// `effects=148:3+112`: give the player these temporary effects (object index, then the
+    /// seconds left if not the object's whole duration), to show their icons.
+    pub effects: Vec<(usize, Option<i64>)>,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -57,6 +60,14 @@ impl Options {
                 "roads" => o.ring_roads = value.eq_ignore_ascii_case("ring"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
                 "villagers" => o.villagers = value.parse::<usize>().ok().map(|n| n.clamp(1, 2000)),
+                "effects" => {
+                    for e in value.split('+') {
+                        let (object, left) = e.split_once(':').unwrap_or((e, ""));
+                        if let Ok(object) = object.parse() {
+                            o.effects.push((object, left.parse().ok()));
+                        }
+                    }
+                }
                 _ => {}
             }
         }

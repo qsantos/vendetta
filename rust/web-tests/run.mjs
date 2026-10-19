@@ -42,6 +42,9 @@ const SCENES = {
   // Zoomed out on a large map: the terrain overview.
   overview: { hash: "seed=2&size=512", steps: [["move", 500, 500], ...Array(6).fill(["wheel", 500, 500, 120]), ["wait", 0.5]] },
   // Many fiefs: the fief list keeps to 16 lines.
+  // Temporary effect icons right of the shortcut slots: one fading in its last seconds, one
+  // that never expires (no bar), and the tooltip of the first one.
+  effects: { hash: "seed=1&effects=148+149:3+112", steps: [["move", 360, 16]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
 };
 

@@ -5,6 +5,7 @@ mod bubbles;
 mod buttons;
 mod object_tooltip;
 mod shortcuts;
+mod temp_effects;
 mod windows;
 
 pub use buttons::Input;
@@ -349,6 +350,7 @@ impl Hud {
         self.draw_statistics();
         self.draw_epoch(world, rules, p);
         self.draw_object_slots(world, rules, textures, player);
+        self.draw_temp_effects(world, rules, textures, player);
         // What only changes with the world is made again once per tick.
         if self.cache_tick != Some(world.tick) {
             self.cache_tick = Some(world.tick);

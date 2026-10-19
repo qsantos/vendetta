@@ -104,6 +104,7 @@ const MAX_TICKS_PER_FRAME: u32 = 5;
 
 struct Loaded {
     god: bool,
+    test_effects: Vec<(usize, Option<i64>)>,
     show_perf: bool,
     music: music::Music,
     effects: effects::Effects,
@@ -172,7 +173,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files).await;
-    Ok(Loaded { god: options.god, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { god: options.god, test_effects: options.effects, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -184,7 +185,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { god, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { god, test_effects, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -198,6 +199,14 @@ async fn main() {
     let player = world.persos.iter().position(|p| p.player).unwrap();
     if god {
         world.god = Some(player);
+    }
+    for (object, left) in test_effects.into_iter().filter(|&(o, _)| o < rules.objects.len()) {
+        let p = &mut world.persos[player];
+        let d = rules.objects[object].duration;
+        p.add_effect(&rules, object, d, d, None);
+        if let (Some(left), Some(e)) = (left, p.effects.last_mut()) {
+            e.duration = left;
+        }
     }
     // The game starts with a "Debut" track (`FrmMoteur2D.frm:405`).
     music.play(music::DEBUT, false);

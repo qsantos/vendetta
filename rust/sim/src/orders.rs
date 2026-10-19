@@ -144,6 +144,8 @@ pub enum Order {
     Formation { perso: usize, change: bool },
     /// `PersoAttaquerAllies`: become hostile to everybody until death.
     AttackAllies { perso: usize },
+    /// `PersoEffetTempEffacer`: end temporary effect `effect` (`EffetTemp_Effacer`).
+    CancelEffect { perso: usize, effect: usize },
 }
 
 impl World {
@@ -210,7 +212,8 @@ impl World {
             | Give { perso, .. }
             | Charge { perso, .. }
             | Formation { perso, .. }
-            | AttackAllies { perso } => perso,
+            | AttackAllies { perso }
+            | CancelEffect { perso, .. } => perso,
         };
         let p = self.persos.get_mut(perso).ok_or(())?;
         let f = p.fief;
@@ -368,6 +371,10 @@ impl World {
             }
             Formation { change, .. } => self.order_formation(rules, perso, change, false),
             AttackAllies { .. } => self.attack_allies(rules, perso, true),
+            CancelEffect { effect, .. } => {
+                check(effect, p.effects.len())?;
+                p.remove_effect(rules, effect);
+            }
         }
         Ok(())
     }

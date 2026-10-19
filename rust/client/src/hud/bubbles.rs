@@ -80,8 +80,13 @@ impl Hud {
                 if hover == 11 { format!("&{name}  ") } else { format!("{name}  ") }
             }
             9 => {
-                // TODO: active temporary effects
-                format!("&{}  ", world.persos[hit].name)
+                // the name, then each temporary effect
+                let q = &world.persos[hit];
+                let mut t = format!("&{}  ", q.name);
+                for e in &q.effects {
+                    t += &format!("#&({})", rules.objects[e.object].effect_name[q.female as usize]);
+                }
+                t
             }
             13 => format!("{}  ", rules.treasures[world.treasures[hit].tier].name),
             16 => {

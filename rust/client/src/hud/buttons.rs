@@ -385,6 +385,13 @@ impl Hud {
                 tip = t;
             }
         }
+        // Temporary effect icons
+        if !on_ui {
+            if let Some(t) = self.temp_effect_buttons(world, rules, player, input, orders) {
+                on_ui = true;
+                tip = t;
+            }
+        }
         // Status bars
         if !on_ui {
             if let Some(t) = self.status_bar_buttons(world, player, input, orders) {

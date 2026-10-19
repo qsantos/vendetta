@@ -192,7 +192,6 @@ pub struct EffectInfo<'a> {
 impl<'a> EffectInfo<'a> {
     /// Effect `effect` of character `perso`. The caster's skill level is read live, like the
     /// original does.
-    #[allow(dead_code)] // The effect icons will call it.
     pub fn new(rules: &Rules, world: &'a World, perso: usize, effect: usize) -> EffectInfo<'a> {
         let e = &world.persos[perso].effects[effect];
         let owner = &world.persos[e.owner];
