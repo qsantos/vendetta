@@ -1,10 +1,13 @@
 //! Object shortcut keys (`TouchesRaccourciObjets`): each object type can be bound to one of
 //! 27 keys — 1..9, Alt+1..9 and Shift+1..9 — shown as the 9 slots at the top left.
 
-use super::{Hud, Input, OBJETS, status_bar};
+use super::{GREY, Hud, Input, OBJETS, status_bar};
 use crate::assets::Textures;
 use crate::storage;
 use macroquad::prelude::*;
+use sim::files::Files;
+use sim::items::bonus_sup;
+use sim::params::{Kind, Params};
 use sim::perso::Perso;
 use sim::rules::Rules;
 use sim::world::{Order, World};
@@ -61,6 +64,32 @@ impl Shortcuts {
     }
 }
 
+/// An animation of `Parametres_Effets.ini` drawn still, one frame at a time.
+pub struct Clock {
+    image: String,
+    w: f32,
+    h: f32,
+    /// `NombreEtapes`
+    steps: i64,
+}
+
+/// `[Effets] EffetDureeRestante` and `EffetDureeRestante2`: the clocks over a recharging
+/// object, red when no charge is left, white otherwise.
+pub fn recharge_clocks(files: &Files) -> [Option<Clock>; 2] {
+    let Ok(params) = Params::load(files, "Francais") else { return [None, None] };
+    let num = |r: &sim::params::Record, k: &str| r.get(k).map_or(0.0, sim::ini::vb_val);
+    ["EffetDureeRestante", "EffetDureeRestante2"].map(|k| {
+        let i = sim::vb::clng(num(params.global(Kind::Effets), k) - 1.0);
+        let r = params.list(Kind::Effets).get(usize::try_from(i).ok()?)?;
+        Some(Clock {
+            image: format!("Images/Effets/{}.bmp", r.get("Fichier").unwrap_or("").trim()),
+            w: num(r, "Largeur") as f32,
+            h: num(r, "Hauteur") as f32,
+            steps: num(r, "NombreEtapes") as i64,
+        })
+    })
+}
+
 /// The set Alt or Shift selects (`BoutonRaccourciObjetDecalageY`).
 pub fn current_set() -> i32 {
     if is_key_down(KeyCode::LeftAlt) || is_key_down(KeyCode::RightAlt) {
@@ -81,12 +110,20 @@ fn owned(p: &Perso, object: usize) -> i64 {
 }
 
 impl Hud {
+    /// Binds `object` to shortcut key `key` (1..27).
+    pub fn bind_object(&mut self, object: usize, key: i32) {
+        self.shortcuts.bind(object, key);
+    }
+
     /// `Afficher_Raccourcis_Objets`: the 9 slots of the current set with their objects' icons
     /// (the worn one on top), attack/defence bars on worn weapons, and counters. Only the
     /// sprite's frame is drawn: its labels are low-resolution pixels, written with the font.
     pub(super) fn draw_object_slots(&self, world: &World, rules: &Rules, textures: &Textures, player: usize) {
         let p = &world.persos[player];
         let set = current_set();
+        // GDI's `ForeColor`, which the charge counters are written in: the epoch box's grey,
+        // then black once a weapon's bars are drawn, white once a slot's counter is.
+        let mut fore = GREY;
         for i in 0..KEYS {
             let key = i + 1 + set * KEYS;
             let (x, y) = (56 + 32 * i, 0);
@@ -127,6 +164,7 @@ impl Hud {
                 let weapon = rules.objects[o].category <= 1;
                 let (max_attack, max_defense) = (p.bonus_max[4] as f64, p.bonus_max[5] as f64);
                 if enabled && weapon && (p.attack < max_attack || p.defense < max_defense || p.reload > 0) {
+                    fore = BLACK;
                     if p.reload == 0 {
                         status_bar(p.attack, p.attack, max_attack, x, y + 22, 32, 5, Some(Color::from_rgba(255, 0, 0, 255)));
                     } else {
@@ -134,7 +172,7 @@ impl Hud {
                     }
                     status_bar(p.defense, p.defense, max_defense, x, y + 27, 32, 5, Some(Color::from_rgba(0, 0, 255, 255)));
                 }
-                // TODO: recharge animation (`Afficher_Duree_Recharge`)
+                self.draw_recharge(rules, textures, p, o, x, y, fore);
             }
             let label = match set {
                 1 => format!("Alt {}", i + 1),
@@ -150,7 +188,36 @@ impl Hud {
                     None => (message.as_str(), WHITE),
                 };
                 self.small_text(x + 3, y + 18, text, colour);
+                fore = WHITE;
             }
+        }
+    }
+
+    /// `Afficher_Duree_Recharge`: over a recharging object, a clock at the point of the current
+    /// charge's recharge, red when no charge is left; and the charges left out of the
+    /// total ("1/3") for objects with several.
+    fn draw_recharge(&self, rules: &Rules, textures: &Textures, p: &Perso, o: usize, x: i32, y: i32, fore: Color) {
+        let t = &rules.objects[o];
+        if t.recharge <= 0 {
+            return;
+        }
+        let total = bonus_sup(rules, p.object_skill_level(rules, o), t.charges);
+        // `EffetRecharge_TempRestant`
+        let left = p.recharges.iter().find(|r| r.object == o).map_or(0, |r| r.duration);
+        let ready = (total as f64 - left as f64 / t.recharge as f64).floor() as i64;
+        if left > 0 {
+            let clock = if ready >= total || ready <= 0 { &self.clocks[0] } else { &self.clocks[1] };
+            if let Some(c) = clock
+                && let Some(tex) = textures.get(&c.image)
+            {
+                let frame = ((left % t.recharge) as f64 / t.recharge as f64 * c.steps as f64).floor() as f32;
+                let src = Rect::new(frame * c.w, 0.0, c.w, c.h);
+                tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+            }
+        }
+        if t.charges > 0.0 && total > 1 {
+            let message = format!("{ready}/{total}");
+            self.small_text(x + 15 - message.len() as i32 * 2, y + 9, &message, fore);
         }
     }
 

@@ -45,6 +45,8 @@ const SCENES = {
   // Temporary effect icons right of the shortcut slots: one fading in its last seconds, one
   // that never expires (no bar), and the tooltip of the first one.
   effects: { hash: "seed=1&effects=148+149:3+112", steps: [["move", 360, 16]] },
+  // Recharging objects on the shortcut slots: their clocks.
+  recharges: { hash: "seed=1&recharges=40:5+41:25+42:3", steps: [["move", 512, 600]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
 };
 

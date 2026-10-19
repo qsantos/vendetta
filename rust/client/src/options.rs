@@ -34,6 +34,9 @@ pub struct Options {
     /// `effects=148:3+112`: give the player these temporary effects (object index, then the
     /// seconds left if not the object's whole duration), to show their icons.
     pub effects: Vec<(usize, Option<i64>)>,
+    /// `recharges=40:5+41:25`: give the player these objects, recharging for so many seconds,
+    /// bound to the shortcut keys 1, 2…, to show their recharge clocks.
+    pub recharges: Vec<(usize, i64)>,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -65,6 +68,13 @@ impl Options {
                         let (object, left) = e.split_once(':').unwrap_or((e, ""));
                         if let Ok(object) = object.parse() {
                             o.effects.push((object, left.parse().ok()));
+                        }
+                    }
+                }
+                "recharges" => {
+                    for e in value.split('+') {
+                        if let Some((Ok(object), Ok(left))) = e.split_once(':').map(|(a, b)| (a.parse(), b.parse())) {
+                            o.recharges.push((object, left));
                         }
                     }
                 }

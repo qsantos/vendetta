@@ -29,7 +29,7 @@ pub const OBJETS: &str = "Images/Boutons/Objets.bmp";
 pub const CURSOR: &str = "Images/Curseurs/ArrowCursor.bmp";
 
 pub(crate) const WHITE_: Color = Color::new(1.0, 1.0, 1.0, 1.0);
-const GREY: Color = Color::new(128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0);
+pub(crate) const GREY: Color = Color::new(128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0);
 pub(crate) const LIGHT_GREY: Color = Color::new(192.0 / 255.0, 192.0 / 255.0, 192.0 / 255.0, 1.0);
 pub(crate) const RED: Color = Color::new(1.0, 0.0, 0.0, 1.0);
 pub(crate) const BLUE: Color = Color::new(0.0, 0.0, 1.0, 1.0);
@@ -121,6 +121,8 @@ pub struct Hud {
     tooltip_labels: object_tooltip::TooltipLabels,
     /// Object shortcut keys.
     shortcuts: shortcuts::Shortcuts,
+    /// The recharge clocks over the shortcut slots.
+    clocks: [Option<shortcuts::Clock>; 2],
     /// The bag or equipment object under the cursor, for binding it with a digit.
     hovered_object: Option<usize>,
     /// `FileFabricationObjets`: crafting slots queued in the own workshop.
@@ -239,7 +241,7 @@ impl Hud {
         self.small_font.set_scale(scale);
     }
 
-    pub fn new(strings: Strings, window_strings: WindowStrings, tooltip_labels: object_tooltip::TooltipLabels, objects: usize) -> Hud {
+    pub fn new(strings: Strings, window_strings: WindowStrings, tooltip_labels: object_tooltip::TooltipLabels, files: &Files, objects: usize) -> Hud {
         let font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), FONT_PX);
         let small_font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 8.0 * 96.0 / 72.0);
         Hud {
@@ -262,6 +264,7 @@ impl Hud {
             auto: bars::AutoRestore::load(),
             craft_queue: Vec::new(),
             shortcuts: shortcuts::Shortcuts::load(objects),
+            clocks: shortcuts::recharge_clocks(files),
             hovered_object: None,
             tooltip_labels,
             build_hover: None,
