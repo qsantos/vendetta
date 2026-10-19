@@ -243,6 +243,22 @@ impl Hud {
             return true;
         }
 
+        // The wheel scrolls the list of the window under the cursor, whatever button it is on.
+        let wheel = mouse_wheel().1;
+        if wheel != 0.0 {
+            for i in [0, 1] {
+                let (x, y) = self.windows.pos[i];
+                if !self.window_visible(world, player, i) || !inside(m, x, y, W, H) {
+                    continue;
+                }
+                if let Some((crafting, n)) = self.scroll_list(world, rules, player, i) {
+                    let offset = if crafting { &mut self.windows.craft_scroll } else { &mut self.windows.scroll };
+                    *offset = if wheel > 0.0 { offset.saturating_sub(1) } else { (*offset + 1).min(n) };
+                }
+                break;
+            }
+        }
+
         // Window buttons, in the original's precedence: contents, then close/move.
         for (r, hit) in &hits {
             if inside(m, r.x as i32, r.y as i32, r.w as i32, r.h as i32) {
@@ -308,15 +324,6 @@ impl Hud {
                 let v = (n as f64 * (m.1 - (y + 110)) as f64 / 198.0 + 0.5).floor();
                 *offset = (v.max(0.0) as usize).min(n);
                 return true;
-            }
-            // The wheel scrolls the list of the window under the cursor.
-            if inside(m, x, y, W, H) {
-                let wheel = mouse_wheel().1;
-                if wheel > 0.0 {
-                    *offset = offset.saturating_sub(1);
-                } else if wheel < 0.0 {
-                    *offset = (*offset + 1).min(n);
-                }
             }
         }
         // Clicks on empty window areas go through to the map, like the original.
