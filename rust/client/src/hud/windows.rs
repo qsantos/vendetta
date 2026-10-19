@@ -37,8 +37,8 @@ pub fn images(rules: &Rules) -> Vec<String> {
     let mut v: Vec<String> = [ACTION, COMMERCE, TRANSFERT, DEFILEMENT].map(String::from).to_vec();
     v.extend((0..8).flat_map(|i| [background(i, false), background(i, true)]));
     v.extend(rules.resources.iter().map(|r| resource_icon(&r.image)));
-    // icons of everything a workshop can make
-    v.extend(rules.buildings.iter().flat_map(|b| &b.objects).map(|&o| object_icon(rules, o)));
+    // every object's icon: inventories can hold any of them (about 1 MB)
+    v.extend((0..rules.objects.len()).map(|o| object_icon(rules, o)));
     v
 }
 
@@ -155,6 +155,8 @@ struct Hit {
     right: Option<Order>,
     /// Left click queues this crafting slot, right click unqueues it (with Ctrl/Shift).
     queue: Option<usize>,
+    /// Hovering draws an orange frame around it (inventory slots).
+    frame: bool,
 }
 
 impl Windows {
@@ -216,6 +218,7 @@ impl Hud {
             match i {
                 0 => self.building_window(world, rules, textures, player, (x, y), &mut hits),
                 1 => self.resources_window(world, rules, textures, player, (x, y), &mut hits),
+                4 => self.inventory_window(world, rules, textures, player, (x, y), &mut hits),
                 _ => {
                     // TODO: windows 2-7 contents
                     let title = &self.windows.strings.titles[i];
@@ -263,6 +266,10 @@ impl Hud {
         for (r, hit) in &hits {
             if inside(m, r.x as i32, r.y as i32, r.w as i32, r.h as i32) {
                 *tip = hit.tip.clone();
+                if hit.frame {
+                    let (x, y) = (r.x as i32, r.y as i32);
+                    outline(x, y, x + 32, y + 32, Color::from_rgba(255, 128, 0, 255));
+                }
                 if let Some(slot) = hit.queue {
                     if input.left_pressed || input.right_pressed {
                         self.change_craft_queue(player, slot, input.left_pressed, input, orders);
@@ -364,7 +371,7 @@ impl Hud {
             cell(textures, COMMERCE, o.0 + 216 + 24 * j, o.1 + 48, 6 + j, dead, (24, 24), true);
             let label = &s.total[(2 - j) as usize + if in_castle { 0 } else { 3 }];
             // TODO: global sell/take orders
-            hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { queue: None, tip: label.clone(), left: None, right: None }));
+            hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { frame: false, queue: None, tip: label.clone(), left: None, right: None }));
         }
         let own_house = p.in_own_house && world.houses[player].visible();
         let product = if own_house { rules.buildings[world.houses[player].kind].product } else { -1 };
@@ -389,7 +396,7 @@ impl Hud {
                     .collect();
                 let tip = format!("Manger : {}  {gains}", res.name.to_lowercase());
                 let eat = Order::Eat { perso, resource: k };
-                hits.push((rect(184, y - 6, 24, 24), Hit { queue: None, tip, left: Some(eat), right: None }));
+                hits.push((rect(184, y - 6, 24, 24), Hit { frame: false, queue: None, tip, left: Some(eat), right: None }));
             }
             let quantities = [1.0, 5.0, p.resource(k).floor()];
             if own_house && product == k as i64 && world.houses[player].max_stock > 0.0 {
@@ -397,7 +404,7 @@ impl Hud {
                     cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + y - 6, 3 + j, 0, (24, 24), true);
                     let deposit = Order::DepositStock { perso, quantity: quantities[j as usize], all: j == 2 };
                     let tip = s.deposit_stock[j as usize].clone();
-                    hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { queue: None, tip, left: Some(deposit), right: None }));
+                    hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { frame: false, queue: None, tip, left: Some(deposit), right: None }));
                 }
                 continue;
             }
@@ -407,13 +414,13 @@ impl Hud {
                 let q = quantities[j as usize];
                 let hit = if in_castle {
                     let order = Order::SellResource { perso, resource: k, quantity: q };
-                    Hit { queue: None,
+                    Hit { frame: false, queue: None,
                         tip: format!("Vendre {q} {}  #{} : {}", res.name, s.price, q * res.price),
                         left: Some(order.clone()),
                         right: Some(order),
                     }
                 } else {
-                    Hit { queue: None,
+                    Hit { frame: false, queue: None,
                         tip: format!("Prendre {q} {}  #{} : {}", res.name, s.price, q * res.price),
                         left: Some(Order::SelectResource { perso, resource: k, quantity: q }),
                         right: Some(Order::UnselectResource { perso, resource: k, quantity: q }),
@@ -431,8 +438,62 @@ impl Hud {
                 cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + 48, 3 + j, 0, (24, 24), true);
                 let q = [1.0, 5.0, p.money().floor()][j as usize];
                 let tip = s.deposit_money[j as usize].clone();
-                hits.insert(0, (rect(216 + 24 * j, 48, 24, 24), Hit { queue: None, tip, left: Some(Order::DepositMoney { perso, quantity: q }), right: None }));
+                hits.insert(0, (rect(216 + 24 * j, 48, 24, 24), Hit { frame: false, queue: None, tip, left: Some(Order::DepositMoney { perso, quantity: q }), right: None }));
             }
+        }
+    }
+
+    /// Window 4 — Inventaire (`Afficher_InfosInventaire`): money, equipment and the 32-slot bag.
+    fn inventory_window(&self, world: &World, rules: &Rules, textures: &Textures, player: usize, o: (i32, i32), hits: &mut Vec<(Rect, Hit)>) {
+        // Equipment slots by index: hands, armour, head, feet, back, rings, arms, orb, mount.
+        const EQUIPMENT: [(i32, i32); 11] =
+            [(38, 124), (238, 124), (137, 88), (137, 39), (137, 162), (187, 88), (38, 162), (238, 162), (88, 104), (38, 72), (187, 162)];
+        let s = &self.windows.strings;
+        let p = &world.persos[player];
+        let perso = player;
+        self.text(o.0 + 32, o.1 + 32, &s.titles[4], BLACK);
+        self.text(o.0 + 32, o.1 + 54, &format!("{} : {}", s.money, p.money().floor()), BLACK);
+        let icon = |obj: usize, x: i32, y: i32| {
+            if let Some(tex) = textures.get(&object_icon(rules, obj)) {
+                let src = Rect::new(0.0, 0.0, 32.0, 32.0);
+                draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+            }
+        };
+        // TODO: equipping (right click) once items exist
+        for (k, &(ex, ey)) in EQUIPMENT.iter().enumerate() {
+            if let Some(Some(item)) = p.equipped.get(k) {
+                icon(item.object, o.0 + ex, o.1 + ey);
+            }
+        }
+        // `Ctrl+left`: discard at once — into the own house, sold in a castle, else dropped.
+        let in_castle = p.in_castle || p.in_own_castle;
+        let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
+        for slot in 0..p.inventory.len().min(32) {
+            let (x, y) = (32 + 32 * (slot as i32 % 8), 209 + 32 * (slot as i32 / 8));
+            let Some(item) = p.inventory[slot] else {
+                // an empty slot puts back what is held
+                let back = (p.selected_object >= 0).then_some(Order::Unselect { perso });
+                hits.push((Rect::new((o.0 + x) as f32, (o.1 + y) as f32, 32.0, 32.0), Hit { frame: true, queue: None, tip: String::new(), left: back, right: None }));
+                continue;
+            };
+            icon(item.object, o.0 + x, o.1 + y);
+            if item.count > 1 {
+                self.small_text(o.0 + x + 4, o.1 + y + 19, &format!("x{}", item.count), BLACK);
+            }
+            let left = if ctrl {
+                if p.in_own_house {
+                    Order::DepositObject { perso, object: slot, from_inventory: true }
+                } else if in_castle {
+                    Order::SellObject { perso, object: slot, from_inventory: true }
+                } else {
+                    Order::DropObject { perso, object: slot, from_inventory: true }
+                }
+            } else {
+                Order::HoldObject { perso, slot }
+            };
+            // TODO: the full object tooltip (`Definir_InfoBulle_Objet`)
+            let tip = rules.objects[item.object].name.clone();
+            hits.push((Rect::new((o.0 + x) as f32, (o.1 + y) as f32, 32.0, 32.0), Hit { frame: true, queue: None, tip, left: Some(left), right: None }));
         }
     }
 
@@ -527,17 +588,17 @@ impl Hud {
                     self.text(o.0 + 232, o.1 + y, &format!("+{queued}"), WHITE);
                 }
                 let queue = (state == 0 && p.alive()).then_some(slot);
-                hits.push((rect(232, y - 4, 24, 24), Hit { queue, tip: tip.clone(), left: None, right: None }));
+                hits.push((rect(232, y - 4, 24, 24), Hit { frame: false, queue, tip: tip.clone(), left: None, right: None }));
                 // The icon takes made objects, or queues some when there are none.
                 if stock >= 1.0 {
                     let count = queue_quantity(is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl), is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift));
                     let take = Some(Order::TakeObjects { perso, slot, count: count as i64 });
-                    hits.push((rect(168, y - 6, 48, 24), Hit { queue: None, tip: t.name.clone(), left: take, right: None }));
+                    hits.push((rect(168, y - 6, 48, 24), Hit { frame: false, queue: None, tip: t.name.clone(), left: take, right: None }));
                 } else {
-                    hits.push((rect(168, y - 6, 48, 24), Hit { queue, tip: t.name.clone(), left: None, right: None }));
+                    hits.push((rect(168, y - 6, 48, 24), Hit { frame: false, queue, tip: t.name.clone(), left: None, right: None }));
                 }
             } else if stock >= 1.0 {
-                hits.push((rect(168, y - 6, 48, 24), Hit { queue: None, tip: t.name.clone(), left: Some(Order::BuyObject { perso, house: h, slot }), right: None }));
+                hits.push((rect(168, y - 6, 48, 24), Hit { frame: false, queue: None, tip: t.name.clone(), left: Some(Order::BuyObject { perso, house: h, slot }), right: None }));
             }
         }
         if objects.len() > 8 {
@@ -574,7 +635,7 @@ impl Hud {
                         cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + 90, j, 0, (24, 24), true);
                         let q = [1.0, 5.0, house.money.floor()][j as usize];
                         let tip = s.take_money[j as usize].clone();
-                        hits.push((rect(216 + 24 * j, 90, 24, 24), Hit { queue: None, tip, left: Some(Order::TakeMoney { perso, quantity: q }), right: None }));
+                        hits.push((rect(216 + 24 * j, 90, 24, 24), Hit { frame: false, queue: None, tip, left: Some(Order::TakeMoney { perso, quantity: q }), right: None }));
                     }
                 }
             }
@@ -592,12 +653,12 @@ impl Hud {
                         let q = [1.0, 5.0, stock.floor()][j as usize];
                         let hit = if own {
                             cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + 132, j, 0, (24, 24), true);
-                            Hit { queue: None, tip: s.take_stock[j as usize].clone(), left: Some(Order::TakeStock { perso, quantity: q }), right: None }
+                            Hit { frame: false, queue: None, tip: s.take_stock[j as usize].clone(), left: Some(Order::TakeStock { perso, quantity: q }), right: None }
                         } else {
                             cell(textures, COMMERCE, o.0 + 216 + 24 * j, o.1 + 132, j, dead, (24, 24), true);
                             let price = q * res.price * rules.buy_coef;
                             let red = if price > p.money() { "&" } else { "" };
-                            Hit { queue: None,
+                            Hit { frame: false, queue: None,
                                 tip: format!("Acheter {q} {}  #{red}{} : {price}", res.name, s.price),
                                 left: Some(Order::BuyFromHouse { perso, house: h, quantity: q }),
                                 right: None,
@@ -615,7 +676,7 @@ impl Hud {
                 };
                 self.text(o.0 + 32, o.1 + 138, &line, BLACK);
                 cell(textures, ACTION, o.0 + 216, o.1 + 136, 5, (stock < 1.0) as i32, (24, 24), true);
-                hits.push((rect(216, 136, 24, 24), Hit { queue: None, tip: " (Entrée)".to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
+                hits.push((rect(216, 136, 24, 24), Hit { frame: false, queue: None, tip: " (Entrée)".to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
                 if house.max_stock > 0.0 || own {
                     self.text(o.0 + 32, o.1 + 160, &svc.description, BLACK);
                 }
@@ -636,7 +697,7 @@ impl Hud {
             for j in 0..3 {
                 cell(textures, ACTION, o.0 + 216 + 24 * j, o.1 + 48, 2 + j, dead, (24, 24), true);
                 let q = [5.0, 50.0, p.money().floor()][j as usize];
-                hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { queue: None, tip: s.restore[j as usize].clone(), left: Some(Order::DonateToCastle { perso, quantity: q }), right: None }));
+                hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { frame: false, queue: None, tip: s.restore[j as usize].clone(), left: Some(Order::DonateToCastle { perso, quantity: q }), right: None }));
             }
         }
         for r in 0..ROWS {
@@ -659,7 +720,7 @@ impl Hud {
                 };
                 let red = if q * price > p.money() { "&" } else { "" };
                 let order = Order::BuyResource { perso, resource: k, quantity: [1.0, 5.0, p.max_resource(k)][j as usize] };
-                hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { queue: None,
+                hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { frame: false, queue: None,
                     tip: format!("Acheter {q} {}  #{red}{} : {}", res.name, s.price, q * price),
                     left: Some(order),
                     right: None,

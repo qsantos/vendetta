@@ -235,6 +235,11 @@ impl Hud {
         }
     }
 
+    /// Text in the small font (Arial Bold 8 pt).
+    pub fn small_text(&self, x: i32, y: i32, s: &str, colour: Color) {
+        self.small_font.draw(s, x, y + 9, colour);
+    }
+
     /// `ClsIntMessage.Afficher`: `#` breaks lines (16 px apart); a line starting with `&` is red,
     /// with `$` blue. `(x, y)` is the top of the text cell, like GDI `DrawText`.
     pub fn text(&self, x: i32, y: i32, s: &str, colour: Color) {
@@ -301,6 +306,16 @@ impl Hud {
     /// What is drawn over everything: the building footprint, the cursor and the FPS.
     /// `placement` is the cursor type from [`Hud::draw_placement`].
     pub fn overlay(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, placement: Option<i32>, hover: Option<(i32, usize)>) {
+        // `Afficher_Objet_Curseur`: the held object under the cursor.
+        let held = world.persos[player].selected_object;
+        if held >= 0 {
+            let path = format!("{}.bmp", rules.objects[held as usize].image);
+            if let Some(tex) = textures.get(&path) {
+                let src = Rect::new(0.0, 0.0, 32.0, 32.0);
+                let (x, y) = (input.mouse.0 - 12, input.mouse.1 - 12);
+                draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+            }
+        }
         let cursor = placement.unwrap_or(match hover {
             Some((c, _)) if c <= 17 => c,
             _ => 0,

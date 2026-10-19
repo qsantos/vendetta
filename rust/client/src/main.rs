@@ -211,7 +211,11 @@ async fn main() {
         let radial_was_open = hud.radial_open();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
         let placed = !on_ui && hud.map_input(&world, &rules, player, &input, centre, &mut orders);
-        if !on_ui && !placed && input.right_pressed {
+        let holding = world.persos[player].selected_object >= 0;
+        if !on_ui && !placed && input.right_pressed && holding {
+            // Right click while holding an object puts it back.
+            orders.push(Order::Unselect { perso: player });
+        } else if !on_ui && !placed && input.right_pressed {
             // Right click on the map: the radial buttons (`FrmMoteur2D.frm:943-961`).
             match hover {
                 0 | 16 | 999 => hud.open_radial((hx, hy), 4),
@@ -225,7 +229,12 @@ async fn main() {
             // Left-release on the map (`FrmMoteur2D.frm:828-916`).
             let p = &world.persos[player];
             let perso = player;
+            let held = p.selected_object;
             orders.push(match hover {
+                // With an object on the cursor: sell it at a castle, drop it on the ground.
+                6 if held >= 0 => Order::GoSell { perso, target: p.fief, market: false },
+                8 if held >= 0 => Order::GoSell { perso, target: hit, market: false },
+                0 | 16 | 999 if held >= 0 => Order::DropObject { perso, object: held as usize, from_inventory: false },
                 1 => Order::Harvest { perso, node: hit },
                 4 => Order::GoHome { perso, enter: false },
                 5 => Order::GoHome { perso, enter: true },
