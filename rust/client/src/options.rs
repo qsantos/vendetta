@@ -11,7 +11,7 @@ pub struct Options {
     pub size: Option<(usize, usize)>,
     /// `seed=N`: a reproducible world.
     pub seed: Option<u32>,
-    /// `fiefs=N`: number of fiefs, 2 to 16 like the original's setup screen.
+    /// `fiefs=N`: number of fiefs, 2 to 200 (the original's setup screen allows 16).
     pub fiefs: Option<usize>,
     /// `villagers=N`: characters per fief, 1 to 2000 (the original allows 250).
     pub villagers: Option<usize>,
@@ -35,7 +35,7 @@ impl Options {
                     }
                 }
                 "seed" => o.seed = value.parse().ok(),
-                "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 16)),
+                "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
                 "villagers" => o.villagers = value.parse::<usize>().ok().map(|n| n.clamp(1, 2000)),
                 _ => {}
             }

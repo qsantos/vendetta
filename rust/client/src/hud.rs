@@ -304,7 +304,7 @@ impl Hud {
         }
         self.draw_bar_contours();
 
-        self.draw_statistics(world, rules);
+        self.draw_statistics(world, rules, player);
         self.draw_epoch(world, rules, p);
         self.draw_object_slots(world, rules, textures, player);
         self.refresh_build_buttons(world, rules, player);
@@ -360,11 +360,20 @@ impl Hud {
     }
 
     /// `Afficher_Stastistiques`: one line per active fief, bottom-aligned at y=745.
-    fn draw_statistics(&self, world: &World, rules: &Rules) {
+    /// Beyond the original's 16 fiefs, only 16 lines: the player's fief and the first others,
+    /// then how many are left out.
+    fn draw_statistics(&self, world: &World, rules: &Rules, player: usize) {
+        const MAX_LINES: usize = 16;
+        let own = world.persos[player].fief;
         let mut lines = Vec::new();
+        let mut hidden = 0;
         for (i, (f, c)) in world.fiefs.iter().zip(&world.castles).enumerate() {
             let alive = world.alive_citizens(i);
             if alive == 0 && !c.visible() {
+                continue;
+            }
+            if lines.len() >= MAX_LINES - 2 && i != own {
+                hidden += 1;
                 continue;
             }
             let mut line = String::new();
@@ -376,6 +385,9 @@ impl Hud {
                 line += &format!(" - {:02.0}%", (c.life / c.max_life as f64 * 100.0).round_ties_even());
             }
             lines.push(line);
+        }
+        if hidden > 0 {
+            lines.push(format!("(+{hidden})"));
         }
         let y0 = ay(745) - 16 * lines.len() as i32;
         self.text(ax(816), y0, &format!("#{}", lines.join("#")), WHITE_);
