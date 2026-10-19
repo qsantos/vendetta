@@ -75,6 +75,17 @@ fn move_button_pos(i: usize, slide: i32) -> (i32, i32) {
     }
 }
 
+/// `Trouver_Maison`: the first visible house of type `kind` owned by a teammate, cycling from
+/// the one after the house the character last went to.
+fn next_allied_house(world: &World, player: usize, kind: usize) -> Option<usize> {
+    let p = &world.persos[player];
+    let n = world.houses.len();
+    (1..=n).map(|d| (p.house_target + d) % n).find(|&j| {
+        let m = &world.houses[j];
+        world.persos[j].team == p.team && m.kind == kind && m.visible()
+    })
+}
+
 fn build_button_pos(i: usize, slide: i32) -> (i32, i32) {
     (28 * (i as i32 % 3) + slide, 232 + 28 * (i as i32 / 3 + 1))
 }
@@ -314,7 +325,12 @@ impl Hud {
                     Some(k) => self.placing = Some(k),
                 }
             }
-            // TODO: right click walks to the next allied house of that type
+            if input.right_pressed
+                && let Some(k) = kind
+            {
+                let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
+                orders.extend(next_allied_house(world, player, k).map(|house| Order::GoToHouse { perso, house, repair: ctrl }));
+            }
             break;
         }
 
