@@ -114,6 +114,8 @@ pub struct Hud {
     radial_angle: [f32; 2],
     /// The left release that follows a click closing the radial buttons is not a map click.
     swallow_release: bool,
+    /// The build button hovered and since when, for its delayed details.
+    build_hover: Option<(usize, f64)>,
     /// Labels of the object tooltips.
     tooltip_labels: object_tooltip::TooltipLabels,
     /// Object shortcut keys.
@@ -244,6 +246,7 @@ impl Hud {
             shortcuts: shortcuts::Shortcuts::load(objects),
             hovered_object: None,
             tooltip_labels,
+            build_hover: None,
             fps: 0,
             frames: 0,
             fps_timer: get_time(),

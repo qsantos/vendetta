@@ -179,7 +179,8 @@ impl Hud {
     }
 
     /// `Definir_InfoBulle_Batiment`
-    fn build_tooltip(&self, world: &World, rules: &Rules, player: usize, kind: Option<usize>, state: i32) -> String {
+    /// `details` counts the workshop's objects to list (`(seconds hovered - 2) / 0.3`).
+    fn build_tooltip(&self, world: &World, rules: &Rules, player: usize, kind: Option<usize>, state: i32, details: f64) -> String {
         let Some(k) = kind else {
             return format!("{}{}", if state == 1 { "" } else { "&" }, self.strings.demolish);
         };
@@ -188,10 +189,12 @@ impl Hud {
         if state == 2 {
             lines.push(format!("&({})", rules.epochs[(b.epoch - 1).max(0) as usize].name));
         }
-        if p.money() >= b.price_money as f64 {
-            lines.push(format!("({} {})", b.price_money, self.strings.coins));
-        } else {
-            lines.push(format!("&({} / {} {})", p.money().floor(), b.price_money, self.strings.coins));
+        if b.price_money > 0 {
+            if p.money() >= b.price_money as f64 {
+                lines.push(format!("({} {})", b.price_money, self.strings.coins));
+            } else {
+                lines.push(format!("&({} / {} {})", p.money().floor(), b.price_money, self.strings.coins));
+            }
         }
         for (r, &q) in b.price_resources.iter().enumerate().filter(|(_, q)| **q > 0) {
             let name = rules.resources[r].name.to_lowercase();
@@ -207,7 +210,38 @@ impl Hud {
         if !b.description.is_empty() {
             lines.push(b.description.clone());
         }
-        // TODO: workshop object list after hovering 2 s
+        // After 2 s of hovering, a workshop lists what it makes, one more line every 0.3 s:
+        // "- <plural> (<costs>) (<epoch>)", red when unaffordable or too early.
+        if details > 0.0 && b.factory {
+            let epoch = world.fiefs[p.fief].epoch as i64;
+            let shown = (details.floor() as usize).max(1);
+            for &o in b.objects.iter().take(shown) {
+                let t = &rules.objects[o];
+                let costs: Vec<String> = t
+                    .price_resources
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, q)| **q > 0)
+                    .map(|(r, &q)| {
+                        let name = &rules.resources[r].name;
+                        if q as f64 > p.resource(r) { format!("{}/{q} {name}", p.resource(r).floor()) } else { format!("{q} {name}") }
+                    })
+                    .collect();
+                let short = t.price_resources.iter().enumerate().any(|(r, &q)| q as f64 > p.resource(r));
+                let mut line = format!("- {}", t.plural);
+                if !costs.is_empty() {
+                    line += &format!(" ({})", costs.join(", "));
+                }
+                let early = t.epoch - 1 > epoch;
+                if early {
+                    line += &format!(" ({})", rules.epochs[(t.epoch - 1) as usize].name);
+                }
+                if short || early {
+                    line.insert(0, '&');
+                }
+                lines.push(line);
+            }
+        }
         lines.join("#")
     }
 
@@ -257,8 +291,14 @@ impl Hud {
         let perso = player;
         let mut on_ui = on_window;
 
-        // Build buttons
+        // Build buttons (the hover timer restarts when none is hovered)
         let kinds = build_buttons(rules);
+        if !kinds.iter().enumerate().any(|(i, _)| {
+            let (x, y) = build_button_pos(i, self.build_slide);
+            inside(m, x, y, 28, 28)
+        }) {
+            self.build_hover = None;
+        }
         for (i, &kind) in kinds.iter().enumerate().filter(|_| !on_window) {
             let (x, y) = build_button_pos(i, self.build_slide);
             if !inside(m, x, y, 28, 28) {
@@ -266,7 +306,8 @@ impl Hud {
             }
             on_ui = true;
             let state = self.build_cache.get(i).map_or(0, |c| c.0);
-            tip = self.build_tooltip(world, rules, player, kind, state);
+            let details = self.hover_details(i);
+            tip = self.build_tooltip(world, rules, player, kind, state, details);
             if input.left_pressed && state == 1 {
                 match kind {
                     None => orders.push(Order::Demolish { perso }),
@@ -488,9 +529,13 @@ impl Hud {
             Some(i) if self.radial_category == 0 => self.strings.info_tips[i].clone(),
             Some(i) => {
                 let state = self.build_cache.get(i).map_or(0, |c| c.0);
-                self.build_tooltip(world, rules, player, kinds[i], state)
+                let details = self.hover_details(1000 + i);
+                self.build_tooltip(world, rules, player, kinds[i], state, details)
             }
-            None => String::new(),
+            None => {
+                self.build_hover = None;
+                String::new()
+            }
         };
         self.tooltip(m, &tip);
 
@@ -515,6 +560,17 @@ impl Hud {
 
     pub fn radial_open(&self) -> bool {
         self.radial.is_some()
+    }
+
+    /// `(seconds hovering button `id` - 2) / 0.3`, restarting when another button is hovered.
+    fn hover_details(&mut self, id: usize) -> f64 {
+        let now = get_time();
+        match self.build_hover {
+            Some((h, _)) if h == id => {}
+            _ => self.build_hover = Some((id, now)),
+        }
+        let start = self.build_hover.map_or(now, |(_, t)| t);
+        (now - start - 2.0) / 0.3
     }
 
     /// Paused with the menu/pause button (F10).
