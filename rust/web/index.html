@@ -119,6 +119,42 @@
         loadingScreen.remove();
         bubble.remove();
       };
+
+      // The game in progress (see client/src/storage.rs), base64 in local storage. Storage
+      // may be unavailable (private browsing): the game then just doesn't resume.
+      const saveKey = "vendetta-save";
+      let pendingSave = null;
+      importObject.env.vendetta_save_store = (ptr, len) => {
+        const bytes = new Uint8Array(wasm_memory.buffer, ptr, len);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        try {
+          localStorage.setItem(saveKey, btoa(binary));
+        } catch (e) {
+          console.warn("cannot save:", e);
+        }
+      };
+      importObject.env.vendetta_save_size = () => {
+        let text = null;
+        try {
+          text = localStorage.getItem(saveKey);
+        } catch (e) {}
+        if (!text) return 0;
+        pendingSave = Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+        return pendingSave.length;
+      };
+      importObject.env.vendetta_save_read = (ptr) => {
+        new Uint8Array(wasm_memory.buffer, ptr, pendingSave.length).set(pendingSave);
+        pendingSave = null;
+      };
+      importObject.env.vendetta_save_clear = () => {
+        try {
+          localStorage.removeItem(saveKey);
+        } catch (e) {}
+      };
+      importObject.env.vendetta_reload = () => location.reload();
     },
   });
 

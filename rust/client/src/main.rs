@@ -3,6 +3,7 @@ mod hud;
 mod layout;
 mod loading;
 mod render;
+mod storage;
 mod text;
 
 use macroquad::prelude::*;
@@ -65,6 +66,9 @@ fn follow(world: &World, player: usize) -> (i32, i32) {
 
 const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
 
+/// How often the game in progress is saved, in seconds.
+const AUTOSAVE_INTERVAL: f64 = 5.0;
+
 struct Loaded {
     files: Files,
     rules: Rules,
@@ -81,7 +85,18 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let rules = Rules::load(&files, "Francais")?;
     progress.message(&progress.label(2));
     let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u32, ..Default::default() };
-    let world = World::create(&rules, &files, &setup)?;
+    // Resume the saved game if there is one that fits these rules.
+    let saved = storage::load().and_then(|bytes| match World::load(&rules, &bytes) {
+        Ok(world) => Some(world),
+        Err(e) => {
+            warn!("discarding the saved game: {e}");
+            None
+        }
+    });
+    let world = match saved {
+        Some(world) => world,
+        None => World::create(&rules, &files, &setup)?,
+    };
     let mut textures = assets::Textures::new(&manifest);
     let (terrain, persos) = render::images(&rules, &world);
     let hud = hud::images(&rules);
@@ -115,6 +130,7 @@ async fn main() {
         },
     };
     let player = world.persos.iter().position(|p| p.player).unwrap();
+    let mut last_save = get_time();
     let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"));
 
 
@@ -186,6 +202,15 @@ async fn main() {
             world.step(&rules, &orders);
             orders.clear();
             cam = follow(&world, player);
+        }
+        if get_time() - last_save > AUTOSAVE_INTERVAL {
+            last_save = get_time();
+            storage::store(&world.save());
+        }
+        // Ctrl+N: a new game, until the setup screens exist.
+        if (is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl)) && is_key_pressed(KeyCode::N) {
+            storage::clear();
+            storage::restart();
         }
         next_frame().await;
     }
