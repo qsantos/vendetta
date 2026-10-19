@@ -170,3 +170,30 @@ fn a_kill_is_looted() {
         assert!(tomb.name.ends_with(&w.persos[a].name));
     }
 }
+
+/// A ghost returning to its castle comes back to life there; dying put a hostile character
+/// back in its fief's team.
+#[test]
+fn ghosts_resurrect_in_their_castle() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = fighter(&mut w, &rules, 0, 100, 100);
+    let team = w.persos[i].team;
+    w.attack_allies(&rules, i, true);
+    assert_eq!(w.persos[i].team, -(i as i64));
+    w.kill(&rules, i);
+    assert!(!w.persos[i].alive());
+    assert_eq!(w.persos[i].team, team);
+    assert_eq!(w.fiefs[0].dead, 1);
+    w.step(&rules, &[Order::GoOwnCastle { perso: i }]);
+    for _ in 0..2000 {
+        w.step(&rules, &[]);
+        if w.persos[i].alive() {
+            break;
+        }
+    }
+    let p = &w.persos[i];
+    assert!(p.alive() && p.in_own_castle);
+    assert_eq!(p.bars[0], p.bonus_max[0] as f64);
+    assert_eq!(w.fiefs[0].dead, 0);
+}

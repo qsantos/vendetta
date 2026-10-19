@@ -1044,21 +1044,37 @@ impl World {
 
     // ---------------------------------------------------------------- life and death
 
-    /// `Vivant = False`
-    // TODO: the death effect, invocations and soldiers (combat)
+    /// `Vivant = False`. Like the original it does not check that the perso was alive: dying
+    /// again counts again.
     pub fn kill(&mut self, rules: &Rules, i: usize) {
         let p = &mut self.persos[i];
         p.deaths += 1;
         p.comment.clear();
+        // Still alive while it stops: an AI decides once more.
         self.stop(rules, i);
         let p = &mut self.persos[i];
         p.bars[0] = 0.0;
+        let effect = rules.races[p.race].death_effect;
+        self.effect_on(effect, i);
+        let p = &mut self.persos[i];
         p.recovery = [0.0; 4];
         p.stun = 0;
         p.resurrection_time = 100.0;
         p.effects_on_death(rules);
-        p.team = self.fiefs[p.fief].team;
-        if !p.invocation() {
+        // Back in its fief's team.
+        self.attack_allies(rules, i, false);
+        let p = &self.persos[i];
+        if let Ok(chef) = usize::try_from(p.chef) {
+            if p.projectile {
+                self.persos[chef].projectiles -= 1;
+            } else {
+                self.persos[chef].soldiers -= 1;
+            }
+            // The unfinished building of a summon goes with it.
+            if self.houses[i].visible() && !self.houses[i].built {
+                self.demolish(rules, i, i, false);
+            }
+        } else {
             self.fiefs[p.fief].dead += 1;
         }
         if self.persos[i].emperor {
@@ -1073,10 +1089,16 @@ impl World {
         p.bars[0] = p.bonus_max[0] as f64;
         p.set_attack(rules, p.bonus_max[4] as f64);
         p.set_defense(rules, p.bonus_max[5] as f64);
-        // TODO: invocations count back in their chef's soldiers
-        if !p.invocation() {
-            self.fiefs[p.fief].dead -= 1;
+        match usize::try_from(p.chef) {
+            // A summon counts again among its chef's soldiers.
+            Ok(chef) => {
+                if !p.projectile {
+                    self.persos[chef].soldiers += 1;
+                }
+            }
+            Err(_) => self.fiefs[p.fief].dead -= 1,
         }
+        let p = &mut self.persos[i];
         let race = &rules.races[p.race];
         if race.full_restore {
             for (r, &q) in race.resources.iter().enumerate() {
@@ -1166,7 +1188,14 @@ impl World {
                 p.in_own_castle = false;
             }
         } else if p.invocation() {
-            // TODO: invocations resurrect in their own house
+            // Summons come back to life in their own house.
+            if p.in_own_house && self.houses[i].visible() {
+                let p = &mut self.persos[i];
+                p.resurrection_time -= p.resurrection_speed;
+                if p.resurrection_time <= 0.0 {
+                    self.revive(rules, i);
+                }
+            }
         } else if self.confrontation {
             self.revive(rules, i);
             let (w, h) = (self.terrain.width as f64 * CELL as f64, self.terrain.height as f64 * CELL as f64);
