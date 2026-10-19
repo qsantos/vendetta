@@ -305,12 +305,12 @@ async fn main() {
     loop {
         let frame_start = perf::now();
         perf.frame();
-        // `ToucheChangerPersonnage`: control the next human character, or the previous one with
-        // Shift (the original's key code 41 is not on today's keyboards; this is the key above
-        // Tab, ² on AZERTY; miniquad's web glue reports it as an apostrophe).
-        if is_key_pressed(KeyCode::GraveAccent) || (cfg!(target_arch = "wasm32") && is_key_pressed(KeyCode::Apostrophe)) {
+        // `ToucheChangerPersonnage`: control the next human character, or the previous one (the
+        // original's key code 41, with Shift for the previous one, is not on today's keyboards;
+        // here Page Down and Page Up).
+        let back = is_key_pressed(KeyCode::PageUp);
+        if back || is_key_pressed(KeyCode::PageDown) {
             let n = world.persos.len();
-            let back = is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift);
             let next = (1..n).map(|k| if back { (player + n - k) % n } else { (player + k) % n }).find(|&i| world.persos[i].player);
             if let Some(next) = next {
                 player = next;
