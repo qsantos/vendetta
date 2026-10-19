@@ -119,6 +119,20 @@ pub enum Order {
     /// `PersoTrouverPersoEnnemi` (`kind` 0), `MaisonEnnemi` (1), `ChateauEnnemi` (2): attack the
     /// nearest enemy target, or with `send` send the soldiers (Shift: 5, Ctrl+Shift: 10, Ctrl: 1).
     AttackNearest { perso: usize, kind: u8, send: bool, ctrl: bool, shift: bool },
+    /// `PersoAttaquerTerrainCoordonnees`: with a projectile weapon, shoot at (x, y) while
+    /// walking on, hitting targets of `kind` (0 persos, 1 houses, 2 castles).
+    AttackGround { perso: usize, x: i64, y: i64, kind: i64 },
+    /// `PersoAllerDonner`: walk to perso `target` and give it the selection.
+    Give { perso: usize, target: usize },
+    /// `PersoOrdonnerChargez`: send the soldiers at a perso (`kind` 0), a house (1) or a castle
+    /// (2), or with -1 at the chef's own target (else back into formation); Shift sends 5
+    /// (10 with Ctrl), Ctrl alone 1.
+    Charge { perso: usize, kind: i64, target: i64, ctrl: bool, shift: bool },
+    /// `PersoOrdonnerFormation`: line the soldiers up, switching to the next formation with
+    /// `change`.
+    Formation { perso: usize, change: bool },
+    /// `PersoAttaquerAllies`: become hostile to everybody until death.
+    AttackAllies { perso: usize },
 }
 
 impl World {
@@ -176,7 +190,12 @@ impl World {
             | AttackPerso { perso, .. }
             | AttackHouse { perso, .. }
             | AttackCastle { perso, .. }
-            | AttackNearest { perso, .. } => perso,
+            | AttackNearest { perso, .. }
+            | AttackGround { perso, .. }
+            | Give { perso, .. }
+            | Charge { perso, .. }
+            | Formation { perso, .. }
+            | AttackAllies { perso } => perso,
         };
         let p = self.persos.get_mut(perso).ok_or(())?;
         let f = p.fief;
@@ -316,6 +335,20 @@ impl World {
                 1 => self.attack_nearest_house(rules, perso, send, ctrl, shift),
                 _ => self.attack_nearest_castle(rules, perso, send, ctrl, shift),
             },
+            AttackGround { x, y, kind, .. } => self.attack_ground(perso, x, y, kind),
+            Give { target, .. } => {
+                check(target, self.persos.len())?;
+                self.go_give(perso, target);
+            }
+            Charge { kind, target, ctrl, shift, .. } => {
+                let n = [self.persos.len(), self.houses.len(), self.castles.len()];
+                if let (Some(&n), Ok(t)) = (usize::try_from(kind).ok().and_then(|k| n.get(k)), usize::try_from(target)) {
+                    check(t, n)?;
+                }
+                self.order_charge(rules, perso, kind, target, ctrl, shift, false);
+            }
+            Formation { change, .. } => self.order_formation(rules, perso, change, false),
+            AttackAllies { .. } => self.attack_allies(rules, perso, true),
         }
         Ok(())
     }
