@@ -129,30 +129,19 @@
         bubble.remove();
       };
 
-      // Persistent blobs (see client/src/storage.rs), base64 in local storage under
-      // "vendetta-<key>". Storage may be unavailable (private browsing): then nothing persists.
-      const storageKey = (ptr, len) => "vendetta-" + UTF8ToString(ptr, len);
+      // Persistent blobs (see client/src/storage.rs and `storageReady` below), read from
+      // memory; writes go on to IndexedDB in the background.
       let pendingRead = null;
       importObject.env.vendetta_store = (kptr, klen, ptr, len) => {
-        const bytes = new Uint8Array(wasm_memory.buffer, ptr, len);
-        let binary = "";
-        for (let i = 0; i < bytes.length; i += 0x8000) {
-          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-        }
-        try {
-          localStorage.setItem(storageKey(kptr, klen), btoa(binary));
-        } catch (e) {
-          console.warn("cannot save:", e);
-        }
+        const key = UTF8ToString(kptr, klen);
+        const value = new Uint8Array(wasm_memory.buffer, ptr, len).slice();
+        blobs.set(key, value);
+        persist(key, value);
       };
       importObject.env.vendetta_stored_size = (kptr, klen) => {
-        let text = null;
-        try {
-          text = localStorage.getItem(storageKey(kptr, klen));
-        } catch (e) {}
-        if (!text) return 0;
-        pendingRead = Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
-        return pendingRead.length;
+        const key = UTF8ToString(kptr, klen);
+        pendingRead = blobs.get(key) ?? legacyRead(key);
+        return pendingRead ? pendingRead.length : 0;
       };
       // A precise clock for the #perf timings (macroquad's uses Date.now(), to the millisecond).
       importObject.env.vendetta_now = () => performance.now() / 1000;
@@ -167,13 +156,111 @@
         pendingRead = null;
       };
       importObject.env.vendetta_remove = (kptr, klen) => {
-        try {
-          localStorage.removeItem(storageKey(kptr, klen));
-        } catch (e) {}
+        const key = UTF8ToString(kptr, klen);
+        blobs.delete(key);
+        persist(key, null);
       };
-      importObject.env.vendetta_reload = () => location.reload();
+      // after the pending writes, so that none is lost
+      importObject.env.vendetta_reload = () => writesDone().then(() => location.reload());
     },
   });
+
+  // Persistent blobs: gzip-compressed in IndexedDB (database "vendetta", store "blobs"),
+  // which unlike local storage holds big worlds. They are all read into `blobs` before the
+  // game starts, so that it reads them synchronously. A worker compresses and stores writes,
+  // off the game's thread; while one is in progress, only the newest value of each key waits.
+  // Older versions kept blobs base64 in local storage ("vendetta-<key>"), still read until
+  // rewritten. Storage may be unavailable (private browsing): then nothing persists.
+  const blobs = new Map();
+  let db = null;
+  const openDb = () =>
+    new Promise((resolve, reject) => {
+      const open = indexedDB.open("vendetta", 1);
+      open.onupgradeneeded = () => open.result.createObjectStore("blobs");
+      open.onsuccess = () => resolve(open.result);
+      open.onerror = () => reject(open.error);
+    });
+  const transform = async (data, stream) =>
+    new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(stream)).arrayBuffer());
+  const request = (db, mode, op) =>
+    new Promise((resolve, reject) => {
+      const tx = db.transaction("blobs", mode);
+      const req = op(tx.objectStore("blobs"));
+      tx.oncomplete = () => resolve(req.result);
+      tx.onerror = tx.onabort = () => reject(tx.error);
+    });
+  const workerCode = `
+    ${openDb.toString().replace(/^/, "const openDb = ")};
+    ${transform.toString().replace(/^/, "const transform = ")};
+    ${request.toString().replace(/^/, "const request = ")};
+    const db = openDb();
+    onmessage = async ({ data: { key, value } }) => {
+      try {
+        if (value) {
+          const packed = await transform(value, new CompressionStream("gzip"));
+          await request(await db, "readwrite", (s) => s.put(packed, key));
+        } else {
+          await request(await db, "readwrite", (s) => s.delete(key));
+        }
+        postMessage({ key });
+      } catch (e) {
+        postMessage({ key, error: String(e) });
+      }
+    };`;
+  let worker = null;
+  const waiting = new Map(); // key → newest value not yet sent to the worker (null: delete)
+  const busy = new Set();
+  let onIdle = [];
+  const send = (key) => {
+    if (busy.has(key) || !waiting.has(key)) return;
+    const value = waiting.get(key);
+    waiting.delete(key);
+    busy.add(key);
+    worker.postMessage({ key, value }, value ? [value.buffer] : []);
+  };
+  const persist = (key, value) => {
+    if (!worker) return;
+    // the worker gets its own copy: `blobs` keeps this one
+    waiting.set(key, value && value.slice());
+    send(key);
+  };
+  /// Resolves once every write is stored.
+  const writesDone = () =>
+    busy.size === 0 && waiting.size === 0 ? Promise.resolve() : new Promise((r) => onIdle.push(r));
+  const legacyRead = (key) => {
+    try {
+      const text = localStorage.getItem("vendetta-" + key);
+      return text ? Uint8Array.from(atob(text), (c) => c.charCodeAt(0)) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const storageReady = (async () => {
+    try {
+      db = await openDb();
+      const [keys, values] = await Promise.all([
+        request(db, "readonly", (s) => s.getAllKeys()),
+        request(db, "readonly", (s) => s.getAll()),
+      ]);
+      for (let i = 0; i < keys.length; i++) {
+        blobs.set(keys[i], await transform(values[i], new DecompressionStream("gzip")));
+      }
+      worker = new Worker(URL.createObjectURL(new Blob([workerCode], { type: "text/javascript" })));
+      worker.onmessage = ({ data: { key, error } }) => {
+        if (error) console.warn("cannot save " + key + ":", error);
+        else {
+          try {
+            localStorage.removeItem("vendetta-" + key);
+          } catch (e) {}
+        }
+        busy.delete(key);
+        send(key);
+        if (busy.size === 0 && waiting.size === 0) onIdle.splice(0).forEach((r) => r());
+      };
+    } catch (e) {
+      console.warn("no storage:", e);
+    }
+  })();
 
   // Download the game ourselves to show its progress, then hand it to miniquad's loader.
   (async () => {
@@ -192,6 +279,7 @@
         showProgress();
       }
       bytes.wasmTotal = bytes.wasm;
+      await storageReady;
       load(URL.createObjectURL(new Blob(chunks, { type: "application/wasm" })));
     } catch (e) {
       showMessage("&Erreur#" + e.message);
