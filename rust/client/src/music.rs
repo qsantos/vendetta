@@ -2,7 +2,6 @@
 //! Tracks are the original MIDI rendered to Ogg (see `assetconv`), fetched only when needed.
 
 use crate::assets::Manifest;
-use crate::storage;
 use macroquad::audio::{PlaySoundParams, Sound, load_sound, play_sound, stop_sound};
 use macroquad::experimental::coroutines::{Coroutine, start_coroutine};
 use macroquad::prelude::*;
@@ -27,8 +26,6 @@ pub struct Music {
     started: f64,
     playing: Option<Sound>,
     loading: Option<Coroutine<Option<Sound>>>,
-    /// Toggled with Ctrl+M, kept in local storage.
-    enabled: bool,
 }
 
 impl Music {
@@ -45,8 +42,7 @@ impl Music {
                     .collect()
             })
             .collect();
-        let enabled = storage::load("music").is_none_or(|b| b != b"0");
-        Music { tracks, category: None, started: 0.0, playing: None, loading: None, enabled }
+        Music { tracks, category: None, started: 0.0, playing: None, loading: None }
     }
 
     /// `Jouer_Musique`: a new random track of `category` if the current one has played its
@@ -61,12 +57,12 @@ impl Music {
         self.category = Some(category);
         self.started = get_time();
         self.stop();
-        if self.enabled {
-            let url = self.tracks[category][rand::gen_range(0, self.tracks[category].len())].clone();
-            self.loading = Some(start_coroutine(async move { load_sound(&url).await.ok() }));
-        }
+        let url = self.tracks[category][rand::gen_range(0, self.tracks[category].len())].clone();
+        self.loading = Some(start_coroutine(async move { load_sound(&url).await.ok() }));
     }
 
+    // No music key: the original's `ToucheMusique` is unbound by default, and Ctrl+M mutes
+    // the tab in browsers anyway.
     fn stop(&mut self) {
         if let Some(s) = self.playing.take() {
             stop_sound(&s);
@@ -74,7 +70,7 @@ impl Music {
         self.loading = None;
     }
 
-    /// Call every frame: starts a track once downloaded, and handles Ctrl+M.
+    /// Call every frame: starts a track once downloaded.
     pub fn update(&mut self) {
         if let Some(task) = &self.loading {
             if task.is_done() {
@@ -82,20 +78,6 @@ impl Music {
                     play_sound(&sound, PlaySoundParams { looped: false, volume: VOLUME });
                     self.playing = Some(sound);
                 }
-            }
-        }
-        let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
-        if ctrl && is_key_pressed(KeyCode::M) {
-            self.enabled = !self.enabled;
-            storage::store("music", if self.enabled { b"1" } else { b"0" });
-            if self.enabled {
-                // start a track of the current mood right away
-                self.started = f64::NEG_INFINITY;
-                if let Some(c) = self.category.take() {
-                    self.play(c, false);
-                }
-            } else {
-                self.stop();
             }
         }
     }
