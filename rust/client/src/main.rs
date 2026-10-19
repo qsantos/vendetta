@@ -179,6 +179,8 @@ async fn main() {
     let mut cam = (0, 0);
     let mut orders = Vec::new();
     let mut last_tick = get_time();
+    // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
+    let mut pressed_on_map = false;
     loop {
         // The frame covers the window; the map and the interface each have their own scale.
         // `screen_width()` and the mouse are in CSS pixels; the frame is in physical pixels.
@@ -222,6 +224,9 @@ async fn main() {
         set_camera(&camera(&target, hud_f));
         let radial_was_open = hud.radial_open();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
+        if input.left_pressed {
+            pressed_on_map = !on_ui;
+        }
         let placed = !on_ui && hud.map_input(&world, &rules, player, &input, centre, &mut orders);
         let holding = world.persos[player].selected_object >= 0;
         if !on_ui && !placed && input.right_pressed && holding {
@@ -244,7 +249,7 @@ async fn main() {
                 _ => {}
             }
         }
-        if !on_ui && !placed && input.left_released {
+        if !on_ui && !placed && input.left_released && pressed_on_map {
             // Left-release on the map (`FrmMoteur2D.frm:828-916`).
             let p = &world.persos[player];
             let perso = player;
