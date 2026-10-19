@@ -9,6 +9,7 @@
 //!
 //! Messages are JSON text, tagged by `t`. From a client:
 //! - `{"t":"create","name":…}`, `{"t":"join","room":…,"name":…}`: enter a new or existing room;
+//!   these and `rejoin` carry the page's `version` (its build), which must be the room's;
 //! - `{"t":"fief","fief":n}`: pick a fief (from 1);
 //! - `{"t":"settings","items":[…]}` (host): the world options, as in the URL's hash;
 //! - `{"t":"start"}` (host);
@@ -24,7 +25,8 @@
 //!   after a rejoin;
 //! - `{"t":"wait","ready":n,"players":m}`: n of the m players are ready;
 //! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
-//! - `{"t":"desync","tick":n}`, `{"t":"error","message":…}`.
+//! - `{"t":"desync","tick":n}`, `{"t":"error","message":…}` (with `"code":"version"` for a
+//!   different build).
 //!
 //! Players are numbered by their place in the room, which the start fixes.
 //!
@@ -64,13 +66,27 @@ const GRACE: Duration = Duration::from_secs(600);
 #[derive(Deserialize)]
 #[serde(tag = "t", rename_all = "lowercase")]
 enum In {
-    Create { name: String },
-    Join { room: String, name: String },
+    Create {
+        name: String,
+        #[serde(default)]
+        version: String,
+    },
+    Join {
+        room: String,
+        name: String,
+        #[serde(default)]
+        version: String,
+    },
     Fief { fief: usize },
     Settings { items: Vec<String> },
     Start,
     Ready,
-    Rejoin { room: String, token: String },
+    Rejoin {
+        room: String,
+        token: String,
+        #[serde(default)]
+        version: String,
+    },
     Since { have: usize },
     Order { order: Value },
     Hash { tick: u64, hash: u64 },
@@ -98,6 +114,8 @@ struct Room {
     players: Vec<Player>,
     host: u64,
     items: Vec<String>,
+    /// The build of its creator's page: every copy of the world must run the same one.
+    version: String,
     started: bool,
     seed: u32,
     /// The orders for the next tick, by player.
@@ -226,6 +244,12 @@ fn error(tx: &UnboundedSender<String>, message: &str) {
     let _ = tx.send(json!({"t": "error", "message": message}).to_string());
 }
 
+/// The page's build differs from the room's: its world would not stay the same as the others'.
+fn wrong_version(tx: &UnboundedSender<String>) {
+    let message = "version du jeu différente de celle de la partie : rechargez la page";
+    let _ = tx.send(json!({"t": "error", "message": message, "code": "version"}).to_string());
+}
+
 async fn connection(mut socket: WebSocket, rooms: Arc<Rooms>) {
     let (tx, mut rx) = unbounded_channel::<String>();
     let conn = rooms.random(0);
@@ -282,7 +306,7 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
     let mut all = rooms.rooms.lock().unwrap();
     match msg {
         In::Create { .. } | In::Join { .. } | In::Rejoin { .. } if joined.is_some() => error(tx, "déjà dans une partie"),
-        In::Create { name } => {
+        In::Create { name, version } => {
             let code = loop {
                 let mut n = rooms.random(1);
                 let code: String = (0..CODE_LEN)
@@ -296,14 +320,17 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
                     break code;
                 }
             };
-            let room = Room { players: vec![rooms.player(conn, &name, tx)], host: conn, ..Default::default() };
+            let room = Room { players: vec![rooms.player(conn, &name, tx)], host: conn, version, ..Default::default() };
             room.send_lobby(&code);
             all.insert(code.clone(), room);
             *joined = Some((code, conn));
         }
-        In::Join { room: code, name } => {
+        In::Join { room: code, name, version } => {
             let code = code.trim().to_uppercase();
             let Some(room) = all.get_mut(&code) else { return error(tx, "partie introuvable") };
+            if version != room.version {
+                return wrong_version(tx);
+            }
             if room.started {
                 return error(tx, "la partie a déjà commencé");
             }
@@ -312,8 +339,11 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
             room.send_lobby(&code);
             *joined = Some((code, conn));
         }
-        In::Rejoin { room: code, token } => {
+        In::Rejoin { room: code, token, version } => {
             let code = code.trim().to_uppercase();
+            if all.get(&code).is_some_and(|r| r.version != version) {
+                return wrong_version(tx);
+            }
             let place = all.get_mut(&code).filter(|r| r.started).and_then(|r| Some((r.players.iter().position(|p| p.token == token)?, r)));
             let Some((k, room)) = place else { return error(tx, "plus dans cette partie") };
             let p = &mut room.players[k];

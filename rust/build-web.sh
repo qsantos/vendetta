@@ -21,6 +21,8 @@ grep -q 'getContext("webgl",{antialias' dist/mq_js_bundle.js
 wasm=$(sha256sum dist/client.wasm | cut -c1-16)
 bundle=$(sha256sum dist/mq_js_bundle.js | cut -c1-16)
 sed -e "s|\"client.wasm\"|\"client.wasm?v=$wasm\"|" \
+    -e "s|const build = \"dev\";|const build = \"$wasm\";|" \
     -e "s|src=\"mq_js_bundle.js\"|src=\"mq_js_bundle.js?v=$bundle\"|" \
     web/index.html > dist/index.html
+grep -q "const build = \"$wasm\";" dist/index.html
 ln -sfn ../assets dist/assets

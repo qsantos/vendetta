@@ -180,3 +180,23 @@ async fn rejoining_a_game_in_progress() {
     }
     assert!(order_seen, "the order given while away");
 }
+
+/// A page of another build cannot join a room, nor come back to it.
+#[tokio::test]
+async fn other_builds_are_turned_away() {
+    let port = serve().await;
+    let mut a = connect(port).await;
+    send(&mut a, json!({"t": "create", "name": "Alice", "version": "abc"})).await;
+    let code = next(&mut a, "lobby").await["room"].as_str().unwrap().to_owned();
+    let mut b = connect(port).await;
+    send(&mut b, json!({"t": "join", "room": code, "name": "Bob", "version": "def"})).await;
+    assert_eq!(next(&mut b, "error").await["code"], "version");
+    send(&mut b, json!({"t": "join", "room": code, "name": "Bob", "version": "abc"})).await;
+    let token = next(&mut b, "lobby").await["token"].as_str().unwrap().to_owned();
+    send(&mut a, json!({"t": "start"})).await;
+    next(&mut b, "start").await;
+    drop(b);
+    let mut b = connect(port).await;
+    send(&mut b, json!({"t": "rejoin", "room": code, "token": token, "version": "def"})).await;
+    assert_eq!(next(&mut b, "error").await["code"], "version");
+}
