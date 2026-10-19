@@ -1,0 +1,9 @@
+[package]
+name = "assetconv"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["bmp", "png", "gif"] }
+encoding_rs = "0.8"

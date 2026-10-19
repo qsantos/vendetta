@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Vendetta</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<canvas id="glcanvas" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
+<script src="mq_js_bundle.js"></script>
+<script>
+  // Right click is a game action, not the browser menu.
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
+  load("client.wasm");
+</script>
+</body>
+</html>
