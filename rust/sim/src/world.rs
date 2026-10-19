@@ -1,5 +1,6 @@
 //! World state, world creation (random generation or map files) and the tick.
 
+use serde::{Deserialize, Serialize};
 use crate::ai::Ai;
 use crate::building::Building;
 use crate::fief::Fief;
@@ -13,7 +14,7 @@ use crate::vb::{Rnd, clng};
 
 pub use crate::orders::Order;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceNode {
     pub x: i32,
     pub y: i32,
@@ -23,6 +24,7 @@ pub struct ResourceNode {
 
 pub const RESOURCE_SIZE: i32 = 32;
 
+#[derive(Serialize, Deserialize)]
 pub struct World {
     pub rng: Rnd,
     pub terrain: Terrain,

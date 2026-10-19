@@ -1,5 +1,6 @@
 //! Castles and houses (`ClsJeuBatiment`).
 
+use serde::{Deserialize, Serialize};
 use crate::rules::Rules;
 
 /// `CoefDepartVie`: share of the max HP a new building starts with.
@@ -9,7 +10,7 @@ pub const REPAIR_SPEED: f64 = 0.1;
 /// `CoefRecyclage`: share of the cost refunded on demolition.
 pub const RECYCLING: f64 = 0.5;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Building {
     /// Owner perso index for houses (`Numero`), 0 for castles.
     pub owner: usize,

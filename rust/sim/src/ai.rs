@@ -8,6 +8,7 @@ mod dialogue;
 mod scripted;
 mod work;
 
+use serde::{Deserialize, Serialize};
 use crate::perso::action;
 use crate::rules::Rules;
 use crate::terrain::CELL;
@@ -35,7 +36,7 @@ const PATROL_RADIUS: f64 = 128.0;
 const MAX_DEPTH: u32 = 16;
 
 /// Per-character AI state (the arrays of `ModIA`, indexed by perso).
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PersoAi {
     /// `DistanceTresor`, `DistanceMaison`, `DistanceAdversaire`, `DistanceMaisonEnnemi`,
     /// `DistanceChateauEnnemi`: radii of the incremental searches.
@@ -62,7 +63,7 @@ pub struct PersoAi {
 }
 
 /// `ModIA` module state.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Ai {
     /// `IndicePerso`: the round-robin cursor.
     pub cursor: usize,

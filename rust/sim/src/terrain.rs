@@ -1,10 +1,11 @@
 //! The terrain grid: one terrain category and one tile shape ("apparence") per 16×16 cell.
 
+use serde::{Deserialize, Serialize};
 use crate::vb::clng;
 
 pub const CELL: i32 = 16;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Terrain {
     pub width: usize,
     pub height: usize,

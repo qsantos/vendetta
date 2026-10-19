@@ -1,11 +1,12 @@
 //! Treasures (`ClsJeuTresors`, `ModTresors`) and decorations (`ClsJeuDecors`, `ModDecors`).
 
+use serde::{Deserialize, Serialize};
 use crate::rules::Rules;
 
 /// `AffTresor.Largeur/Hauteur`: the treasure box.
 pub const TREASURE_SIZE: i32 = 26;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Treasure {
     pub x: i32,
     pub y: i32,
@@ -67,7 +68,7 @@ impl Treasure {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Decor {
     /// Decor type (`Categorie`).
     pub kind: usize,

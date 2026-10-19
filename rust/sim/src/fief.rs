@@ -1,5 +1,6 @@
 //! Fiefs: the castle's stock, treasury and age (`ClsJeuFief`).
 
+use serde::{Deserialize, Serialize};
 use crate::building::Building;
 use crate::perso::Perso;
 use crate::rules::Rules;
@@ -10,7 +11,7 @@ pub const LIFE_PER_GOLD: f64 = 0.2;
 /// `VitesseTransaction`: units converted per citizen per tick by the castle market.
 pub const TRANSACTION_SPEED: f64 = 0.02 / 4.0 / 4.0;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Fief {
     pub people: usize,
     pub team: i64,

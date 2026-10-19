@@ -1,5 +1,6 @@
 //! Characters ("persos"): state, creation and movement (`ClsJeuPerso`).
 
+use serde::{Deserialize, Serialize};
 use crate::files::Files;
 use crate::rules::Rules;
 use crate::stats::{XP_COEFS, XP_OBJECT, XP_RESOURCE, XP_SERVICE, XP_SPECIAL};
@@ -7,7 +8,7 @@ use crate::terrain::{CELL, Terrain};
 use crate::vb::{Rnd, clng};
 
 /// Facing, as in the sprite sheets' rows (minus one).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Dir {
     None = 0,
     Up = 1,
@@ -16,7 +17,7 @@ pub enum Dir {
     Left = 4,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Look {
     /// One whole 3×4 sheet (`Images\Persos\...`).
     Sheet(String),
@@ -54,7 +55,7 @@ pub mod action {
 pub const RESURRECTION_SPEED: f64 = 2.5;
 
 /// Experience towards the next level (`Exp`, `Niv`, `ExpNiv`, `ExpNivPlus`).
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct Xp {
     pub exp: f64,
     pub level: i64,
@@ -65,7 +66,7 @@ pub struct Xp {
 /// A skill: the base value that levels up (`Carac`), its effective value (`BonusNiv`) and XP.
 /// For resource skills `carac` is the carrying capacity (`MaxRessources`) and `bonus` is
 /// derived from the level (`BonusNivRessources`).
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct Skill {
     pub carac: i64,
     pub bonus: i64,
@@ -74,13 +75,13 @@ pub struct Skill {
 
 /// An inventory slot (`ClsJeuObjet`, only what the economy needs).
 // TODO: cached object parameters for equipment (items)
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Item {
     pub object: usize,
     pub count: i64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Perso {
     pub name: String,
     pub female: bool,

@@ -1,5 +1,7 @@
 //! VB6 numeric semantics that affect gameplay.
 
+use serde::{Deserialize, Serialize};
+
 /// `CLng`/`CInt`/implicit Double→Long conversion: round half to even.
 pub fn clng(x: f64) -> i64 {
     x.round_ties_even() as i64
@@ -7,7 +9,7 @@ pub fn clng(x: f64) -> i64 {
 
 /// VB6's `Rnd`: a 24-bit linear congruential generator, `x = (x * 0x43FD43FD + 0xC39EC3)
 /// mod 2^24`, returning `x / 2^24` in `[0, 1)`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rnd {
     state: u32,
 }
