@@ -144,8 +144,10 @@
   });
 </script>
 <script>
-  // Right click is a game action, not the browser menu.
-  document.addEventListener("contextmenu", (e) => e.preventDefault());
+  // Right click is a game action, not the browser menu (which the pre-game menus keep).
+  document.addEventListener("contextmenu", (e) => {
+    if (!e.target.closest("#menu")) e.preventDefault();
+  });
 
   const loadingScreen = document.getElementById("loading");
   const bar = document.getElementById("bar");
