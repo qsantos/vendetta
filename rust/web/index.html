@@ -5,10 +5,14 @@
 <title>Vendetta</title>
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-  canvas { display: block; width: 100%; height: 100%; }
+  canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* Shown behind the canvas until the game draws its first frame. */
+  #boot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+          color: #ddd; font: bold 16px Arial, sans-serif; }
 </style>
 </head>
 <body>
+<div id="boot">Chargement…</div>
 <canvas id="glcanvas" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
 <script src="mq_js_bundle.js"></script>
 <script>
