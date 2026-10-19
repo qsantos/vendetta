@@ -131,6 +131,8 @@ fn cursor_type(world: &World, rules: &Rules, player: usize, x: i32, y: i32) -> (
 }
 
 const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
+/// Beyond this many ticks waiting, a network game catches up at once rather than at its pace.
+const CATCH_UP_BACKLOG: usize = 10;
 /// How long a frame may play ticks when catching up with a network game.
 const CATCH_UP_SLICE: f64 = 0.03;
 /// The network game's save (one at a time), and its room's code.
@@ -345,8 +347,9 @@ async fn main() {
     let mut view = (0, 0);
     let mut cam = (0, 0);
     let mut orders = Vec::new();
-    // When the next tick is due.
+    // When the next tick is due, in solo and in network play.
     let mut next_tick = get_time();
+    let mut net_due = 0.0f64;
     // Made the first time the map is zoomed far out.
     let mut overview: Option<render::Overview> = None;
     // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
@@ -557,11 +560,20 @@ async fn main() {
             for order in orders.drain(..) {
                 net.send_order(&order);
             }
-            // a backlog (a slow frame, a hidden tab, a reconnection) is caught up quickly
+            // The ticks are played on a local clock, from a small buffer that absorbs the jitter
+            // of their arrival: played as they come, they would bunch up (two steps in a frame,
+            // then none). The buffer adapts: starved, the clock waits a tick more (a tick more of
+            // delay); with ticks piling up, it runs a little faster. Far behind (a hidden tab, a
+            // reconnection), it catches up at once.
+            let now = get_time();
+            let period = 1.0 / TICKS_PER_SECOND;
+            let catch_up = net.backlog() > CATCH_UP_BACKLOG;
             let start = perf::now();
+            net_due = net_due.max(now - period);
             let mut ticks = 0;
-            while (ticks < MAX_TICKS_PER_FRAME || perf::now() - start < CATCH_UP_SLICE) && let Some(tick) = net.next_tick() {
+            while (if catch_up { perf::now() - start < CATCH_UP_SLICE } else { now >= net_due }) && let Some(tick) = net.next_tick() {
                 ticks += 1;
+                net_due = if catch_up { now + period } else { net_due + period * if net.backlog() >= 2 { 0.9 } else { 1.0 } };
                 perf.time(perf::Part::Tick, || world.step(&rules, &tick));
                 net.after_tick(&world);
                 effects.tick(&world.events);
@@ -570,6 +582,9 @@ async fn main() {
                     hud.automatic_actions(&world, player, &mut orders);
                     hud.craft_from_queue(&world, &rules, player, &mut orders);
                 }
+            }
+            if !catch_up && net.backlog() == 0 && now >= net_due {
+                net_due = now + period;
             }
             if ticks > 0 {
                 cam = follow(&world, player, view);
