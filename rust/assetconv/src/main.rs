@@ -7,7 +7,8 @@
 //!   are replaced with real alpha.
 //! - Other BMPs (map data) become opaque PNGs, pixel for pixel.
 //! - Text files (ini, txt, ia) are re-encoded from Latin-1 to UTF-8.
-//! - Everything else useful (wav, mid, gif) is copied as is.
+//! - Everything else useful (wav, mid, gif) is copied as is. MIDI music is also rendered to
+//!   Ogg Vorbis (browsers cannot play MIDI) with a General MIDI soundfont and `ffmpeg`.
 //! - `manifest.txt` lists every output file with its size and a content hash
 //!   (`path<TAB>bytes<TAB>hash`): the browser cannot list directories, shows loading progress
 //!   in bytes, and requests `path?v=hash` so that files can be cached forever.
@@ -18,12 +19,22 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() != 3 {
-        eprintln!("usage: {} GAME_DIR OUT_DIR", args[0]);
+    if args.len() != 3 && args.len() != 4 {
+        eprintln!("usage: {} GAME_DIR OUT_DIR [SOUNDFONT.sf2]", args[0]);
         std::process::exit(2);
     }
     let src = PathBuf::from(&args[1]);
     let out = PathBuf::from(&args[2]);
+    let soundfont_path = args.get(3).cloned().unwrap_or_else(|| DEFAULT_SOUNDFONT.to_owned());
+    let soundfont = match fs::File::open(&soundfont_path).map_err(|e| e.to_string()).and_then(|mut f| {
+        rustysynth::SoundFont::new(&mut f).map_err(|e| format!("{e:?}"))
+    }) {
+        Ok(sf) => Some(std::sync::Arc::new(sf)),
+        Err(e) => {
+            eprintln!("no music rendering ({soundfont_path}: {e})");
+            None
+        }
+    };
     let mut files = Vec::new();
     walk(&src, &mut files);
     files.sort();
@@ -72,13 +83,63 @@ fn main() {
                 fs::copy(path, &dst).unwrap();
             }
         }
-        let content = fs::read(&dst).unwrap();
-        let (size, hash) = (content.len(), fnv1a(&content));
-        manifest.push(format!("{}\t{size}\t{hash:016x}", dst_rel.to_string_lossy().replace('\\', "/")));
+        record(&mut manifest, &dst_rel, &dst);
+        if let (Some(sf), "mid") = (&soundfont, ext.as_str()) {
+            let ogg_rel = dst_rel.with_extension("ogg");
+            let ogg = out.join(&ogg_rel);
+            match render_midi(sf, &dst, &ogg) {
+                Ok(()) => record(&mut manifest, &ogg_rel, &ogg),
+                Err(e) => eprintln!("skipping {}: {e}", ogg_rel.display()),
+            }
+        }
     }
     manifest.sort();
     fs::write(out.join("manifest.txt"), manifest.join("\n") + "\n").unwrap();
     eprintln!("wrote {} files", manifest.len());
+}
+
+/// The manifest line of an output file: `path<TAB>size<TAB>hash`.
+fn record(manifest: &mut Vec<String>, rel: &Path, path: &Path) {
+    let content = fs::read(path).unwrap();
+    let (size, hash) = (content.len(), fnv1a(&content));
+    manifest.push(format!("{}\t{size}\t{hash:016x}", rel.to_string_lossy().replace('\\', "/")));
+}
+
+/// Debian's General MIDI soundfont (TimGM6mb), close in spirit to the Windows synthesizer the
+/// original played its MIDI music through.
+const DEFAULT_SOUNDFONT: &str = "/usr/share/sounds/sf2/default-GM.sf2";
+const SAMPLE_RATE: i32 = 44100;
+
+/// Renders a MIDI file to Ogg Vorbis: synthesise it, normalise it to -1 dBFS, and encode it
+/// with `ffmpeg`.
+fn render_midi(soundfont: &std::sync::Arc<rustysynth::SoundFont>, mid: &Path, ogg: &Path) -> Result<(), String> {
+    use rustysynth::{MidiFile, MidiFileSequencer, Synthesizer, SynthesizerSettings};
+    use std::io::Write;
+    let settings = SynthesizerSettings::new(SAMPLE_RATE);
+    let synth = Synthesizer::new(soundfont, &settings).map_err(|e| format!("{e:?}"))?;
+    let midi = MidiFile::new(&mut fs::File::open(mid).map_err(|e| e.to_string())?).map_err(|e| format!("{e:?}"))?;
+    let midi = std::sync::Arc::new(midi);
+    let mut sequencer = MidiFileSequencer::new(synth);
+    sequencer.play(&midi, false);
+    // the whole piece plus two seconds for the last notes to fade
+    let len = (SAMPLE_RATE as f64 * (midi.get_length() + 2.0)) as usize;
+    let (mut left, mut right) = (vec![0f32; len], vec![0f32; len]);
+    sequencer.render(&mut left, &mut right);
+    let peak = left.iter().chain(&right).fold(0f32, |m, v| m.max(v.abs()));
+    let gain = if peak > 0.0 { 0.89 / peak } else { 1.0 };
+    let pcm: Vec<u8> = left.iter().zip(&right).flat_map(|(l, r)| [l * gain, r * gain]).flat_map(f32::to_le_bytes).collect();
+    let mut ffmpeg = std::process::Command::new("ffmpeg")
+        .args(["-loglevel", "error", "-y", "-f", "f32le", "-ar", &SAMPLE_RATE.to_string(), "-ac", "2", "-i", "-"])
+        .args(["-c:a", "libvorbis", "-q:a", "2"])
+        .arg(ogg)
+        .stdin(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("ffmpeg: {e}"))?;
+    ffmpeg.stdin.take().unwrap().write_all(&pcm).map_err(|e| e.to_string())?;
+    match ffmpeg.wait() {
+        Ok(status) if status.success() => Ok(()),
+        _ => Err("ffmpeg failed".into()),
+    }
 }
 
 /// 64-bit FNV-1a: a stable content hash, only used to version URLs.
