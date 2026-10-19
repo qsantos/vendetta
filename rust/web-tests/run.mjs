@@ -30,6 +30,9 @@ const SCENES = {
   start: { hash: "seed=1", steps: [["move", 512, 600]] },
   inventory: { hash: "seed=1", steps: [["key", "KeyI"], ["move", 512, 600]] },
   resources: { hash: "seed=1", steps: [["key", "KeyR"], ["move", 512, 600]] },
+  // The skills window, every skill shown (its 4th sort button).
+  skills: { hash: "seed=1", steps: [["key", "KeyT"], ["left", 222, 437], ["move", 512, 740]] },
+  bestiary: { hash: "seed=1", steps: [["key", "KeyU"], ["move", 512, 740]] },
   // The build buttons slid out, with a building's tooltip.
   build_tooltip: { hash: "seed=1", steps: [["move", 2, 265], ["wait", 1], ["move", 14, 290], ["wait", 0.5]] },
   // The radial buttons around a right click on the ground.
