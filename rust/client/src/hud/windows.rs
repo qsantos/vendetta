@@ -17,6 +17,7 @@ const ACTION: &str = "Images/Boutons/Action.bmp";
 const COMMERCE: &str = "Images/Boutons/Commerce.bmp";
 const TRANSFERT: &str = "Images/Boutons/Transfert.bmp";
 const DEFILEMENT: &str = "Images/Boutons/Defilement.bmp";
+const COMPETENCES: &str = "Images/Boutons/Competences.bmp";
 const DEFAULT_POS: [(i32, i32); 8] = [(704, 0), (704, 368), (64, 0), (64, 368), (384, 0), (384, 368), (64, 0), (64, 0)];
 /// Draw order (later on top).
 const DRAW_ORDER: [usize; 8] = [4, 0, 1, 2, 3, 5, 6, 7];
@@ -38,7 +39,7 @@ fn background(i: usize, female: bool, house: bool) -> String {
 }
 
 pub fn images(rules: &Rules) -> Vec<String> {
-    let mut v: Vec<String> = [ACTION, COMMERCE, TRANSFERT, DEFILEMENT].map(String::from).to_vec();
+    let mut v: Vec<String> = [ACTION, COMMERCE, TRANSFERT, DEFILEMENT, COMPETENCES].map(String::from).to_vec();
     v.extend((0..8).flat_map(|i| [false, true].map(|f| [background(i, f, false), background(i, f, true)])).flatten());
     v.extend(rules.resources.iter().map(|r| resource_icon(&r.image)));
     // every object's icon: inventories can hold any of them (about 1 MB)
@@ -75,6 +76,10 @@ pub struct WindowStrings {
     /// The house toggle's tooltips: to the house, to the bag; with an object held, store it in
     /// the house, take it into the bag.
     house_toggle: [String; 4],
+    /// `EtiquetteNivPlus`, the skills window's progress column.
+    niv_plus: String,
+    /// The skills window's sort buttons: none, alphabetical, by score, show all.
+    skill_sorts: [String; 4],
 }
 
 impl WindowStrings {
@@ -119,6 +124,8 @@ impl WindowStrings {
                 "InventaireMaisonMessageMaisonObjet",
             ]
             .map(|k| s(&f, k)),
+            niv_plus: s(&g, "EtiquetteNivPlus"),
+            skill_sorts: std::array::from_fn(|n| s(&f, &format!("BoutonCompetence{}Etiquette", n + 1))),
             // "Argent" from `EtiquetteArgent`, first letter upper-cased
             money: chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default(),
         }
@@ -138,6 +145,12 @@ pub struct Windows {
     craft_scroll: usize,
     /// `Bascule`: the inventory window shows the house's inventory (in the own house only).
     house_view: bool,
+    /// Scroll offsets of the skills and bestiary windows.
+    skill_scroll: usize,
+    bestiary_scroll: usize,
+    /// `CompetencesTri` (0 none, 1 alphabetical, 2 by score) and `CompetencesAfficherToutes`.
+    skill_sort: usize,
+    skill_all: bool,
 }
 
 /// Opaque blit (black drawn) or colour-keyed blit of a sheet cell.
@@ -164,6 +177,33 @@ fn inside(m: (i32, i32), x: i32, y: i32, w: i32, h: i32) -> bool {
     m.0 >= x && m.0 <= x + w && m.1 >= y && m.1 <= y + h
 }
 
+/// A scrolling list, each with its own offset.
+#[derive(Clone, Copy)]
+enum List {
+    /// The resource lists of windows 0 and 1, which share theirs.
+    Resources,
+    Crafting,
+    Skills,
+    Bestiary,
+}
+
+/// Rows shown by the skills and bestiary windows (`CompetencesNombreLignes + 1`).
+const SKILL_ROWS: usize = 16;
+/// The skills window's sort buttons: x in the window (y 61), 28×16 cells of `Competences.bmp`.
+const SKILL_SORT_X: [i32; 4] = [43, 75, 106, 146];
+
+/// A line of the skills window (`ClsJeuCompetences`).
+struct SkillRow {
+    name: String,
+    value: i64,
+    /// Progress toward the next level, 0 to 1 (`NivPlus`).
+    progress: f64,
+    /// In use: the name in dark red.
+    active: bool,
+    /// Raised by an item: the value in dark red.
+    bonus: bool,
+}
+
 /// What a window button does, collected while drawing and applied by `interact`.
 struct Hit {
     tip: String,
@@ -181,23 +221,43 @@ struct Hit {
 
 impl Windows {
     pub fn new(strings: WindowStrings) -> Windows {
-        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false }
+        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false, skill_scroll: 0, bestiary_scroll: 0, skill_sort: 1, skill_all: false }
     }
 }
 
 impl Hud {
-    /// The list window `i` scrolls, if any: (is the crafting list, last offset).
-    fn scroll_list(&self, world: &World, rules: &Rules, player: usize, i: usize) -> Option<(bool, usize)> {
+    /// The list window `i` scrolls, if any, and its last offset.
+    fn scroll_list(&self, world: &World, rules: &Rules, player: usize, i: usize) -> Option<(List, usize)> {
         let p = &world.persos[player];
-        if i == 0 && (p.in_house || p.in_own_house) {
-            let h = if p.in_own_house { player } else { p.house_target };
-            let b = &rules.buildings[world.houses[h].kind];
-            if !b.market {
-                // a house: only a workshop with more than 8 objects scrolls
-                return (b.factory && b.objects.len() > 8).then(|| (true, b.objects.len() - 8));
+        match i {
+            0 if p.in_house || p.in_own_house => {
+                let h = if p.in_own_house { player } else { p.house_target };
+                let b = &rules.buildings[world.houses[h].kind];
+                if !b.market {
+                    // a house: only a workshop with more than 8 objects scrolls
+                    return (b.factory && b.objects.len() > 8).then(|| (List::Crafting, b.objects.len() - 8));
+                }
+                Some((List::Resources, rules.resources.len().saturating_sub(ROWS)))
             }
+            0 | 1 => Some((List::Resources, rules.resources.len().saturating_sub(ROWS))),
+            // only with more than 16 skills
+            3 => {
+                let n = self.skill_rows(world, rules, player).len();
+                (n > SKILL_ROWS).then(|| (List::Skills, n - SKILL_ROWS))
+            }
+            // always, over every race
+            5 => Some((List::Bestiary, rules.races.len().saturating_sub(SKILL_ROWS))),
+            _ => None,
         }
-        Some((false, rules.resources.len().saturating_sub(ROWS)))
+    }
+
+    fn scroll_offset(&mut self, list: List) -> &mut usize {
+        match list {
+            List::Resources => &mut self.windows.scroll,
+            List::Crafting => &mut self.windows.craft_scroll,
+            List::Skills => &mut self.windows.skill_scroll,
+            List::Bestiary => &mut self.windows.bestiary_scroll,
+        }
     }
 
     /// Whether the mouse is over an open window, and whether that window scrolls.
@@ -205,7 +265,7 @@ impl Hud {
         (0..8)
             .filter(|&i| self.window_visible(world, player, i))
             .find(|&i| inside(m, self.windows.pos[i].0, self.windows.pos[i].1, W, H))
-            .map(|i| i <= 1 && self.scroll_list(world, rules, player, i).is_some())
+            .map(|i| self.scroll_list(world, rules, player, i).is_some())
     }
 
     fn window_visible(&self, world: &World, player: usize, i: usize) -> bool {
@@ -234,15 +294,21 @@ impl Hud {
             let (x, y) = self.windows.pos[i];
             let female = world.persos[player].female;
             let house = i == 4 && self.house_view(world, player);
+            if i == 3 {
+                // the skills' progress bars show through the background
+                self.skill_bars(world, rules, player, (x, y));
+            }
             if let Some(tex) = textures.get(&background(i, female, house)) {
                 draw_texture(tex, x as f32, y as f32, WHITE);
             }
             match i {
                 0 => self.building_window(world, rules, textures, player, (x, y), &mut hits),
                 1 => self.resources_window(world, rules, textures, player, (x, y), &mut hits),
+                3 => self.skills_window(world, rules, textures, player, (x, y)),
                 4 => self.inventory_window(world, rules, textures, player, (x, y), &mut hits),
+                5 => self.bestiary_window(world, rules, textures, player, (x, y)),
                 _ => {
-                    // TODO: windows 2-7 contents
+                    // TODO: windows 2, 6 and 7 contents
                     let title = &self.windows.strings.titles[i];
                     let tx = if i == 4 { 32 } else { 128 };
                     self.text(x + tx, y + 32, title, BLACK);
@@ -271,13 +337,14 @@ impl Hud {
         // The wheel scrolls the list of the window under the cursor, whatever button it is on.
         let wheel = mouse_wheel().1;
         if wheel != 0.0 {
-            for i in [0, 1] {
+            // topmost first
+            for &i in DRAW_ORDER.iter().rev() {
                 let (x, y) = self.windows.pos[i];
                 if !self.window_visible(world, player, i) || !inside(m, x, y, W, H) {
                     continue;
                 }
-                if let Some((crafting, n)) = self.scroll_list(world, rules, player, i) {
-                    let offset = if crafting { &mut self.windows.craft_scroll } else { &mut self.windows.scroll };
+                if let Some((list, n)) = self.scroll_list(world, rules, player, i) {
+                    let offset = self.scroll_offset(list);
                     *offset = if wheel > 0.0 { offset.saturating_sub(1) } else { (*offset + 1).min(n) };
                 }
                 break;
@@ -330,23 +397,44 @@ impl Hud {
                 return true;
             }
         }
-        // Scroll bars of windows 0/1: the resource lists (shared), or a workshop's crafting list.
-        for i in [0, 1] {
+        // The skills window's sort buttons (`CI:3481-3515`): sort, or show all; back to the top.
+        if self.window_visible(world, player, 3) {
+            let (x, y) = self.windows.pos[3];
+            for (k, bx) in SKILL_SORT_X.into_iter().enumerate() {
+                if inside(m, x + bx, y + 61, 28, 16) {
+                    *tip = self.windows.strings.skill_sorts[k].clone();
+                    if input.left_pressed || input.right_pressed {
+                        if k < 3 {
+                            self.windows.skill_sort = k;
+                        } else {
+                            self.windows.skill_all = !self.windows.skill_all;
+                        }
+                        self.windows.skill_scroll = 0;
+                    }
+                    return true;
+                }
+            }
+        }
+        // Scroll bars: the resource lists of windows 0/1 (shared), a workshop's crafting list,
+        // the skills and the bestiary.
+        for i in [0, 1, 3, 5] {
             if !self.window_visible(world, player, i) {
                 continue;
             }
-            let Some((crafting, n)) = self.scroll_list(world, rules, player, i) else { continue };
+            let Some((list, n)) = self.scroll_list(world, rules, player, i) else { continue };
             let (x, y) = self.windows.pos[i];
-            let offset = if crafting { &mut self.windows.craft_scroll } else { &mut self.windows.scroll };
+            let strings = &self.windows.strings.scroll;
+            let (up, down) = (strings[0].clone(), strings[1].clone());
+            let offset = self.scroll_offset(list);
             if inside(m, x + 300, y + 66, 16, 44) {
-                *tip = self.windows.strings.scroll[0].clone();
+                *tip = up;
                 if input.left_pressed {
                     *offset = offset.saturating_sub(1);
                 }
                 return true;
             }
             if inside(m, x + 300, y + 308, 16, 44) {
-                *tip = self.windows.strings.scroll[1].clone();
+                *tip = down;
                 if input.left_pressed {
                     *offset = (*offset + 1).min(n);
                 }
@@ -367,12 +455,12 @@ impl Hud {
     }
 
     /// `Afficher_BoutonsDefilement` for the resource lists.
-    fn scroll_bar(&self, textures: &Textures, origin: (i32, i32), n: usize) {
+    fn scroll_bar(&self, textures: &Textures, origin: (i32, i32), n: usize, offset: usize) {
         let (x, y) = origin;
         cell(textures, DEFILEMENT, x + 300, y + 66, 0, 0, (16, 44), false);
         cell(textures, DEFILEMENT, x + 300, y + 308, 1, 0, (16, 44), false);
         cell(textures, DEFILEMENT, x + 300, y + 110, 2, 0, (16, 198), false);
-        let thumb = if n > 0 { 110 + 182 * self.windows.scroll as i32 / n as i32 } else { 110 };
+        let thumb = if n > 0 { 110 + 182 * offset as i32 / n as i32 } else { 110 };
         cell(textures, DEFILEMENT, x + 300, y + thumb, 3, 0, (16, 16), false);
     }
 
@@ -454,7 +542,7 @@ impl Hud {
                 hits.push((rect(216 + 24 * j, y - 6, 24, 24), hit));
             }
         }
-        self.scroll_bar(textures, o, rules.resources.len().saturating_sub(ROWS));
+        self.scroll_bar(textures, o, rules.resources.len().saturating_sub(ROWS), self.windows.scroll);
 
         // Money line, with deposit buttons in the own house.
         self.text(o.0 + 32, o.1 + 54, &format!("{} : {}", s.money, p.money().floor()), BLACK);
@@ -829,6 +917,150 @@ impl Hud {
                 }));
             }
         }
-        self.scroll_bar(textures, o, rules.resources.len().saturating_sub(ROWS));
+        self.scroll_bar(textures, o, rules.resources.len().saturating_sub(ROWS), self.windows.scroll);
+    }
+}
+
+/// `Progression_Competence*`: how far a skill is toward its next level, 0 to 1.
+fn progress(s: &sim::perso::Skill) -> f64 {
+    let x = &s.xp;
+    (x.exp - x.exp_level) / (x.exp_next - x.exp_level)
+}
+
+impl Hud {
+    /// `Actualiser_Competences` (`CI:1341-1493`): the special, resource, service and item
+    /// skills that have a level or some progress (all of them with "show all"), sorted. The
+    /// original rebuilt it once a second; here every frame.
+    fn skill_rows(&self, world: &World, rules: &Rules, player: usize) -> Vec<SkillRow> {
+        let p = &world.persos[player];
+        let all = self.windows.skill_all;
+        let shown = |s: &sim::perso::Skill| all || s.xp.level > 0 || progress(s) > 0.0;
+        let mut rows = Vec::new();
+        for (i, s) in p.special.iter().enumerate().filter(|(_, s)| shown(s)) {
+            rows.push(SkillRow {
+                name: format!("{} :", rules.special_skills[i]),
+                value: s.bonus,
+                progress: progress(s),
+                // building (action 6), demolishing (attacking a house or a castle)
+                active: (p.action == 6 && i == 0) || ((p.action == 301 || p.action == 302) && i == 1),
+                bonus: p.special_boosted(rules, i),
+            });
+        }
+        for (i, s) in p.resource_skills.iter().enumerate().filter(|(_, s)| shown(s)) {
+            rows.push(SkillRow {
+                name: format!("{} :", rules.resources[i].skill_name),
+                value: p.harvest_level(i) + rules.start_max_resources,
+                progress: progress(s),
+                active: p.current_resource == i as i64,
+                bonus: p.resource_boosted(rules, i),
+            });
+        }
+        for (i, s) in p.services.iter().enumerate().filter(|(_, s)| shown(s)) {
+            rows.push(SkillRow {
+                name: format!("{} :", rules.services[i + 1].skill_name),
+                value: s.bonus,
+                progress: progress(s),
+                active: p.action == 600 && p.current_service == i + 1,
+                bonus: p.service_boosted(rules, i),
+            });
+        }
+        // Item skills in their display order (`NoListe`), the first ("none") left out.
+        let worn = || p.equipped.iter().flatten().map(|it| &rules.objects[it.object]);
+        for k in 1..p.objects.len() {
+            let j = self.tooltip_labels.item_skill_order.get(k).copied().unwrap_or(k);
+            let Some(s) = p.objects.get(j).filter(|s| shown(s)) else { continue };
+            let mut active = if p.action == action::CRAFT {
+                // the skill of the object being made
+                let m = &world.houses[player];
+                let made = rules.buildings[m.kind].objects.get(p.craft_slot.max(0) as usize);
+                made.is_some_and(|&o| rules.objects[o].skill == j)
+            } else if let Ok(r) = usize::try_from(p.current_resource) {
+                // a worn object of this skill helps harvesting
+                worn().any(|o| o.bonus_resource.get(r).is_some_and(|&b| b > 0) && o.skill == j)
+            } else {
+                false
+            };
+            if !p.idle() && p.alive() {
+                // a worn object of this skill raising Energie or Moral
+                active |= worn().any(|o| (o.bonus[1] > 0 || o.bonus[3] != 0) && o.skill == j);
+            }
+            rows.push(SkillRow {
+                name: format!("{} :", rules.item_skills[j]),
+                value: s.bonus,
+                progress: progress(s),
+                active,
+                bonus: p.object_boosted(rules, j),
+            });
+        }
+        // `CompetencesTri`: by name, or by score then progress, highest first (stable sorts,
+        // like the original's bubble sorts).
+        match self.windows.skill_sort {
+            1 => rows.sort_by(|a, b| a.name.cmp(&b.name)),
+            2 => rows.sort_by(|a, b| (b.value as f64 + b.progress).total_cmp(&(a.value as f64 + a.progress))),
+            _ => {}
+        }
+        rows
+    }
+
+    /// `Afficher_InfosCompetences1`: the white progress bars, drawn before the background
+    /// (they show through its holes).
+    fn skill_bars(&self, world: &World, rules: &Rules, player: usize, o: (i32, i32)) {
+        let rows = self.skill_rows(world, rules, player);
+        for (y, row) in rows.iter().skip(self.windows.skill_scroll).take(SKILL_ROWS).enumerate() {
+            super::status_bar(row.progress, 0.0, 1.0, o.0 + 32 + 183, o.1 + 86 + 16 * y as i32, 81, 17, Some(WHITE));
+        }
+    }
+
+    /// Window 3 — Compétences (`Afficher_InfosCompetences2`): sort buttons, then a line per skill:
+    /// name, value and progress percentage.
+    fn skills_window(&self, world: &World, rules: &Rules, textures: &Textures, player: usize, o: (i32, i32)) {
+        let s = &self.windows.strings;
+        self.text(o.0 + 128, o.1 + 32, &s.titles[3], BLACK);
+        self.text(o.0 + 240, o.1 + 58, &s.niv_plus, BLACK);
+        for (k, bx) in SKILL_SORT_X.into_iter().enumerate() {
+            let on = if k < 3 { self.windows.skill_sort == k } else { self.windows.skill_all };
+            cell(textures, COMPETENCES, o.0 + bx, o.1 + 61, k as i32, on as i32, (28, 16), false);
+        }
+        let dark_red = Color::from_rgba(128, 0, 0, 255);
+        let rows = self.skill_rows(world, rules, player);
+        for (y, row) in rows.iter().skip(self.windows.skill_scroll).take(SKILL_ROWS).enumerate() {
+            let ty = o.1 + 86 + 16 * y as i32;
+            self.text(o.0 + 32, ty, &row.name, if row.active { dark_red } else { BLACK });
+            // `Str()` puts a space before positive numbers: x = 216 - 8 × Len(Str(value)).
+            let value = row.value.to_string();
+            let len = value.len() as i32 + (row.value >= 0) as i32;
+            self.text(o.0 + 216 - 8 * len, ty, &value, if row.bonus { dark_red } else { BLACK });
+            self.text(o.0 + 240, ty, &format!("{:02}%", (row.progress * 100.0).floor() as i64), BLACK);
+        }
+        if rows.len() > SKILL_ROWS {
+            self.scroll_bar(textures, o, rows.len() - SKILL_ROWS, self.windows.skill_scroll);
+        }
+    }
+
+    /// Window 5 — Bestiaire (`CIF:1262-1302`): kills per race, in alphabetical order of the
+    /// races' plural names, singular or plural by count. As in the original, the scroll offset
+    /// skips entries of the whole race list, killed or not.
+    fn bestiary_window(&self, world: &World, rules: &Rules, textures: &Textures, player: usize, o: (i32, i32)) {
+        let p = &world.persos[player];
+        self.text(o.0 + 128, o.1 + 32, &self.windows.strings.titles[5], BLACK);
+        let plural = &self.tooltip_labels.race_plural;
+        let mut order: Vec<usize> = (0..rules.races.len()).collect();
+        order.sort_by(|&a, &b| plural.get(a).cmp(&plural.get(b)));
+        let mut y = 0;
+        for (i, &r) in order.iter().enumerate() {
+            let kills = p.bestiary.get(r).copied().unwrap_or(0);
+            if kills <= 0 || i < self.windows.bestiary_scroll {
+                continue;
+            }
+            let name = if kills >= 2 { plural.get(r).cloned().unwrap_or_default() } else { rules.races[r].name[0].clone() };
+            let ty = o.1 + 86 + 16 * y;
+            self.text(o.0 + 32, ty, &format!("{name} :"), BLACK);
+            self.text(o.0 + 192, ty, &kills.to_string(), BLACK);
+            y += 1;
+            if y as usize >= SKILL_ROWS {
+                break;
+            }
+        }
+        self.scroll_bar(textures, o, rules.races.len().saturating_sub(SKILL_ROWS), self.windows.bestiary_scroll);
     }
 }
