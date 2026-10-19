@@ -135,3 +135,45 @@ async fn slow_players_are_not_waited_for_forever() {
     assert!(t.elapsed() >= Duration::from_millis(150), "{:?}", t.elapsed());
     next(&mut b, "tick").await;
 }
+
+/// A player who left takes its place back with its token, and gets the ticks it missed.
+#[tokio::test]
+async fn rejoining_a_game_in_progress() {
+    let port = serve().await;
+    let mut a = connect(port).await;
+    send(&mut a, json!({"t": "create", "name": "Alice"})).await;
+    let code = next(&mut a, "lobby").await["room"].as_str().unwrap().to_owned();
+    let mut b = connect(port).await;
+    send(&mut b, json!({"t": "join", "room": code, "name": "Bob"})).await;
+    let token = next(&mut b, "lobby").await["token"].as_str().unwrap().to_owned();
+    send(&mut a, json!({"t": "start"})).await;
+    next(&mut b, "start").await;
+    send(&mut a, json!({"t": "ready"})).await;
+    send(&mut b, json!({"t": "ready"})).await;
+    next(&mut b, "tick").await;
+    drop(b);
+
+    // a wrong token is turned away
+    let mut c = connect(port).await;
+    send(&mut c, json!({"t": "rejoin", "room": code, "token": "nope"})).await;
+    assert_eq!(next(&mut c, "error").await["message"], "plus dans cette partie");
+
+    // Alice plays on alone, with an order
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    send(&mut a, json!({"t": "order", "order": {"GoOwnCastle": {"perso": 3}}})).await;
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    let mut b = connect(port).await;
+    send(&mut b, json!({"t": "rejoin", "room": code.to_lowercase(), "token": token})).await;
+    let start = next(&mut b, "start").await;
+    assert_eq!((start["you"].clone(), start["resume"].clone()), (json!(1), json!(true)));
+    send(&mut b, json!({"t": "since", "have": 2})).await;
+    // every tick from the third on, in order, the missed ones then the live ones
+    let mut order_seen = false;
+    for n in 2..14 {
+        let t = next(&mut b, "tick").await;
+        assert_eq!(t["n"], n);
+        order_seen |= t["orders"].as_array().unwrap().len() == 1;
+    }
+    assert!(order_seen, "the order given while away");
+}

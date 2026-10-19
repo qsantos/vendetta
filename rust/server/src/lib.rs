@@ -13,12 +13,15 @@
 //! - `{"t":"settings","items":[…]}` (host): the world options, as in the URL's hash;
 //! - `{"t":"start"}` (host);
 //! - `{"t":"ready"}`: its world is made, the ticks may start;
+//! - `{"t":"rejoin","room":…,"token":…}`: take one's place back in a game in progress;
+//! - `{"t":"since","have":n}`: after a rejoin, the ticks from the n-th on (n of them played);
 //! - `{"t":"order","order":…}`: an order for the next tick, passed on as it is;
 //! - `{"t":"hash","tick":n,"hash":h}`: the world's digest after tick n.
 //!
 //! From the server:
-//! - `{"t":"lobby","room":…,"you":k,"host":k,"players":[{"name","fief","online"}],"items":[…]}`;
-//! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"you":k}`;
+//! - `{"t":"lobby","room":…,"you":k,"token":…,"host":k,"players":[{"name","fief","online"}],"items":[…]}`;
+//! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"you":k}`, with `"resume":true`
+//!   after a rejoin;
 //! - `{"t":"wait","ready":n,"players":m}`: n of the m players are ready;
 //! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
 //! - `{"t":"desync","tick":n}`, `{"t":"error","message":…}`.
@@ -28,6 +31,10 @@
 //! The ticks start once every player still connected is ready, or, with the room option
 //! `wait=F`, once F times what the first one ready took has passed: slow players then catch up.
 //! Always once one at least is ready.
+//!
+//! A player who leaves a game in progress keeps its place (its character stands still): with
+//! the token the lobby gave it, it takes it back and gets the ticks it missed, which the room
+//! keeps from the start. A game nobody is connected to lasts `GRACE`, then is forgotten.
 
 use axum::Router;
 use axum::extract::State;
@@ -51,6 +58,8 @@ const CODE_LEN: usize = 4;
 const SETTINGS: [&str; 6] = ["size", "fiefs", "villagers", "roads", "seed", "wait"];
 /// The default number of fiefs (`WorldSetup`).
 const DEFAULT_FIEFS: usize = 4;
+/// How long a game in progress lasts with nobody connected.
+const GRACE: Duration = Duration::from_secs(600);
 
 #[derive(Deserialize)]
 #[serde(tag = "t", rename_all = "lowercase")]
@@ -61,12 +70,18 @@ enum In {
     Settings { items: Vec<String> },
     Start,
     Ready,
+    Rejoin { room: String, token: String },
+    Since { have: usize },
     Order { order: Value },
     Hash { tick: u64, hash: u64 },
 }
 
 struct Player {
     id: u64,
+    /// The secret to take one's place back (see `In::Rejoin`).
+    token: String,
+    /// The connection it plays from: another one taking its place over makes it stale.
+    conn: u64,
     name: String,
     fief: usize,
     /// Its world is made (once started).
@@ -81,6 +96,7 @@ struct Room {
     host: u64,
     items: Vec<String>,
     started: bool,
+    seed: u32,
     /// The orders for the next tick, by player.
     pending: Vec<(usize, Value)>,
     /// The first digest reported for each recent tick.
@@ -89,6 +105,10 @@ struct Room {
     /// When the game started, and how long the first player ready took.
     started_at: Option<Instant>,
     first_ready: Option<Duration>,
+    /// Every tick sent, as sent.
+    log: Vec<String>,
+    /// Since when nobody is connected (a game in progress).
+    empty_since: Option<Instant>,
 }
 
 impl Room {
@@ -107,6 +127,22 @@ impl Room {
         let online = self.players.iter().filter(|p| p.tx.is_some());
         online.clone().all(|p| p.ready)
             || self.wait().zip(self.started_at).is_some_and(|(f, at)| at.elapsed() >= first.mul_f64(f))
+    }
+
+    /// Player k's world is made (or caught up with the game): see `all_ready`.
+    fn set_ready(&mut self, k: usize) {
+        if std::mem::replace(&mut self.players[k].ready, true) {
+            return;
+        }
+        let took = self.started_at.map_or(Duration::ZERO, |at| at.elapsed());
+        self.first_ready.get_or_insert(took);
+        let ready = self.players.iter().filter(|p| p.ready).count();
+        self.broadcast(&json!({"t": "wait", "ready": ready, "players": self.players.len()}));
+    }
+
+    /// Nobody connected for longer than `GRACE`.
+    fn abandoned(&self) -> bool {
+        self.empty_since.is_some_and(|t| t.elapsed() > GRACE)
     }
 
     fn index(&self, id: u64) -> Option<usize> {
@@ -130,7 +166,8 @@ impl Room {
         let host = self.index(self.host).unwrap_or(0);
         let players: Vec<Value> = self.players.iter().map(|p| json!({"name": p.name, "fief": p.fief, "online": p.tx.is_some()})).collect();
         for k in 0..self.players.len() {
-            self.send(k, &json!({"t": "lobby", "room": code, "you": k, "host": host, "players": players, "items": self.items}));
+            let token = &self.players[k].token;
+            self.send(k, &json!({"t": "lobby", "room": code, "you": k, "token": token, "host": host, "players": players, "items": self.items}));
         }
     }
 }
@@ -144,6 +181,11 @@ struct Rooms {
 impl Rooms {
     fn random(&self, n: u64) -> u64 {
         self.random.hash_one((n, std::time::SystemTime::now()))
+    }
+
+    fn player(&self, conn: u64, name: &str, tx: &UnboundedSender<String>) -> Player {
+        let token = format!("{:016x}{:016x}", self.random(conn), self.random(conn ^ 1));
+        Player { id: conn, token, conn, name: clean(name), fief: 1, ready: false, tx: Some(tx.clone()) }
     }
 }
 
@@ -176,9 +218,9 @@ fn error(tx: &UnboundedSender<String>, message: &str) {
 
 async fn connection(mut socket: WebSocket, rooms: Arc<Rooms>) {
     let (tx, mut rx) = unbounded_channel::<String>();
-    let id = rooms.random(0);
-    // The room code, once in one.
-    let mut joined: Option<String> = None;
+    let conn = rooms.random(0);
+    // The room code and the player's id, once in one.
+    let mut joined: Option<(String, u64)> = None;
     loop {
         tokio::select! {
             out = rx.recv() => {
@@ -194,39 +236,42 @@ async fn connection(mut socket: WebSocket, rooms: Arc<Rooms>) {
                     _ => break,
                 };
                 match serde_json::from_str::<In>(&text) {
-                    Ok(msg) => handle(&rooms, id, &tx, &mut joined, msg),
+                    Ok(msg) => handle(&rooms, conn, &tx, &mut joined, msg),
                     Err(e) => error(&tx, &format!("message invalide : {e}")),
                 }
             }
         }
     }
-    // Gone: a player of a game in progress keeps its place, one in the lobby leaves it.
-    let Some(code) = joined else { return };
+    // Gone: a player of a game in progress keeps its place, one in the lobby leaves it (unless
+    // another connection took its place over).
+    let Some((code, id)) = joined else { return };
     let mut all = rooms.rooms.lock().unwrap();
     let Some(room) = all.get_mut(&code) else { return };
-    if let Some(k) = room.index(id) {
-        if room.started {
-            room.players[k].tx = None;
-        } else {
-            room.players.remove(k);
-            if room.host == id
-                && let Some(p) = room.players.first()
-            {
-                room.host = p.id;
-            }
+    let Some(k) = room.index(id).filter(|&k| room.players[k].conn == conn) else { return };
+    if room.started {
+        room.players[k].tx = None;
+        if room.players.iter().all(|p| p.tx.is_none()) {
+            room.empty_since = Some(Instant::now());
         }
-    }
-    if room.players.iter().all(|p| p.tx.is_none()) {
-        all.remove(&code);
-    } else if !room.started {
-        room.send_lobby(&code);
+    } else {
+        room.players.remove(k);
+        if room.host == id
+            && let Some(p) = room.players.first()
+        {
+            room.host = p.id;
+        }
+        if room.players.is_empty() {
+            all.remove(&code);
+        } else {
+            room.send_lobby(&code);
+        }
     }
 }
 
-fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mut Option<String>, msg: In) {
+fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &mut Option<(String, u64)>, msg: In) {
     let mut all = rooms.rooms.lock().unwrap();
     match msg {
-        In::Create { .. } | In::Join { .. } if joined.is_some() => error(tx, "déjà dans une partie"),
+        In::Create { .. } | In::Join { .. } | In::Rejoin { .. } if joined.is_some() => error(tx, "déjà dans une partie"),
         In::Create { name } => {
             let code = loop {
                 let mut n = rooms.random(1);
@@ -241,10 +286,10 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
                     break code;
                 }
             };
-            let room = Room { players: vec![Player { id, name: clean(&name), fief: 1, ready: false, tx: Some(tx.clone()) }], host: id, ..Default::default() };
+            let room = Room { players: vec![rooms.player(conn, &name, tx)], host: conn, ..Default::default() };
             room.send_lobby(&code);
             all.insert(code.clone(), room);
-            *joined = Some(code);
+            *joined = Some((code, conn));
         }
         In::Join { room: code, name } => {
             let code = code.trim().to_uppercase();
@@ -253,14 +298,30 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
                 return error(tx, "la partie a déjà commencé");
             }
             // everyone starts in the first fief, together
-            room.players.push(Player { id, name: clean(&name), fief: 1, ready: false, tx: Some(tx.clone()) });
+            room.players.push(rooms.player(conn, &name, tx));
             room.send_lobby(&code);
-            *joined = Some(code);
+            *joined = Some((code, conn));
+        }
+        In::Rejoin { room: code, token } => {
+            let code = code.trim().to_uppercase();
+            let place = all.get_mut(&code).filter(|r| r.started).and_then(|r| Some((r.players.iter().position(|p| p.token == token)?, r)));
+            let Some((k, room)) = place else { return error(tx, "plus dans cette partie") };
+            let p = &mut room.players[k];
+            p.conn = conn;
+            p.tx = Some(tx.clone());
+            *joined = Some((code, p.id));
+            room.empty_since = None;
+            let fiefs: Vec<usize> = room.players.iter().map(|p| p.fief).collect();
+            room.send(k, &json!({"t": "start", "items": room.items, "seed": room.seed, "players": fiefs, "you": k, "resume": true}));
         }
         msg => {
-            let Some(code) = joined.as_deref() else { return error(tx, "pas dans une partie") };
+            let Some((code, id)) = joined.as_ref() else { return error(tx, "pas dans une partie") };
+            let (code, id) = (code.as_str(), *id);
             let Some(room) = all.get_mut(code) else { return };
             let Some(k) = room.index(id) else { return };
+            if room.players[k].conn != conn {
+                return error(tx, "partie reprise depuis une autre connexion");
+            }
             match msg {
                 In::Fief { fief } if !room.started && (1..=room.fiefs()).contains(&fief) => {
                     room.players[k].fief = fief;
@@ -277,20 +338,22 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
                 In::Start if !room.started && room.host == id => {
                     room.started = true;
                     room.started_at = Some(Instant::now());
-                    let seed = room.items.iter().find_map(|o| o.strip_prefix("seed=")?.parse::<u32>().ok()).unwrap_or(rooms.random(2) as u32);
+                    room.seed = room.items.iter().find_map(|o| o.strip_prefix("seed=")?.parse::<u32>().ok()).unwrap_or(rooms.random(2) as u32);
                     room.items.retain(|o| !o.starts_with("seed="));
                     let fiefs: Vec<usize> = room.players.iter().map(|p| p.fief).collect();
                     for k in 0..room.players.len() {
-                        room.send(k, &json!({"t": "start", "items": room.items, "seed": seed, "players": fiefs, "you": k}));
+                        room.send(k, &json!({"t": "start", "items": room.items, "seed": room.seed, "players": fiefs, "you": k}));
                     }
                     tokio::spawn(ticker(rooms.clone(), code.to_owned()));
                 }
-                In::Ready if room.started && !room.players[k].ready => {
-                    room.players[k].ready = true;
-                    let took = room.started_at.map_or(Duration::ZERO, |at| at.elapsed());
-                    room.first_ready.get_or_insert(took);
-                    let ready = room.players.iter().filter(|p| p.ready).count();
-                    room.broadcast(&json!({"t": "wait", "ready": ready, "players": room.players.len()}));
+                In::Ready if room.started => room.set_ready(k),
+                In::Since { have } if room.started => {
+                    for text in room.log.iter().skip(have) {
+                        if let Some(tx) = &room.players[k].tx {
+                            let _ = tx.send(text.clone());
+                        }
+                    }
+                    room.set_ready(k);
                 }
                 In::Order { order } if room.started => room.pending.push((k, order)),
                 In::Hash { tick, hash } if room.started => {
@@ -317,8 +380,12 @@ fn clean(name: &str) -> String {
 async fn ticker(rooms: Arc<Rooms>, code: String) {
     loop {
         {
-            let all = rooms.rooms.lock().unwrap();
+            let mut all = rooms.rooms.lock().unwrap();
             let Some(room) = all.get(&code) else { return };
+            if room.abandoned() {
+                all.remove(&code);
+                return;
+            }
             if room.all_ready() {
                 break;
             }
@@ -331,7 +398,15 @@ async fn ticker(rooms: Arc<Rooms>, code: String) {
         interval.tick().await;
         let mut all = rooms.rooms.lock().unwrap();
         let Some(room) = all.get_mut(&code) else { return };
+        if room.abandoned() {
+            all.remove(&code);
+            return;
+        }
         let orders: Vec<Value> = room.pending.drain(..).map(|(k, o)| json!([k, o])).collect();
-        room.broadcast(&json!({"t": "tick", "n": n, "orders": orders}));
+        let text = json!({"t": "tick", "n": n, "orders": orders}).to_string();
+        for tx in room.players.iter().filter_map(|p| p.tx.as_ref()) {
+            let _ = tx.send(text.clone());
+        }
+        room.log.push(text);
     }
 }
