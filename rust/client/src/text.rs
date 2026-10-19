@@ -1,12 +1,47 @@
 //! Anti-aliased text, rasterised at the size it appears on screen so it stays sharp at any
-//! interface scale.
+//! interface scale. Glyphs are packed into a shared texture (an atlas), so that a line of text
+//! is drawn in one batch rather than one draw call per letter.
 
 use macroquad::prelude::*;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
+/// Side of an atlas texture, in pixels.
+const ATLAS: u16 = 1024;
+
+/// A texture glyphs are packed into, row by row.
+struct Atlas {
+    texture: Texture2D,
+    /// Where the next glyph goes, and the height of the current row.
+    x: u16,
+    y: u16,
+    row: u16,
+}
+
+impl Atlas {
+    fn new() -> Atlas {
+        let texture = Texture2D::from_rgba8(ATLAS, ATLAS, &vec![0; ATLAS as usize * ATLAS as usize * 4]);
+        Atlas { texture, x: 0, y: 0, row: 0 }
+    }
+
+    /// Room for a `w`×`h` glyph (with a pixel of space around), or None when full.
+    fn place(&mut self, w: u16, h: u16) -> Option<(u16, u16)> {
+        if self.x + w + 1 > ATLAS {
+            (self.x, self.y, self.row) = (0, self.y + self.row + 1, 0);
+        }
+        if self.y + h + 1 > ATLAS || w + 1 > ATLAS {
+            return None;
+        }
+        let at = (self.x, self.y);
+        self.x += w + 1;
+        self.row = self.row.max(h);
+        Some(at)
+    }
+}
+
 struct Glyph {
-    texture: Option<Texture2D>,
+    /// The atlas holding it and where, None for blank glyphs.
+    texture: Option<(Texture2D, Rect)>,
     /// Placement and advance in screen pixels (of the rasterisation).
     xmin: f32,
     ymin: f32,
@@ -22,12 +57,15 @@ pub struct TextRenderer {
     /// Screen pixels per interface pixel; glyphs are rasterised at `px * scale`.
     scale: Cell<f32>,
     glyphs: RefCell<HashMap<char, Glyph>>,
+    /// Where new glyphs go; a full one is replaced, its glyphs keeping it.
+    atlas: RefCell<Atlas>,
 }
 
 impl TextRenderer {
     pub fn new(ttf: &[u8], px: f32) -> TextRenderer {
         let font = fontdue::Font::from_bytes(ttf, fontdue::FontSettings::default()).unwrap();
-        TextRenderer { font, px, scale: Cell::new(1.0), glyphs: RefCell::new(HashMap::new()) }
+        let (glyphs, atlas) = (RefCell::new(HashMap::new()), RefCell::new(Atlas::new()));
+        TextRenderer { font, px, scale: Cell::new(1.0), glyphs, atlas }
     }
 
     /// Sets how many screen pixels an interface pixel covers (re-rasterising on change).
@@ -35,14 +73,23 @@ impl TextRenderer {
         if (scale - self.scale.get()).abs() > 1e-4 {
             self.scale.set(scale);
             self.glyphs.borrow_mut().clear();
+            *self.atlas.borrow_mut() = Atlas::new();
         }
     }
 
     fn rasterise(&self, c: char) -> Glyph {
         let (m, alpha) = self.font.rasterize(c, self.px * self.scale.get());
         let texture = (m.width > 0 && m.height > 0).then(|| {
-            let rgba: Vec<u8> = alpha.iter().flat_map(|&a| [255, 255, 255, a]).collect();
-            Texture2D::from_rgba8(m.width as u16, m.height as u16, &rgba)
+            let (w, h) = (m.width as u16, m.height as u16);
+            let mut atlas = self.atlas.borrow_mut();
+            let (x, y) = atlas.place(w, h).unwrap_or_else(|| {
+                *atlas = Atlas::new();
+                atlas.place(w, h).expect("a glyph bigger than an atlas")
+            });
+            let bytes: Vec<u8> = alpha.iter().flat_map(|&a| [255, 255, 255, a]).collect();
+            let image = Image { bytes, width: w, height: h };
+            atlas.texture.update_part(&image, x as i32, y as i32, w as i32, h as i32);
+            (atlas.texture.clone(), Rect::new(x as f32, y as f32, w as f32, h as f32))
         });
         Glyph {
             texture,
@@ -61,12 +108,13 @@ impl TextRenderer {
         let mut pen = x as f32;
         for c in s.chars() {
             let g = glyphs.entry(c).or_insert_with(|| self.rasterise(c));
-            if let Some(t) = &g.texture {
+            if let Some((t, source)) = &g.texture {
                 // Snap to screen pixels so glyphs stay crisp.
                 let gx = ((pen + g.xmin / scale) * scale).round() / scale;
                 let gy = ((baseline as f32 - (g.ymin + g.height) / scale) * scale).round() / scale;
                 let size = vec2(g.width / scale, g.height / scale);
-                draw_texture_ex(t, gx, gy, colour, DrawTextureParams { dest_size: Some(size), ..Default::default() });
+                let params = DrawTextureParams { dest_size: Some(size), source: Some(*source), ..Default::default() };
+                draw_texture_ex(t, gx, gy, colour, params);
             }
             pen += g.advance / scale;
         }
