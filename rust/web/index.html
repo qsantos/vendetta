@@ -22,13 +22,55 @@
             color: #000; font: bold 13px Arial, "Liberation Sans", sans-serif; line-height: 16px;
             white-space: pre; }
   #bubble .red { color: #f00; }
+  /* The pre-game menu: the solo game's settings, kept in the address's hash. */
+  #menu { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center;
+          justify-content: center; background: #000;
+          font: 15px Arial, "Liberation Sans", sans-serif; color: #e8e8d0; }
+  #menu[hidden], #loading[hidden] { display: none; }
+  #menu form { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70);
+               border-radius: 12px; padding: 20px 28px; min-width: 300px; }
+  #menu h1 { margin: 0 0 16px; font-size: 22px; text-align: center; }
+  #menu label { display: flex; justify-content: space-between; align-items: center;
+                gap: 16px; margin: 8px 0; }
+  #menu input[type=number], #menu select { width: 200px; font: inherit; }
+  #menu fieldset { border: 1px solid rgb(120, 150, 70); margin: 14px 0 0; }
+  #menu .buttons { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
+  #menu button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 6px 14px; }
 </style>
 </head>
 <body>
-<div id="loading">
+<div id="menu" hidden>
+  <form>
+    <h1>Vendetta</h1>
+    <label>Taille de la carte
+      <select name="size">
+        <option value="128">128 × 128</option><option value="192">192 × 192</option>
+        <option value="256">256 × 256</option><option value="384">384 × 384</option>
+        <option value="512">512 × 512</option><option value="640">640 × 640</option>
+        <option value="768">768 × 768</option><option value="1024">1024 × 1024</option>
+      </select></label>
+    <label>Peuples <input type="number" name="fiefs" min="2" max="200" placeholder="4"></label>
+    <label>Villageois par peuple <input type="number" name="villagers" min="1" max="2000" placeholder="10"></label>
+    <label>Routes
+      <select name="roads">
+        <option value="">vers les châteaux proches</option>
+        <option value="ring">en anneau (l'original)</option>
+      </select></label>
+    <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
+    <fieldset><legend>Tests</legend>
+      <label>Invincible <input type="checkbox" name="god"></label>
+      <label>Performances <input type="checkbox" name="perf"></label>
+    </fieldset>
+    <div class="buttons">
+      <button type="button" id="continue" hidden>Continuer la partie</button>
+      <button type="submit">Nouvelle partie</button>
+    </div>
+  </form>
+</div>
+<div id="loading" hidden>
   <div id="frame"><div id="bar"></div><img id="art" alt=""></div>
 </div>
-<div id="bubble">Chargement…</div>
+<div id="bubble" hidden>Chargement…</div>
 <canvas id="glcanvas" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
 <!-- build-web.sh appends ?v=<hash> to these two URLs so they can be cached for good -->
 <script src="mq_js_bundle.js"></script>
@@ -36,6 +78,7 @@
   // Digits are the object keys: keep Firefox's quick find (' is 4 on AZERTY, /) and similar
   // shortcuts from taking them.
   window.addEventListener("keydown", (e) => {
+    if (e.target.closest && e.target.closest("form")) return; // the menu's fields
     if (/^(Digit\d|Quote|Slash)$/.test(e.code) && !e.ctrlKey && !e.metaKey) e.preventDefault();
   });
 </script>
@@ -161,14 +204,26 @@
     },
   });
 
-  // The options in the URL's hash. `new` (a new world) applies to this load only: it is taken
-  // out of the address, so that reloading resumes that world.
-  const startHash = decodeURIComponent(location.hash.slice(1));
-  {
-    const rest = startHash.split("&").filter((o) => o && o !== "new");
-    if (rest.length !== startHash.split("&").filter((o) => o).length) {
-      history.replaceState(null, "", location.pathname + location.search + (rest.length ? "#" + rest.join("&") : ""));
-    }
+  // The options in the URL's hash (see client/src/options.rs), which the game reads as it
+  // starts. `play` starts it at once; without it, the pre-game menu shows them and every change
+  // rewrites the hash in place. `new` (a new world) applies to one start only: it is taken out
+  // of the address, so that reloading resumes that world.
+  const hashItems = () => decodeURIComponent(location.hash.slice(1)).split("&").filter((o) => o);
+  const setHash = (items) => history.replaceState(null, "", location.pathname + location.search + (items.length ? "#" + items.join("&") : ""));
+  let startHash = "";
+  // The settings the game in progress was started with, for "Continuer la partie".
+  const lastKey = "vendetta-game";
+  function begin(items) {
+    const kept = items.filter((o) => o !== "new");
+    try {
+      localStorage.setItem(lastKey, kept.filter((o) => o !== "play").join("&"));
+    } catch (e) {}
+    startHash = items.join("&");
+    setHash(kept);
+    document.getElementById("menu").hidden = true;
+    loadingScreen.hidden = false;
+    bubble.hidden = false;
+    startGame();
   }
 
   // Persistent blobs: gzip-compressed in IndexedDB (database "vendetta", store "blobs"),
@@ -252,7 +307,7 @@
   })();
 
   // Download the game ourselves to show its progress, then hand it to miniquad's loader.
-  (async () => {
+  const startGame = async () => {
     try {
       const response = await fetch("client.wasm");
       if (!response.ok) throw new Error(`client.wasm: ${response.status}`);
@@ -273,7 +328,54 @@
     } catch (e) {
       showMessage("&Erreur#" + e.message);
     }
-  })();
+  };
+
+  // The pre-game menu: the form mirrors the hash; flags are checkboxes, other keys values.
+  {
+    const form = document.querySelector("#menu form");
+    const fields = ["size", "fiefs", "villagers", "roads", "seed"];
+    const flags = ["god", "perf"];
+    const fill = () => {
+      const items = hashItems();
+      const value = (k) => (items.find((o) => o.startsWith(k + "=")) || "").slice(k.length + 1);
+      for (const k of fields) form.elements[k].value = value(k);
+      if (!form.elements.size.value) form.elements.size.value = "128";
+      for (const k of flags) form.elements[k].checked = items.includes(k);
+    };
+    // the menu's items, the hash's other ones kept (e.g. `test`)
+    const items = () => {
+      const ours = (o) => fields.some((k) => o.startsWith(k + "=")) || flags.includes(o) || o === "play" || o === "new";
+      const out = hashItems().filter((o) => !ours(o));
+      for (const k of fields) {
+        const v = String(form.elements[k].value).trim();
+        if (v && !(k === "size" && v === "128")) out.push(k + "=" + v);
+      }
+      for (const k of flags) if (form.elements[k].checked) out.push(k);
+      return out;
+    };
+    form.addEventListener("input", () => setHash(items()));
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      begin([...items(), "play", "new"]);
+    });
+    document.getElementById("continue").addEventListener("click", () => {
+      let last = "";
+      try {
+        last = localStorage.getItem(lastKey) || "";
+      } catch (e) {}
+      begin([...last.split("&").filter((o) => o), "play"]);
+    });
+    if (hashItems().includes("play")) {
+      begin(hashItems());
+    } else {
+      fill();
+      document.getElementById("menu").hidden = false;
+      // "Continuer" only with a saved game
+      storageReady.then(() => {
+        document.getElementById("continue").hidden = !blobs.has("save");
+      });
+    }
+  }
 </script>
 </body>
 </html>

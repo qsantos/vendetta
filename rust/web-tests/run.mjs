@@ -3,7 +3,7 @@
 //
 //   node web-tests/run.mjs [--update] [scene...]     (after ./build-web.sh, from rust/)
 //
-// Each scene loads the game with `#test` (a still world, no storage, no FPS counter; see
+// Each scene loads the game with `#test&…&play` (a still world, no storage, no FPS counter; see
 // client/src/options.rs) and a fixed seed, then moves, clicks, presses keys. A scene passes when
 // at most 0.1 % of its pixels differ by more than 24 in a channel. Failures write `out/<scene>.png`
 // and `out/<scene>-diff.png` (differences in red). `--update` rewrites the references.
@@ -176,7 +176,7 @@ async function connect() {
 
 async function play(send, scene) {
   await send("Page.navigate", { url: "about:blank" });
-  await send("Page.navigate", { url: `http://127.0.0.1:${SERVER_PORT}/#test&${scene.hash}` });
+  await send("Page.navigate", { url: `http://127.0.0.1:${SERVER_PORT}/#test&${scene.hash}&play` });
   const evaluate = async (expression) => (await send("Runtime.evaluate", { expression, returnByValue: true })).result?.result?.value;
   for (let i = 0; ; i++) {
     if (i > 600) throw new Error(`the game did not load: ${await evaluate("document.body.innerText.slice(0, 300)")} ${errors.join("; ")}`);
