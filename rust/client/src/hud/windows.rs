@@ -151,6 +151,8 @@ pub struct Windows {
     /// `CompetencesTri` (0 none, 1 alphabetical, 2 by score) and `CompetencesAfficherToutes`.
     skill_sort: usize,
     skill_all: bool,
+    /// The skills table, with the tick and sort it was made for.
+    skill_cache: std::cell::RefCell<Option<((u64, usize, bool), std::rc::Rc<Vec<SkillRow>>)>>,
 }
 
 /// Opaque blit (black drawn) or colour-keyed blit of a sheet cell.
@@ -221,7 +223,7 @@ struct Hit {
 
 impl Windows {
     pub fn new(strings: WindowStrings) -> Windows {
-        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false, skill_scroll: 0, bestiary_scroll: 0, skill_sort: 1, skill_all: false }
+        Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false, skill_scroll: 0, bestiary_scroll: 0, skill_sort: 1, skill_all: false, skill_cache: Default::default() }
     }
 }
 
@@ -930,8 +932,22 @@ fn progress(s: &sim::perso::Skill) -> f64 {
 impl Hud {
     /// `Actualiser_Competences` (`CI:1341-1493`): the special, resource, service and item
     /// skills that have a level or some progress (all of them with "show all"), sorted. The
-    /// original rebuilt it once a second; here every frame.
-    fn skill_rows(&self, world: &World, rules: &Rules, player: usize) -> Vec<SkillRow> {
+    /// original rebuilt it once a second; here once per tick.
+    fn skill_rows(&self, world: &World, rules: &Rules, player: usize) -> std::rc::Rc<Vec<SkillRow>> {
+        let key = (world.tick, self.windows.skill_sort, self.windows.skill_all);
+        let mut cache = self.windows.skill_cache.borrow_mut();
+        match &*cache {
+            Some((k, rows)) if *k == key => rows.clone(),
+            _ => {
+                let rows = std::rc::Rc::new(self.make_skill_rows(world, rules, player));
+                *cache = Some((key, rows.clone()));
+                rows
+            }
+        }
+    }
+
+    /// The table [`Hud::skill_rows`] keeps for a tick.
+    fn make_skill_rows(&self, world: &World, rules: &Rules, player: usize) -> Vec<SkillRow> {
         let p = &world.persos[player];
         let all = self.windows.skill_all;
         let shown = |s: &sim::perso::Skill| all || s.xp.level > 0 || progress(s) > 0.0;

@@ -128,6 +128,10 @@ pub struct Hud {
     auto: bars::AutoRestore,
     /// Build buttons' (state, image), see `refresh_build_buttons`.
     build_cache: Vec<(i32, String)>,
+    /// The tick the per-tick caches (build buttons, fief list) were made at.
+    cache_tick: Option<u64>,
+    /// The fief list's text, made once per tick.
+    statistics: String,
     fps: u32,
     frames: u32,
     fps_timer: f64,
@@ -234,6 +238,8 @@ impl Hud {
             radial_angle: [-1.57; 2],
             swallow_release: false,
             build_cache: Vec::new(),
+            cache_tick: None,
+            statistics: String::new(),
             auto: bars::AutoRestore::load(),
             craft_queue: Vec::new(),
             shortcuts: shortcuts::Shortcuts::load(objects),
@@ -311,10 +317,15 @@ impl Hud {
         }
         self.draw_bar_contours();
 
-        self.draw_statistics(world, rules, player);
+        self.draw_statistics();
         self.draw_epoch(world, rules, p);
         self.draw_object_slots(world, rules, textures, player);
-        self.refresh_build_buttons(world, rules, player);
+        // What only changes with the world is made again once per tick.
+        if self.cache_tick != Some(world.tick) {
+            self.cache_tick = Some(world.tick);
+            self.refresh_build_buttons(world, rules, player);
+            self.statistics = self.statistics_text(world, rules, player);
+        }
         self.slide_buttons(world, rules, player, input.mouse);
         self.draw_move_buttons(textures, world, player);
         self.draw_build_buttons(textures);
@@ -370,13 +381,20 @@ impl Hud {
     /// `Afficher_Stastistiques`: one line per active fief, bottom-aligned at y=745.
     /// Beyond the original's 16 fiefs, only 16 lines: the player's fief and the first others,
     /// then how many are left out.
-    fn draw_statistics(&self, world: &World, rules: &Rules, player: usize) {
+    fn statistics_text(&self, world: &World, rules: &Rules, player: usize) -> String {
         const MAX_LINES: usize = 16;
         let own = world.persos[player].fief;
+        // living citizens of every fief, in one pass
+        let mut alive_by_fief = vec![0; world.fiefs.len()];
+        for p in world.persos.iter().filter(|p| p.alive()) {
+            if let Some(n) = alive_by_fief.get_mut(p.fief) {
+                *n += 1;
+            }
+        }
         let mut lines = Vec::new();
         let mut hidden = 0;
         for (i, (f, c)) in world.fiefs.iter().zip(&world.castles).enumerate() {
-            let alive = world.alive_citizens(i);
+            let alive = alive_by_fief[i];
             if alive == 0 && !c.visible() {
                 continue;
             }
@@ -397,8 +415,13 @@ impl Hud {
         if hidden > 0 {
             lines.push(format!("(+{hidden})"));
         }
-        let y0 = ay(745) - 16 * lines.len() as i32;
-        self.text(ax(816), y0, &format!("#{}", lines.join("#")), WHITE_);
+        format!("#{}", lines.join("#"))
+    }
+
+    /// The fief list at the bottom right, bottom-aligned on the action line.
+    fn draw_statistics(&self) {
+        let lines = self.statistics.matches('#').count() as i32;
+        self.text(ax(816), ay(745) - 16 * lines, &self.statistics, WHITE_);
     }
 
     /// `Afficher_Epoques`: grey box with the fief's epoch name, centred on x=528.
