@@ -150,13 +150,13 @@ fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32,
     let Some(tiles) = textures.get(TILESET) else { return };
     let t = &world.terrain;
     let (cx0, cy0) = (cam.0.div_euclid(CELL), cam.1.div_euclid(CELL));
-    for j in 0..=view.1 / CELL {
-        let cy = cy0 + j;
+    // Every cell overlapping the view, also when the camera is not on a cell boundary.
+    let (cx1, cy1) = ((cam.0 + view.0 - 1).div_euclid(CELL), (cam.1 + view.1 - 1).div_euclid(CELL));
+    for cy in cy0..=cy1 {
         if cy < 0 || cy >= t.height as i32 {
             continue;
         }
-        for i in 0..=view.0 / CELL {
-            let cx = cx0 + i;
+        for cx in cx0..=cx1 {
             if cx < 0 || cx >= t.width as i32 {
                 continue;
             }
