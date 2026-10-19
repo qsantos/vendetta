@@ -100,6 +100,8 @@ pub struct WorldSetup {
     pub confrontation: bool,
     /// Which castles roads join.
     pub roads: Roads,
+    /// The fief of each human player (several may share one): each takes over a citizen of it.
+    pub players: Vec<usize>,
 }
 
 /// How roads join castles.
@@ -133,6 +135,7 @@ impl Default for WorldSetup {
             speed: 10,
             confrontation: false,
             roads: Roads::Ring,
+            players: vec![0],
         }
     }
 }
@@ -216,10 +219,13 @@ impl World {
         world.houses = (0..world.persos.len()).map(|i| Building { owner: i, ..Building::new(rules) }).collect();
         world.start_resources(rules, setup.start_resources);
         world.place_persos();
-        // The local player takes over the first citizen of fief 0.
-        if let Some(i) = world.persos.iter().position(|p| p.fief == 0) {
-            world.persos[i].player = true;
-            world.player = Some(i);
+        // Each human player takes over the first free citizen of their fief; the first one is
+        // `NoPerso` (the original's local player).
+        for &fief in &setup.players {
+            if let Some(i) = world.persos.iter().position(|p| p.fief == fief && !p.player) {
+                world.persos[i].player = true;
+                world.player.get_or_insert(i);
+            }
         }
         // Every character (the future player too: `Joueur` is still 0) gets an AI, and those of
         // a race with `IA_Selectionner` draw an AI file of the root folder.
@@ -236,8 +242,8 @@ impl World {
             }
             p.update_bonus(rules);
         }
-        if let Some(i) = world.player {
-            world.persos[i].ai = false;
+        for p in world.persos.iter_mut().filter(|p| p.player) {
+            p.ai = false;
         }
         for c in &mut world.castles {
             c.max_life = clng(c.max_life as f64 * setup.castle_life_coef);
@@ -259,7 +265,7 @@ impl World {
         // The race's free talents (`Changer_Race_Personnage_Equipement` for the NPCs; the player
         // gets the same ones as its preselected talents, `Charger_Sauvegarde_Tresor`).
         for i in 0..world.persos.len() {
-            if world.player == Some(i) {
+            if world.persos[i].player {
                 world.load_talents(rules, i);
             } else {
                 world.give_talents(rules, i);
@@ -373,6 +379,13 @@ impl World {
         self.persos.iter().filter(|p| p.fief == fief && p.alive()).count()
     }
 
+    /// Victory (standard rules) for team `team`: every enemy fief has lost its castle and all
+    /// its citizens.
+    pub fn victorious(&self, team: i64) -> bool {
+        !self.confrontation
+            && (self.fiefs.iter().zip(&self.castles)).all(|(f, c)| f.team == team || !(c.visible() || f.dead < f.citizens as i64))
+    }
+
     /// One simulation tick (`FrmMoteur2D.MoteurJeu`, solo branch).
     pub fn step(&mut self, rules: &Rules, orders: &[Order]) {
         self.events.clear();
@@ -409,11 +422,9 @@ impl World {
             }
         }
         self.update_decors();
-        // Victory (standard rules): every enemy fief has lost its castle and all its citizens.
+        // Victory (standard rules), for the first player: see [`World::victorious`].
         let team = self.persos.get(self.player.unwrap_or(0)).map_or(0, |p| p.team);
-        self.victory = !self.confrontation
-            && (self.fiefs.iter().zip(&self.castles))
-                .all(|(f, c)| f.team == team || !(c.visible() || f.dead < f.citizens as i64));
+        self.victory = self.victorious(team);
         // TODO: defeat, scenario victories; the player's automatic actions (`Actions_Automatiques`)
         // Afficher_Commentaires: a line stays `Duree` seconds per character.
         let duration = rules.comment_duration * self.speed as f64;
@@ -448,7 +459,7 @@ impl World {
             self.act_or_move(rules, i);
             let msg = self.work(rules, i);
             if let Some(m) = msg {
-                if self.rng.next() > 0.99 || self.player == Some(i) {
+                if self.rng.next() > 0.99 || self.persos[i].player {
                     self.say(rules, i, m as i64);
                 }
             }

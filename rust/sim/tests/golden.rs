@@ -118,3 +118,20 @@ fn large_world() {
     let world = World::create(&rules, &files, &setup).unwrap();
     check("large_world", &rules, world, &[], &[(0, 0x739e3eff6a37f16e), (1000, 0x31ed80675c8b0ff6), (2000, 0xf2d82360e771f049)]);
 }
+
+/// Three human players, two of them in the same fief, giving orders.
+#[test]
+fn several_players() {
+    let Some((files, rules)) = load() else { return };
+    let world = World::create(&rules, &files, &WorldSetup { seed: 6, players: vec![0, 0, 2], ..Default::default() }).unwrap();
+    let humans: Vec<usize> = (0..world.persos.len()).filter(|&i| world.persos[i].player).collect();
+    assert_eq!(humans.len(), 3);
+    assert!(humans.iter().all(|&i| !world.persos[i].ai));
+    assert_eq!(humans.iter().map(|&i| world.persos[i].fief).collect::<Vec<_>>(), [0, 0, 2]);
+    let orders = [
+        (5, Order::FindResource { perso: humans[0], kind: 2 }),
+        (5, Order::FindResource { perso: humans[1], kind: 3 }),
+        (300, Order::AttackNearest { perso: humans[2], kind: 0, send: false, ctrl: false, shift: false }),
+    ];
+    check("several_players", &rules, world, &orders, &[(0, 0x345c19df0e9949e5), (500, 0xea9076d571bc31a4), (1500, 0xd1c588511e9db209)]);
+}
