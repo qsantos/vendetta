@@ -313,7 +313,9 @@ impl World {
                     let mut p = Perso::new(rules, &mut self.rng, fief, team, false);
                     p.numero = j;
                     p.perso_target = j;
+                    let (x, y) = (p.x, p.y);
                     self.persos[j] = p;
+                    self.spatial.persos.moved_to(j, x, y, 0);
                     j
                 }
                 None => self.add_perso(rules),
@@ -376,6 +378,7 @@ impl World {
                 p.x = clng(cx as f64 + cw as f64 / 2.0 - p.w as f64 / 2.0);
                 p.y = clng(cy as f64 + ch as f64 / 2.0 - p.h as f64 / 2.0);
                 p.ground_target_kind = kind;
+                self.spatial.persos.moved_to(k, p.x, p.y, 0);
                 let (px, py) = (p.x, p.y);
                 if i == 0 {
                     let (x, y, w, h) = match caction {
@@ -418,6 +421,7 @@ impl World {
                 p.chef_offset = offset;
                 p.x = cx + offset.0;
                 p.y = cy + offset.1;
+                self.spatial.persos.moved_to(k, p.x, p.y, 0);
                 match caction {
                     ATTACK_PERSO => self.attack_perso(rules, k, targets.0),
                     ATTACK_HOUSE => self.attack_house(rules, k, targets.1),

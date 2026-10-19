@@ -247,6 +247,7 @@ impl World {
             m.x = x;
             m.y = y;
             m.set_kind(rules, kind);
+            self.spatial.houses.moved_to(h, x as i64, y as i64, 0);
             m.shoot = t.shoot;
             m.built = false;
             let base = rules.start_special as f64;
@@ -1469,9 +1470,106 @@ impl World {
         self.obstacle_at(rules, i, x, y, w, h).0
     }
 
+    /// Indexes persos, houses and resource nodes by position for [`World::obstacle_at`], at the
+    /// start of each tick.
+    pub(crate) fn index_positions(&mut self, rules: &Rules) {
+        let (w, h) = (self.terrain.width as i32 * CELL, self.terrain.height as i32 * CELL);
+        let s = &mut self.spatial;
+        s.persos.build(self.persos.iter().map(|p| (p.x as i32, p.y as i32)), w, h);
+        s.houses.build(self.houses.iter().map(|m| (m.x, m.y)), w, h);
+        s.resources.build(self.resources.iter().map(|n| (n.x, n.y)), w, h);
+        let side = |(w, h): (i32, i32)| w.max(h);
+        s.perso_reach = (rules.races.iter().map(|r| side(r.size)))
+            .chain(self.persos.iter().map(|p| side((p.w, p.h))))
+            .max()
+            .unwrap_or(0);
+        s.house_reach = (rules.buildings.iter().map(|b| side(b.size)))
+            .chain(self.houses.iter().map(|m| side((m.w, m.h))))
+            .max()
+            .unwrap_or(0);
+    }
+
     /// [`World::obstacle`] with the index of what was found (perso, treasure, castle, house,
-    /// resource node or decor; 0 for terrain).
+    /// resource node or decor; 0 for terrain). The persos, houses and resource nodes come from
+    /// grids (`spatial.rs`), giving the same answers as scanning them in order, which debug
+    /// builds check.
     pub fn obstacle_at(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32) -> (i32, usize) {
+        let found = self.obstacle_indexed(rules, i, x, y, w, h);
+        debug_assert_eq!(found, self.obstacle_scan(rules, i, x, y, w, h), "obstacle_at({i}, {x}, {y}, {w}, {h})");
+        found
+    }
+
+    /// Where the corner of a box of side up to `reach` overlapping (x, y, w, h) can be, give or
+    /// take `slack` (the overlap test sometimes compares widths with heights: both are covered).
+    fn reach((x, y, w, h): (i32, i32, i32, i32), reach: i32, slack: i32) -> (i32, i32, i32, i32) {
+        let side = w.max(h);
+        (x - reach - slack, y - reach - slack, x + side + slack, y + side + slack)
+    }
+
+    fn obstacle_indexed(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32) -> (i32, usize) {
+        let r = (x, y, w, h);
+        let team = self.persos.get(i).map(|p| p.team).unwrap_or(0);
+        let fief = self.persos.get(i).map(|p| p.fief).unwrap_or(0);
+        let s = &self.spatial;
+        let near = Self::reach(r, s.perso_reach, crate::spatial::DRIFT as i32 + 1);
+        let enemy = s.persos.first(self.persos.len(), near, |j| {
+            let p = &self.persos[j];
+            overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team != team && p.attackable() && j != i
+        });
+        if let Some(j) = enemy {
+            return (9, j);
+        }
+        let s = TREASURE_SIZE;
+        if let Some(k) = self.treasures.iter().position(|t| overlaps(r, (t.x, t.y, s, s))) {
+            return (13, k);
+        }
+        for (j, c) in self.castles.iter().enumerate() {
+            if overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible() {
+                let code = if self.fiefs[j].team != team {
+                    11
+                } else if j == fief {
+                    6
+                } else {
+                    8
+                };
+                return (code, j);
+            }
+        }
+        let sp = &self.spatial;
+        let house = sp.houses.first(self.houses.len(), Self::reach(r, sp.house_reach, 1), |j| {
+            let m = &self.houses[j];
+            m.visible() && overlaps(r, (m.x, m.y, m.w, m.h))
+        });
+        if let Some(j) = house {
+            let m = &self.houses[j];
+            let code = if j == i {
+                if m.complete() { 5 } else { 4 }
+            } else if self.persos[j].team == team {
+                7
+            } else {
+                10
+            };
+            return (code, j);
+        }
+        let resource = sp.resources.first(self.resources.len(), Self::reach(r, RESOURCE_SIZE, 1), |k| {
+            let n = &self.resources[k];
+            overlaps(r, (n.x, n.y, RESOURCE_SIZE, RESOURCE_SIZE))
+        });
+        if let Some(k) = resource {
+            return (1, k);
+        }
+        if let Some(k) = self.decors.iter().position(|d| overlaps(r, (d.x, d.y, d.w, d.h))) {
+            return (16, k);
+        }
+        if !self.buildable(rules, x, y, w, h) {
+            return (999, 0);
+        }
+        (0, 0)
+    }
+
+    /// `ModIA.Obstacle` as the original does it, scanning everything in order: what the grids
+    /// must agree with.
+    fn obstacle_scan(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32) -> (i32, usize) {
         let r = (x, y, w, h);
         let team = self.persos.get(i).map(|p| p.team).unwrap_or(0);
         let fief = self.persos.get(i).map(|p| p.fief).unwrap_or(0);

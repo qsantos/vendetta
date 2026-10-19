@@ -60,6 +60,9 @@ pub struct World {
     /// money and resources refilled every tick.
     #[serde(skip)]
     pub god: Option<usize>,
+    /// Where persos, houses and resource nodes are, for `obstacle_at`.
+    #[serde(skip)]
+    pub(crate) spatial: crate::spatial::Spatial,
 }
 
 /// One fief of the setup screen.
@@ -172,6 +175,7 @@ impl World {
             victory: false,
             events: Vec::new(),
             god: None,
+            spatial: Default::default(),
         };
         world.create_citizens(rules);
         world.castles = world
@@ -373,6 +377,7 @@ impl World {
     pub fn step(&mut self, rules: &Rules, orders: &[Order]) {
         self.events.clear();
         self.tick += 1;
+        self.index_positions(rules);
         self.refill_god(rules);
         // Lire_Commandes: a failing command drops the rest of the queue.
         for order in orders {
@@ -457,7 +462,10 @@ impl World {
         let before = p.action;
         // Chasing a moving target only plans two steps ahead, again every tick.
         let chase = before == crate::combat::ATTACK_PERSO && self.persos[p.perso_target].moving;
-        match self.persos[i].step_move(rules, &self.terrain, chase) {
+        let step = self.persos[i].step_move(rules, &self.terrain, chase);
+        let p = &self.persos[i];
+        self.spatial.persos.moved_to(i, p.x, p.y, crate::spatial::DRIFT);
+        match step {
             None => {
                 // A stunned projectile falls, even dead already.
                 if self.persos[i].projectile {
