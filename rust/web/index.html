@@ -28,6 +28,7 @@
 </div>
 <div id="bubble">Chargement…</div>
 <canvas id="glcanvas" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
+<!-- build-web.sh appends ?v=<hash> to these two URLs so they can be cached for good -->
 <script src="mq_js_bundle.js"></script>
 <script>
   // Right click is a game action, not the browser menu.
@@ -55,13 +56,13 @@
     .then((r) => r.text())
     .then((text) => {
       const entries = text.split("\n").filter((l) => l).map((l) => {
-        const [path, size] = l.split("\t");
-        return { path, size: Number(size) || 0 };
+        const [path, size, hash] = l.split("\t");
+        return { path, size: Number(size) || 0, url: "assets/" + path + (hash ? "?v=" + hash : "") };
       });
       const arts = entries.filter((e) => e.path.startsWith("Images/Chargement/"));
       if (arts.length > 0) {
         const pick = arts[Math.floor(Math.random() * arts.length)];
-        document.getElementById("art").src = "assets/" + pick.path;
+        document.getElementById("art").src = pick.url;
       }
       if (bytes.gameTotal === 0) {
         const lower = (p) => p.toLowerCase();

@@ -44,29 +44,42 @@ async fn run_parallel<T>(jobs: Vec<Pin<Box<dyn Future<Output = T> + Send>>>, mut
     .await
 }
 
-/// `manifest.txt`: every converted file with its size in bytes (`path<TAB>size`).
+/// `manifest.txt`: every converted file with its size in bytes and content hash
+/// (`path<TAB>size<TAB>hash`).
 pub struct Manifest {
     pub entries: Vec<(String, u64)>,
-    sizes: HashMap<String, u64>,
+    /// By `key`: (size, URL). The URL carries the hash (`?v=`), so the server can let
+    /// browsers cache it forever: a changed file gets a new URL.
+    by_key: HashMap<String, (u64, String)>,
 }
 
 impl Manifest {
     pub async fn load() -> Result<Manifest, String> {
         let text = load_string(&format!("{ROOT}/manifest.txt")).await.map_err(|e| format!("manifest: {e}"))?;
-        let entries: Vec<(String, u64)> = text
-            .lines()
-            .filter(|l| !l.is_empty())
-            .map(|l| match l.split_once('\t') {
-                Some((p, s)) => (p.to_owned(), s.parse().unwrap_or(0)),
-                None => (l.to_owned(), 0),
-            })
-            .collect();
-        let sizes = entries.iter().map(|(p, s)| (key(p), *s)).collect();
-        Ok(Manifest { entries, sizes })
+        let mut entries = Vec::new();
+        let mut by_key = HashMap::new();
+        for line in text.lines().filter(|l| !l.is_empty()) {
+            let mut fields = line.split('\t');
+            let path = fields.next().unwrap_or_default().to_owned();
+            let size = fields.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+            // Natively the files are read from disk, where a query would break the path.
+            let url = match fields.next() {
+                Some(hash) if cfg!(target_arch = "wasm32") => format!("{ROOT}/{path}?v={hash}"),
+                _ => format!("{ROOT}/{path}"),
+            };
+            by_key.insert(key(&path), (size, url));
+            entries.push((path, size));
+        }
+        Ok(Manifest { entries, by_key })
     }
 
     pub fn size(&self, path: &str) -> u64 {
-        self.sizes.get(&key(path)).copied().unwrap_or(0)
+        self.by_key.get(&key(path)).map_or(0, |e| e.0)
+    }
+
+    /// The versioned URL of a file (looked up case-insensitively, `.bmp` → `.png`).
+    pub fn url(&self, path: &str) -> Option<&str> {
+        self.by_key.get(&key(path)).map(|e| e.1.as_str())
     }
 
     /// Data files the simulation reads at start (ini, txt, AI files and maps).
@@ -109,8 +122,9 @@ pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<File
     let jobs = wanted
         .into_iter()
         .map(|(path, size)| -> Pin<Box<dyn Future<Output = _> + Send>> {
+            let url = manifest.url(&path).unwrap_or_default().to_owned();
             Box::pin(async move {
-                let data = load_file(&format!("{ROOT}/{path}")).await;
+                let data = load_file(&url).await;
                 (path, size, data)
             })
         })
@@ -133,19 +147,20 @@ pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<File
 /// Texture cache keyed like `Files` (case-insensitive, `.bmp` → `.png`).
 #[derive(Default)]
 pub struct Textures {
-    real_paths: HashMap<String, String>,
+    /// Versioned URL of every image, by key.
+    urls: HashMap<String, String>,
     loaded: HashMap<String, Texture2D>,
 }
 
 impl Textures {
     pub fn new(manifest: &Manifest) -> Textures {
-        let real_paths = manifest
+        let urls = manifest
             .entries
             .iter()
             .filter(|(p, _)| p.ends_with(".png"))
-            .map(|(p, _)| (key(p), p.clone()))
+            .map(|(p, _)| (key(p), manifest.url(p).unwrap_or_default().to_owned()))
             .collect();
-        Textures { real_paths, loaded: HashMap::new() }
+        Textures { urls, loaded: HashMap::new() }
     }
 
     /// Images among `paths` not loaded yet, without duplicates.
@@ -155,7 +170,7 @@ impl Textures {
             .iter()
             .filter(|p| {
                 let k = key(p);
-                !self.loaded.contains_key(&k) && self.real_paths.contains_key(&k) && seen.insert(k)
+                !self.loaded.contains_key(&k) && self.urls.contains_key(&k) && seen.insert(k)
             })
             .cloned()
             .collect()
@@ -167,7 +182,7 @@ impl Textures {
             .missing(paths)
             .into_iter()
             .map(|p| -> Pin<Box<dyn Future<Output = _> + Send>> {
-                let url = format!("{ROOT}/{}", self.real_paths[&key(&p)]);
+                let url = self.urls[&key(&p)].clone();
                 Box::pin(async move { (p, load_texture(&url).await) })
             })
             .collect();

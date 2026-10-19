@@ -6,7 +6,7 @@
 //! (shown before the game has downloaded); the game only reports progress to it. Natively,
 //! the main loop draws the same screen every frame.
 
-use crate::assets::{Manifest, ROOT};
+use crate::assets::Manifest;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::text::TextRenderer;
 use macroquad::prelude::*;
@@ -75,7 +75,8 @@ impl Progress {
     /// Fetches the labels and, natively, the artwork and cursor (the page has its own); any
     /// of them may fail, the bar still works.
     pub async fn load_decoration(&self, manifest: &Manifest, lang: &str) {
-        let labels = load_string(&format!("{ROOT}/Donnees/{lang}/Chargement.ini")).await.unwrap_or_default();
+        let url = manifest.url(&format!("Donnees/{lang}/Chargement.ini")).unwrap_or_default().to_owned();
+        let labels = load_string(&url).await.unwrap_or_default();
         self.0.lock().unwrap().labels = Ini::parse(&labels);
         if cfg!(target_arch = "wasm32") {
             return;
@@ -85,10 +86,10 @@ impl Progress {
         if !arts.is_empty() {
             rand::srand((miniquad::date::now() * 1000.0) as u64);
             let pick = arts[rand::gen_range(0, arts.len())];
-            let art = load_texture(&format!("{ROOT}/{pick}")).await.ok();
+            let art = load_texture(manifest.url(pick).unwrap_or_default()).await.ok();
             self.0.lock().unwrap().art = art;
         }
-        let cursor = load_texture(&format!("{ROOT}/Images/Curseurs/ArrowCursor.png")).await.ok();
+        let cursor = load_texture(manifest.url("Images/Curseurs/ArrowCursor.png").unwrap_or_default()).await.ok();
         let mut s = self.0.lock().unwrap();
         s.cursor = cursor;
         for t in s.art.iter().chain(&s.cursor) {

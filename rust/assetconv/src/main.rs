@@ -8,8 +8,9 @@
 //! - Other BMPs (map data) become opaque PNGs, pixel for pixel.
 //! - Text files (ini, txt, ia) are re-encoded from Latin-1 to UTF-8.
 //! - Everything else useful (wav, mid, gif) is copied as is.
-//! - `manifest.txt` lists every output file with its size (`path<TAB>bytes`), since the
-//!   browser cannot list directories and shows loading progress in bytes.
+//! - `manifest.txt` lists every output file with its size and a content hash
+//!   (`path<TAB>bytes<TAB>hash`): the browser cannot list directories, shows loading progress
+//!   in bytes, and requests `path?v=hash` so that files can be cached forever.
 
 use image::{Rgba, RgbaImage};
 use std::fs;
@@ -71,12 +72,18 @@ fn main() {
                 fs::copy(path, &dst).unwrap();
             }
         }
-        let size = fs::metadata(&dst).unwrap().len();
-        manifest.push(format!("{}\t{size}", dst_rel.to_string_lossy().replace('\\', "/")));
+        let content = fs::read(&dst).unwrap();
+        let (size, hash) = (content.len(), fnv1a(&content));
+        manifest.push(format!("{}\t{size}\t{hash:016x}", dst_rel.to_string_lossy().replace('\\', "/")));
     }
     manifest.sort();
     fs::write(out.join("manifest.txt"), manifest.join("\n") + "\n").unwrap();
     eprintln!("wrote {} files", manifest.len());
+}
+
+/// 64-bit FNV-1a: a stable content hash, only used to version URLs.
+fn fnv1a(bytes: &[u8]) -> u64 {
+    bytes.iter().fold(0xcbf29ce484222325, |h, &b| (h ^ b as u64).wrapping_mul(0x100000001b3))
 }
 
 fn walk(dir: &Path, files: &mut Vec<PathBuf>) {
