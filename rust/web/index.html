@@ -140,7 +140,7 @@
       };
       importObject.env.vendetta_stored_size = (kptr, klen) => {
         const key = UTF8ToString(kptr, klen);
-        pendingRead = blobs.get(key) ?? legacyRead(key);
+        pendingRead = blobs.get(key);
         return pendingRead ? pendingRead.length : 0;
       };
       // A precise clock for the #perf timings (macroquad's uses Date.now(), to the millisecond).
@@ -169,8 +169,7 @@
   // which unlike local storage holds big worlds. They are all read into `blobs` before the
   // game starts, so that it reads them synchronously. A worker compresses and stores writes,
   // off the game's thread; while one is in progress, only the newest value of each key waits.
-  // Older versions kept blobs base64 in local storage ("vendetta-<key>"), still read until
-  // rewritten. Storage may be unavailable (private browsing): then nothing persists.
+  // Storage may be unavailable (private browsing): then nothing persists.
   const blobs = new Map();
   let db = null;
   const openDb = () =>
@@ -227,14 +226,6 @@
   /// Resolves once every write is stored.
   const writesDone = () =>
     busy.size === 0 && waiting.size === 0 ? Promise.resolve() : new Promise((r) => onIdle.push(r));
-  const legacyRead = (key) => {
-    try {
-      const text = localStorage.getItem("vendetta-" + key);
-      return text ? Uint8Array.from(atob(text), (c) => c.charCodeAt(0)) : null;
-    } catch (e) {
-      return null;
-    }
-  };
   const storageReady = (async () => {
     try {
       db = await openDb();
@@ -248,11 +239,6 @@
       worker = new Worker(URL.createObjectURL(new Blob([workerCode], { type: "text/javascript" })));
       worker.onmessage = ({ data: { key, error } }) => {
         if (error) console.warn("cannot save " + key + ":", error);
-        else {
-          try {
-            localStorage.removeItem("vendetta-" + key);
-          } catch (e) {}
-        }
         busy.delete(key);
         send(key);
         if (busy.size === 0 && waiting.size === 0) onIdle.splice(0).forEach((r) => r());

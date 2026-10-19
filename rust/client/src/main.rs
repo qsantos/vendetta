@@ -150,10 +150,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             .collect();
     }
     // A saved game is resumed only with the setup options it was made with.
-    // (Games saved before the options existed had the default setup.)
-    let default_key = options::Options::default().setup_key();
-    let saved_key = storage::load("setup").unwrap_or_else(|| default_key.into_bytes());
-    let same_setup = saved_key == options.setup_key().as_bytes();
+    let same_setup = storage::load("setup").is_some_and(|k| k == options.setup_key().as_bytes());
     // Resume the saved game if there is one that fits these rules.
     let saved = storage::load("save").filter(|_| same_setup).and_then(|bytes| match World::load(&rules, &bytes) {
         Ok(world) => Some(world),
