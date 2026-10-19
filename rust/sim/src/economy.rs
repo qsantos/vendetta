@@ -1152,6 +1152,11 @@ impl World {
     /// `Vivant = False`. Like the original it does not check that the perso was alive: dying
     /// again counts again.
     pub fn kill(&mut self, rules: &Rules, i: usize) {
+        if self.god == Some(i) {
+            let p = &mut self.persos[i];
+            p.bars[0] = p.bonus_max[0] as f64;
+            return;
+        }
         let p = &mut self.persos[i];
         p.deaths += 1;
         p.comment.clear();

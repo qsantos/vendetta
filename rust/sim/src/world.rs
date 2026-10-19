@@ -56,6 +56,10 @@ pub struct World {
     /// What this tick produced for the client to show, cleared when the next one starts.
     #[serde(skip)]
     pub events: Vec<Event>,
+    /// Testing aid, not in the original nor saved: this perso cannot die and has its bars,
+    /// money and resources refilled every tick.
+    #[serde(skip)]
+    pub god: Option<usize>,
 }
 
 /// One fief of the setup screen.
@@ -114,6 +118,21 @@ impl Default for WorldSetup {
 }
 
 impl World {
+    /// God mode ([`World::god`]): full bars, plenty of money, full resources.
+    fn refill_god(&mut self, rules: &Rules) {
+        let Some(p) = self.god.and_then(|i| self.persos.get_mut(i)) else { return };
+        if !p.alive() {
+            return;
+        }
+        for k in 0..p.bars.len() {
+            p.bars[k] = p.bonus_max[k] as f64;
+        }
+        p.set_money(p.money().max(100_000.0));
+        for r in 0..rules.resources.len() {
+            p.set_resource(r, p.max_resource(r));
+        }
+    }
+
     /// `Commencer` for "NouveauMonde", then the start of `MoteurJeu`.
     pub fn create(rules: &Rules, files: &Files, setup: &WorldSetup) -> Result<World, String> {
         let mut world = World {
@@ -135,6 +154,7 @@ impl World {
             ai: Ai::default(),
             victory: false,
             events: Vec::new(),
+            god: None,
         };
         world.create_citizens(rules);
         world.castles = world
@@ -336,6 +356,7 @@ impl World {
     pub fn step(&mut self, rules: &Rules, orders: &[Order]) {
         self.events.clear();
         self.tick += 1;
+        self.refill_god(rules);
         // Lire_Commandes: a failing command drops the rest of the queue.
         for order in orders {
             if self.apply_order(rules, order).is_err() {
