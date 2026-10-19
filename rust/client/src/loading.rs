@@ -6,7 +6,7 @@
 //! (shown before the game has downloaded); the game only reports progress to it. Natively,
 //! the main loop draws the same screen every frame.
 
-use crate::assets::ROOT;
+use crate::assets::{Manifest, ROOT};
 #[cfg(not(target_arch = "wasm32"))]
 use crate::text::TextRenderer;
 use macroquad::prelude::*;
@@ -16,15 +16,17 @@ use std::sync::{Arc, Mutex};
 #[cfg(target_arch = "wasm32")]
 #[link(wasm_import_module = "env")]
 unsafe extern "C" {
-    /// `index.html`: sets the bar to `pct` and the bubble to the UTF-8 message.
-    fn vendetta_loading(pct: f64, message: *const u8, len: usize);
+    /// `index.html`: the game's bytes loaded and expected, and the bubble's UTF-8 message.
+    fn vendetta_loading(done: f64, total: f64, message: *const u8, len: usize);
     /// `index.html`: removes the loading screen.
     fn vendetta_loaded();
 }
 
 #[derive(Default)]
 struct State {
-    pct: f64,
+    /// Bytes downloaded, and expected in all.
+    done: u64,
+    total: u64,
     message: String,
     art: Option<Texture2D>,
     cursor: Option<Texture2D>,
@@ -32,7 +34,7 @@ struct State {
     labels: Ini,
     /// What the page shows, to only call it on changes.
     #[cfg(target_arch = "wasm32")]
-    reported: Option<(f64, String)>,
+    reported: Option<(u64, u64, String)>,
 }
 
 /// Shared between the loading coroutine and the screen.
@@ -40,12 +42,29 @@ struct State {
 pub struct Progress(Arc<Mutex<State>>);
 
 impl Progress {
-    pub fn set(&self, pct: f64, message: &str) {
+    /// Sets the expected total of bytes (it is refined once the needed images are known).
+    pub fn set_total(&self, total: u64) {
         let mut s = self.0.lock().unwrap();
-        s.pct = pct;
+        s.total = total.max(s.done);
+    }
+
+    /// Counts `bytes` more as downloaded.
+    pub fn add(&self, bytes: u64, message: &str) {
+        let mut s = self.0.lock().unwrap();
+        s.done += bytes;
+        s.total = s.total.max(s.done);
         if s.message != message {
             s.message = message.to_owned();
         }
+    }
+
+    pub fn message(&self, message: &str) {
+        self.add(0, message);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn pct(s: &State) -> f64 {
+        if s.total == 0 { 0.0 } else { 100.0 * s.done as f64 / s.total as f64 }
     }
 
     /// `EtiquetteChargement<n>` of the game-loading section.
@@ -55,13 +74,14 @@ impl Progress {
 
     /// Fetches the labels and, natively, the artwork and cursor (the page has its own); any
     /// of them may fail, the bar still works.
-    pub async fn load_decoration(&self, manifest: &str, lang: &str) {
+    pub async fn load_decoration(&self, manifest: &Manifest, lang: &str) {
         let labels = load_string(&format!("{ROOT}/Donnees/{lang}/Chargement.ini")).await.unwrap_or_default();
         self.0.lock().unwrap().labels = Ini::parse(&labels);
         if cfg!(target_arch = "wasm32") {
             return;
         }
-        let arts: Vec<&str> = manifest.lines().filter(|p| p.starts_with("Images/Chargement/")).collect();
+        let arts: Vec<&str> =
+            manifest.entries.iter().map(|(p, _)| p.as_str()).filter(|p| p.starts_with("Images/Chargement/")).collect();
         if !arts.is_empty() {
             rand::srand((miniquad::date::now() * 1000.0) as u64);
             let pick = arts[rand::gen_range(0, arts.len())];
@@ -106,10 +126,10 @@ impl LoadingScreen {
     pub fn draw(&self) {
         let mut s = self.progress.0.lock().unwrap();
         clear_background(BLACK);
-        let now = Some((s.pct, s.message.clone()));
+        let now = Some((s.done, s.total, s.message.clone()));
         if s.reported != now {
             // SAFETY: the page reads the message from wasm memory before returning.
-            unsafe { vendetta_loading(s.pct, s.message.as_ptr(), s.message.len()) };
+            unsafe { vendetta_loading(s.done as f64, s.total as f64, s.message.as_ptr(), s.message.len()) };
             s.reported = now;
         }
     }
@@ -131,7 +151,7 @@ impl LoadingScreen {
         let v = (100.0f64 * 2.5 * 255.0).round() as u32;
         let colour = Color::from_rgba((v & 0xFF) as u8, ((v >> 8) & 0xFF) as u8, ((v >> 16) & 0xFF) as u8, 255);
         let band = 97.0 * scale;
-        draw_rectangle(ix, iy + ih - band, iw * s.pct as f32 / 100.0, band, colour);
+        draw_rectangle(ix, iy + ih - band, iw * Progress::pct(&s) as f32 / 100.0, band, colour);
         if let Some(art) = &s.art {
             draw_texture_ex(art, ix, iy, WHITE, DrawTextureParams { dest_size: Some(vec2(iw, ih)), ..Default::default() });
         }

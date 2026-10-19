@@ -8,7 +8,8 @@
 //! - Other BMPs (map data) become opaque PNGs, pixel for pixel.
 //! - Text files (ini, txt, ia) are re-encoded from Latin-1 to UTF-8.
 //! - Everything else useful (wav, mid, gif) is copied as is.
-//! - `manifest.txt` lists every output file, since the browser cannot list directories.
+//! - `manifest.txt` lists every output file with its size (`path<TAB>bytes`), since the
+//!   browser cannot list directories and shows loading progress in bytes.
 
 use image::{Rgba, RgbaImage};
 use std::fs;
@@ -70,7 +71,8 @@ fn main() {
                 fs::copy(path, &dst).unwrap();
             }
         }
-        manifest.push(dst_rel.to_string_lossy().replace('\\', "/"));
+        let size = fs::metadata(&dst).unwrap().len();
+        manifest.push(format!("{}\t{size}", dst_rel.to_string_lossy().replace('\\', "/")));
     }
     manifest.sort();
     fs::write(out.join("manifest.txt"), manifest.join("\n") + "\n").unwrap();

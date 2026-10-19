@@ -37,14 +37,43 @@
   const bar = document.getElementById("bar");
   const bubble = document.getElementById("bubble");
 
-  // A random artwork from Images/Chargement/; the bar works without it.
+  // Progress in bytes: the game's own download (measured here), then the files the game
+  // downloads (reported by it). Until it reports, its share is estimated from the manifest.
+  const bytes = { wasm: 0, wasmTotal: 0, game: 0, gameTotal: 0 };
+  let shown = 0;
+  function showProgress() {
+    const total = bytes.wasmTotal + bytes.gameTotal;
+    const pct = total > 0 ? (100 * (bytes.wasm + bytes.game)) / total : 0;
+    shown = Math.max(shown, Math.min(pct, 100)); // never goes backwards
+    bar.style.width = shown + "%";
+    bar.style.background = `hsl(${shown * 1.2}, 100%, 45%)`; // smooth red to green
+  }
+
+  // The manifest gives a random artwork (the bar works without it) and the estimate:
+  // data files plus the image folders the game always loads (see Manifest in assets.rs).
   fetch("assets/manifest.txt")
     .then((r) => r.text())
-    .then((manifest) => {
-      const arts = manifest.split("\n").filter((p) => p.startsWith("Images/Chargement/"));
+    .then((text) => {
+      const entries = text.split("\n").filter((l) => l).map((l) => {
+        const [path, size] = l.split("\t");
+        return { path, size: Number(size) || 0 };
+      });
+      const arts = entries.filter((e) => e.path.startsWith("Images/Chargement/"));
       if (arts.length > 0) {
         const pick = arts[Math.floor(Math.random() * arts.length)];
-        document.getElementById("art").src = "assets/" + pick;
+        document.getElementById("art").src = "assets/" + pick.path;
+      }
+      if (bytes.gameTotal === 0) {
+        const lower = (p) => p.toLowerCase();
+        const isData = (p) =>
+          (/\.(ini|txt|ia)$/.test(lower(p)) || lower(p).startsWith("cartes/")) &&
+          !/(apercu|carte)\.png$/.test(lower(p));
+        const folders = ["Images/Batiments/", "Images/Boutons/", "Images/Decors/", "Images/Terrains/",
+                         "Images/Fenetres/Fenetre-", "Images/Ressources/", "Images/Curseurs/"];
+        bytes.gameTotal = entries
+          .filter((e) => isData(e.path) || folders.some((f) => e.path.startsWith(f)))
+          .reduce((sum, e) => sum + e.size, 0);
+        showProgress();
       }
     })
     .catch(() => {});
@@ -76,10 +105,13 @@
     name: "vendetta_loading",
     version: 1,
     register_plugin: (importObject) => {
-      importObject.env.vendetta_loading = (pct, ptr, len) => {
-        bar.style.width = pct + "%";
-        // A smooth red-to-green fade (the original's formula jumps between colours).
-        bar.style.background = `hsl(${pct * 1.2}, 100%, 45%)`;
+      importObject.env.vendetta_loading = (done, total, ptr, len) => {
+        if (total > 0) {
+          // until the game knows its sizes, keep the estimate
+          bytes.game = done;
+          bytes.gameTotal = total;
+        }
+        showProgress();
         showMessage(UTF8ToString(ptr, len));
       };
       importObject.env.vendetta_loaded = () => {
@@ -89,7 +121,28 @@
     },
   });
 
-  load("client.wasm");
+  // Download the game ourselves to show its progress, then hand it to miniquad's loader.
+  (async () => {
+    try {
+      const response = await fetch("client.wasm");
+      if (!response.ok) throw new Error(`client.wasm: ${response.status}`);
+      bytes.wasmTotal = Number(response.headers.get("Content-Length")) || 2000000;
+      const reader = response.body.getReader();
+      const chunks = [];
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        bytes.wasm += value.length;
+        bytes.wasmTotal = Math.max(bytes.wasmTotal, bytes.wasm);
+        showProgress();
+      }
+      bytes.wasmTotal = bytes.wasm;
+      load(URL.createObjectURL(new Blob(chunks, { type: "application/wasm" })));
+    } catch (e) {
+      showMessage("&Erreur#" + e.message);
+    }
+  })();
 </script>
 </body>
 </html>

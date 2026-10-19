@@ -7,24 +7,71 @@ use std::collections::HashMap;
 
 pub const ROOT: &str = "assets";
 
-/// Loads every data file the simulation needs (ini, txt and map images) into memory. Sprite
-/// images are loaded on demand as textures instead.
-pub async fn load_files(manifest: &str, progress: &Progress, pct: (f64, f64)) -> Result<Files, String> {
-    let label = progress.label(1);
-    let total = manifest.lines().count().max(1);
-    let mut files = Files::new();
-    for (i, path) in manifest.lines().enumerate() {
-        progress.set(pct.0 + (pct.1 - pct.0) * i as f64 / total as f64, &label);
+/// `manifest.txt`: every converted file with its size in bytes (`path<TAB>size`).
+pub struct Manifest {
+    pub entries: Vec<(String, u64)>,
+    sizes: HashMap<String, u64>,
+}
+
+impl Manifest {
+    pub async fn load() -> Result<Manifest, String> {
+        let text = load_string(&format!("{ROOT}/manifest.txt")).await.map_err(|e| format!("manifest: {e}"))?;
+        let entries: Vec<(String, u64)> = text
+            .lines()
+            .filter(|l| !l.is_empty())
+            .map(|l| match l.split_once('\t') {
+                Some((p, s)) => (p.to_owned(), s.parse().unwrap_or(0)),
+                None => (l.to_owned(), 0),
+            })
+            .collect();
+        let sizes = entries.iter().map(|(p, s)| (key(p), *s)).collect();
+        Ok(Manifest { entries, sizes })
+    }
+
+    pub fn size(&self, path: &str) -> u64 {
+        self.sizes.get(&key(path)).copied().unwrap_or(0)
+    }
+
+    /// Data files the simulation reads at start (ini, txt, AI files and maps).
+    fn is_data(path: &str) -> bool {
         let lower = path.to_lowercase();
-        files.add_listing(path);
         let wanted = lower.ends_with(".ini") || lower.ends_with(".txt") || lower.ends_with(".ia") || lower.starts_with("cartes/");
-        if !wanted || lower.ends_with("apercu.png") || lower.ends_with("carte.png") {
+        wanted && !lower.ends_with("apercu.png") && !lower.ends_with("carte.png")
+    }
+
+    pub fn data_bytes(&self) -> u64 {
+        self.entries.iter().filter(|(p, _)| Self::is_data(p)).map(|(_, s)| s).sum()
+    }
+
+    /// Bytes of the images the game loads at start, before the world exists to say exactly:
+    /// the folders it always uses. Keep in sync with the estimate in `index.html`.
+    pub fn image_estimate(&self) -> u64 {
+        const FOLDERS: [&str; 7] = [
+            "Images/Batiments/",
+            "Images/Boutons/",
+            "Images/Decors/",
+            "Images/Terrains/",
+            "Images/Fenetres/Fenetre-",
+            "Images/Ressources/",
+            "Images/Curseurs/",
+        ];
+        self.entries.iter().filter(|(p, _)| FOLDERS.iter().any(|f| p.starts_with(f))).map(|(_, s)| s).sum()
+    }
+}
+
+/// Loads every data file the simulation needs into memory, counting bytes into `progress`.
+/// Sprite images are loaded as textures instead.
+pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<Files, String> {
+    let label = progress.label(1);
+    let mut files = Files::new();
+    for (path, size) in &manifest.entries {
+        files.add_listing(path);
+        if !Manifest::is_data(path) {
             continue;
         }
-        let data = load_file(&format!("{ROOT}/{path}"))
-            .await
-            .map_err(|e| format!("{path}: {e}"))?;
+        let data = load_file(&format!("{ROOT}/{path}")).await.map_err(|e| format!("{path}: {e}"))?;
         files.insert(path, data);
+        progress.add(*size, &label);
     }
     Ok(files)
 }
@@ -36,16 +83,13 @@ pub struct Textures {
     loaded: HashMap<String, Texture2D>,
 }
 
-pub async fn load_manifest() -> Result<String, String> {
-    load_string(&format!("{ROOT}/manifest.txt")).await.map_err(|e| format!("manifest: {e}"))
-}
-
 impl Textures {
-    pub fn new(manifest: &str) -> Textures {
+    pub fn new(manifest: &Manifest) -> Textures {
         let real_paths = manifest
-            .lines()
-            .filter(|p| p.ends_with(".png"))
-            .map(|p| (key(p), p.to_owned()))
+            .entries
+            .iter()
+            .filter(|(p, _)| p.ends_with(".png"))
+            .map(|(p, _)| (key(p), p.clone()))
             .collect();
         Textures { real_paths, loaded: HashMap::new() }
     }
@@ -63,11 +107,24 @@ impl Textures {
         Some(t)
     }
 
-    /// Loads a list of images, showing progress from `pct.0` to `pct.1`.
-    pub async fn load_all(&mut self, paths: &[String], progress: &Progress, pct: (f64, f64), message: &str) {
-        for (i, p) in paths.iter().enumerate() {
-            progress.set(pct.0 + (pct.1 - pct.0) * i as f64 / paths.len().max(1) as f64, message);
-            self.load(p).await;
+    /// Images among `paths` not loaded yet, without duplicates.
+    pub fn missing(&self, paths: &[String]) -> Vec<String> {
+        let mut seen = std::collections::HashSet::new();
+        paths
+            .iter()
+            .filter(|p| {
+                let k = key(p);
+                !self.loaded.contains_key(&k) && self.real_paths.contains_key(&k) && seen.insert(k)
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Loads a list of images, counting their bytes into `progress`.
+    pub async fn load_all(&mut self, manifest: &Manifest, paths: &[String], progress: &Progress, message: &str) {
+        for p in self.missing(paths) {
+            self.load(&p).await;
+            progress.add(manifest.size(&p), message);
         }
     }
 

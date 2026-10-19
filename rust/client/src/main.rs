@@ -74,18 +74,23 @@ struct Loaded {
 
 /// Downloads the data and images and creates the world, reporting progress.
 async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
-    let manifest = assets::load_manifest().await?;
+    let manifest = assets::Manifest::load().await?;
     progress.load_decoration(&manifest, "Francais").await;
-    let files = assets::load_files(&manifest, &progress, (0.0, 40.0)).await?;
+    progress.set_total(manifest.data_bytes() + manifest.image_estimate());
+    let files = assets::load_files(&manifest, &progress).await?;
     let rules = Rules::load(&files, "Francais")?;
-    progress.set(45.0, &progress.label(2));
+    progress.message(&progress.label(2));
     let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u32, ..Default::default() };
     let world = World::create(&rules, &files, &setup)?;
     let mut textures = assets::Textures::new(&manifest);
     let (terrain, persos) = render::images(&rules, &world);
-    textures.load_all(&terrain, &progress, (50.0, 70.0), &progress.label(7)).await;
-    textures.load_all(&persos, &progress, (70.0, 90.0), &progress.label(6)).await;
-    textures.load_all(&hud::images(&rules), &progress, (90.0, 100.0), &progress.label(10)).await;
+    let hud = hud::images(&rules);
+    let all: Vec<String> = terrain.iter().chain(&persos).chain(&hud).cloned().collect();
+    let images: u64 = textures.missing(&all).iter().map(|p| manifest.size(p)).sum();
+    progress.set_total(manifest.data_bytes() + images);
+    textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
+    textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
+    textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     Ok(Loaded { files, rules, world, textures })
 }
 
@@ -104,7 +109,7 @@ async fn main() {
             l
         }
         Err(e) => loop {
-            screen.progress.set(0.0, &format!("&Erreur#{e}"));
+            screen.progress.message(&format!("&Erreur#{e}"));
             screen.draw();
             next_frame().await;
         },
