@@ -5,6 +5,7 @@ mod layout;
 mod effects;
 mod loading;
 mod music;
+mod net;
 mod options;
 mod perf;
 mod render;
@@ -186,7 +187,8 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     // A saved game is resumed only with the setup options it was made with.
     let same_setup = !options.new && storage::load("setup").is_some_and(|k| k == options.setup_key().as_bytes());
     // Resume the saved game if there is one that fits these rules.
-    let saved = storage::load("save").filter(|_| same_setup).and_then(|bytes| match World::load(&rules, &bytes) {
+    // (not in network play, which has its own world)
+    let saved = storage::load("save").filter(|_| same_setup && options.me.is_none()).and_then(|bytes| match World::load(&rules, &bytes) {
         Ok(world) => Some(world),
         Err(e) => {
             warn!("discarding the saved game: {e}");
@@ -198,7 +200,9 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
         Some(world) => world,
         None => {
             created = true;
-            storage::store("setup", options.setup_key().as_bytes());
+            if options.me.is_none() {
+                storage::store("setup", options.setup_key().as_bytes());
+            }
             World::create(&rules, &files, &setup)?
         }
     };
@@ -235,7 +239,8 @@ async fn main() {
             next_frame().await;
         },
     };
-    let mut player = world.persos.iter().position(|p| p.player).unwrap();
+    let mut net = options.me.map(|me| net::Net::new(&world, &options.players, me));
+    let mut player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
     if options.god {
         world.god = Some(player);
     }
@@ -501,7 +506,37 @@ async fn main() {
 
         // Every tick due by now, so that the world keeps its pace when frames are slower than
         // ticks; beyond MAX_TICKS_PER_FRAME the backlog is dropped and the world slows down.
-        let still = hud.paused() || options::test_mode();
+        // In network play, the server's ticks instead (and pausing does not stop the world).
+        if let Some(net) = &mut net {
+            net.poll();
+            for order in orders.drain(..) {
+                net.send_order(&order);
+            }
+            // a backlog (a slow frame, a hidden tab) is caught up quickly
+            let most = if net.backlog() > MAX_TICKS_PER_FRAME as usize { 4 * MAX_TICKS_PER_FRAME } else { MAX_TICKS_PER_FRAME };
+            let mut ticks = 0;
+            while ticks < most && let Some(tick) = net.next_tick() {
+                ticks += 1;
+                perf.time(perf::Part::Tick, || world.step(&rules, &tick));
+                net.after_tick(&world);
+                effects.tick(&world.events);
+                hud.update_messages(&world, &rules, player);
+                if net.settled() {
+                    hud.automatic_actions(&world, player, &mut orders);
+                    hud.craft_from_queue(&world, &rules, player, &mut orders);
+                }
+            }
+            if ticks > 0 {
+                cam = follow(&world, player, view);
+            }
+            if std::mem::take(&mut net.closed) {
+                hud.add_notice("&Connexion au serveur perdue : le monde est arrêté.");
+            }
+            if let Some(tick) = net.desync.take() {
+                hud.add_notice(&format!("&Désynchronisation au tick {tick} : les mondes des joueurs diffèrent."));
+            }
+        }
+        let still = hud.paused() || options::test_mode() || net.is_some();
         if still {
             next_tick = get_time() + 1.0 / TICKS_PER_SECOND;
         }
@@ -523,9 +558,9 @@ async fn main() {
             cam = follow(&world, player, view);
         }
         // `ToucheSauvegarderMonde` (F12) saves now and says so (`Enregistrer_Sauvegarde_Monde`).
-        let save_now = is_key_pressed(KeyCode::F12) && !options::test_mode();
+        let save_now = is_key_pressed(KeyCode::F12) && !options::test_mode() && net.is_none();
         // Big worlds are saved less often: a second per megabyte (51 MB at 15000 characters).
-        if save_now || get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6) {
+        if net.is_none() && (save_now || get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6)) {
             last_save = get_time();
             perf.time(perf::Part::Save, || {
                 let bytes = world.save();
@@ -538,7 +573,7 @@ async fn main() {
         }
         // The mood's music, every frame (`FrmMoteur2D.frm:426-438`).
         let p = &world.persos[player];
-        if world.victory {
+        if world.victorious(p.team) {
             music.play(music::VICTOIRE, false);
         } else if (300..400).contains(&p.action) {
             music.play(if p.action == 302 { music::BOSS } else { music::COMBAT }, false);

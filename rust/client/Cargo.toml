@@ -8,3 +8,4 @@ publish = false
 sim = { path = "../sim" }
 macroquad = { version = "0.4", features = ["audio"] }
 fontdue = "0.9"
+serde_json = "1"

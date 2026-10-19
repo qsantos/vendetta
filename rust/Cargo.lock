@@ -171,6 +171,7 @@ version = "0.1.0"
 dependencies = [
  "fontdue",
  "macroquad",
+ "serde_json",
  "sim",
 ]
 

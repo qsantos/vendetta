@@ -145,6 +145,11 @@ impl MessageLog {
         self.add(tip);
     }
 
+    /// Any line of text (`&` for red).
+    pub fn add_text(&mut self, text: &str) {
+        self.add(text.to_owned());
+    }
+
     /// `Ajouter_Message_SauvegardeMonde`
     pub fn add_saved(&mut self) {
         let m = self.texts.saved.clone();
@@ -329,6 +334,11 @@ impl Hud {
     /// Adds a tip to the message log; `pick` is a random number in [0, 1).
     pub fn add_tip(&mut self, pick: f64) {
         self.messages.add_tip(pick);
+    }
+
+    /// A line of the game's own (not the original's) in the message log, `&` for red.
+    pub fn add_notice(&mut self, text: &str) {
+        self.messages.add_text(text);
     }
 
     /// "World saved" in the message log.

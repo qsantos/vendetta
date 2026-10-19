@@ -46,6 +46,8 @@ pub struct Options {
     /// `players=1+1+3`: one human player per entry, in that fief (numbered from 1, as listed at
     /// the bottom right); several may share a fief. One in the first fief by default.
     pub players: Vec<usize>,
+    /// `me=k`: network play (see `net.rs`), as the k-th player of `players` (from 0).
+    pub me: Option<usize>,
     /// `inventory=Hache+40:3`: objects in the player's bag, by name (`Parametres_Objets.ini`,
     /// any case) or index, with a count after `:`. Only for a new world, not a resumed one.
     pub inventory: Vec<(String, i64)>,
@@ -86,6 +88,7 @@ impl Options {
                         }
                     }
                 }
+                "me" => o.me = value.parse().ok(),
                 "players" => {
                     o.players = value.split('+').filter_map(|f| f.parse::<usize>().ok()).filter(|&f| f >= 1).map(|f| f - 1).collect();
                 }
@@ -104,6 +107,12 @@ impl Options {
                 }
                 _ => {}
             }
+        }
+        // In network play every copy of the world must be the same: no cheats.
+        if o.me.is_some() {
+            let me = o.me;
+            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, perf: o.perf, me, ..Default::default() };
+            o.new = true;
         }
         o
     }
