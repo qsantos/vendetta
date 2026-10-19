@@ -209,6 +209,7 @@ async fn main() {
     // The game starts with a "Debut" track (`FrmMoteur2D.frm:405`).
     music.play(music::DEBUT, false);
     let mut last_save = get_time();
+    let mut save_size = 0;
     let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"), hud::TooltipLabels::load(&files, "Francais"), rules.objects.len());
 
 
@@ -384,9 +385,14 @@ async fn main() {
             hud.craft_from_queue(&world, &rules, player, &mut orders);
             cam = follow(&world, player, view);
         }
-        if get_time() - last_save > AUTOSAVE_INTERVAL {
+        // Big worlds are saved less often: a second per megabyte (51 MB at 15000 characters).
+        if get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6) {
             last_save = get_time();
-            perf.time(perf::Part::Save, || storage::store("save", &world.save()));
+            perf.time(perf::Part::Save, || {
+                let bytes = world.save();
+                save_size = bytes.len();
+                storage::store("save", &bytes);
+            });
         }
         // Ctrl+N: a new game, until the setup screens exist.
         if (is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl)) && is_key_pressed(KeyCode::N) {
