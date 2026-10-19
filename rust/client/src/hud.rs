@@ -64,7 +64,7 @@ impl Strings {
         let globals = ini("Parametres_Globales.ini");
         let n = interface.find("NombreMessagesActions").map(sim::ini::vb_val).unwrap_or(0.0) as usize;
         Strings {
-            // The original's reader trims the trailing space: "FPS :12".
+            // The original's reader trims the trailing space ("FPS :12"); it is put back.
             fps: interface.find("FPSMessage").unwrap_or("FPS :").trim().to_owned(),
             actions: (1..=n)
                 .map(|i| interface.find(&format!("MessageAction{i}")).unwrap_or("").to_owned())
@@ -374,7 +374,7 @@ impl Hud {
             self.terrain_bubble(world, rules, player, code, hit, input.mouse);
         }
         if !crate::options::test_mode() {
-            self.text(ax(940), 0, &format!("{}{:02}", self.strings.fps, self.fps), WHITE_);
+            self.text(ax(940), 0, &format!("{} {:02}", self.strings.fps, self.fps), WHITE_);
         }
     }
 
