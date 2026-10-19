@@ -76,9 +76,10 @@
       if (bytes.gameTotal === 0) {
         const lower = (p) => p.toLowerCase();
         const isData = (p) =>
-          (/\.(ini|txt|ia)$/.test(lower(p)) || lower(p).startsWith("cartes/")) &&
+          (/\.(ini|txt|ia)$/.test(lower(p)) || lower(p).startsWith("cartes/") || lower(p).startsWith("sons/")) &&
           !/(apercu|carte)\.png$/.test(lower(p));
-        const folders = ["Images/Batiments/", "Images/Boutons/", "Images/Decors/", "Images/Terrains/",
+        const folders = ["Images/Batiments/", "Images/Persos/", "Images/Apparences/", "Images/Effets/",
+                         "Images/Boutons/", "Images/Decors/", "Images/Terrains/",
                          "Images/Fenetres/Fenetre-", "Images/Ressources/", "Images/Curseurs/"];
         bytes.gameTotal = entries
           .filter((e) => isData(e.path) || folders.some((f) => e.path.startsWith(f)))

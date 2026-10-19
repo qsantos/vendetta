@@ -1,11 +1,9 @@
 //! What the simulation's events show: visual effects (`ClsJeuEffet`, `ClsAffEffet`) with their
-//! sounds (`ClsPerSon`), and floating numbers (`ClsAffDegats`). Images and sounds are fetched
-//! the first time an effect needs them.
+//! sounds (`ClsPerSon`), and floating numbers (`ClsAffDegats`).
 
-use crate::assets::{Manifest, Textures};
+use crate::assets::Textures;
 use crate::text::TextRenderer;
-use macroquad::audio::{PlaySoundParams, Sound, load_sound, play_sound};
-use macroquad::experimental::coroutines::{Coroutine, start_coroutine};
+use macroquad::audio::{PlaySoundParams, Sound, load_sound_from_bytes, play_sound};
 use macroquad::prelude::*;
 use sim::event::{Event, NumberKind};
 use sim::files::Files;
@@ -22,8 +20,7 @@ struct EffectType {
     steps: f64,
     /// `DureeEtape`: ticks per frame.
     step_duration: f64,
-    /// URL of `Sons\<Son>`.
-    sound: Option<String>,
+    sound: Option<Sound>,
 }
 
 struct Active {
@@ -55,12 +52,6 @@ fn number_colour(kind: NumberKind) -> Color {
     }
 }
 
-enum SoundState {
-    Loading(Coroutine<Option<Sound>>),
-    Ready(Sound),
-    Failed,
-}
-
 /// `Combat.ini [Degats]`: `DureeMax`, `DecalageY`, `TailleNormale`, `TailleCritique`.
 const NUMBER_TICKS: i32 = 15;
 const NUMBER_OFFSET_Y: i64 = -6;
@@ -72,7 +63,6 @@ pub struct Effects {
     types: Vec<EffectType>,
     active: Vec<Active>,
     floating: Vec<Floating>,
-    sounds: HashMap<usize, SoundState>,
     /// When each effect type's sound last started: DirectSound had one buffer per type, so a
     /// sound does not restart while it plays (approximated as 0.5 s).
     last_sound: HashMap<usize, f64>,
@@ -81,33 +71,31 @@ pub struct Effects {
 }
 
 impl Effects {
-    pub fn new(files: &Files, manifest: &Manifest) -> Effects {
-        let types = Params::load(files, "Francais")
-            .map(|params| {
-                params
-                    .list(Kind::Effets)
-                    .iter()
-                    .map(|r| {
-                        let num = |k: &str| r.get(k).and_then(|v| v.trim().parse::<f64>().ok()).unwrap_or(0.0);
-                        let sound = r.get("Son").map(str::trim).filter(|s| !s.is_empty());
-                        EffectType {
-                            image: format!("Images/Effets/{}.bmp", r.get("Fichier").unwrap_or("").trim()),
-                            w: num("Largeur") as i32,
-                            h: num("Hauteur") as i32,
-                            steps: num("NombreEtapes"),
-                            step_duration: num("DureeEtape").max(1.0),
-                            sound: sound.and_then(|s| manifest.url(&format!("Sons/{s}")).map(str::to_owned)),
-                        }
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+    /// The effect types, with their sounds decoded (the `Sons/` files are loaded with the data).
+    pub async fn new(files: &Files) -> Effects {
+        let records = Params::load(files, "Francais").map(|p| p.list(Kind::Effets).to_vec()).unwrap_or_default();
+        let mut types = Vec::new();
+        for r in &records {
+            let num = |k: &str| r.get(k).and_then(|v| v.trim().parse::<f64>().ok()).unwrap_or(0.0);
+            let file = r.get("Son").map(str::trim).filter(|s| !s.is_empty());
+            let mut sound = None;
+            if let Some(bytes) = file.and_then(|f| files.get(&format!("Sons/{f}"))) {
+                sound = load_sound_from_bytes(bytes).await.ok();
+            }
+            types.push(EffectType {
+                image: format!("Images/Effets/{}.bmp", r.get("Fichier").unwrap_or("").trim()),
+                w: num("Largeur") as i32,
+                h: num("Hauteur") as i32,
+                steps: num("NombreEtapes"),
+                step_duration: num("DureeEtape").max(1.0),
+                sound,
+            });
+        }
         let ttf = include_bytes!("../fonts/LiberationSans-Bold.ttf");
         Effects {
             types,
             active: Vec::new(),
             floating: Vec::new(),
-            sounds: HashMap::new(),
             last_sound: HashMap::new(),
             font: TextRenderer::new(ttf, NUMBER_SIZE as f32 * 96.0 / 72.0),
             critical_font: TextRenderer::new(ttf, CRITICAL_SIZE as f32 * 96.0 / 72.0),
@@ -115,7 +103,7 @@ impl Effects {
     }
 
     /// After each tick: advances what is shown, then adds what the tick produced.
-    pub fn tick(&mut self, events: &[Event], textures: &mut Textures) {
+    pub fn tick(&mut self, events: &[Event]) {
         let types = &self.types;
         self.active.retain_mut(|a| {
             let t = &types[a.kind];
@@ -144,12 +132,6 @@ impl Effects {
                 }
                 Event::Effect { effect, sound: _, x, y, w, h } => {
                     let Some(t) = self.types.get(*effect) else { continue };
-                    textures.request(&t.image);
-                    if let (Some(url), false) = (&t.sound, self.sounds.contains_key(effect)) {
-                        let url = url.clone();
-                        let task = start_coroutine(async move { load_sound(&url).await.ok() });
-                        self.sounds.insert(*effect, SoundState::Loading(task));
-                    }
                     // Centred on the target box (`ClsJeuEffet.cls:40-55`).
                     let ex = x + clng((*w - t.w as i64) as f64 / 2.0);
                     let ey = y + clng((*h - t.h as i64) as f64 / 2.0);
@@ -162,7 +144,6 @@ impl Effects {
     /// Draws effects and numbers over the map (world pixels; `zoom` screen pixels each), and
     /// plays an effect's sound when it shows its frame 1 on screen.
     pub fn draw(&mut self, textures: &Textures, cam: (i32, i32), view: (i32, i32), zoom: f32) {
-        self.poll_sounds();
         let on_screen = |x: i32, y: i32, w: i32, h: i32| x + w > cam.0 && y + h > cam.1 && x < cam.0 + view.0 && y < cam.1 + view.1;
         for a in &mut self.active {
             let t = &self.types[a.kind];
@@ -177,7 +158,7 @@ impl Effects {
                 a.sounded = true;
                 let now = get_time();
                 let recent = self.last_sound.get(&a.kind).is_some_and(|&s| now - s < 0.5);
-                if let (Some(SoundState::Ready(s)), false) = (self.sounds.get(&a.kind), recent) {
+                if let (Some(s), false) = (&t.sound, recent) {
                     play_sound(s, PlaySoundParams { looped: false, volume: SOUND_VOLUME });
                     self.last_sound.insert(a.kind, now);
                 }
@@ -193,19 +174,6 @@ impl Effects {
             }
             // Text drawn at (x, y) has its baseline about 1.1 em lower (spec 05 §0.3).
             font.draw(&f.text, f.x - cam.0, f.y - cam.1 + size * 11 / 10, f.colour);
-        }
-    }
-
-    fn poll_sounds(&mut self) {
-        for state in self.sounds.values_mut() {
-            if let SoundState::Loading(task) = state {
-                if task.is_done() {
-                    *state = match task.retrieve() {
-                        Some(Some(s)) => SoundState::Ready(s),
-                        _ => SoundState::Failed,
-                    };
-                }
-            }
         }
     }
 }

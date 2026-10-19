@@ -4,7 +4,6 @@ use crate::loading::Progress;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::Poll;
-use macroquad::experimental::coroutines::{Coroutine, start_coroutine};
 use macroquad::prelude::*;
 use sim::files::{Files, key};
 use std::collections::HashMap;
@@ -86,7 +85,11 @@ impl Manifest {
     /// Data files the simulation reads at start (ini, txt, AI files and maps).
     fn is_data(path: &str) -> bool {
         let lower = path.to_lowercase();
-        let wanted = lower.ends_with(".ini") || lower.ends_with(".txt") || lower.ends_with(".ia") || lower.starts_with("cartes/");
+        let wanted = lower.ends_with(".ini")
+            || lower.ends_with(".txt")
+            || lower.ends_with(".ia")
+            || lower.starts_with("cartes/")
+            || lower.starts_with("sons/");
         wanted && !lower.ends_with("apercu.png") && !lower.ends_with("carte.png")
     }
 
@@ -97,8 +100,11 @@ impl Manifest {
     /// Bytes of the images the game loads at start, before the world exists to say exactly:
     /// the folders it always uses. Keep in sync with the estimate in `index.html`.
     pub fn image_estimate(&self) -> u64 {
-        const FOLDERS: [&str; 7] = [
+        const FOLDERS: [&str; 10] = [
             "Images/Batiments/",
+            "Images/Persos/",
+            "Images/Apparences/",
+            "Images/Effets/",
             "Images/Boutons/",
             "Images/Decors/",
             "Images/Terrains/",
@@ -154,8 +160,6 @@ pub struct Textures {
     /// The appearance sheets (`Images/Apparences/...`) by bare file name ("hut.bmp"), as
     /// objects name their overlays.
     appearances: HashMap<String, String>,
-    /// Images requested during the game (summons, projectiles, effects), by key.
-    pending: HashMap<String, Coroutine<Option<Texture2D>>>,
 }
 
 impl Textures {
@@ -172,7 +176,7 @@ impl Textures {
             .filter(|(p, _)| p.starts_with("Images/Apparences/") && p.ends_with(".png"))
             .map(|(p, _)| (p.rsplit('/').next().unwrap_or(p).to_lowercase().replace(".png", ".bmp"), p.clone()))
             .collect();
-        Textures { urls, appearances, loaded: HashMap::new(), pending: HashMap::new() }
+        Textures { urls, appearances, loaded: HashMap::new() }
     }
 
     /// Images among `paths` not loaded yet, without duplicates.
@@ -216,28 +220,5 @@ impl Textures {
     /// The path of the appearance sheet an object names (`FichierApparence`).
     pub fn appearance(&self, name: &str) -> Option<&str> {
         self.appearances.get(&name.to_lowercase()).map(String::as_str)
-    }
-
-    /// Starts downloading an image needed during the game, if it is not loaded or loading.
-    pub fn request(&mut self, path: &str) {
-        let k = key(path);
-        if self.loaded.contains_key(&k) || self.pending.contains_key(&k) {
-            return;
-        }
-        if let Some(url) = self.urls.get(&k).cloned() {
-            let task = start_coroutine(async move { load_texture(&url).await.ok() });
-            self.pending.insert(k, task);
-        }
-    }
-
-    /// Call every frame: keeps the requested images that finished downloading.
-    pub fn poll(&mut self) {
-        let done: Vec<String> = self.pending.iter().filter(|(_, t)| t.is_done()).map(|(k, _)| k.clone()).collect();
-        for k in done {
-            if let Some(Some(t)) = self.pending.remove(&k).and_then(|t| t.retrieve()) {
-                t.set_filter(FilterMode::Nearest);
-                self.loaded.insert(k, t);
-            }
-        }
     }
 }

@@ -167,7 +167,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
         }
     };
     let mut textures = assets::Textures::new(&manifest);
-    let (terrain, persos) = render::images(&rules, &world);
+    let (terrain, persos) = render::images(&rules, &manifest);
     let hud = hud::images(&rules);
     let all: Vec<String> = terrain.iter().chain(&persos).chain(&hud).cloned().collect();
     let images: u64 = textures.missing(&all).iter().map(|p| manifest.size(p)).sum();
@@ -175,7 +175,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
-    let effects = effects::Effects::new(&files, &manifest);
+    let effects = effects::Effects::new(&files).await;
     Ok(Loaded { god: options.god, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
@@ -188,7 +188,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { god, show_perf, mut music, mut effects, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
+    let Loaded { god, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -264,8 +264,6 @@ async fn main() {
         // The cursor image is drawn at the interface's scale: its centre on the map.
         let centre = (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1));
 
-        textures.poll();
-        render::request_looks(&world, &rules, &mut textures);
         set_camera(&camera(&target, view_f));
         clear_background(BLACK);
         let overview = (zoom < render::OVERVIEW_ZOOM).then_some(()).and_then(|()| {
@@ -377,7 +375,7 @@ async fn main() {
             last_tick = get_time();
             perf.time(perf::Part::Tick, || world.step(&rules, &orders));
             orders.clear();
-            effects.tick(&world.events, &mut textures);
+            effects.tick(&world.events);
             hud.automatic_actions(&world, player, &mut orders);
             hud.craft_from_queue(&world, &rules, player, &mut orders);
             cam = follow(&world, player, view);

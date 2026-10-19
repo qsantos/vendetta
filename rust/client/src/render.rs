@@ -1,6 +1,6 @@
 //! Drawing the world, following `FrmMoteur2D`'s frame composition.
 
-use crate::assets::Textures;
+use crate::assets::{Manifest, Textures};
 use crate::hud::{status_bar, status_bar_v};
 use macroquad::prelude::*;
 use sim::rules::Rules;
@@ -19,14 +19,19 @@ pub fn castle_image(rules: &Rules, people: usize) -> String {
     format!("{}.bmp", rules.peoples[people].image)
 }
 
-/// Images the world needs, grouped by the loading screen's messages: (terrain and
-/// decors, characters).
-pub fn images(rules: &Rules, world: &World) -> (Vec<String>, Vec<String>) {
+/// Images the game needs, grouped by the loading screen's messages: (terrain and decors,
+/// characters). Every character, equipment and effect sheet is loaded, those of summons and
+/// projectiles too, so that nothing is missing mid-game.
+pub fn images(rules: &Rules, manifest: &Manifest) -> (Vec<String>, Vec<String>) {
     let mut terrain: Vec<String> = [TILESET, RESOURCES, TREASURES].map(String::from).to_vec();
     terrain.extend(rules.buildings.iter().map(|b| format!("{}.bmp", b.image)));
     terrain.extend(rules.decors.iter().map(|d| decor_image(&d.image)));
     terrain.extend((0..rules.peoples.len()).map(|p| castle_image(rules, p)));
-    let persos = world.persos.iter().flat_map(|p| look_sheets(&p.look).to_vec()).collect();
+    let sheets = ["Images/Persos/", "Images/Apparences/", "Images/Effets/"];
+    let persos = (manifest.entries.iter())
+        .filter(|(p, _)| p.ends_with(".png") && sheets.iter().any(|s| p.starts_with(s)))
+        .map(|(p, _)| p.clone())
+        .collect();
     (terrain, persos)
 }
 
@@ -198,19 +203,6 @@ fn draw_look(p: &Perso, rules: &Rules, textures: &Textures, (x, y): (i32, i32), 
     }
 }
 
-/// Downloads the sheets of characters that appeared during the game (summons, projectiles).
-pub fn request_looks(world: &World, rules: &Rules, textures: &mut Textures) {
-    for p in world.persos.iter().filter(|p| p.visible() && p.alive()) {
-        for sheet in look_sheets(&p.look) {
-            textures.request(sheet);
-        }
-        for &o in &p.overlays {
-            if let Some(path) = textures.appearance(&rules.objects[o].appearance[p.female as usize]).map(str::to_owned) {
-                textures.request(&path);
-            }
-        }
-    }
-}
 
 fn blit(tex: &Texture2D, x: i32, y: i32, src: Rect) {
     draw_texture_ex(
