@@ -27,6 +27,8 @@ macro_rules! labels {
             /// `Resistance_NomComplet` and `Resistance_Attaque` of each resistance.
             pub resistance_full: Vec<String>,
             pub resistance_attack: Vec<String>,
+            /// `ResistanceDefaut`: a resistance nothing changed.
+            pub resistance_default: f64,
             /// `CompetenceObjet_NoListe`: the display order of the item skills.
             pub item_skill_order: Vec<usize>,
             /// The decimal separator of VB's number-to-string conversions, which follow the
@@ -42,6 +44,7 @@ macro_rules! labels {
                     race_plural: Vec::new(),
                     resistance_full: Vec::new(),
                     resistance_attack: Vec::new(),
+                    resistance_default: 1.0,
                     item_skill_order: Vec::new(),
                     decimal: '.',
                 }
@@ -140,6 +143,9 @@ impl TooltipLabels {
             let resistances = params.list(Kind::Resistances);
             labels.resistance_full = resistances.iter().map(|r| r.get("NomComplet").unwrap_or("").to_owned()).collect();
             labels.resistance_attack = resistances.iter().map(|r| r.get("Attaque").unwrap_or("").to_owned()).collect();
+            if let Some(d) = params.global(Kind::Resistances).get("Defaut") {
+                labels.resistance_default = vb_val(d);
+            }
             labels.item_skill_order = params
                 .list(Kind::CompetencesObjets)
                 .iter()

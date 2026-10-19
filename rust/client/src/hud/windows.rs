@@ -80,6 +80,13 @@ pub struct WindowStrings {
     niv_plus: String,
     /// The skills window's sort buttons: none, alphabetical, by score, show all.
     skill_sorts: [String; 4],
+    /// The character window's labels (`Etiquette*`): job, level, the 4 bars, attack, defence,
+    /// armour, vitality, speed.
+    character: [String; 11],
+    resistances: String,
+    max_abr: String,
+    min_abr: String,
+    percent: String,
 }
 
 impl WindowStrings {
@@ -126,6 +133,14 @@ impl WindowStrings {
             .map(|k| s(&f, k)),
             niv_plus: s(&g, "EtiquetteNivPlus"),
             skill_sorts: std::array::from_fn(|n| s(&f, &format!("BoutonCompetence{}Etiquette", n + 1))),
+            character: [
+                "Metier", "Niveau", "Vie", "Energie", "Magie", "Moral", "Attaque", "Defense", "Armure", "Vitalite", "Vitesse",
+            ]
+            .map(|k| s(&g, &format!("Etiquette{k}"))),
+            resistances: s(&g, "EtiquetteResistances"),
+            max_abr: s(&g, "EtiquetteMaximumAbr"),
+            min_abr: s(&g, "EtiquetteMinimumAbr"),
+            percent: s(&g, "EtiquettePourcent"),
             // "Argent" from `EtiquetteArgent`, first letter upper-cased
             money: chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default(),
         }
@@ -296,8 +311,10 @@ impl Hud {
             let (x, y) = self.windows.pos[i];
             let female = world.persos[player].female;
             let house = i == 4 && self.house_view(world, player);
-            if i == 3 {
-                // the skills' progress bars show through the background
+            // the progress bars show through the background
+            if i == 2 {
+                self.character_bars(world, player, (x, y));
+            } else if i == 3 {
                 self.skill_bars(world, rules, player, (x, y));
             }
             if let Some(tex) = textures.get(&background(i, female, house)) {
@@ -306,11 +323,12 @@ impl Hud {
             match i {
                 0 => self.building_window(world, rules, textures, player, (x, y), &mut hits),
                 1 => self.resources_window(world, rules, textures, player, (x, y), &mut hits),
+                2 => self.character_window(world, rules, player, (x, y), &mut hits),
                 3 => self.skills_window(world, rules, textures, player, (x, y)),
                 4 => self.inventory_window(world, rules, textures, player, (x, y), &mut hits),
                 5 => self.bestiary_window(world, rules, textures, player, (x, y)),
                 _ => {
-                    // TODO: windows 2, 6 and 7 contents
+                    // TODO: windows 6 and 7 contents
                     let title = &self.windows.strings.titles[i];
                     let tx = if i == 4 { 32 } else { 128 };
                     self.text(x + tx, y + 32, title, BLACK);
@@ -1078,5 +1096,138 @@ impl Hud {
             }
         }
         self.scroll_bar(textures, o, rules.races.len().saturating_sub(SKILL_ROWS), self.windows.bestiary_scroll);
+    }
+}
+
+/// Rows of the character window (`CaracXPositionY`): job, level, Vie, Energie, Magie, Moral,
+/// attack, defence, armour, vitality, speed.
+const CHARACTER_ROWS: [i32; 11] = [58, 82, 106, 130, 154, 178, 214, 238, 262, 298, 322];
+/// Where its values, item bonuses and progress percentages start.
+const CHARACTER_VALUE_X: i32 = 32 + 72;
+const CHARACTER_BONUS_X: i32 = 32 + 147;
+const CHARACTER_PROGRESS_X: i32 = 32 + 212;
+/// `LongueurPasMax` and `VitesseDeplacementFantome`.
+const MAX_STEP: i64 = 16;
+const GHOST_STEP: i64 = 6;
+
+impl Hud {
+    /// The progress of the level and of the 6 bars' levels (the rows they are on), 0 to 1.
+    fn character_progress(world: &World, player: usize) -> [(usize, f64); 7] {
+        let p = &world.persos[player];
+        let level = p.level();
+        let bar = |k: usize| progress(&sim::perso::Skill { xp: p.bar_xp[k].clone(), ..Default::default() });
+        [(1, level - level.floor()), (2, bar(0)), (3, bar(1)), (4, bar(2)), (5, bar(3)), (6, bar(4)), (7, bar(5))]
+    }
+
+    /// `Afficher_InfosCaracPerso1`: the white progress bars, before the background.
+    fn character_bars(&self, world: &World, player: usize, o: (i32, i32)) {
+        for (row, value) in Self::character_progress(world, player) {
+            super::status_bar(value, 0.0, 1.0, o.0 + 32 + 183, o.1 + CHARACTER_ROWS[row] - 4, 80, 24, Some(WHITE));
+        }
+    }
+
+    /// Window 2 — Personnage (`Afficher_InfosCaracPerso2`): name, job (or emperor title), level,
+    /// bars, combat values, armour, vitality and speed, with the items' bonuses in dark red and
+    /// the progress toward each next level; hovering "Résistances" lists them.
+    fn character_window(&self, world: &World, rules: &Rules, player: usize, o: (i32, i32), hits: &mut Vec<(Rect, Hit)>) {
+        let s = &self.windows.strings;
+        let p = &world.persos[player];
+        let line = |row: usize, x: i32, text: &str, colour: Color| self.text(o.0 + x, o.1 + CHARACTER_ROWS[row], text, colour);
+        let label = |row: usize| line(row, 32, &format!("{} :", s.character[row]), BLACK);
+        let value = |row: usize, text: &str| line(row, CHARACTER_VALUE_X, text, BLACK);
+        self.text(o.0 + 128, o.1 + 32, &p.name, BLACK);
+        // Job: an emperor's title without a label, else the house's job once built.
+        let female = p.female as usize;
+        if p.emperor {
+            value(0, &rules.epochs[world.fiefs[p.fief].epoch].emperor_title[female]);
+        } else if world.houses[player].built {
+            label(0);
+            value(0, &rules.buildings[world.houses[player].kind].job[female]);
+        }
+        let level = p.level();
+        label(1);
+        value(1, &(level.floor() as i64).to_string());
+        for k in 0..4 {
+            label(2 + k);
+            value(2 + k, &format!("{} / {}", p.bars[k].floor(), p.bonus_max[k]));
+        }
+        label(6);
+        value(6, &format!("{} / {}", p.attack.floor(), p.bonus_max[4]));
+        label(7);
+        value(7, &format!("{} / {}", p.defense.floor(), p.bonus_max[5]));
+        label(8);
+        value(8, &p.bonus_armour.to_string());
+        label(9);
+        value(9, &format!("{} %", (p.vitality * 100.0).floor()));
+        label(10);
+        let speed = if p.step_temp == MAX_STEP {
+            s.max_abr.to_uppercase()
+        } else if p.alive() {
+            format!("{} / {}", p.step_temp, (p.bonus_move as f64 * p.vitality).floor())
+        } else {
+            GHOST_STEP.to_string()
+        };
+        value(10, &speed);
+        // Resistances, and their tooltip.
+        let (rx, ry) = (o.0 + 176, o.1 + 262);
+        self.text(rx, ry, &s.resistances, BLACK);
+        let hit = Hit { toggle: false, object: None, frame: false, queue: None, tip: self.resistances_tip(rules, p), left: None, right: None };
+        hits.push((Rect::new(rx as f32, ry as f32, 120.0, 16.0), hit));
+        // Progress toward the next levels. The level's goes through "0.00" text, like the original.
+        self.text(o.0 + 240, o.1 + 58, &format!("{} :", s.niv_plus), BLACK);
+        for (row, value) in Self::character_progress(world, player) {
+            let text = if row == 1 {
+                let rounded: f64 = format!("{level:.2}").parse().unwrap_or(level);
+                format!("{} %", ((rounded - level.floor()) * 100.0).floor())
+            } else if row == 2 {
+                format!("{} %", (value * 100.0).floor())
+            } else {
+                format!("{}%", (value * 100.0).floor())
+            };
+            line(row, CHARACTER_PROGRESS_X, &text, BLACK);
+        }
+        // The items' bonuses.
+        let dark_red = Color::from_rgba(128, 0, 0, 255);
+        for (row, k) in [(2, 0), (3, 1), (4, 2), (5, 3), (6, 4), (7, 5)] {
+            let b = p.item_bonus(rules, k);
+            if b.abs() >= 1.0 {
+                line(row, CHARACTER_BONUS_X, &format!("{}{}", if b >= 1.0 { "+" } else { "" }, b.floor()), dark_red);
+            }
+        }
+        if p.bonus_vitality != 1.0 && p.alive() {
+            // (the original prints "--5%" below 100 %)
+            let sign = if p.bonus_vitality > 1.0 { "+" } else { "-" };
+            line(9, CHARACTER_BONUS_X, &format!("{sign}{}{}", ((p.bonus_vitality - 1.0) * 100.0).floor(), s.percent), dark_red);
+        }
+        let move_bonus = p.bonus_move - p.speed;
+        if move_bonus != 0 && p.alive() {
+            line(10, CHARACTER_BONUS_X, &format!("{}{move_bonus}", if move_bonus >= 1 { "+" } else { "" }), dark_red);
+        }
+    }
+
+    /// `BoutonsCaracInfoBulle(0)`: the attack's type, then each resistance not at the default,
+    /// in red when worse, as a percentage (or MAX / MIN at the limits).
+    fn resistances_tip(&self, rules: &Rules, p: &sim::perso::Perso) -> String {
+        let (s, l) = (&self.windows.strings, &self.tooltip_labels);
+        let mut tip = usize::try_from(p.bonus_attack_resistance).ok().and_then(|k| l.resistance_attack.get(k)).cloned().unwrap_or_default();
+        for (k, &r) in p.bonus_resistances.iter().enumerate() {
+            if r == l.resistance_default {
+                continue;
+            }
+            tip += "#";
+            if r > l.resistance_default {
+                tip += "&";
+            }
+            tip += &format!("{} : ", l.resistance_full.get(k).map_or("", String::as_str));
+            if r == rules.resistance_min {
+                tip += &s.max_abr.to_uppercase();
+            } else if r == rules.resistance_max {
+                tip += &s.min_abr.to_uppercase();
+            } else {
+                let sign = if r < l.resistance_default { "+" } else { "" };
+                tip += &format!("{sign}{:.0}{}", -(r - 1.0) * 100.0, s.percent);
+            }
+        }
+        tip
     }
 }

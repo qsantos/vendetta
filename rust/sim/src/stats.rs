@@ -107,7 +107,7 @@ impl Perso {
     }
 
     /// `Definir_BonusVie` etc.: the items' share of maximum `i`.
-    fn item_bonus(&self, rules: &Rules, i: usize) -> f64 {
+    pub fn item_bonus(&self, rules: &Rules, i: usize) -> f64 {
         (self.bonus_max[i] as f64 - self.max[i] as f64 * rules.races[self.race].coef[i] as f32 as f64).floor()
     }
 
