@@ -105,6 +105,8 @@ const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
 
 /// How often the game in progress is saved, in seconds.
 const AUTOSAVE_INTERVAL: f64 = 5.0;
+/// Ticks a frame may run to catch up with the clock.
+const MAX_TICKS_PER_FRAME: u32 = 5;
 
 struct Loaded {
     god: bool,
@@ -215,7 +217,8 @@ async fn main() {
     let mut view = (0, 0);
     let mut cam = (0, 0);
     let mut orders = Vec::new();
-    let mut last_tick = get_time();
+    // When the next tick is due.
+    let mut next_tick = get_time();
     // Made the first time the map is zoomed far out.
     let mut terrain_overview = None;
     // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
@@ -378,14 +381,26 @@ async fn main() {
             scales.store();
         }
 
-        // One tick whenever a tick's worth of time has passed; extra time is dropped.
-        if !hud.paused() && !options::test_mode() && get_time() - last_tick > 1.0 / TICKS_PER_SECOND {
-            last_tick = get_time();
+        // Every tick due by now, so that the world keeps its pace when frames are slower than
+        // ticks; beyond MAX_TICKS_PER_FRAME the backlog is dropped and the world slows down.
+        let still = hud.paused() || options::test_mode();
+        if still {
+            next_tick = get_time() + 1.0 / TICKS_PER_SECOND;
+        }
+        let mut ticks = 0;
+        while !still && get_time() >= next_tick && ticks < MAX_TICKS_PER_FRAME {
+            next_tick += 1.0 / TICKS_PER_SECOND;
+            ticks += 1;
             perf.time(perf::Part::Tick, || world.step(&rules, &orders));
             orders.clear();
             effects.tick(&world.events);
             hud.automatic_actions(&world, player, &mut orders);
             hud.craft_from_queue(&world, &rules, player, &mut orders);
+        }
+        if ticks == MAX_TICKS_PER_FRAME {
+            next_tick = next_tick.max(get_time());
+        }
+        if ticks > 0 {
             cam = follow(&world, player, view);
         }
         // Big worlds are saved less often: a second per megabyte (51 MB at 15000 characters).
