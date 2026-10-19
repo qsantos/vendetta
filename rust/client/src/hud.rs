@@ -253,6 +253,19 @@ impl Hud {
 
     /// `ClsIntMessage.Afficher`: `#` breaks lines (16 px apart); a line starting with `&` is red,
     /// with `$` blue. `(x, y)` is the top of the text cell, like GDI `DrawText`.
+    /// `Afficher_Commentaires`: what characters say, in white at their top-left plus (24, -16),
+    /// at the interface's size. `to_screen` maps map pixels to interface pixels.
+    pub fn draw_comments(&self, world: &World, to_screen: impl Fn(i64, i64) -> (i32, i32)) {
+        // `Commentaires.ini`: DecalageX, DecalageY
+        const OFFSET: (i64, i64) = (24, -16);
+        for p in world.persos.iter().filter(|p| !p.comment.is_empty() && p.alive()) {
+            let (x, y) = to_screen(p.x + OFFSET.0, p.y + OFFSET.1);
+            if x > 0 && x < crate::layout::screen_w() && y > 0 && y < crate::layout::screen_h() {
+                self.text(x, y, &p.comment, WHITE);
+            }
+        }
+    }
+
     pub fn text(&self, x: i32, y: i32, s: &str, colour: Color) {
         for (i, line) in s.split('#').enumerate() {
             let (line, c) = if let Some(l) = line.strip_prefix('&') {

@@ -230,6 +230,7 @@ async fn main() {
         effects.draw(&textures, cam, view, zoom);
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         set_camera(&camera(&target, hud_f));
+        hud.draw_comments(&world, |x, y| ((((x as i32 - cam.0) as f32) * zoom / ui) as i32, (((y as i32 - cam.1) as f32) * zoom / ui) as i32));
         let radial_was_open = hud.radial_open();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
         if input.left_pressed {
