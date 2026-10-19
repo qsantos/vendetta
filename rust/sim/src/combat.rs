@@ -8,7 +8,7 @@ use crate::perso::action;
 use crate::rules::Rules;
 use crate::treasure::TREASURE_SIZE;
 use crate::vb::clng;
-use crate::world::World;
+use crate::world::{World, overlaps};
 
 /// `Attaquer_Perso` etc.: `Action` codes 300-303.
 pub const ATTACK_PERSO: i32 = 300;
@@ -314,7 +314,10 @@ impl World {
                 self.move_step(rules, i);
             }
         } else if area > 0 {
-            // TODO: area attacks (`Perso_Attaquer_Surface`)
+            let castle = if act == ATTACK_CASTLE { self.persos[i].castle_target as i64 } else { -1 };
+            if (ATTACK_PERSO..=ATTACK_CASTLE).contains(&act) {
+                self.hit_area(rules, i, area, castle);
+            }
         } else if act == ATTACK_PERSO {
             self.hit_perso(rules, i, k, true);
         } else if act == ATTACK_HOUSE {
@@ -779,6 +782,85 @@ impl World {
             self.treasures.remove(t);
         } else {
             self.treasure_check(rules, t);
+        }
+    }
+
+    // ---------------------------------------------------------------- area attacks
+
+    /// `Perso_Attaquer_Surface(a, X, Y, Rayon, NoChateau)`: every enemy perso, house and castle
+    /// within `radius` of the attacker (the given centre is ignored), and its targets, take a
+    /// blow without experience, each with the whole attack bar; then the bar is empty (the
+    /// minimum it keeps track of starts at 0). Castles are hit with `castle`, so outside an
+    /// order on a castle they are looted like houses.
+    pub fn hit_area(&mut self, rules: &Rules, a: usize, radius: i64, castle: i64) {
+        let radius = radius as f64;
+        let init = self.persos[a].attack;
+        let mut min = 0.0;
+        let dist = |p: (i64, i64), q: (f64, f64)| ((q.0 - p.0 as f64).powi(2) + (q.1 - p.1 as f64).powi(2)).sqrt();
+        let after = |w: &mut World, min: &mut f64| {
+            if *min > w.persos[a].attack {
+                *min = w.persos[a].attack;
+            }
+            w.persos[a].attack = init;
+        };
+        for i in 0..self.persos.len() {
+            let (p, q) = (&self.persos[a], &self.persos[i]);
+            if q.team != p.team && q.attackable() && (radius > dist((p.x, p.y), (q.x as f64, q.y as f64)) || i == p.perso_target) {
+                self.hit_perso(rules, a, i, false);
+                after(self, &mut min);
+            }
+        }
+        for i in 0..self.houses.len() {
+            let (p, m) = (&self.persos[a], &self.houses[i]);
+            // The original uses the width for Y too.
+            let centre = (m.x as f64 + m.w as f64 / 2.0, m.y as f64 + m.w as f64 / 2.0);
+            if self.persos[i].team != p.team && m.visible() && (radius > dist((p.x, p.y), centre) || i == p.house_target) {
+                self.hit_building(rules, a, Target::House(i), i, -1);
+                after(self, &mut min);
+            }
+        }
+        for i in 0..self.castles.len() {
+            let (p, c) = (&self.persos[a], &self.castles[i]);
+            if self.fiefs[i].team != p.team && c.visible() && (radius > dist((p.x, p.y), (c.x as f64, c.y as f64)) || i == p.castle_target) {
+                let d = p.perso_target;
+                self.hit_building(rules, a, Target::Castle(i), d, castle);
+                after(self, &mut min);
+            }
+        }
+        self.persos[a].set_attack(rules, min);
+    }
+
+    /// `Perso_Pietinement`: a walking perso crushes the enemies under it that trample less,
+    /// and the enemy buildings, its attack bar re-armed to its trampling strength each time.
+    pub fn trample(&mut self, rules: &Rules, a: usize) {
+        let p = &self.persos[a];
+        let (me, team) = ((p.x as i32, p.y as i32, p.w, p.h), p.team);
+        let rearm = |w: &mut World| {
+            let p = &mut w.persos[a];
+            if p.attack < p.trample as f64 {
+                p.set_attack(rules, p.trample as f64);
+            }
+        };
+        for i in 0..self.persos.len() {
+            rearm(self);
+            let (p, q) = (&self.persos[a], &self.persos[i]);
+            if q.team != team && q.attackable() && overlaps(me, (q.x as i32, q.y as i32, q.w, q.h)) && p.trample > q.trample {
+                self.hit_perso(rules, a, i, false);
+            }
+        }
+        for i in 0..self.houses.len() {
+            rearm(self);
+            let m = &self.houses[i];
+            if self.persos[i].team != team && m.visible() && overlaps(me, (m.x, m.y, m.w, m.h)) {
+                self.hit_building(rules, a, Target::House(i), i, -1);
+            }
+        }
+        for i in 0..self.castles.len() {
+            let c = &self.castles[i];
+            if overlaps(me, (c.x, c.y, c.w, c.h)) && c.visible() && self.fiefs[i].team != team {
+                let d = self.persos[a].perso_target;
+                self.hit_building(rules, a, Target::Castle(i), d, i as i64);
+            }
         }
     }
 

@@ -229,3 +229,43 @@ fn houses_are_hit_and_destroyed() {
     assert_eq!(w.treasures.len(), treasures + 1);
     assert_eq!(w.treasures.last().unwrap().money(), 20.0);
 }
+
+/// An area attack hits every enemy within its radius of the attacker, each with the whole
+/// attack bar, which ends empty.
+#[test]
+fn area_attacks_hit_everyone_near() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let a = fighter(&mut w, &rules, 0, 100, 100);
+    let near = fighter(&mut w, &rules, 1, 130, 100);
+    let far = w.persos.iter().rposition(|p| p.fief == 1).unwrap();
+    assert_ne!(near, far);
+    let q = &mut w.persos[far];
+    (q.x, q.y) = (600, 600);
+    q.set_visible(true);
+    w.persos[a].perso_target = a;
+    w.persos[a].attack = 30.0;
+    let (life_near, life_far) = (w.persos[near].bars[0], w.persos[far].bars[0]);
+    w.rng = seed_for(rules.combat.failure_chance, &[true, true]);
+    w.hit_area(&rules, a, 64, -1);
+    assert!(w.persos[near].bars[0] < life_near);
+    assert_eq!(w.persos[far].bars[0], life_far);
+    assert_eq!(w.persos[a].attack, 0.0);
+}
+
+/// Trampling hits the enemies under the perso with its trampling strength.
+#[test]
+fn trampling_crushes_weaker_enemies() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let a = fighter(&mut w, &rules, 0, 100, 100);
+    let d = fighter(&mut w, &rules, 1, 104, 104);
+    w.persos[a].trample = 15;
+    w.persos[a].attack = 0.0;
+    w.persos[d].defense = 0.0;
+    let life = w.persos[d].bars[0];
+    w.rng = seed_for(rules.combat.failure_chance, &[true, true]);
+    w.trample(&rules, a);
+    let res = w.persos[d].resistance(w.persos[a].bonus_attack_resistance);
+    assert_eq!(w.persos[d].bars[0], life - 15.0 * rules.combat.damage_coef * res);
+}

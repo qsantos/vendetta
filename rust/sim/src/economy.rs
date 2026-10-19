@@ -1137,7 +1137,10 @@ impl World {
                 .and_then(|s| rules.buildings[kind].objects.get(s))
                 .map(|&o| rules.objects[o].skill);
             self.persos[i].slow_fatigue(rules, skill);
-            // TODO: trampling (`Perso_Pietinement`)
+            let p = &self.persos[i];
+            if p.moving && p.trample > 0 {
+                self.trample(rules, i);
+            }
             self.persos[i].slow_recovery(rules);
             if !self.persos[i].alive() {
                 // A negative regeneration killed it.
