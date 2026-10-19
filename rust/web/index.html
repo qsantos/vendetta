@@ -27,7 +27,7 @@
           justify-content: center; background: #000;
           font: 15px Arial, "Liberation Sans", sans-serif; color: #e8e8d0; }
   #menu[hidden], #loading[hidden] { display: none; }
-  #menu form { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70);
+  #menu form, #main { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70);
                border-radius: 12px; padding: 20px 28px; min-width: 300px; }
   #menu h1 { margin: 0 0 16px; font-size: 22px; text-align: center; }
   #menu label { display: flex; justify-content: space-between; align-items: center;
@@ -36,11 +36,19 @@
   #menu fieldset { border: 1px solid rgb(120, 150, 70); margin: 14px 0 0; }
   #menu .buttons { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
   #menu button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 6px 14px; }
+  #main { display: flex; flex-direction: column; gap: 12px; }
+  #main[hidden], #menu form[hidden] { display: none; }
+  #main button { padding: 10px 14px; }
 </style>
 </head>
 <body>
 <div id="menu" hidden>
-  <form>
+  <div id="main">
+    <h1>Vendetta</h1>
+    <button type="button" id="continue" disabled>Continuer</button>
+    <button type="button" id="new">Nouveau</button>
+  </div>
+  <form hidden>
     <h1>Vendetta</h1>
     <label>Taille de la carte
       <select name="size">
@@ -62,8 +70,8 @@
       <label>Performances <input type="checkbox" name="perf"></label>
     </fieldset>
     <div class="buttons">
-      <button type="button" id="continue" hidden>Continuer la partie</button>
-      <button type="submit">Nouvelle partie</button>
+      <button type="button" id="back">Retour</button>
+      <button type="submit">Jouer</button>
     </div>
   </form>
 </div>
@@ -365,14 +373,23 @@
       } catch (e) {}
       begin([...last.split("&").filter((o) => o), "play"]);
     });
+    // The main menu ("Continuer", greyed without a saved game; "Nouveau") and the form.
+    const main = document.getElementById("main");
+    const show = (onForm) => {
+      main.hidden = onForm;
+      form.hidden = !onForm;
+    };
+    document.getElementById("new").addEventListener("click", () => show(true));
+    document.getElementById("back").addEventListener("click", () => show(false));
     if (hashItems().includes("play")) {
       begin(hashItems());
     } else {
       fill();
       document.getElementById("menu").hidden = false;
-      // "Continuer" only with a saved game
+      // a link with settings opens on the form
+      show(hashItems().some((o) => fields.some((k) => o.startsWith(k + "=")) || flags.includes(o)));
       storageReady.then(() => {
-        document.getElementById("continue").hidden = !blobs.has("save");
+        document.getElementById("continue").disabled = !blobs.has("save");
       });
     }
   }
