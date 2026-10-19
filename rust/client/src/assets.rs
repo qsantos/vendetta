@@ -4,6 +4,7 @@ use crate::loading::Progress;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::Poll;
+use macroquad::experimental::coroutines::{Coroutine, start_coroutine};
 use macroquad::prelude::*;
 use sim::files::{Files, key};
 use std::collections::HashMap;
@@ -150,6 +151,8 @@ pub struct Textures {
     /// Versioned URL of every image, by key.
     urls: HashMap<String, String>,
     loaded: HashMap<String, Texture2D>,
+    /// Images requested during the game (summons, projectiles, effects), by key.
+    pending: HashMap<String, Coroutine<Option<Texture2D>>>,
 }
 
 impl Textures {
@@ -160,7 +163,7 @@ impl Textures {
             .filter(|(p, _)| p.ends_with(".png"))
             .map(|(p, _)| (key(p), manifest.url(p).unwrap_or_default().to_owned()))
             .collect();
-        Textures { urls, loaded: HashMap::new() }
+        Textures { urls, loaded: HashMap::new(), pending: HashMap::new() }
     }
 
     /// Images among `paths` not loaded yet, without duplicates.
@@ -199,5 +202,28 @@ impl Textures {
 
     pub fn get(&self, path: &str) -> Option<&Texture2D> {
         self.loaded.get(&key(path))
+    }
+
+    /// Starts downloading an image needed during the game, if it is not loaded or loading.
+    pub fn request(&mut self, path: &str) {
+        let k = key(path);
+        if self.loaded.contains_key(&k) || self.pending.contains_key(&k) {
+            return;
+        }
+        if let Some(url) = self.urls.get(&k).cloned() {
+            let task = start_coroutine(async move { load_texture(&url).await.ok() });
+            self.pending.insert(k, task);
+        }
+    }
+
+    /// Call every frame: keeps the requested images that finished downloading.
+    pub fn poll(&mut self) {
+        let done: Vec<String> = self.pending.iter().filter(|(_, t)| t.is_done()).map(|(k, _)| k.clone()).collect();
+        for k in done {
+            if let Some(Some(t)) = self.pending.remove(&k).and_then(|t| t.retrieve()) {
+                t.set_filter(FilterMode::Nearest);
+                self.loaded.insert(k, t);
+            }
+        }
     }
 }

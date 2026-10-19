@@ -152,7 +152,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { mut music, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { mut music, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -209,6 +209,8 @@ async fn main() {
         // The cursor image is drawn at the interface's scale: its centre on the map.
         let centre = (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1));
 
+        textures.poll();
+        render::request_looks(&world, &mut textures);
         set_camera(&camera(&target, view_f));
         clear_background(BLACK);
         render::draw_world(&world, &rules, &textures, cam, player, view);

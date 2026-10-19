@@ -98,11 +98,23 @@ fn draw_persos(world: &World, textures: &Textures, cam: (i32, i32)) {
         if !p.visible() || !p.alive() {
             continue;
         }
-        // Life bar below the sprite, drawn before it.
-        // TODO: attack (red) and defence (blue) bars once combat exists
+        // Bars below the sprite, drawn before it (`FrmMoteur2D.frm:1898-1940`): life, then
+        // attack (or the reload) and defence while any is not full.
+        let (x, y) = (p.x as i32 - cam.0, p.y as i32 - cam.1 + p.h);
         let max = p.bonus_max[0] as f64;
-        if p.bars[0] < max {
-            status_bar(p.bars[0], p.bars[0], max, p.x as i32 - cam.0, p.y as i32 - cam.1 + p.h, p.w, 5, None);
+        let (max_attack, max_defense) = (p.bonus_max[4] as f64, p.bonus_max[5] as f64);
+        let fighting = p.attack < max_attack || p.defense < max_defense || p.reload > 0;
+        if p.bars[0] < max || fighting {
+            status_bar(p.bars[0], p.bars[0], max, x, y, p.w, 5, None);
+        }
+        if fighting {
+            if p.reload == 0 {
+                status_bar(p.attack, p.attack, max_attack, x, y + 5, p.w, 5, Some(Color::from_rgba(255, 0, 0, 255)));
+            } else {
+                let done = (p.reload_max - p.reload) as f64;
+                status_bar(0.0, done, p.reload_max as f64, x, y + 5, p.w, 5, None);
+            }
+            status_bar(p.defense, p.defense, max_defense, x, y + 10, p.w, 5, Some(Color::from_rgba(0, 0, 255, 255)));
         }
         let (col, row) = p.sprite_cell();
         let src = Rect::new((col * p.w) as f32, (row * p.h) as f32, p.w as f32, p.h as f32);
@@ -110,6 +122,15 @@ fn draw_persos(world: &World, textures: &Textures, cam: (i32, i32)) {
             if let Some(tex) = textures.get(sheet) {
                 blit(tex, p.x as i32 - cam.0, p.y as i32 - cam.1, src);
             }
+        }
+    }
+}
+
+/// Downloads the sheets of characters that appeared during the game (summons, projectiles).
+pub fn request_looks(world: &World, textures: &mut Textures) {
+    for p in world.persos.iter().filter(|p| p.visible() && p.alive()) {
+        for sheet in look_sheets(&p.look) {
+            textures.request(sheet);
         }
     }
 }
