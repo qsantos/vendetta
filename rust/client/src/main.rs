@@ -167,6 +167,9 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
         setup.resources = setup.resources * w * h / (setup.width * setup.height);
         (setup.width, setup.height) = (w, h);
     }
+    if !options.players.is_empty() {
+        setup.players = options.players.clone();
+    }
     if options.fiefs.is_some() || options.villagers.is_some() {
         // The default fiefs keep their people; extra ones get a random one, like the original's
         // "Aléatoire", each fief its own team.
@@ -232,7 +235,7 @@ async fn main() {
             next_frame().await;
         },
     };
-    let player = world.persos.iter().position(|p| p.player).unwrap();
+    let mut player = world.persos.iter().position(|p| p.player).unwrap();
     if options.god {
         world.god = Some(player);
     }
@@ -302,6 +305,19 @@ async fn main() {
     loop {
         let frame_start = perf::now();
         perf.frame();
+        // `ToucheChangerPersonnage`: control the next human character, or the previous one with
+        // Shift (the original's key code 41 is not on today's keyboards; this is the key above
+        // Tab, ² on AZERTY; miniquad's web glue reports it as an apostrophe).
+        if is_key_pressed(KeyCode::GraveAccent) || (cfg!(target_arch = "wasm32") && is_key_pressed(KeyCode::Apostrophe)) {
+            let n = world.persos.len();
+            let back = is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift);
+            let next = (1..n).map(|k| if back { (player + n - k) % n } else { (player + k) % n }).find(|&i| world.persos[i].player);
+            if let Some(next) = next {
+                player = next;
+                hud.switch_character();
+                cam = follow(&world, player, view);
+            }
+        }
         // The frame covers the window; the map and the interface each have their own scale.
         // `screen_width()` and the mouse are in CSS pixels; the frame is in physical pixels.
         let dpi = screen_dpi_scale();

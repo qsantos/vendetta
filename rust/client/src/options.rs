@@ -43,6 +43,9 @@ pub struct Options {
     pub emperor: bool,
     /// `advance=N`: the player's fief is N % into changing epoch.
     pub advance: Option<f64>,
+    /// `players=1+1+3`: one human player per entry, in that fief (numbered from 1, as listed at
+    /// the bottom right); several may share a fief. One in the first fief by default.
+    pub players: Vec<usize>,
     /// `inventory=Hache+40:3`: objects in the player's bag, by name (`Parametres_Objets.ini`,
     /// any case) or index, with a count after `:`. Only for a new world, not a resumed one.
     pub inventory: Vec<(String, i64)>,
@@ -83,6 +86,9 @@ impl Options {
                         }
                     }
                 }
+                "players" => {
+                    o.players = value.split('+').filter_map(|f| f.parse::<usize>().ok()).filter(|&f| f >= 1).map(|f| f - 1).collect();
+                }
                 "inventory" => {
                     for e in value.split('+').filter(|e| !e.is_empty()) {
                         let (object, count) = e.split_once(':').unwrap_or((e, "1"));
@@ -104,7 +110,7 @@ impl Options {
 
     /// The options that shape a new world: a saved game made with others is not resumed.
     pub fn setup_key(&self) -> String {
-        format!("{:?} {:?} {:?} {:?}{}", self.size, self.seed, self.fiefs, self.villagers, if self.ring_roads { " ring" } else { "" })
+        format!("{:?} {:?} {:?} {:?}{} {:?}", self.size, self.seed, self.fiefs, self.villagers, if self.ring_roads { " ring" } else { "" }, self.players)
     }
 }
 

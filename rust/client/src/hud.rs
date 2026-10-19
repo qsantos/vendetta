@@ -310,6 +310,17 @@ impl Hud {
         self.windows.camera
     }
 
+    /// `ToucheChangerPersonnage`: the player now controls another character. What the interface
+    /// remembered of the previous one goes (the original saved it per character).
+    pub fn switch_character(&mut self) {
+        self.messages.forget();
+        self.cache_tick = None;
+        self.craft_queue.clear();
+        self.placing = None;
+        self.radial = None;
+        self.windows.forget_character();
+    }
+
     /// Lines of text under the FPS counter, in white (the `#perf` timings).
     pub fn debug_lines(&self, lines: &[String]) {
         for (i, line) in lines.iter().enumerate() {
