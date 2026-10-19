@@ -2,6 +2,7 @@ mod assets;
 mod hud;
 mod layout;
 mod loading;
+mod music;
 mod render;
 mod storage;
 mod text;
@@ -102,6 +103,7 @@ const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
 const AUTOSAVE_INTERVAL: f64 = 5.0;
 
 struct Loaded {
+    music: music::Music,
     files: Files,
     rules: Rules,
     world: World,
@@ -138,7 +140,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
-    Ok(Loaded { files, rules, world, textures })
+    Ok(Loaded { music: music::Music::new(&manifest), files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -150,7 +152,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { mut music, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -162,6 +164,8 @@ async fn main() {
         },
     };
     let player = world.persos.iter().position(|p| p.player).unwrap();
+    // The game starts with a "Debut" track (`FrmMoteur2D.frm:405`).
+    music.play(music::DEBUT, false);
     let mut last_save = get_time();
     let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"), hud::TooltipLabels::load(&files, "Francais"), rules.objects.len());
 
@@ -289,6 +293,20 @@ async fn main() {
             storage::remove("save");
             storage::restart();
         }
+        // The mood's music, every frame (`FrmMoteur2D.frm:426-438`).
+        let p = &world.persos[player];
+        if world.victory {
+            music.play(music::VICTOIRE, false);
+        } else if (300..400).contains(&p.action) {
+            music.play(if p.action == 302 { music::BOSS } else { music::COMBAT }, false);
+        } else if !p.alive() {
+            music.play(music::MORT, false);
+        } else if p.emperor {
+            music.play(music::EMPEREUR, true);
+        } else {
+            music.play(music::VILLE, true);
+        }
+        music.update();
         next_frame().await;
     }
 }
