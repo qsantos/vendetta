@@ -147,23 +147,27 @@
       importObject.env.vendetta_now = () => performance.now() / 1000;
       // Options in the URL's hash (see client/src/options.rs), read like a stored value.
       importObject.env.vendetta_hash_size = () => {
-        pendingRead = new TextEncoder().encode(decodeURIComponent(location.hash.slice(1)));
+        pendingRead = new TextEncoder().encode(startHash);
         return pendingRead.length;
       };
-      window.addEventListener("hashchange", () => location.reload());
+      // after the pending writes, so that none is lost
+      window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
       importObject.env.vendetta_read = (ptr) => {
         new Uint8Array(wasm_memory.buffer, ptr, pendingRead.length).set(pendingRead);
         pendingRead = null;
       };
-      importObject.env.vendetta_remove = (kptr, klen) => {
-        const key = UTF8ToString(kptr, klen);
-        blobs.delete(key);
-        persist(key, null);
-      };
-      // after the pending writes, so that none is lost
-      importObject.env.vendetta_reload = () => writesDone().then(() => location.reload());
     },
   });
+
+  // The options in the URL's hash. `new` (a new world) applies to this load only: it is taken
+  // out of the address, so that reloading resumes that world.
+  const startHash = decodeURIComponent(location.hash.slice(1));
+  {
+    const rest = startHash.split("&").filter((o) => o && o !== "new");
+    if (rest.length !== startHash.split("&").filter((o) => o).length) {
+      history.replaceState(null, "", location.pathname + location.search + (rest.length ? "#" + rest.join("&") : ""));
+    }
+  }
 
   // Persistent blobs: gzip-compressed in IndexedDB (database "vendetta", store "blobs"),
   // which unlike local storage holds big worlds. They are all read into `blobs` before the
@@ -195,19 +199,15 @@
     const db = openDb();
     onmessage = async ({ data: { key, value } }) => {
       try {
-        if (value) {
-          const packed = await transform(value, new CompressionStream("gzip"));
-          await request(await db, "readwrite", (s) => s.put(packed, key));
-        } else {
-          await request(await db, "readwrite", (s) => s.delete(key));
-        }
+        const packed = await transform(value, new CompressionStream("gzip"));
+        await request(await db, "readwrite", (s) => s.put(packed, key));
         postMessage({ key });
       } catch (e) {
         postMessage({ key, error: String(e) });
       }
     };`;
   let worker = null;
-  const waiting = new Map(); // key → newest value not yet sent to the worker (null: delete)
+  const waiting = new Map(); // key → newest value not yet sent to the worker
   const busy = new Set();
   let onIdle = [];
   const send = (key) => {
@@ -215,12 +215,12 @@
     const value = waiting.get(key);
     waiting.delete(key);
     busy.add(key);
-    worker.postMessage({ key, value }, value ? [value.buffer] : []);
+    worker.postMessage({ key, value }, [value.buffer]);
   };
   const persist = (key, value) => {
     if (!worker) return;
     // the worker gets its own copy: `blobs` keeps this one
-    waiting.set(key, value && value.slice());
+    waiting.set(key, value.slice());
     send(key);
   };
   /// Resolves once every write is stored.

@@ -150,7 +150,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             .collect();
     }
     // A saved game is resumed only with the setup options it was made with.
-    let same_setup = storage::load("setup").is_some_and(|k| k == options.setup_key().as_bytes());
+    let same_setup = !options.new && storage::load("setup").is_some_and(|k| k == options.setup_key().as_bytes());
     // Resume the saved game if there is one that fits these rules.
     let saved = storage::load("save").filter(|_| same_setup).and_then(|bytes| match World::load(&rules, &bytes) {
         Ok(world) => Some(world),
@@ -390,11 +390,6 @@ async fn main() {
                 save_size = bytes.len();
                 storage::store("save", &bytes);
             });
-        }
-        // Ctrl+N: a new game, until the setup screens exist.
-        if (is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl)) && is_key_pressed(KeyCode::N) {
-            storage::remove("save");
-            storage::restart();
         }
         // The mood's music, every frame (`FrmMoteur2D.frm:426-438`).
         let p = &world.persos[player];

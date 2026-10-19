@@ -29,6 +29,8 @@ pub struct Options {
     pub ring_roads: bool,
     /// `perf`: show where the time goes (see `perf.rs`).
     pub perf: bool,
+    /// `new`: a new world, not the saved one (the page then takes `new` out of the address).
+    pub new: bool,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -43,6 +45,7 @@ impl Options {
             match key.to_ascii_lowercase().as_str() {
                 "god" => o.god = true,
                 "perf" => o.perf = true,
+                "new" => o.new = true,
                 "test" => TEST.store(true, Ordering::Relaxed),
                 "size" => {
                     let (w, h) = value.split_once(['x', 'X']).unwrap_or((value, value));
