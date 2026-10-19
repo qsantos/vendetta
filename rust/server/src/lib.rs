@@ -86,6 +86,9 @@ struct Player {
     fief: usize,
     /// Its world is made (once started).
     ready: bool,
+    /// Back in the game and not caught up yet: no tick until it asks for those it missed
+    /// (`In::Since`), which then come in order.
+    rejoining: bool,
     /// Its connection; none once gone (its character then stands still).
     tx: Option<UnboundedSender<String>>,
 }
@@ -185,7 +188,7 @@ impl Rooms {
 
     fn player(&self, conn: u64, name: &str, tx: &UnboundedSender<String>) -> Player {
         let token = format!("{:016x}{:016x}", self.random(conn), self.random(conn ^ 1));
-        Player { id: conn, token, conn, name: clean(name), fief: 1, ready: false, tx: Some(tx.clone()) }
+        Player { id: conn, token, conn, name: clean(name), fief: 1, ready: false, rejoining: false, tx: Some(tx.clone()) }
     }
 }
 
@@ -309,6 +312,7 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
             let p = &mut room.players[k];
             p.conn = conn;
             p.tx = Some(tx.clone());
+            p.rejoining = true;
             *joined = Some((code, p.id));
             room.empty_since = None;
             let fiefs: Vec<usize> = room.players.iter().map(|p| p.fief).collect();
@@ -353,6 +357,7 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
                             let _ = tx.send(text.clone());
                         }
                     }
+                    room.players[k].rejoining = false;
                     room.set_ready(k);
                 }
                 In::Order { order } if room.started => room.pending.push((k, order)),
@@ -404,7 +409,7 @@ async fn ticker(rooms: Arc<Rooms>, code: String) {
         }
         let orders: Vec<Value> = room.pending.drain(..).map(|(k, o)| json!([k, o])).collect();
         let text = json!({"t": "tick", "n": n, "orders": orders}).to_string();
-        for tx in room.players.iter().filter_map(|p| p.tx.as_ref()) {
+        for tx in room.players.iter().filter(|p| !p.rejoining).filter_map(|p| p.tx.as_ref()) {
             let _ = tx.send(text.clone());
         }
         room.log.push(text);

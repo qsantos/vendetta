@@ -167,6 +167,8 @@ async fn rejoining_a_game_in_progress() {
     send(&mut b, json!({"t": "rejoin", "room": code.to_lowercase(), "token": token})).await;
     let start = next(&mut b, "start").await;
     assert_eq!((start["you"].clone(), start["resume"].clone()), (json!(1), json!(true)));
+    // nothing live before it asks for what it missed, which would come first
+    assert!(quiet(&mut b).await);
     send(&mut b, json!({"t": "since", "have": 2})).await;
     // every tick from the third on, in order, the missed ones then the live ones
     let mut order_seen = false;
