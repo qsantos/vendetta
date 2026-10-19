@@ -3,10 +3,12 @@
 mod bars;
 mod bubbles;
 mod buttons;
+mod object_tooltip;
 mod shortcuts;
 mod windows;
 
 pub use buttons::Input;
+pub use object_tooltip::TooltipLabels;
 pub use windows::WindowStrings;
 
 use crate::assets::Textures;
@@ -112,6 +114,8 @@ pub struct Hud {
     radial_angle: [f32; 2],
     /// The left release that follows a click closing the radial buttons is not a map click.
     swallow_release: bool,
+    /// Labels of the object tooltips.
+    tooltip_labels: object_tooltip::TooltipLabels,
     /// Object shortcut keys.
     shortcuts: shortcuts::Shortcuts,
     /// The bag or equipment object under the cursor, for binding it with a digit.
@@ -217,7 +221,7 @@ impl Hud {
         self.small_font.set_scale(scale);
     }
 
-    pub fn new(strings: Strings, window_strings: WindowStrings, objects: usize) -> Hud {
+    pub fn new(strings: Strings, window_strings: WindowStrings, tooltip_labels: object_tooltip::TooltipLabels, objects: usize) -> Hud {
         let font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), FONT_PX);
         let small_font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 8.0 * 96.0 / 72.0);
         Hud {
@@ -239,6 +243,7 @@ impl Hud {
             craft_queue: Vec::new(),
             shortcuts: shortcuts::Shortcuts::load(objects),
             hovered_object: None,
+            tooltip_labels,
             fps: 0,
             frames: 0,
             fps_timer: get_time(),

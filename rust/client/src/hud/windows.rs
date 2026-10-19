@@ -1,5 +1,6 @@
 //! The eight 320×368 windows (`ClsIntFenetre`), positions relative to the window origin.
 
+use super::object_tooltip::{InInventory, object_tooltip};
 use super::{Hud, Input, outline};
 use crate::assets::Textures;
 use crate::layout::{ax, ay, screen_h, screen_w};
@@ -488,7 +489,9 @@ impl Hud {
             } else {
                 worn.map(|_| Order::HoldEquipped { perso, slot: k })
             };
-            let tip = worn.map(|it| rules.objects[it.object].name.clone()).unwrap_or_default();
+            let tip = worn
+                .map(|it| object_tooltip(rules, &self.tooltip_labels, p, it.object, 0, None, Some(InInventory::of(world, player))))
+                .unwrap_or_default();
             let store = worn.map(|_| Order::StoreEquipped { perso, slot: k });
             if let Some(label) = worn.and_then(|it| self.shortcuts.label(it.object, set)) {
                 self.small_text(x, y, &label, BLACK);
@@ -528,7 +531,7 @@ impl Hud {
                 Order::HoldObject { perso, slot }
             };
             // TODO: the full object tooltip (`Definir_InfoBulle_Objet`)
-            let tip = rules.objects[item.object].name.clone();
+            let tip = object_tooltip(rules, &self.tooltip_labels, p, item.object, item.count, None, Some(InInventory::of(world, player)));
             let equip = Order::EquipObject { perso, slot, right: false };
             hits.push((Rect::new((o.0 + x) as f32, (o.1 + y) as f32, 32.0, 32.0), Hit { object: Some(item.object), frame: true, queue: None, tip, left: Some(left), right: Some(equip) }));
         }
@@ -619,6 +622,7 @@ impl Hud {
                 let have = p.resource(k);
                 tip += &if have >= q as f64 { format!("#({q} {name})") } else { format!("#&({} / {q} {name})", have.floor()) };
             }
+            let icon_tip = object_tooltip(rules, &self.tooltip_labels, p, obj, 0, None, None);
             if own {
                 let queued = self.craft_queue.iter().filter(|&&q| q == slot).count();
                 if queued > 0 {
@@ -630,12 +634,12 @@ impl Hud {
                 if stock >= 1.0 {
                     let count = queue_quantity(is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl), is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift));
                     let take = Some(Order::TakeObjects { perso, slot, count: count as i64 });
-                    hits.push((rect(168, y - 6, 48, 24), Hit { object: None, frame: false, queue: None, tip: t.name.clone(), left: take, right: None }));
+                    hits.push((rect(168, y - 6, 48, 24), Hit { object: None, frame: false, queue: None, tip: icon_tip, left: take, right: None }));
                 } else {
-                    hits.push((rect(168, y - 6, 48, 24), Hit { object: None, frame: false, queue, tip: t.name.clone(), left: None, right: None }));
+                    hits.push((rect(168, y - 6, 48, 24), Hit { object: None, frame: false, queue, tip: icon_tip, left: None, right: None }));
                 }
             } else if stock >= 1.0 {
-                hits.push((rect(168, y - 6, 48, 24), Hit { object: None, frame: false, queue: None, tip: t.name.clone(), left: Some(Order::BuyObject { perso, house: h, slot }), right: None }));
+                hits.push((rect(168, y - 6, 48, 24), Hit { object: None, frame: false, queue: None, tip: icon_tip, left: Some(Order::BuyObject { perso, house: h, slot }), right: None }));
             }
         }
         if objects.len() > 8 {
