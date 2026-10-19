@@ -51,19 +51,24 @@ pub struct Net {
     me: usize,
     /// The ticks received and not played yet, each with its orders.
     ticks: VecDeque<Vec<Order>>,
+    /// How many ticks were received (played or queued).
+    received: u64,
     /// Own orders sent and not back yet.
     in_flight: usize,
     /// The tick where the copies of the world differed, when the server said so.
     pub desync: Option<u64>,
-    /// The connection was lost (the page says so).
+    /// The connection was lost (the page says so, and reconnects).
     pub closed: bool,
+    /// The page reconnected: the game goes on.
+    pub reconnected: bool,
     /// How many players are ready, of how many, before the first tick.
     pub waiting: (u64, u64),
 }
 
 impl Net {
-    pub fn new(world: &World, players: &[usize], me: usize) -> Net {
-        Net { humans: world.humans(players), me, ticks: VecDeque::new(), in_flight: 0, desync: None, closed: false, waiting: (0, 0) }
+    /// `have`: how many ticks the world played (from a save, or none).
+    pub fn new(world: &World, players: &[usize], me: usize, have: u64) -> Net {
+        Net { humans: world.humans(players), me, ticks: VecDeque::new(), received: have, in_flight: 0, desync: None, closed: false, reconnected: false, waiting: (0, 0) }
     }
 
     /// The local player's character.
@@ -74,6 +79,11 @@ impl Net {
     /// The world is made: the ticks may start (once the others are ready too).
     pub fn ready(&self) {
         send(&json!({"t": "ready"}));
+    }
+
+    /// Back in a game in progress: the ticks after those received.
+    pub fn since(&self) {
+        send(&json!({"t": "since", "have": self.received}));
     }
 
     pub fn send_order(&mut self, order: &Order) {
@@ -100,6 +110,15 @@ impl Net {
             let Ok(msg) = serde_json::from_str::<Value>(&text) else { continue };
             match msg["t"].as_str() {
                 Some("tick") => {
+                    // each one once, in order (none twice after a reconnection)
+                    let n = msg["n"].as_u64().unwrap_or(0);
+                    if n != self.received {
+                        if n > self.received {
+                            macroquad::logging::warn!("tick {} received before {}", n, self.received);
+                        }
+                        continue;
+                    }
+                    self.received = n + 1;
                     let mut orders = Vec::new();
                     for o in msg["orders"].as_array().into_iter().flatten() {
                         let k = o[0].as_u64().unwrap_or(u64::MAX) as usize;
@@ -116,6 +135,12 @@ impl Net {
                 }
                 Some("desync") => self.desync = self.desync.or(msg["tick"].as_u64()),
                 Some("closed") => self.closed = true,
+                // the page reconnected (see `index.html`): the orders sent meanwhile are lost
+                Some("start") => {
+                    self.since();
+                    self.in_flight = 0;
+                    self.reconnected = true;
+                }
                 Some("wait") => self.waiting = (msg["ready"].as_u64().unwrap_or(0), msg["players"].as_u64().unwrap_or(0)),
                 _ => {}
             }
@@ -131,9 +156,10 @@ impl Net {
         self.ticks.len()
     }
 
-    /// After a tick: now and then, the world's digest for the server to compare.
+    /// After a tick: now and then, the world's digest for the server to compare (not while
+    /// catching up, as the digest costs a save).
     pub fn after_tick(&self, world: &World) {
-        if world.tick % DIGEST_EVERY == 0 {
+        if world.tick % DIGEST_EVERY == 0 && self.ticks.len() < 10 {
             send(&json!({"t": "hash", "tick": world.tick, "hash": world.digest()}));
         }
     }

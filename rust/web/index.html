@@ -494,7 +494,25 @@
     // the world's options, and how long to wait for slow players to load (see the server)
     const roomFields = [...fields, "wait"];
     const roomValue = (items, k) => (items.find((o) => o.startsWith(k + "=")) || "").slice(k.length + 1);
+    // The room we are in and our token in it (see the server), kept to come back to it.
+    const netKey = "vendetta-net";
+    const netSlot = () => {
+      try {
+        return JSON.parse(localStorage.getItem(netKey)) || {};
+      } catch (e) {
+        return {};
+      }
+    };
+    const setNetSlot = (slot) => {
+      try {
+        if (slot) localStorage.setItem(netKey, JSON.stringify(slot));
+        else localStorage.removeItem(netKey);
+      } catch (e) {}
+    };
+    let netRoom = null;
     const showLobby = (msg) => {
+      netRoom = msg.room;
+      setNetSlot({ room: msg.room, token: msg.token });
       setHash(["room=" + msg.room]);
       inRoom(true);
       $("room-code").textContent = msg.room;
@@ -530,7 +548,8 @@
     // The world: the room's options, its seed, everyone's fief and our place.
     const startNet = (msg) => {
       netStarted = true;
-      startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "me=" + msg.you, "play"].join("&");
+      const resume = msg.resume ? ["resume"] : [];
+      startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "me=" + msg.you, "room=" + netRoom, ...resume, "play"].join("&");
       document.getElementById("menu").hidden = true;
       loadingScreen.hidden = false;
       bubble.hidden = false;
@@ -550,17 +569,30 @@
       ws.onclose = () => {
         if (socket !== ws) return;
         socket = null;
-        if (netStarted) netInbox.push('{"t":"closed"}');
-        else inRoom(false);
+        if (netStarted) {
+          // tell the game once, then try again and again (1 s, 2 s… up to 15 s apart)
+          if (ws.opened) netInbox.push('{"t":"closed"}');
+          retry = Math.min(retry * 2 || 1, 15);
+          setTimeout(() => connect({ t: "rejoin", room: netRoom, token: netSlot().token }), retry * 1000);
+        } else inRoom(false);
       };
       ws.onmessage = ({ data }) => {
-        if (netStarted) return netInbox.push(data);
+        ws.opened = true;
+        if (netStarted) {
+          retry = 0;
+          return netInbox.push(data);
+        }
         const msg = JSON.parse(data);
-        if (msg.t === "error") fail(msg.message.charAt(0).toUpperCase() + msg.message.slice(1) + ".");
+        if (msg.t === "error" && first.t === "rejoin") {
+          // that game is over for us: join the room anew (its lobby, if it is still one)
+          setNetSlot(null);
+          openLobby(first.room, true);
+        } else if (msg.t === "error") fail(msg.message.charAt(0).toUpperCase() + msg.message.slice(1) + ".");
         else if (msg.t === "lobby") showLobby(msg);
         else if (msg.t === "start") startNet(msg);
       };
     };
+    let retry = 0;
     const name = () => {
       const n = $("name").value.trim();
       if (!n) fail("Choisissez un nom.");
@@ -576,6 +608,7 @@
       if (name()) connect({ t: "join", room: code, name: name() });
     });
     $("leave").addEventListener("click", () => {
+      setNetSlot(null);
       const ws = socket;
       socket = null;
       if (ws) ws.close();
@@ -591,14 +624,19 @@
       }
       send({ t: "settings", items });
     });
-    const openLobby = (code) => {
+    // `fresh`: not back to a game in progress, even with a token for it.
+    const openLobby = (code, fresh) => {
       main.hidden = form.hidden = true;
       lobby.hidden = false;
       try {
         $("name").value = localStorage.getItem(nameKey) || "";
       } catch (e) {}
       $("code").value = code;
-      if (code && $("name").value.trim()) $("join").click();
+      const slot = netSlot();
+      if (!fresh && code && slot.room === code.toUpperCase() && slot.token) {
+        netRoom = slot.room;
+        connect({ t: "rejoin", room: slot.room, token: slot.token });
+      } else if (code && $("name").value.trim()) $("join").click();
     };
     $("lobby-back").addEventListener("click", () => {
       lobby.hidden = true;

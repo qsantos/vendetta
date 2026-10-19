@@ -48,6 +48,10 @@ pub struct Options {
     pub players: Vec<usize>,
     /// `me=k`: network play (see `net.rs`), as the k-th player of `players` (from 0).
     pub me: Option<usize>,
+    /// `room=CODE`: the network game's room, whose world is saved apart from the solo one.
+    pub room: String,
+    /// `resume`: back in a network game in progress, from its save if there is one.
+    pub resume: bool,
     /// `inventory=Hache+40:3`: objects in the player's bag, by name (`Parametres_Objets.ini`,
     /// any case) or index, with a count after `:`. Only for a new world, not a resumed one.
     pub inventory: Vec<(String, i64)>,
@@ -89,6 +93,8 @@ impl Options {
                     }
                 }
                 "me" => o.me = value.parse().ok(),
+                "room" => o.room = value.to_uppercase(),
+                "resume" => o.resume = true,
                 "players" => {
                     o.players = value.split('+').filter_map(|f| f.parse::<usize>().ok()).filter(|&f| f >= 1).map(|f| f - 1).collect();
                 }
@@ -111,7 +117,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, perf: o.perf, me, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, perf: o.perf, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o

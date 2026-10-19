@@ -131,6 +131,11 @@ fn cursor_type(world: &World, rules: &Rules, player: usize, x: i32, y: i32) -> (
 }
 
 const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
+/// How long a frame may play ticks when catching up with a network game.
+const CATCH_UP_SLICE: f64 = 0.03;
+/// The network game's save (one at a time), and its room's code.
+const NET_SAVE: &str = "net-save";
+const NET_ROOM: &str = "net-room";
 
 /// How often the game in progress is saved, in seconds.
 const AUTOSAVE_INTERVAL: f64 = 5.0;
@@ -202,9 +207,13 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     }
     // A saved game is resumed only with the setup options it was made with.
     let same_setup = !options.new && storage::load("setup").is_some_and(|k| k == options.setup_key().as_bytes());
-    // Resume the saved game if there is one that fits these rules.
-    // (not in network play, which has its own world)
-    let saved = storage::load("save").filter(|_| same_setup && options.me.is_none()).and_then(|bytes| match World::load(&rules, &bytes) {
+    // Resume the saved game if there is one that fits these rules; in network play, the room's
+    // own save when coming back to it.
+    let saved = match options.me {
+        None => storage::load("save").filter(|_| same_setup),
+        Some(_) => storage::load(NET_SAVE).filter(|_| options.resume && storage::load(NET_ROOM).is_some_and(|r| r == options.room.as_bytes())),
+    };
+    let saved = saved.and_then(|bytes| match World::load(&rules, &bytes) {
         Ok(world) => Some(world),
         Err(e) => {
             warn!("discarding the saved game: {e}");
@@ -218,6 +227,10 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             created = true;
             if options.me.is_none() {
                 storage::store("setup", options.setup_key().as_bytes());
+            } else {
+                // (no save for this room yet)
+                storage::store(NET_ROOM, options.room.as_bytes());
+                storage::store(NET_SAVE, &[]);
             }
             World::create(&rules, &files, &setup)?
         }
@@ -242,15 +255,32 @@ async fn main() {
             next_frame().await;
         },
     };
-    let mut net = options.me.map(|me| net::Net::new(&world, &options.players, me));
+    let mut net = options.me.map(|me| net::Net::new(&world, &options.players, me, world.tick));
     let mut player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
     // In network play, the world starts with the server's first tick, once the players are ready.
+    // Coming back to a game in progress, the ticks missed are played first, as fast as can be.
     if let Some(net) = &mut net {
-        net.ready();
+        if options.resume {
+            info!("resuming at tick {}", world.tick);
+            net.since();
+        } else {
+            net.ready();
+        }
         while net.backlog() == 0 {
             net.poll();
             let (ready, players) = net.waiting;
-            screen.progress.message(&format!("En attente des autres joueurs ({ready} / {players} prêts)…"));
+            screen.progress.message(&if options.resume { "Reprise de la partie…".to_owned() } else { format!("En attente des autres joueurs ({ready} / {players} prêts)…") });
+            screen.draw();
+            next_frame().await;
+        }
+        while net.backlog() > MAX_TICKS_PER_FRAME as usize {
+            let start = perf::now();
+            while perf::now() - start < CATCH_UP_SLICE && let Some(tick) = net.next_tick() {
+                world.step(&rules, &tick);
+                net.after_tick(&world);
+            }
+            net.poll();
+            screen.progress.message(&format!("Rattrapage de la partie : encore {} s de jeu…", net.backlog() as f64 / TICKS_PER_SECOND));
             screen.draw();
             next_frame().await;
         }
@@ -527,10 +557,10 @@ async fn main() {
             for order in orders.drain(..) {
                 net.send_order(&order);
             }
-            // a backlog (a slow frame, a hidden tab) is caught up quickly
-            let most = if net.backlog() > MAX_TICKS_PER_FRAME as usize { 4 * MAX_TICKS_PER_FRAME } else { MAX_TICKS_PER_FRAME };
+            // a backlog (a slow frame, a hidden tab, a reconnection) is caught up quickly
+            let start = perf::now();
             let mut ticks = 0;
-            while ticks < most && let Some(tick) = net.next_tick() {
+            while (ticks < MAX_TICKS_PER_FRAME || perf::now() - start < CATCH_UP_SLICE) && let Some(tick) = net.next_tick() {
                 ticks += 1;
                 perf.time(perf::Part::Tick, || world.step(&rules, &tick));
                 net.after_tick(&world);
@@ -545,9 +575,14 @@ async fn main() {
                 cam = follow(&world, player, view);
             }
             if std::mem::take(&mut net.closed) {
-                hud.add_notice("&Connexion au serveur perdue : le monde est arrêté.");
+                hud.add_notice("&Connexion au serveur perdue : reconnexion…");
+            }
+            if std::mem::take(&mut net.reconnected) {
+                info!("reconnected at tick {}", world.tick);
+                hud.add_notice("Reconnecté au serveur.");
             }
             if let Some(tick) = net.desync.take() {
+                warn!("desync at tick {}", tick);
                 hud.add_notice(&format!("&Désynchronisation au tick {tick} : les mondes des joueurs diffèrent."));
             }
         }
@@ -575,12 +610,12 @@ async fn main() {
         // `ToucheSauvegarderMonde` (F12) saves now and says so (`Enregistrer_Sauvegarde_Monde`).
         let save_now = is_key_pressed(KeyCode::F12) && !options::test_mode() && net.is_none();
         // Big worlds are saved less often: a second per megabyte (51 MB at 15000 characters).
-        if net.is_none() && (save_now || get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6)) {
+        if save_now || get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6) {
             last_save = get_time();
             perf.time(perf::Part::Save, || {
                 let bytes = world.save();
                 save_size = bytes.len();
-                storage::store("save", &bytes);
+                storage::store(if net.is_some() { NET_SAVE } else { "save" }, &bytes);
             });
             if save_now {
                 hud.add_saved_message();
