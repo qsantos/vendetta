@@ -114,8 +114,19 @@ fn draw_work_state(world: &World, rules: &Rules, i: usize, cam: (i32, i32)) {
     if p.current_resource >= 0 {
         let r = p.current_resource as usize;
         match p.action {
-            // TODO: mount offsets
-            2 => status_bar(p.resource(r), 0.0, p.max_resource(r), p.x as i32 - cam.0, p.y as i32 - cam.1 - 5, p.w, 5, Some(WHITE)),
+            2 => {
+                // Above the rider, lifted by the mount's offsets for direction 1 (up), which
+                // bob with the walk (`Definir_ApparenceDecalageX/Y(1)`); still the rider's width.
+                let (dx, dy) = match p.mount.checked_sub(1).and_then(|m| p.overlays.get(m)) {
+                    Some(&o) => {
+                        let (dx, dy) = rules.objects[o].appearance_offset[1];
+                        (dx as i32, dy as i32 - (p.frame == 1) as i32)
+                    }
+                    None => (0, 0),
+                };
+                let (x, y) = (p.x as i32 - cam.0 + dx, p.y as i32 - cam.1 + dy - 5);
+                status_bar(p.resource(r), 0.0, p.max_resource(r), x, y, p.w, 5, Some(WHITE));
+            }
             102 => {
                 status_bar(p.resource(r), 0.0, p.max_resource(r), mx, my - 5, m.w, 5, Some(WHITE));
                 let raw = rules.resources[r].raw;
