@@ -80,7 +80,8 @@
         bar.style.width = pct + "%";
         // The original's colour: `CLng(Pourcentage * 2.5 * 255)` read as &HBBGGRR, with an
         // Integer percentage, so it changes once per percent (red first, green at the end).
-        const v = Math.round(Math.floor(pct) * 2.5 * 255);
+        const x = Math.floor(pct) * 2.5 * 255;
+        const v = x - Math.floor(x) === 0.5 && Math.floor(x) % 2 === 0 ? Math.floor(x) : Math.round(x); // VB rounds half to even
         bar.style.background = `rgb(${v & 255}, ${(v >> 8) & 255}, ${(v >> 16) & 255})`;
         showMessage(UTF8ToString(ptr, len));
       };
