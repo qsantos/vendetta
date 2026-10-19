@@ -250,6 +250,8 @@ async fn main() {
         if wheel != 0.0 && !radial_was_open {
             let up = wheel > 0.0;
             match hud.over_window(&world, player, (hx, hy)) {
+                // Over a status bar the wheel sets the restoring threshold (done by the HUD).
+                _ if hud.over_status_bar((hx, hy)) => {}
                 Some(true) => {}
                 Some(false) => scales.ui = step(&UI_SCALES, scales.ui, up),
                 None if on_ui => scales.ui = step(&UI_SCALES, scales.ui, up),
@@ -263,6 +265,7 @@ async fn main() {
             last_tick = get_time();
             world.step(&rules, &orders);
             orders.clear();
+            hud.automatic_actions(&world, player, &mut orders);
             cam = follow(&world, player, view);
         }
         if get_time() - last_save > AUTOSAVE_INTERVAL {

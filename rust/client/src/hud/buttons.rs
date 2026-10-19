@@ -3,7 +3,7 @@
 
 use super::{DEPLACEMENT, Hud, INFOS, RED, outline};
 use crate::assets::Textures;
-use crate::layout::{ax, ay, screen_h, screen_w};
+use crate::layout::{ax, screen_h, screen_w};
 use macroquad::prelude::*;
 use sim::rules::Rules;
 use sim::world::{Order, World};
@@ -319,11 +319,17 @@ impl Hud {
             }
         }
 
-        // Object shortcut slots and status bars
-        // TODO: shortcut slots, auto-restore thresholds
+        // Object shortcut slots
+        // TODO: shortcut slots
         if !on_ui {
-            on_ui = (0..9).any(|i| inside(m, 56 + 32 * i, 0, 32, 32))
-                || [691, 709, 727, 745].iter().any(|&y| inside(m, 7, ay(y), 136, 16));
+            on_ui = (0..9).any(|i| inside(m, 56 + 32 * i, 0, 32, 32));
+        }
+        // Status bars
+        if !on_ui {
+            if let Some(t) = self.status_bar_buttons(world, player, input, orders) {
+                on_ui = true;
+                tip = t;
+            }
         }
         // The screen border counts as interface.
         on_ui |= m.0 <= 0 || m.1 <= 0 || m.0 >= screen_w() || m.1 >= screen_h();

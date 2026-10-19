@@ -1,5 +1,6 @@
 //! The in-game HUD (`ClsInterface.Afficher`), at the original's 1024×768 positions.
 
+mod bars;
 mod bubbles;
 mod buttons;
 mod windows;
@@ -25,7 +26,7 @@ pub const CURSOR: &str = "Images/Curseurs/ArrowCursor.bmp";
 
 pub(crate) const WHITE_: Color = Color::new(1.0, 1.0, 1.0, 1.0);
 const GREY: Color = Color::new(128.0 / 255.0, 128.0 / 255.0, 128.0 / 255.0, 1.0);
-const LIGHT_GREY: Color = Color::new(192.0 / 255.0, 192.0 / 255.0, 192.0 / 255.0, 1.0);
+pub(crate) const LIGHT_GREY: Color = Color::new(192.0 / 255.0, 192.0 / 255.0, 192.0 / 255.0, 1.0);
 pub(crate) const RED: Color = Color::new(1.0, 0.0, 0.0, 1.0);
 pub(crate) const BLUE: Color = Color::new(0.0, 0.0, 1.0, 1.0);
 
@@ -42,6 +43,8 @@ pub struct Strings {
     pub coins: String,
     pub emperor_only: String,
     pub info_tips: Vec<String>,
+    /// `BarresStatutSeuilMessage1/2`, around the threshold tooltip.
+    pub threshold: [String; 2],
     pub closed: [String; 2],
     pub abandoned: [String; 2],
     pub percent: String,
@@ -76,6 +79,7 @@ impl Strings {
                 globals.find("EtiquetteVieRestante").unwrap_or("").to_owned(),
                 globals.find("EtiquetteViesRestantes").unwrap_or("").to_owned(),
             ],
+            threshold: ["BarresStatutSeuilMessage1", "BarresStatutSeuilMessage2"].map(|k| interface.find(k).unwrap_or("").to_owned()),
             info_tips: (1..=9).map(|i| interface.find(&format!("BoutonInfosInfoBulle{i}")).unwrap_or("").to_owned()).collect(),
             move_tips: (1..=23)
                 .map(|i| interface.find(&format!("BoutonDeplacementInfoBulle{i}")).unwrap_or("").to_owned())
@@ -102,6 +106,8 @@ pub struct Hud {
     radial_angle: [f32; 2],
     /// The left release that follows a click closing the radial buttons is not a map click.
     swallow_release: bool,
+    /// Automatic restoring of the status bars.
+    auto: bars::AutoRestore,
     /// Build buttons' (state, image), see `refresh_build_buttons`.
     build_cache: Vec<(i32, String)>,
     fps: u32,
@@ -214,6 +220,7 @@ impl Hud {
             radial_angle: [-1.57; 2],
             swallow_release: false,
             build_cache: Vec::new(),
+            auto: bars::AutoRestore::load(),
             fps: 0,
             frames: 0,
             fps_timer: get_time(),
@@ -248,7 +255,7 @@ impl Hud {
         let p = &world.persos[player];
 
         // Status bars: Moral, Magie, Energie, Vie (bottom to top), then their contours.
-        const BAR_Y: [i32; 4] = [691, 709, 727, 745];
+        use bars::BAR_Y;
         for i in (0..4).rev() {
             let (px, py) = (10, ay(BAR_Y[i]));
             let max = p.bonus_max[i] as f64;
@@ -258,10 +265,7 @@ impl Hud {
             let score = format!("{} / {}", v.floor(), p.bonus_max[i]);
             self.text(px - 3 + 108 - score.chars().count() as i32 * 4, py, &score, WHITE_);
         }
-        for y in BAR_Y.map(ay) {
-            // TODO: orange contour and threshold marker when auto-restore is on
-            outline(7 - 1, y - 1, 7 + 136 + 1, y + 16 + 1, LIGHT_GREY);
-        }
+        self.draw_bar_contours();
 
         self.draw_statistics(world, rules);
         self.draw_epoch(world, rules, p);
