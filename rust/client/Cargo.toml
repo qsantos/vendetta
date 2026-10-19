@@ -1,0 +1,10 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+sim = { path = "../sim" }
+macroquad = "0.4"
+fontdue = "0.9"

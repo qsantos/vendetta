@@ -1,0 +1,565 @@
+//! HUD buttons: build, move and info buttons, building placement, tooltips and shortcuts
+//! (`ClsInterface.Interieur_Boutons`).
+
+use super::{DEPLACEMENT, Hud, INFOS, RED, outline};
+use crate::assets::Textures;
+use crate::layout::{ax, ay, screen_h, screen_w};
+use macroquad::prelude::*;
+use sim::rules::Rules;
+use sim::world::{Order, World};
+
+/// The mouse for one frame, in frame pixels, with the original's press/release edges.
+#[derive(Clone, Copy)]
+pub struct Input {
+    pub mouse: (i32, i32),
+    pub left_pressed: bool,
+    pub left_released: bool,
+    pub right_pressed: bool,
+    pub ctrl: bool,
+    pub shift: bool,
+}
+
+impl Input {
+    pub fn poll(mouse: (i32, i32)) -> Input {
+        Input {
+            mouse,
+            left_pressed: is_mouse_button_pressed(MouseButton::Left),
+            left_released: is_mouse_button_released(MouseButton::Left),
+            right_pressed: is_mouse_button_pressed(MouseButton::Right),
+            ctrl: is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl),
+            shift: is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift),
+        }
+    }
+}
+
+fn button_image(rules: &Rules, kind: Option<usize>) -> String {
+    let name = kind.map_or("_Demolir", |k| &rules.buildings[k].button_image);
+    format!("Images/Boutons/Construire/{name}.bmp")
+}
+
+/// The build buttons: index 0 demolishes, then the playable buildings in `BatimentsTri` order.
+fn build_buttons(rules: &Rules) -> Vec<Option<usize>> {
+    std::iter::once(None)
+        .chain(rules.building_order.iter().copied().filter(|&k| rules.buildings[k].playable).map(Some))
+        .collect()
+}
+
+pub fn images(rules: &Rules) -> Vec<String> {
+    build_buttons(rules).into_iter().map(|k| button_image(rules, k)).collect()
+}
+
+/// `Interieur_Bouton`: inclusive on both ends.
+fn inside(m: (i32, i32), x: i32, y: i32, w: i32, h: i32) -> bool {
+    m.0 >= x && m.0 <= x + w && m.1 >= y && m.1 <= y + h
+}
+
+fn blit(tex: &Texture2D, x: i32, y: i32, src: Rect) {
+    // Sprites are clipped at the screen's left edge by shrinking the source rectangle.
+    let mut src = src;
+    let mut x = x as f32;
+    if x < 0.0 {
+        src.x -= x;
+        src.w += x;
+        x = 0.0;
+    }
+    if src.w > 0.0 {
+        draw_texture_ex(tex, x, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+    }
+}
+
+fn move_button_pos(i: usize, slide: i32) -> (i32, i32) {
+    if i < 18 {
+        (28 * (i as i32 % 2) + slide, 28 * (i as i32 / 2))
+    } else {
+        (56 + slide, 112 + 28 * (i as i32 - 18))
+    }
+}
+
+fn build_button_pos(i: usize, slide: i32) -> (i32, i32) {
+    (28 * (i as i32 % 3) + slide, 232 + 28 * (i as i32 / 3 + 1))
+}
+
+fn info_button_pos(i: usize) -> (i32, i32) {
+    (ax(888 - 30 * i as i32), 0)
+}
+
+impl Hud {
+    /// Which move buttons are shown (`Afficher_BoutonsDeplacement`).
+    fn move_visible(&self, world: &World, player: usize, i: usize) -> bool {
+        let p = &world.persos[player];
+        match i {
+            0 => world.castles[p.fief].visible(),
+            1 => world.houses[player].visible(),
+            // TODO: soldiers (17), army selected (18..22)
+            17.. => false,
+            _ => true,
+        }
+    }
+
+    /// Build button state (`Etat`): 0 disabled, 1 enabled, 2 epoch not reached.
+    fn build_state(&self, world: &World, rules: &Rules, player: usize, kind: Option<usize>) -> i32 {
+        let p = &world.persos[player];
+        match kind {
+            None => (world.houses[player].visible() || p.in_house) as i32,
+            Some(k) => {
+                if world.fiefs[p.fief].epoch as i64 >= rules.buildings[k].epoch - 1 {
+                    (p.alive() && world.can_build(rules, player, k)) as i32
+                } else {
+                    2
+                }
+            }
+        }
+    }
+
+    /// `Deplacer_BoutonsConstruire` / `Deplacer_BoutonsDeplacement`: 4 px per frame toward
+    /// shown while hovered, hidden otherwise.
+    pub(super) fn slide_buttons(&mut self, world: &World, rules: &Rules, player: usize, m: (i32, i32)) {
+        let n = build_buttons(rules).len();
+        let over_build = (0..n).any(|i| {
+            let (x, y) = build_button_pos(i, self.build_slide);
+            inside(m, x, y, 28, 28)
+        });
+        if over_build && self.build_slide < 0 {
+            self.build_slide += 4;
+        } else if !over_build && self.build_slide > -80 {
+            self.build_slide -= 4;
+        }
+        let over_move = (0..18).filter(|&i| self.move_visible(world, player, i)).any(|i| {
+            let (x, y) = move_button_pos(i, self.move_slide);
+            inside(m, x, y, 28, 28)
+        });
+        if over_move && self.move_slide < 0 {
+            self.move_slide += 4;
+        } else if !over_move && self.move_slide > -52 {
+            self.move_slide -= 4;
+        }
+    }
+
+    pub(super) fn draw_move_buttons(&self, textures: &Textures, world: &World, player: usize) {
+        let Some(tex) = textures.get(DEPLACEMENT) else { return };
+        let p = &world.persos[player];
+        for i in (0..18).filter(|&i| self.move_visible(world, player, i)) {
+            let (x, y) = move_button_pos(i, self.move_slide);
+            let row = if i == 14 { p.ai as i32 } else { 0 };
+            // opaque blit: black is drawn, not keyed
+            let w = 28 + x.min(0);
+            if w > 0 {
+                draw_rectangle(x.max(0) as f32, y as f32, w as f32, 28.0, BLACK);
+            }
+            blit(tex, x, y, Rect::new(28.0 * i as f32, 28.0 * row as f32, 28.0, 28.0));
+        }
+    }
+
+    pub(super) fn draw_build_buttons(&self, textures: &Textures) {
+        for (i, (state, image)) in self.build_cache.iter().enumerate() {
+            if let Some(tex) = textures.get(image) {
+                let (x, y) = build_button_pos(i, self.build_slide);
+                blit(tex, x, y, Rect::new(0.0, 28.0 * *state as f32, 28.0, 28.0));
+            }
+        }
+    }
+
+    pub(super) fn draw_info_buttons(&self, textures: &Textures) {
+        let Some(tex) = textures.get(INFOS) else { return };
+        // Button 8 (objectives) only shows once an objective exists.
+        for i in 0..8 {
+            let (x, y) = info_button_pos(i);
+            let row = self.info_enabled[i] as i32;
+            blit(tex, x, y, Rect::new(24.0 * i as f32, 24.0 * row as f32, 24.0, 24.0));
+        }
+    }
+
+    /// Refreshes the build buttons' states and images (`ActualiserLent` does it once per second;
+    /// doing it every frame only removes that delay).
+    pub(super) fn refresh_build_buttons(&mut self, world: &World, rules: &Rules, player: usize) {
+        self.build_cache = build_buttons(rules)
+            .into_iter()
+            .map(|k| (self.build_state(world, rules, player, k), button_image(rules, k)))
+            .collect();
+    }
+
+    /// `Definir_InfoBulle_Batiment`
+    fn build_tooltip(&self, world: &World, rules: &Rules, player: usize, kind: Option<usize>, state: i32) -> String {
+        let Some(k) = kind else {
+            return format!("{}{}", if state == 1 { "" } else { "&" }, self.strings.demolish);
+        };
+        let (b, p) = (&rules.buildings[k], &world.persos[player]);
+        let mut lines = vec![b.name.clone()];
+        if state == 2 {
+            lines.push(format!("&({})", rules.epochs[(b.epoch - 1).max(0) as usize].name));
+        }
+        if p.money() >= b.price_money as f64 {
+            lines.push(format!("({} {})", b.price_money, self.strings.coins));
+        } else {
+            lines.push(format!("&({} / {} {})", p.money().floor(), b.price_money, self.strings.coins));
+        }
+        for (r, &q) in b.price_resources.iter().enumerate().filter(|(_, q)| **q > 0) {
+            let name = rules.resources[r].name.to_lowercase();
+            if p.resource(r) >= q as f64 {
+                lines.push(format!("({q} {name})"));
+            } else {
+                lines.push(format!("&({} / {q} {name})", p.resource(r).floor()));
+            }
+        }
+        if b.emperor && !p.emperor {
+            lines.push(format!("&{}", self.strings.emperor_only));
+        }
+        if !b.description.is_empty() {
+            lines.push(b.description.clone());
+        }
+        // TODO: workshop object list after hovering 2 s
+        lines.join("#")
+    }
+
+    /// `ClsIntBouton.Afficher_Info_Bulle`: pale yellow box at the mouse + (24, 20).
+    pub(crate) fn tooltip(&self, m: (i32, i32), s: &str) {
+        if s.is_empty() {
+            return;
+        }
+        let lines: Vec<&str> = s.split('#').collect();
+        // Each line's length includes its separator, except the last one.
+        let max_len = lines
+            .iter()
+            .enumerate()
+            .map(|(i, l)| l.chars().count() + (i + 1 < lines.len()) as usize)
+            .max()
+            .unwrap_or(0) as i32;
+        let (w, h) = (max_len * 7, lines.len() as i32 * 16);
+        let (mut x, mut y) = (m.0 + 24, m.1 + 20);
+        if x < 0 {
+            x = 0;
+        } else if x + w + 2 > screen_w() {
+            x = screen_w() - w - 2;
+        }
+        if y < 0 {
+            y = 0;
+        } else if y + h + 2 > screen_h() {
+            y = screen_h() - h - 2;
+        }
+        draw_rectangle((x - 2) as f32, (y - 2) as f32, (w + 4) as f32, (h + 4) as f32, Color::from_rgba(255, 255, 192, 255));
+        outline(x - 2, y - 2, x + w + 2, y + h + 2, BLACK);
+        self.text(x, y, s, BLACK);
+    }
+
+    /// `Interieur_Boutons`: button clicks, keyboard shortcuts and the hovered tooltip. Returns
+    /// whether the mouse is on the interface.
+    pub(super) fn interact(
+        &mut self,
+        world: &World,
+        rules: &Rules,
+        player: usize,
+        input: &Input,
+        orders: &mut Vec<Order>,
+        on_window: bool,
+        mut tip: String,
+    ) -> bool {
+        let m = input.mouse;
+        let perso = player;
+        let mut on_ui = on_window;
+
+        // Build buttons
+        let kinds = build_buttons(rules);
+        for (i, &kind) in kinds.iter().enumerate().filter(|_| !on_window) {
+            let (x, y) = build_button_pos(i, self.build_slide);
+            if !inside(m, x, y, 28, 28) {
+                continue;
+            }
+            on_ui = true;
+            let state = self.build_cache.get(i).map_or(0, |c| c.0);
+            tip = self.build_tooltip(world, rules, player, kind, state);
+            if input.left_pressed && state == 1 {
+                match kind {
+                    None => orders.push(Order::Demolish { perso }),
+                    Some(k) => self.placing = Some(k),
+                }
+            }
+            // TODO: right click walks to the next allied house of that type
+            break;
+        }
+
+        // Move buttons
+        if !on_ui {
+            for i in (0..18).filter(|&i| self.move_visible(world, player, i)) {
+                let (x, y) = move_button_pos(i, self.move_slide);
+                if !inside(m, x, y, 28, 28) {
+                    continue;
+                }
+                on_ui = true;
+                tip = self.strings.move_tips[i].clone();
+                if (2..=9).contains(&i) {
+                    let r = rules.terrain_resources[i - 2].resource;
+                    if r >= 0 {
+                        let p = &world.persos[player];
+                        let r = r as usize;
+                        tip += &format!("#{} : {} / {}", rules.resources[r].name, p.resource(r).floor(), p.max_resource(r));
+                    }
+                }
+                let click = if i <= 1 { input.left_released } else { input.left_pressed };
+                if click {
+                    if let Some(o) = self.move_order(world, player, i) {
+                        orders.push(o);
+                    }
+                }
+                break;
+            }
+        }
+
+        // Info buttons
+        if !on_ui {
+            for i in 0..8 {
+                let (x, y) = info_button_pos(i);
+                if inside(m, x, y, 24, 24) {
+                    on_ui = true;
+                    tip = self.strings.info_tips[i].clone();
+                    if input.left_pressed {
+                        self.info_enabled[i] = !self.info_enabled[i];
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Object shortcut slots and status bars
+        // TODO: shortcut slots, auto-restore thresholds
+        if !on_ui {
+            on_ui = (0..9).any(|i| inside(m, 56 + 32 * i, 0, 32, 32))
+                || [691, 709, 727, 745].iter().any(|&y| inside(m, 7, ay(y), 136, 16));
+        }
+        // The screen border counts as interface.
+        on_ui |= m.0 <= 0 || m.1 <= 0 || m.0 >= screen_w() || m.1 >= screen_h();
+
+        self.keyboard(world, player, orders);
+        self.tooltip(m, &tip);
+        on_ui
+    }
+
+    /// The command of move button `i`.
+    fn move_order(&mut self, world: &World, player: usize, i: usize) -> Option<Order> {
+        let perso = player;
+        Some(match i {
+            0 => Order::GoOwnCastle { perso },
+            1 => Order::GoHome { perso, enter: false },
+            2..=9 => Order::FindResource { perso, kind: i - 2 },
+            13 => Order::FindTreasure { perso },
+            16 => Order::Stop { perso },
+            // TODO: 10-12 attack nearest (combat), 14 auto mode (AI), 15 attack allies, 17 formation
+            _ => {
+                let _ = world;
+                return None;
+            }
+        })
+    }
+
+    /// The keyboard shortcuts of the buttons (`Touches.ini`).
+    fn keyboard(&mut self, world: &World, player: usize, orders: &mut Vec<Order>) {
+        const MOVE_KEYS: [(KeyCode, usize); 12] = [
+            (KeyCode::G, 0),
+            (KeyCode::M, 1),
+            (KeyCode::F1, 2),
+            (KeyCode::F2, 3),
+            (KeyCode::F3, 4),
+            (KeyCode::F4, 5),
+            (KeyCode::F5, 6),
+            (KeyCode::F6, 7),
+            (KeyCode::F7, 8),
+            (KeyCode::F8, 9),
+            (KeyCode::V, 13),
+            (KeyCode::S, 16),
+        ];
+        for (key, i) in MOVE_KEYS {
+            if is_key_pressed(key) && self.move_visible(world, player, i) {
+                if let Some(o) = self.move_order(world, player, i) {
+                    orders.push(o);
+                }
+            }
+        }
+        const INFO_KEYS: [(KeyCode, usize); 8] = [
+            (KeyCode::B, 0),
+            (KeyCode::R, 1),
+            (KeyCode::P, 2),
+            (KeyCode::T, 3),
+            (KeyCode::I, 4),
+            (KeyCode::U, 5),
+            (KeyCode::Tab, 6),
+            (KeyCode::F10, 7),
+        ];
+        for (key, i) in INFO_KEYS {
+            if is_key_pressed(key) {
+                self.info_enabled[i] = !self.info_enabled[i];
+            }
+        }
+        if is_key_pressed(KeyCode::Delete) {
+            orders.push(Order::Demolish { perso: player });
+        }
+    }
+
+    /// Top-left corners of the radial buttons of the current category.
+    fn radial_positions(&self, rules: &Rules) -> Vec<(i32, i32, i32)> {
+        let Some((cx, cy)) = self.radial else { return Vec::new() };
+        let a0 = self.radial_angle[self.radial_category];
+        let at = |angle: f32, r: f32, size: i32| {
+            let x = cx as f64 + (angle.cos() * r) as f64 - size as f64 / 2.0;
+            let y = cy as f64 + (angle.sin() * r) as f64 - size as f64 / 2.0;
+            (sim::vb::clng(x) as i32, sim::vb::clng(y) as i32, size)
+        };
+        if self.radial_category == 0 {
+            let step = 3.14 / 7.0 * 2.0;
+            (0..7).map(|i| at(step * i as f32 + a0, 40.0, 24)).collect()
+        } else {
+            // Rings of 7, 14, 21… buttons at radius 40, 80, 120…
+            let n = build_buttons(rules).len();
+            let (mut ring, mut k) = (0, 0);
+            (0..n)
+                .map(|_| {
+                    if k > 7 + 7 * ring - 1 {
+                        ring += 1;
+                        k = 0;
+                    }
+                    let step = 3.14 / (7 + 7 * ring) as f32 * 2.0;
+                    let pos = at(step * k as f32 + a0, 40.0 + 40.0 * ring as f32, 28);
+                    k += 1;
+                    pos
+                })
+                .collect()
+        }
+    }
+
+    /// `Activer_BoutonsRadiaux`: a right click on the map opens the ring at the mouse; while
+    /// open, another right click switches between the info and build rings.
+    // TODO: the original also warps the cursor onto the info button `_button`
+    pub fn open_radial(&mut self, m: (i32, i32), _button: usize) {
+        if self.radial.is_some() {
+            self.radial_category = (self.radial_category + 1) % 2;
+        }
+        self.radial = Some(m);
+    }
+
+    /// The open radial buttons (modal): draw, hover, rotate with the wheel, click.
+    pub(super) fn radial_buttons(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input) {
+        let m = input.mouse;
+        let wheel = mouse_wheel().1;
+        if wheel != 0.0 {
+            // `Pivoter_BoutonsRadiaux` with DirectInput's 120 per notch, literally.
+            let a = &mut self.radial_angle[self.radial_category];
+            *a += 3.14 * 120.0 * wheel.signum() / 2.0;
+            if *a < 0.0 {
+                *a += 6.28;
+            } else if *a > 6.28 {
+                *a -= 6.28;
+            }
+        }
+        let positions = self.radial_positions(rules);
+        let mut hovered = None;
+        let white = Color::from_rgba(255, 255, 255, 255);
+        for (i, &(x, y, size)) in positions.iter().enumerate() {
+            if self.radial_category == 0 {
+                if let Some(tex) = textures.get(INFOS) {
+                    let row = self.info_enabled[i] as i32;
+                    blit(tex, x, y, Rect::new(24.0 * i as f32, 24.0 * row as f32, 24.0, 24.0));
+                }
+            } else if let Some((state, image)) = self.build_cache.get(i) {
+                if let Some(tex) = textures.get(image) {
+                    blit(tex, x, y, Rect::new(0.0, 28.0 * *state as f32, 28.0, 28.0));
+                }
+            }
+            if inside(m, x, y, size, size) {
+                hovered = Some(i);
+            }
+        }
+        if let Some(i) = hovered {
+            let (x, y, size) = positions[i];
+            draw_rectangle_lines((x - 1) as f32, (y - 1) as f32, (size + 2) as f32, (size + 2) as f32, 3.0, white);
+        }
+        let (cx, cy) = self.radial.unwrap();
+        draw_circle_lines(cx as f32, cy as f32, 2.0, 3.0, white);
+        draw_line(cx as f32, cy as f32, m.0 as f32, m.1 as f32, 3.0, white);
+
+        let kinds = build_buttons(rules);
+        let tip = match hovered {
+            Some(i) if self.radial_category == 0 => self.strings.info_tips[i].clone(),
+            Some(i) => {
+                let state = self.build_cache.get(i).map_or(0, |c| c.0);
+                self.build_tooltip(world, rules, player, kinds[i], state)
+            }
+            None => String::new(),
+        };
+        self.tooltip(m, &tip);
+
+        if input.right_pressed {
+            self.open_radial(m, 0);
+        } else if input.left_pressed {
+            match hovered {
+                Some(i) if self.radial_category == 0 => self.info_enabled[i] = !self.info_enabled[i],
+                Some(i) => {
+                    if self.build_cache.get(i).map_or(0, |c| c.0) == 1 {
+                        if let Some(k) = kinds[i] {
+                            self.placing = Some(k);
+                        }
+                    }
+                }
+                None => {}
+            }
+            self.radial = None;
+            self.swallow_release = true;
+        }
+    }
+
+    /// Paused with the menu/pause button (F10).
+    pub fn paused(&self) -> bool {
+        self.info_enabled[7]
+    }
+
+    /// Building placement on the map; returns whether the click was used.
+    pub fn map_input(&mut self, world: &World, rules: &Rules, player: usize, input: &Input, cam: (i32, i32), orders: &mut Vec<Order>) -> bool {
+        let Some(kind) = self.placing else { return false };
+        if input.right_pressed {
+            self.placing = None;
+            return true;
+        }
+        if input.left_released {
+            let (x, y, ok) = self.footprint(world, rules, player, kind, input, cam);
+            if ok {
+                orders.push(Order::BuildHouse { perso: player, x, y, kind });
+                if !(input.ctrl || input.shift) {
+                    self.placing = None;
+                }
+            }
+            return true;
+        }
+        false
+    }
+
+    /// The building's world rectangle under the cursor and whether it can be placed there.
+    fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, input: &Input, cam: (i32, i32)) -> (i32, i32, bool) {
+        let (w, h) = rules.buildings[kind].size;
+        let x = input.mouse.0 - w / 2 + 12 + cam.0;
+        let y = input.mouse.1 - h / 2 + 12 + cam.1;
+        let inside_map = x >= 0
+            && y >= 0
+            && x + w <= world.terrain.width as i32 * 16
+            && y + h <= world.terrain.height as i32 * 16;
+        let ok = inside_map && world.obstacle(rules, player, x, y, w, h) == 0;
+        (x, y, ok)
+    }
+
+    /// `Afficher_Surface_A_Batir`: the hatched footprint, green when free, red when blocked.
+    /// Returns the cursor type (2 or 3) while placing.
+    pub(super) fn draw_placement(&self, world: &World, rules: &Rules, player: usize, input: &Input, cam: (i32, i32)) -> Option<i32> {
+        let kind = self.placing?;
+        let (w, h) = rules.buildings[kind].size;
+        let (x, y, ok) = self.footprint(world, rules, player, kind, input, cam);
+        let (x, y) = (x - cam.0, y - cam.1);
+        let c = if ok { Color::from_rgba(0, 192, 0, 255) } else { RED };
+        // TODO: rounded corners (radius 10)
+        outline(x, y, x + w, y + h, c);
+        let mut d = 0;
+        while d < w + h {
+            // upward diagonal hatch, clipped to the rectangle
+            let (x0, y0) = (x + (d - h).max(0), y + h.min(d));
+            let (x1, y1) = (x + d.min(w), y + (d - w).max(0));
+            draw_line(x0 as f32, y0 as f32, x1 as f32, y1 as f32, 1.0, c);
+            d += 8;
+        }
+        Some(if ok { 2 } else { 3 })
+    }
+}

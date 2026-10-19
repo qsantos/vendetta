@@ -1,0 +1,172 @@
+mod assets;
+mod hud;
+mod layout;
+mod loading;
+mod render;
+mod text;
+
+use macroquad::prelude::*;
+use layout::{MIN_H, MIN_W, screen_h, screen_w};
+use sim::rules::Rules;
+use sim::world::{Order, World, WorldSetup};
+
+fn window_conf() -> Conf {
+    Conf {
+        window_title: "Vendetta".to_owned(),
+        window_width: 1024,
+        window_height: 768,
+        high_dpi: false,
+        ..Default::default()
+    }
+}
+
+/// Scale from game pixels to window pixels: 1, unless the window is smaller than the
+/// minimum logical screen.
+fn scale() -> f32 {
+    (screen_width() / MIN_W).min(screen_height() / MIN_H).min(1.0)
+}
+
+/// Draws the game frame to the window.
+fn present(target: &RenderTarget) {
+    set_default_camera();
+    clear_background(BLACK);
+    let s = scale();
+    draw_texture_ex(
+        &target.texture,
+        0.0,
+        0.0,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(vec2(screen_w() as f32 * s, screen_h() as f32 * s)),
+            flip_y: true,
+            ..Default::default()
+        },
+    );
+}
+
+/// Mouse position in game pixels (`SourisX/Y`), clamped to the screen like the original.
+fn mouse_in_frame() -> (i32, i32) {
+    let (mx, my) = mouse_position();
+    let s = scale();
+    (((mx / s) as i32).clamp(0, screen_w()), ((my / s) as i32).clamp(0, screen_h()))
+}
+
+/// `Scrolling_Immediat`: centre the player's top-left corner, clamped to the map.
+fn follow(world: &World, player: usize) -> (i32, i32) {
+    let p = &world.persos[player];
+    let max_x = world.terrain.width as i32 * 16 - screen_w();
+    let max_y = world.terrain.height as i32 * 16 - screen_h();
+    let x = (p.x as i32 - screen_w() / 2).min(max_x).max(0);
+    let y = (p.y as i32 - screen_h() / 2).min(max_y).max(0);
+    (x, y)
+}
+
+const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
+
+#[macroquad::main(window_conf)]
+async fn main() {
+    show_mouse(false);
+    let manifest = assets::load_manifest().await;
+    let mut loading = loading::LoadingScreen::new(manifest.as_deref().unwrap_or(""), "Francais").await;
+    let manifest = match manifest {
+        Ok(m) => m,
+        Err(e) => loading.fail(&e).await,
+    };
+    let files = match assets::load_files(&manifest, &mut loading, (0.0, 40.0)).await {
+        Ok(f) => f,
+        Err(e) => loading.fail(&e).await,
+    };
+    let rules = match Rules::load(&files, "Francais") {
+        Ok(r) => r,
+        Err(e) => loading.fail(&e).await,
+    };
+    let label = loading.label(2);
+    loading.progress(45.0, &label).await;
+    let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u32, ..Default::default() };
+    let mut world = match World::create(&rules, &files, &setup) {
+        Ok(w) => w,
+        Err(e) => loading.fail(&e).await,
+    };
+    let player = world.persos.iter().position(|p| p.player).unwrap();
+
+    let mut textures = assets::Textures::new(&manifest);
+    let (terrain, persos) = render::images(&rules, &world);
+    let labels = [7, 6, 10].map(|n| loading.label(n));
+    textures.load_all(&terrain, &mut loading, (50.0, 70.0), &labels[0]).await;
+    textures.load_all(&persos, &mut loading, (70.0, 90.0), &labels[1]).await;
+    textures.load_all(&hud::images(&rules), &mut loading, (90.0, 100.0), &labels[2]).await;
+    let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"));
+
+
+    let mut target = render_target(1, 1);
+    let mut frame_cam = Camera2D::default();
+
+    let mut cam = follow(&world, player);
+    let mut orders = Vec::new();
+    let mut last_tick = get_time();
+    loop {
+        // The game screen follows the window size.
+        let s = scale();
+        let (w, h) = ((screen_width() / s) as i32, (screen_height() / s) as i32);
+        if (w, h) != (target.texture.width() as i32, target.texture.height() as i32) {
+            layout::set_screen(w, h);
+            target = render_target(w as u32, h as u32);
+            target.texture.set_filter(FilterMode::Nearest);
+            frame_cam = Camera2D::from_display_rect(Rect::new(0.0, 0.0, w as f32, h as f32));
+            frame_cam.render_target = Some(target.clone());
+            cam = follow(&world, player);
+        }
+        let (mx, my) = mouse_in_frame();
+        let input = hud::Input::poll((mx, my));
+        // What is under the cursor (`Obstacle` on the cursor's top-left).
+        let (wx, wy) = (mx + cam.0, my + cam.1);
+        let (hover, hit) = world.obstacle_at(&rules, player, wx, wy, 0, 0);
+
+        set_camera(&frame_cam);
+        clear_background(BLACK);
+        render::draw_world(&world, &rules, &textures, cam, player);
+        let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
+        let placed = !on_ui && hud.map_input(&world, &rules, player, &input, cam, &mut orders);
+        if !on_ui && !placed && input.right_pressed {
+            // Right click on the map: the radial buttons (`FrmMoteur2D.frm:943-961`).
+            match hover {
+                0 | 16 | 999 => hud.open_radial((mx, my), 4),
+                1 => hud.open_radial((mx, my), 1),
+                4..=8 | 12 => hud.open_radial((mx, my), 0),
+                // TODO: 9-11 "Chargez!" (army attack)
+                _ => {}
+            }
+        }
+        if !on_ui && !placed && input.left_released {
+            // Left-release on the map (`FrmMoteur2D.frm:828-916`).
+            let p = &world.persos[player];
+            let perso = player;
+            orders.push(match hover {
+                1 => Order::Harvest { perso, node: hit },
+                4 => Order::GoHome { perso, enter: false },
+                5 => Order::GoHome { perso, enter: true },
+                6 => Order::GoOwnCastle { perso },
+                7 => Order::GoToHouse { perso, house: hit, repair: false },
+                8 => Order::GoToCastle { perso, castle: hit },
+                13 => Order::GoToTreasure { perso, treasure: hit },
+                // TODO: 9/10/11 attack once combat exists
+                _ => Order::Move {
+                    perso,
+                    x: wx as i64 - p.w as i64 / 2,
+                    y: wy as i64 - p.h as i64 / 2,
+                },
+            });
+        }
+        hud.overlay(&world, &rules, &textures, player, &input, cam, (!on_ui).then_some((hover, hit)));
+        present(&target);
+
+        // One tick whenever a tick's worth of time has passed; extra time is dropped.
+        if !hud.paused() && get_time() - last_tick > 1.0 / TICKS_PER_SECOND {
+            last_tick = get_time();
+            world.step(&rules, &orders);
+            orders.clear();
+            cam = follow(&world, player);
+        }
+        next_frame().await;
+    }
+}
