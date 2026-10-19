@@ -137,16 +137,9 @@ const AUTOSAVE_INTERVAL: f64 = 5.0;
 const MAX_TICKS_PER_FRAME: u32 = 5;
 
 struct Loaded {
-    god: bool,
-    test_effects: Vec<(usize, Option<i64>)>,
-    test_recharges: Vec<(usize, i64)>,
-    test_emperor: bool,
-    test_hold: Option<usize>,
-    test_advance: Option<f64>,
-    test_inventory: Vec<(String, i64)>,
+    options: options::Options,
     /// The world was just made, not resumed from the save.
     created: bool,
-    show_perf: bool,
     music: music::Music,
     effects: effects::Effects,
     files: Files,
@@ -216,7 +209,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files).await;
-    Ok(Loaded { god: options.god, test_effects: options.effects, test_recharges: options.recharges, test_emperor: options.emperor, test_hold: options.hold, test_advance: options.advance, test_inventory: options.inventory, created, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { options, created, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -228,7 +221,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { god, test_effects, test_recharges, test_emperor, test_hold, test_advance, test_inventory, created, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { options, created, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -240,23 +233,23 @@ async fn main() {
         },
     };
     let player = world.persos.iter().position(|p| p.player).unwrap();
-    if god {
+    if options.god {
         world.god = Some(player);
     }
     let fief = world.persos[player].fief;
-    if let Some(object) = test_hold.filter(|&o| o < rules.objects.len()) {
+    if let Some(object) = options.hold.filter(|&o| o < rules.objects.len()) {
         world.persos[player].selected_object = object as i64;
     }
-    if test_emperor {
+    if options.emperor {
         world.change_emperor(&rules, fief, player as i64, false);
     }
-    if let Some(pct) = test_advance {
+    if let Some(pct) = options.advance {
         let speed = world.epoch_speed;
         world.fiefs[fief].change_epoch(&rules, &mut world.castles[fief], speed);
         let f = &mut world.fiefs[fief];
         f.epoch_timer = (f.epoch_timer as f64 * (1.0 - pct / 100.0)) as i64;
     }
-    for (object, left) in test_effects.into_iter().filter(|&(o, _)| o < rules.objects.len()) {
+    for &(object, left) in options.effects.iter().filter(|&&(o, _)| o < rules.objects.len()) {
         let p = &mut world.persos[player];
         let d = rules.objects[object].duration;
         p.add_effect(&rules, object, d, d, None);
@@ -265,7 +258,7 @@ async fn main() {
         }
     }
     if created {
-        for (name, count) in &test_inventory {
+        for (name, count) in &options.inventory {
             let object = name.parse::<usize>().ok().filter(|&o| o < rules.objects.len()).or_else(|| {
                 rules.objects.iter().position(|o| o.name.to_lowercase() == name.to_lowercase())
             });
@@ -282,7 +275,7 @@ async fn main() {
     let mut last_save = get_time();
     let mut save_size = 0;
     let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"), hud::TooltipLabels::load(&files, "Francais"), &files, rules.objects.len());
-    for (i, (object, left)) in test_recharges.into_iter().filter(|&(o, _)| o < rules.objects.len()).enumerate() {
+    for (i, &(object, left)) in options.recharges.iter().filter(|&&(o, _)| o < rules.objects.len()).enumerate() {
         let p = &mut world.persos[player];
         p.add_object(&rules, object);
         p.add_recharge(object, left);
@@ -459,7 +452,7 @@ async fn main() {
             orders.push(Order::AttackGround { perso: player, x: wx as i64 - p.w as i64 / 2, y: wy as i64 - p.h as i64 / 2, kind });
         }
         hud.overlay(&world, &rules, &textures, player, &input, placement, (!on_ui).then_some((hover, hit)));
-        if show_perf {
+        if options.perf {
             hud.debug_lines(&perf.lines());
         }
         let present_start = perf::now();
