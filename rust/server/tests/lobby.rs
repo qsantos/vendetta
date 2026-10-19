@@ -43,7 +43,7 @@ async fn lobby_and_lockstep() {
     send(&mut b, json!({"t": "join", "room": code.to_lowercase(), "name": "Bob"})).await;
     let lobby = next(&mut b, "lobby").await;
     assert_eq!(lobby["you"], 1);
-    assert_eq!(lobby["players"][1]["fief"], 2, "a fief of its own");
+    assert_eq!(lobby["players"][1]["fief"], 1, "the first fief, with the others");
 
     send(&mut b, json!({"t": "fief", "fief": 3})).await;
     // only the host sets the options

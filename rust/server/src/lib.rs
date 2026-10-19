@@ -217,9 +217,8 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
             if room.started {
                 return error(tx, "la partie a déjà commencé");
             }
-            // each one a fief of its own while there are some
-            let fief = room.players.len() % room.fiefs() + 1;
-            room.players.push(Player { id, name: clean(&name), fief, tx: Some(tx.clone()) });
+            // everyone starts in the first fief, together
+            room.players.push(Player { id, name: clean(&name), fief: 1, tx: Some(tx.clone()) });
             room.send_lobby(&code);
             *joined = Some(code);
         }
