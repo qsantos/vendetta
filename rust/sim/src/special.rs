@@ -3,7 +3,7 @@
 //! projectiles launched (`NumeroProjectileLance`) during the tick.
 
 use crate::building::Building;
-use crate::combat::{ATTACK_CASTLE, ATTACK_HOUSE, ATTACK_PERSO};
+use crate::combat::{ATTACK_CASTLE, ATTACK_HOUSE, ATTACK_PERSO, Target};
 use crate::items::invocation_sup;
 use crate::perso::{Perso, action};
 use crate::rules::Rules;
@@ -11,10 +11,20 @@ use crate::vb::clng;
 use crate::world::World;
 
 impl World {
-    /// `Gestion_Utilisation_Speciale`: for every perso (not those it creates), the object it
-    /// used this tick takes effect.
+    /// `Gestion_Utilisation_Speciale`: for every perso (not those it creates), the projectiles
+    /// it shot this tick fly off and the object it used takes effect.
     pub(crate) fn special_uses(&mut self, rules: &Rules) {
         for i in 0..self.persos.len() {
+            let p = &self.persos[i];
+            // Quirk: `Not ProjectileEnCours` is a bitwise Not, so only -1 (after a double
+            // death) keeps it from shooting.
+            if let Ok(race) = usize::try_from(p.projectile_launch)
+                && p.projectiles != -1
+            {
+                let (count, effect) = (p.projectile_count as f32 as f64, p.attack_effect(rules));
+                self.create_invocation(rules, race, count, i, effect, true, 0, "");
+                self.persos[i].projectile_launch = -1;
+            }
             if let Ok(n) = usize::try_from(self.persos[i].used_object) {
                 self.use_special(rules, i, n);
                 self.persos[i].used_object = -1;
@@ -30,6 +40,45 @@ impl World {
             let quantity = invocation_sup(rules, c, o.quantity);
             let max = invocation_sup(rules, c, o.quantity_max).floor() as i64;
             self.create_invocation(rules, race, quantity, i, o.attack_effect, false, max, &o.invocation_ai);
+        }
+    }
+
+    /// `Collision_Projectile`: a projectile flying over the first obstacle of its kind (an
+    /// enemy perso, house or castle, per `ProjectileCible`) hits it; it goes through persos
+    /// unless it is a kamikaze or its chef's attack is spent, and stops at buildings.
+    pub(crate) fn projectile_collision(&mut self, rules: &Rules, i: usize) {
+        let p = &self.persos[i];
+        let (code, k) = self.obstacle_at(rules, i, p.x as i32, p.y as i32, p.w, p.h);
+        let (kind, area, chef) = (p.ground_target_kind, p.bonus_area, p.chef as usize);
+        match (code, kind) {
+            (9, 0) => {
+                if area > 0 {
+                    self.hit_area(rules, i, area, -1);
+                } else {
+                    self.hit_perso(rules, i, k, true);
+                }
+                if self.persos[i].kamikaze || self.persos[chef].attack == 0.0 {
+                    self.kill(rules, i);
+                }
+            }
+            (10, 1) => {
+                if area > 0 {
+                    self.hit_area(rules, i, area, -1);
+                } else {
+                    self.hit_building(rules, i, Target::House(k), k, -1);
+                }
+                self.kill(rules, i);
+            }
+            (11, 2) => {
+                if area > 0 {
+                    self.hit_area(rules, i, area, k as i64);
+                } else {
+                    // The original passes the perso of the castle's index as its owner.
+                    self.hit_building(rules, i, Target::Castle(k), k, k as i64);
+                }
+                self.kill(rules, i);
+            }
+            _ => {}
         }
     }
 

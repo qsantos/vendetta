@@ -760,22 +760,20 @@ impl Perso {
     }
 
     /// The character's own part of `Deplacement3`: one step and the action transitions.
-    /// Returns whether it is still walking, or None while stunned.
+    /// Returns whether it is still walking, or None while stunned (`World::move_step` handles
+    /// the projectiles).
     pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, chase: bool) -> Option<bool> {
         if self.stun > 0 {
             self.stun -= 1;
-            // TODO: projectiles die when stunned
             return None;
         }
         self.update_step(rules, terrain);
         if self.walk(rules, terrain, chase) {
-            // TODO: projectile collisions
             if self.action > 99 && self.action % 2 == 0 && self.action < 200 {
                 self.action += 1;
             }
             Some(true)
         } else {
-            // TODO: projectiles die on arrival
             self.direction = if self.bonus_flying { Dir::Down } else { Dir::None };
             self.dest = (self.x, self.y);
             self.step_temp = 0;

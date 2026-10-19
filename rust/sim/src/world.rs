@@ -420,14 +420,27 @@ impl World {
         // Chasing a moving target only plans two steps ahead, again every tick.
         let chase = before == crate::combat::ATTACK_PERSO && self.persos[p.perso_target].moving;
         match self.persos[i].step_move(rules, &self.terrain, chase) {
-            None => {}
+            None => {
+                // A stunned projectile falls, even dead already.
+                if self.persos[i].projectile {
+                    self.kill(rules, i);
+                }
+            }
             Some(true) => {
+                if self.persos[i].projectile {
+                    self.projectile_collision(rules, i);
+                }
                 if before == action::GO_BUILD && !self.houses[ht].visible() {
                     self.stop(rules, i);
                 }
                 self.houses[ht].under_construction = false;
             }
             Some(false) => {
+                // Projectiles vanish on arrival.
+                let p = &self.persos[i];
+                if p.projectile && p.alive() {
+                    self.kill(rules, i);
+                }
                 let p = &self.persos[i];
                 if p.action == action::AT_HOME && p.craft_progress > 0.0 && self.can_craft(rules, i, p.craft_slot, ht) {
                     self.start_craft(i, p.craft_slot);

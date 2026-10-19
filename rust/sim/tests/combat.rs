@@ -330,3 +330,43 @@ fn owner_invocations() {
     assert!(w.houses[n].visible() && w.houses[n].kind == kind);
     assert!(!w.houses[i].visible(), "the builder keeps no house");
 }
+
+const BOW: usize = 16; // Arc court: shoots race-84 arrows
+
+/// A bow shoots an arrow, a flying perso that hits the first enemy on its way and vanishes.
+#[test]
+fn arrows_fly_and_hit() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let a = fighter(&mut w, &rules, 0, 100, 300);
+    let d = fighter(&mut w, &rules, 1, 160, 300);
+    w.persos[d].defense = 0.0;
+    let p = &mut w.persos[a];
+    p.add_object(&rules, BOW);
+    p.equip(&rules, Some(0), false);
+    assert_eq!(p.launcher, rules.objects[BOW].launcher);
+    if let Ok(r) = usize::try_from(p.ammo) {
+        p.set_resource(r, p.max_resource(r));
+    }
+    assert!(p.bonus_range > 0.0);
+    let life = w.persos[d].bars[0];
+    let n = w.persos.len();
+    w.step(&rules, &[Order::AttackPerso { perso: a, target: d }]);
+    let mut shot = false;
+    for _ in 0..100 {
+        w.step(&rules, &[]);
+        if w.persos.len() > n {
+            let arrow = &w.persos[n];
+            assert!(arrow.projectile && arrow.chef == a as i64 && !arrow.ai);
+            assert_eq!(arrow.race as i64, rules.objects[BOW].launcher);
+            shot = true;
+        }
+        if w.persos[d].bars[0] < life {
+            break;
+        }
+    }
+    assert!(shot, "no arrow");
+    assert!(w.persos[d].bars[0] < life, "the arrow hit");
+    assert!(!w.persos[n].alive(), "and vanished");
+    assert_eq!(w.persos[a].projectiles, 0);
+}
