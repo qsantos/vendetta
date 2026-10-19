@@ -53,6 +53,8 @@ pub struct Net {
     ticks: VecDeque<Vec<Order>>,
     /// How many ticks were received (played or queued).
     received: u64,
+    /// After a gap in the ticks, the count received when asking for the missing ones again.
+    asked: Option<u64>,
     /// Own orders sent and not back yet.
     in_flight: usize,
     /// The tick where the copies of the world differed, when the server said so.
@@ -68,7 +70,7 @@ pub struct Net {
 impl Net {
     /// `have`: how many ticks the world played (from a save, or none).
     pub fn new(world: &World, players: &[usize], me: usize, have: u64) -> Net {
-        Net { humans: world.humans(players), me, ticks: VecDeque::new(), received: have, in_flight: 0, desync: None, closed: false, reconnected: false, waiting: (0, 0) }
+        Net { humans: world.humans(players), me, ticks: VecDeque::new(), received: have, asked: None, in_flight: 0, desync: None, closed: false, reconnected: false, waiting: (0, 0) }
     }
 
     /// The local player's character.
@@ -113,8 +115,11 @@ impl Net {
                     // each one once, in order (none twice after a reconnection)
                     let n = msg["n"].as_u64().unwrap_or(0);
                     if n != self.received {
-                        if n > self.received {
+                        // a tick missing: asked for again (once), from the server's log
+                        if n > self.received && self.asked != Some(self.received) {
                             macroquad::logging::warn!("tick {} received before {}", n, self.received);
+                            self.asked = Some(self.received);
+                            self.since();
                         }
                         continue;
                     }
