@@ -126,9 +126,19 @@ impl Rooms {
 pub fn app(dist: Option<PathBuf>) -> Router {
     let router = Router::new().route("/ws", axum::routing::get(upgrade)).with_state(Arc::new(Rooms::default()));
     match dist {
-        Some(dir) => router.fallback_service(tower_http::services::ServeDir::new(dir)),
+        Some(dir) => router.fallback_service(tower_http::services::ServeDir::new(dir)).layer(axum::middleware::from_fn(caching)),
         None => router,
     }
+}
+
+/// The caching headers of `serve.py`: versioned requests (`?v=<hash>`) never change and are
+/// cached for good, everything else is revalidated on each load.
+async fn caching(request: axum::extract::Request, next: axum::middleware::Next) -> Response {
+    let versioned = request.uri().query().is_some_and(|q| q.split('&').any(|kv| kv.starts_with("v=")));
+    let mut response = next.run(request).await;
+    let value = if versioned { "public, max-age=31536000, immutable" } else { "no-cache" };
+    response.headers_mut().insert(axum::http::header::CACHE_CONTROL, axum::http::HeaderValue::from_static(value));
+    response
 }
 
 async fn upgrade(ws: WebSocketUpgrade, State(rooms): State<Arc<Rooms>>) -> Response {
