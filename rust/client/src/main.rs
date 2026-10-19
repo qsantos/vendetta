@@ -1,6 +1,7 @@
 mod assets;
 mod hud;
 mod layout;
+mod effects;
 mod loading;
 mod music;
 mod render;
@@ -104,6 +105,7 @@ const AUTOSAVE_INTERVAL: f64 = 5.0;
 
 struct Loaded {
     music: music::Music,
+    effects: effects::Effects,
     files: Files,
     rules: Rules,
     world: World,
@@ -140,7 +142,8 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
-    Ok(Loaded { music: music::Music::new(&manifest), files, rules, world, textures })
+    let effects = effects::Effects::new(&files, &manifest);
+    Ok(Loaded { music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -152,7 +155,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { mut music, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
+    let Loaded { mut music, mut effects, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -214,6 +217,7 @@ async fn main() {
         set_camera(&camera(&target, view_f));
         clear_background(BLACK);
         render::draw_world(&world, &rules, &textures, cam, player, view);
+        effects.draw(&textures, cam, view, zoom);
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         set_camera(&camera(&target, hud_f));
         let radial_was_open = hud.radial_open();
@@ -282,6 +286,7 @@ async fn main() {
             last_tick = get_time();
             world.step(&rules, &orders);
             orders.clear();
+            effects.tick(&world.events, &mut textures);
             hud.automatic_actions(&world, player, &mut orders);
             hud.craft_from_queue(&world, &rules, player, &mut orders);
             cam = follow(&world, player, view);
