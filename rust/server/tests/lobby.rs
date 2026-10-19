@@ -2,6 +2,7 @@
 
 use futures_util::{SinkExt, StreamExt};
 use serde_json::{Value, json};
+use std::time::Duration;
 use tokio_tungstenite::tungstenite::Message;
 
 type Ws = tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
@@ -25,11 +26,21 @@ async fn next(ws: &mut Ws, t: &str) -> Value {
     }
 }
 
-#[tokio::test]
-async fn lobby_and_lockstep() {
+/// No tick for a while.
+async fn quiet(ws: &mut Ws) -> bool {
+    tokio::time::timeout(Duration::from_millis(400), next(ws, "tick")).await.is_err()
+}
+
+async fn serve() -> u16 {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     tokio::spawn(async move { axum::serve(listener, server::app(None)).await.unwrap() });
+    port
+}
+
+#[tokio::test]
+async fn lobby_and_lockstep() {
+    let port = serve().await;
 
     let mut a = connect(port).await;
     send(&mut a, json!({"t": "create", "name": "Alice"})).await;
@@ -70,6 +81,14 @@ async fn lobby_and_lockstep() {
     send(&mut c, json!({"t": "join", "room": code, "name": "Carol"})).await;
     assert_eq!(next(&mut c, "error").await["message"], "la partie a déjà commencé");
 
+    // no tick until both worlds are made
+    assert!(quiet(&mut a).await);
+    send(&mut a, json!({"t": "ready"})).await;
+    let wait = next(&mut b, "wait").await;
+    assert_eq!((wait["ready"].clone(), wait["players"].clone()), (json!(1), json!(2)));
+    assert!(quiet(&mut a).await);
+    send(&mut b, json!({"t": "ready"})).await;
+
     // an order reaches everyone, with its sender, in the same tick
     send(&mut b, json!({"t": "order", "order": {"GoOwnCastle": {"perso": 12}}})).await;
     let find = |t: &Value| t["orders"].as_array().unwrap().first().cloned();
@@ -92,4 +111,27 @@ async fn lobby_and_lockstep() {
     send(&mut a, json!({"t": "hash", "tick": 50, "hash": 1})).await;
     send(&mut b, json!({"t": "hash", "tick": 50, "hash": 2})).await;
     assert_eq!(next(&mut a, "desync").await["tick"], 50);
+}
+
+/// With `wait=2`, the ticks start once the first player's loading time has passed again,
+/// without the slow one.
+#[tokio::test]
+async fn slow_players_are_not_waited_for_forever() {
+    let port = serve().await;
+    let mut a = connect(port).await;
+    send(&mut a, json!({"t": "create", "name": "Alice"})).await;
+    let code = next(&mut a, "lobby").await["room"].as_str().unwrap().to_owned();
+    let mut b = connect(port).await;
+    send(&mut b, json!({"t": "join", "room": code, "name": "Bob"})).await;
+    next(&mut b, "lobby").await;
+    send(&mut a, json!({"t": "settings", "items": ["wait=2"]})).await;
+    send(&mut a, json!({"t": "start"})).await;
+    next(&mut a, "start").await;
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    send(&mut a, json!({"t": "ready"})).await;
+    // Bob never says it is ready: the ticks come after about 200 ms more
+    let t = std::time::Instant::now();
+    next(&mut a, "tick").await;
+    assert!(t.elapsed() >= Duration::from_millis(150), "{:?}", t.elapsed());
+    next(&mut b, "tick").await;
 }

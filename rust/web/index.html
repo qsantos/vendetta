@@ -93,6 +93,13 @@
             <option value="ring">en anneau (l'original)</option>
           </select></label>
         <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
+        <label>Attendre les plus lents
+          <select name="wait">
+            <option value="">sans limite</option>
+            <option value="1.5">1,5 × le plus rapide</option>
+            <option value="2">2 × le plus rapide</option>
+            <option value="3">3 × le plus rapide</option>
+          </select></label>
       </fieldset>
       <div class="buttons">
         <button type="button" id="leave">Quitter</button>
@@ -467,6 +474,8 @@
       $("room").hidden = !yes;
     };
     const send = (msg) => socket && socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(msg));
+    // the world's options, and how long to wait for slow players to load (see the server)
+    const roomFields = [...fields, "wait"];
     const roomValue = (items, k) => (items.find((o) => o.startsWith(k + "=")) || "").slice(k.length + 1);
     const showLobby = (msg) => {
       setHash(["room=" + msg.room]);
@@ -474,7 +483,7 @@
       $("room-code").textContent = msg.room;
       $("room-link").href = $("room-link").textContent = location.href;
       const host = msg.you === msg.host;
-      for (const k of fields) {
+      for (const k of roomFields) {
         const el = settings.elements[k];
         if (el !== document.activeElement) el.value = roomValue(msg.items, k) || (k === "size" ? "128" : "");
         el.disabled = !host;
@@ -558,7 +567,7 @@
     $("room-start").addEventListener("click", () => send({ t: "start" }));
     settings.addEventListener("input", () => {
       const items = [];
-      for (const k of fields) {
+      for (const k of roomFields) {
         const v = String(settings.elements[k].value).trim();
         if (v && !(k === "size" && v === "128")) items.push(k + "=" + v);
       }

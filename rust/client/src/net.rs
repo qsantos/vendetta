@@ -57,16 +57,23 @@ pub struct Net {
     pub desync: Option<u64>,
     /// The connection was lost (the page says so).
     pub closed: bool,
+    /// How many players are ready, of how many, before the first tick.
+    pub waiting: (u64, u64),
 }
 
 impl Net {
     pub fn new(world: &World, players: &[usize], me: usize) -> Net {
-        Net { humans: world.humans(players), me, ticks: VecDeque::new(), in_flight: 0, desync: None, closed: false }
+        Net { humans: world.humans(players), me, ticks: VecDeque::new(), in_flight: 0, desync: None, closed: false, waiting: (0, 0) }
     }
 
     /// The local player's character.
     pub fn player(&self) -> Option<usize> {
         self.humans.get(self.me).copied().flatten()
+    }
+
+    /// The world is made: the ticks may start (once the others are ready too).
+    pub fn ready(&self) {
+        send(&json!({"t": "ready"}));
     }
 
     pub fn send_order(&mut self, order: &Order) {
@@ -109,6 +116,7 @@ impl Net {
                 }
                 Some("desync") => self.desync = self.desync.or(msg["tick"].as_u64()),
                 Some("closed") => self.closed = true,
+                Some("wait") => self.waiting = (msg["ready"].as_u64().unwrap_or(0), msg["players"].as_u64().unwrap_or(0)),
                 _ => {}
             }
         }

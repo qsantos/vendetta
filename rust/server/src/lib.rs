@@ -12,16 +12,22 @@
 //! - `{"t":"fief","fief":n}`: pick a fief (from 1);
 //! - `{"t":"settings","items":[…]}` (host): the world options, as in the URL's hash;
 //! - `{"t":"start"}` (host);
+//! - `{"t":"ready"}`: its world is made, the ticks may start;
 //! - `{"t":"order","order":…}`: an order for the next tick, passed on as it is;
 //! - `{"t":"hash","tick":n,"hash":h}`: the world's digest after tick n.
 //!
 //! From the server:
 //! - `{"t":"lobby","room":…,"you":k,"host":k,"players":[{"name","fief","online"}],"items":[…]}`;
 //! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"you":k}`;
+//! - `{"t":"wait","ready":n,"players":m}`: n of the m players are ready;
 //! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
 //! - `{"t":"desync","tick":n}`, `{"t":"error","message":…}`.
 //!
 //! Players are numbered by their place in the room, which the start fixes.
+//!
+//! The ticks start once every player still connected is ready, or, with the room option
+//! `wait=F`, once F times what the first one ready took has passed: slow players then catch up.
+//! Always once one at least is ready.
 
 use axum::Router;
 use axum::extract::State;
@@ -33,7 +39,7 @@ use std::collections::HashMap;
 use std::hash::{BuildHasher, RandomState};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 /// The simulation's pace (`Jeu.ini Vitesse`, 10 ticks a second).
@@ -41,8 +47,8 @@ pub const TICK: Duration = Duration::from_millis(100);
 /// Room codes: no letters that look alike (0/O, 1/I/L).
 const CODE_CHARS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LEN: usize = 4;
-/// The world options the host may set (see the client's `options.rs`).
-const SETTINGS: [&str; 5] = ["size", "fiefs", "villagers", "roads", "seed"];
+/// The world options the host may set (see the client's `options.rs`), and `wait`.
+const SETTINGS: [&str; 6] = ["size", "fiefs", "villagers", "roads", "seed", "wait"];
 /// The default number of fiefs (`WorldSetup`).
 const DEFAULT_FIEFS: usize = 4;
 
@@ -54,6 +60,7 @@ enum In {
     Fief { fief: usize },
     Settings { items: Vec<String> },
     Start,
+    Ready,
     Order { order: Value },
     Hash { tick: u64, hash: u64 },
 }
@@ -62,6 +69,8 @@ struct Player {
     id: u64,
     name: String,
     fief: usize,
+    /// Its world is made (once started).
+    ready: bool,
     /// Its connection; none once gone (its character then stands still).
     tx: Option<UnboundedSender<String>>,
 }
@@ -77,11 +86,27 @@ struct Room {
     /// The first digest reported for each recent tick.
     hashes: HashMap<u64, u64>,
     desync: bool,
+    /// When the game started, and how long the first player ready took.
+    started_at: Option<Instant>,
+    first_ready: Option<Duration>,
 }
 
 impl Room {
     fn fiefs(&self) -> usize {
         self.items.iter().find_map(|o| o.strip_prefix("fiefs=")?.parse().ok()).unwrap_or(DEFAULT_FIEFS)
+    }
+
+    /// `wait=F`: how many times the first player's loading time to wait for the others.
+    fn wait(&self) -> Option<f64> {
+        self.items.iter().find_map(|o| o.strip_prefix("wait=")?.parse().ok()).filter(|f: &f64| *f > 0.0)
+    }
+
+    /// Whether the ticks may start (see the module's doc).
+    fn all_ready(&self) -> bool {
+        let Some(first) = self.first_ready else { return false };
+        let online = self.players.iter().filter(|p| p.tx.is_some());
+        online.clone().all(|p| p.ready)
+            || self.wait().zip(self.started_at).is_some_and(|(f, at)| at.elapsed() >= first.mul_f64(f))
     }
 
     fn index(&self, id: u64) -> Option<usize> {
@@ -216,7 +241,7 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
                     break code;
                 }
             };
-            let room = Room { players: vec![Player { id, name: clean(&name), fief: 1, tx: Some(tx.clone()) }], host: id, ..Default::default() };
+            let room = Room { players: vec![Player { id, name: clean(&name), fief: 1, ready: false, tx: Some(tx.clone()) }], host: id, ..Default::default() };
             room.send_lobby(&code);
             all.insert(code.clone(), room);
             *joined = Some(code);
@@ -228,7 +253,7 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
                 return error(tx, "la partie a déjà commencé");
             }
             // everyone starts in the first fief, together
-            room.players.push(Player { id, name: clean(&name), fief: 1, tx: Some(tx.clone()) });
+            room.players.push(Player { id, name: clean(&name), fief: 1, ready: false, tx: Some(tx.clone()) });
             room.send_lobby(&code);
             *joined = Some(code);
         }
@@ -251,6 +276,7 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
                 }
                 In::Start if !room.started && room.host == id => {
                     room.started = true;
+                    room.started_at = Some(Instant::now());
                     let seed = room.items.iter().find_map(|o| o.strip_prefix("seed=")?.parse::<u32>().ok()).unwrap_or(rooms.random(2) as u32);
                     room.items.retain(|o| !o.starts_with("seed="));
                     let fiefs: Vec<usize> = room.players.iter().map(|p| p.fief).collect();
@@ -258,6 +284,13 @@ fn handle(rooms: &Arc<Rooms>, id: u64, tx: &UnboundedSender<String>, joined: &mu
                         room.send(k, &json!({"t": "start", "items": room.items, "seed": seed, "players": fiefs, "you": k}));
                     }
                     tokio::spawn(ticker(rooms.clone(), code.to_owned()));
+                }
+                In::Ready if room.started && !room.players[k].ready => {
+                    room.players[k].ready = true;
+                    let took = room.started_at.map_or(Duration::ZERO, |at| at.elapsed());
+                    room.first_ready.get_or_insert(took);
+                    let ready = room.players.iter().filter(|p| p.ready).count();
+                    room.broadcast(&json!({"t": "wait", "ready": ready, "players": room.players.len()}));
                 }
                 In::Order { order } if room.started => room.pending.push((k, order)),
                 In::Hash { tick, hash } if room.started => {
@@ -280,8 +313,18 @@ fn clean(name: &str) -> String {
     if name.trim().is_empty() { "Joueur".to_owned() } else { name.trim().to_owned() }
 }
 
-/// Broadcasts a tick every `TICK` while the room lasts.
+/// Once the players are ready, broadcasts a tick every `TICK` while the room lasts.
 async fn ticker(rooms: Arc<Rooms>, code: String) {
+    loop {
+        {
+            let all = rooms.rooms.lock().unwrap();
+            let Some(room) = all.get(&code) else { return };
+            if room.all_ready() {
+                break;
+            }
+        }
+        tokio::time::sleep(TICK / 4).await;
+    }
     let mut interval = tokio::time::interval(TICK);
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     for n in 0u64.. {

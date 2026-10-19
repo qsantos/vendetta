@@ -233,10 +233,7 @@ async fn main() {
         next_frame().await;
     }
     let Loaded { options, created, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
-        Ok(l) => {
-            screen.finish();
-            l
-        }
+        Ok(l) => l,
         Err(e) => loop {
             screen.progress.message(&format!("&Erreur#{e}"));
             screen.draw();
@@ -245,6 +242,18 @@ async fn main() {
     };
     let mut net = options.me.map(|me| net::Net::new(&world, &options.players, me));
     let mut player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
+    // In network play, the world starts with the server's first tick, once the players are ready.
+    if let Some(net) = &mut net {
+        net.ready();
+        while net.backlog() == 0 {
+            net.poll();
+            let (ready, players) = net.waiting;
+            screen.progress.message(&format!("En attente des autres joueurs ({ready} / {players} prêts)…"));
+            screen.draw();
+            next_frame().await;
+        }
+    }
+    screen.finish();
     if options.god {
         world.god = Some(player);
     }
