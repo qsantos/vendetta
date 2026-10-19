@@ -1,6 +1,6 @@
 //! Loading game files and textures, from disk natively or over HTTP in the browser.
 
-use crate::loading::LoadingScreen;
+use crate::loading::Progress;
 use macroquad::prelude::*;
 use sim::files::{Files, key};
 use std::collections::HashMap;
@@ -9,12 +9,12 @@ pub const ROOT: &str = "assets";
 
 /// Loads every data file the simulation needs (ini, txt and map images) into memory. Sprite
 /// images are loaded on demand as textures instead.
-pub async fn load_files(manifest: &str, loading: &mut LoadingScreen, pct: (f64, f64)) -> Result<Files, String> {
-    let label = loading.label(1);
+pub async fn load_files(manifest: &str, progress: &Progress, pct: (f64, f64)) -> Result<Files, String> {
+    let label = progress.label(1);
     let total = manifest.lines().count().max(1);
     let mut files = Files::new();
     for (i, path) in manifest.lines().enumerate() {
-        loading.progress(pct.0 + (pct.1 - pct.0) * i as f64 / total as f64, &label).await;
+        progress.set(pct.0 + (pct.1 - pct.0) * i as f64 / total as f64, &label);
         let lower = path.to_lowercase();
         files.add_listing(path);
         let wanted = lower.ends_with(".ini") || lower.ends_with(".txt") || lower.ends_with(".ia") || lower.starts_with("cartes/");
@@ -64,9 +64,9 @@ impl Textures {
     }
 
     /// Loads a list of images, showing progress from `pct.0` to `pct.1`.
-    pub async fn load_all(&mut self, paths: &[String], loading: &mut LoadingScreen, pct: (f64, f64), message: &str) {
+    pub async fn load_all(&mut self, paths: &[String], progress: &Progress, pct: (f64, f64), message: &str) {
         for (i, p) in paths.iter().enumerate() {
-            loading.progress(pct.0 + (pct.1 - pct.0) * i as f64 / paths.len().max(1) as f64, message).await;
+            progress.set(pct.0 + (pct.1 - pct.0) * i as f64 / paths.len().max(1) as f64, message);
             self.load(p).await;
         }
     }

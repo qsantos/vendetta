@@ -7,6 +7,8 @@ mod text;
 
 use macroquad::prelude::*;
 use layout::{MIN_H, MIN_W, screen_h, screen_w};
+use macroquad::experimental::coroutines::start_coroutine;
+use sim::files::Files;
 use sim::rules::Rules;
 use sim::world::{Order, World, WorldSetup};
 
@@ -63,38 +65,48 @@ fn follow(world: &World, player: usize) -> (i32, i32) {
 
 const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
 
+struct Loaded {
+    files: Files,
+    rules: Rules,
+    world: World,
+    textures: assets::Textures,
+}
+
+/// Downloads the data and images and creates the world, reporting progress.
+async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
+    let manifest = assets::load_manifest().await?;
+    progress.load_decoration(&manifest, "Francais").await;
+    let files = assets::load_files(&manifest, &progress, (0.0, 40.0)).await?;
+    let rules = Rules::load(&files, "Francais")?;
+    progress.set(45.0, &progress.label(2));
+    let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u32, ..Default::default() };
+    let world = World::create(&rules, &files, &setup)?;
+    let mut textures = assets::Textures::new(&manifest);
+    let (terrain, persos) = render::images(&rules, &world);
+    textures.load_all(&terrain, &progress, (50.0, 70.0), &progress.label(7)).await;
+    textures.load_all(&persos, &progress, (70.0, 90.0), &progress.label(6)).await;
+    textures.load_all(&hud::images(&rules), &progress, (90.0, 100.0), &progress.label(10)).await;
+    Ok(Loaded { files, rules, world, textures })
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
     show_mouse(false);
-    let manifest = assets::load_manifest().await;
-    let mut loading = loading::LoadingScreen::new(manifest.as_deref().unwrap_or(""), "Francais").await;
-    let manifest = match manifest {
-        Ok(m) => m,
-        Err(e) => loading.fail(&e).await,
-    };
-    let files = match assets::load_files(&manifest, &mut loading, (0.0, 40.0)).await {
-        Ok(f) => f,
-        Err(e) => loading.fail(&e).await,
-    };
-    let rules = match Rules::load(&files, "Francais") {
-        Ok(r) => r,
-        Err(e) => loading.fail(&e).await,
-    };
-    let label = loading.label(2);
-    loading.progress(45.0, &label).await;
-    let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u32, ..Default::default() };
-    let mut world = match World::create(&rules, &files, &setup) {
-        Ok(w) => w,
-        Err(e) => loading.fail(&e).await,
+    let screen = loading::LoadingScreen::new();
+    let task = start_coroutine(load_game(screen.progress.clone()));
+    while !task.is_done() {
+        screen.draw();
+        next_frame().await;
+    }
+    let Loaded { files, rules, mut world, textures } = match task.retrieve().unwrap() {
+        Ok(l) => l,
+        Err(e) => loop {
+            screen.progress.set(0.0, &format!("&Erreur#{e}"));
+            screen.draw();
+            next_frame().await;
+        },
     };
     let player = world.persos.iter().position(|p| p.player).unwrap();
-
-    let mut textures = assets::Textures::new(&manifest);
-    let (terrain, persos) = render::images(&rules, &world);
-    let labels = [7, 6, 10].map(|n| loading.label(n));
-    textures.load_all(&terrain, &mut loading, (50.0, 70.0), &labels[0]).await;
-    textures.load_all(&persos, &mut loading, (70.0, 90.0), &labels[1]).await;
-    textures.load_all(&hud::images(&rules), &mut loading, (90.0, 100.0), &labels[2]).await;
     let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"));
 
 
