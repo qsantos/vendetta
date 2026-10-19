@@ -261,7 +261,7 @@ async fn main() {
         let centre = (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1));
 
         textures.poll();
-        render::request_looks(&world, &mut textures);
+        render::request_looks(&world, &rules, &mut textures);
         set_camera(&camera(&target, view_f));
         clear_background(BLACK);
         let overview = (zoom < render::OVERVIEW_ZOOM).then_some(()).and_then(|()| {

@@ -7,6 +7,7 @@ use sim::rules::Rules;
 use sim::terrain::CELL;
 use sim::perso::{Look, Perso};
 use sim::treasure::TREASURE_SIZE;
+use sim::vb::clng;
 use sim::world::{RESOURCE_SIZE, World};
 
 
@@ -93,7 +94,7 @@ fn draw_work_state(world: &World, rules: &Rules, i: usize, cam: (i32, i32)) {
     }
 }
 
-fn draw_persos(world: &World, textures: &Textures, cam: (i32, i32)) {
+fn draw_persos(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32)) {
     for p in world.persos.iter().rev() {
         // The player's ghost is drawn, translucent: the original's `AfficherFantomes` option,
         // off by default there, but otherwise a dead player sees nothing of themselves.
@@ -119,22 +120,76 @@ fn draw_persos(world: &World, textures: &Textures, cam: (i32, i32)) {
             }
             status_bar(p.defense, p.defense, max_defense, x, y + 10, p.w, 5, Some(Color::from_rgba(0, 0, 255, 255)));
         }
-        let (col, row) = p.sprite_cell();
-        let src = Rect::new((col * p.w) as f32, (row * p.h) as f32, p.w as f32, p.h as f32);
+        draw_look(p, rules, textures, (p.x as i32 - cam.0, p.y as i32 - cam.1), tint);
+    }
+}
+
+/// `ClsAffApparence.Afficher`: the character's sheets, then the overlays of the objects it
+/// wears. A mount is drawn with its own frame size and walk, behind or in front of the rider
+/// by direction; the rider then stays on its middle frame, shifted per direction and bobbing.
+fn draw_look(p: &Perso, rules: &Rules, textures: &Textures, (x, y): (i32, i32), tint: Color) {
+    let overlay = |i: usize| {
+        let o = &rules.objects[p.overlays[i]];
+        textures.appearance(&o.appearance[p.female as usize]).and_then(|path| textures.get(path))
+    };
+    let blit = |tex: Option<&Texture2D>, x: i32, y: i32, (col, row): (i32, i32), (w, h): (i32, i32)| {
+        if let Some(tex) = tex {
+            let src = Rect::new((col * w) as f32, (row * h) as f32, w as f32, h as f32);
+            draw_texture_ex(tex, x as f32, y as f32, tint, DrawTextureParams { source: Some(src), ..Default::default() });
+        }
+    };
+    let cell = p.sprite_cell();
+    let size = (p.w, p.h);
+    let Some(mount) = p.mount.checked_sub(1).filter(|&m| m < p.overlays.len()) else {
         for sheet in look_sheets(&p.look) {
-            if let Some(tex) = textures.get(sheet) {
-                let params = DrawTextureParams { source: Some(src), ..Default::default() };
-                draw_texture_ex(tex, (p.x as i32 - cam.0) as f32, (p.y as i32 - cam.1) as f32, tint, params);
+            blit(textures.get(sheet), x, y, cell, size);
+        }
+        for i in 0..p.overlays.len() {
+            blit(overlay(i), x, y, cell, size);
+        }
+        return;
+    };
+    let o = &rules.objects[p.overlays[mount]];
+    let (mw, mh) = (o.appearance_size.0 as i32, o.appearance_size.1 as i32);
+    let mount_size = (if mw == 0 { p.w } else { mw }, if mh == 0 { p.h } else { mh });
+    // `ApparenceDecalageXTemp`, which the original also adds to Y
+    let centre = if mw == 0 { 0 } else { -clng((mw - p.w) as f64 / 2.0) as i32 };
+    // direction 0 (still) uses the "down" values
+    let d = match p.direction as usize {
+        0 => 3,
+        d => d,
+    };
+    let (dx, dy) = o.appearance_offset[d];
+    let rider = (x + dx as i32, y + dy as i32 - (p.frame == 1) as i32);
+    let rider_cell = if p.direction as usize == 0 { (1, 2) } else { (1, d as i32 - 1) };
+    let front = o.appearance_front[d];
+    if front {
+        blit(overlay(mount), x + centre, y + centre, cell, mount_size);
+    }
+    for sheet in look_sheets(&p.look) {
+        blit(textures.get(sheet), rider.0, rider.1, rider_cell, size);
+    }
+    for i in 0..p.overlays.len() {
+        if i == mount {
+            if !front {
+                blit(overlay(i), x + centre, y + centre, cell, mount_size);
             }
+        } else {
+            blit(overlay(i), rider.0, rider.1, rider_cell, size);
         }
     }
 }
 
 /// Downloads the sheets of characters that appeared during the game (summons, projectiles).
-pub fn request_looks(world: &World, textures: &mut Textures) {
+pub fn request_looks(world: &World, rules: &Rules, textures: &mut Textures) {
     for p in world.persos.iter().filter(|p| p.visible() && p.alive()) {
         for sheet in look_sheets(&p.look) {
             textures.request(sheet);
+        }
+        for &o in &p.overlays {
+            if let Some(path) = textures.appearance(&rules.objects[o].appearance[p.female as usize]).map(str::to_owned) {
+                textures.request(&path);
+            }
         }
     }
 }
@@ -281,5 +336,5 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
         }
     }
     draw_work_state(world, rules, player, cam);
-    draw_persos(world, textures, cam);
+    draw_persos(world, rules, textures, cam);
 }

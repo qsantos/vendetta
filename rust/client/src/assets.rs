@@ -151,6 +151,9 @@ pub struct Textures {
     /// Versioned URL of every image, by key.
     urls: HashMap<String, String>,
     loaded: HashMap<String, Texture2D>,
+    /// The appearance sheets (`Images/Apparences/...`) by bare file name ("hut.bmp"), as
+    /// objects name their overlays.
+    appearances: HashMap<String, String>,
     /// Images requested during the game (summons, projectiles, effects), by key.
     pending: HashMap<String, Coroutine<Option<Texture2D>>>,
 }
@@ -163,7 +166,13 @@ impl Textures {
             .filter(|(p, _)| p.ends_with(".png"))
             .map(|(p, _)| (key(p), manifest.url(p).unwrap_or_default().to_owned()))
             .collect();
-        Textures { urls, loaded: HashMap::new(), pending: HashMap::new() }
+        let appearances = manifest
+            .entries
+            .iter()
+            .filter(|(p, _)| p.starts_with("Images/Apparences/") && p.ends_with(".png"))
+            .map(|(p, _)| (p.rsplit('/').next().unwrap_or(p).to_lowercase().replace(".png", ".bmp"), p.clone()))
+            .collect();
+        Textures { urls, appearances, loaded: HashMap::new(), pending: HashMap::new() }
     }
 
     /// Images among `paths` not loaded yet, without duplicates.
@@ -202,6 +211,11 @@ impl Textures {
 
     pub fn get(&self, path: &str) -> Option<&Texture2D> {
         self.loaded.get(&key(path))
+    }
+
+    /// The path of the appearance sheet an object names (`FichierApparence`).
+    pub fn appearance(&self, name: &str) -> Option<&str> {
+        self.appearances.get(&name.to_lowercase()).map(String::as_str)
     }
 
     /// Starts downloading an image needed during the game, if it is not loaded or loading.
