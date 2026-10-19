@@ -9,6 +9,7 @@ mod scripted;
 mod work;
 
 use serde::{Deserialize, Serialize};
+use crate::event::NumberKind;
 use crate::perso::action;
 use crate::rules::Rules;
 use crate::terrain::CELL;
@@ -883,7 +884,8 @@ impl World {
                     let p = &self.persos[i];
                     if !p.moving {
                         if rules.races[p.race].auto_resurrection {
-                            self.resurrect(rules, p.perso_target);
+                            let effect = p.attack_effect(rules);
+                            self.resurrect(rules, p.perso_target, effect);
                         }
                         if self.persos[i].kamikaze {
                             self.kill(rules, i);
@@ -1023,11 +1025,13 @@ impl World {
             let m = &self.houses[i];
             let j = (dist((m.x as i64, m.y as i64), (p.x, p.y)) / 12.0).floor();
             p.set_money(p.money() + j);
-            // TODO: the gain shown as a floating number (`AffDegat`)
-            let chef = p.chef;
+            let (x, y, chef) = (p.x as f64 + p.w as f64 / 2.0, p.y as f64, p.chef);
+            self.number(x, y, j, NumberKind::Money, false);
             if let Some(c) = usize::try_from(chef).ok().filter(|&c| self.persos[c].alive()) {
                 let c = &mut self.persos[c];
                 c.set_money(c.money() + j);
+                let (x, y) = (c.x as f64 + c.w as f64 / 2.0, c.y as f64);
+                self.number(x, y, j, NumberKind::Money, false);
             }
             self.go_home(i, i, false);
         } else if p.in_own_house {
@@ -1053,12 +1057,12 @@ impl World {
     }
 
     /// `Ressusciter_Perso`: back to life with 5 % of its Vie, the rest healing over time.
-    // TODO: the resurrection's visual effect
-    pub fn resurrect(&mut self, rules: &Rules, i: usize) {
+    pub fn resurrect(&mut self, rules: &Rules, i: usize, effect: i64) {
         self.revive(rules, i);
         let p = &mut self.persos[i];
         p.bars[0] = p.bonus_max[0] as f64 * 0.05;
         p.recovery[0] = p.bonus_max[0] as f64 * (1.0 - 0.05);
+        self.effect_on(effect, i);
     }
 
     // ---------------------------------------------------------------- VBScript AIs

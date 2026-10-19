@@ -5,6 +5,7 @@
 //! `Lire_Commandes` that drops the rest of the command queue.
 
 use crate::building::{LifeChange, RECYCLING, START_LIFE};
+use crate::event::NumberKind;
 use crate::perso::action;
 use crate::rules::Rules;
 use crate::stats::{BUILD_SPEED, CRAFT_SPEED, Trained, XP_CRAFT, XP_OBJECT, XP_SPECIAL};
@@ -716,6 +717,8 @@ impl World {
         p.set_money(p.money() - price);
         m.money += price;
         p.train_special(rules, 3, price);
+        let (x, y) = (m.x as f64 + m.w as f64 / 2.0, m.y as f64);
+        self.number(x, y, price, NumberKind::Money, false);
         Ok(())
     }
 
@@ -775,7 +778,14 @@ impl World {
 
     /// `Service_Utiliser`: perso `i` uses the service of house `h` (not checked).
     pub fn use_service(&mut self, rules: &Rules, h: usize, i: usize) -> Res {
+        self.use_service_score(rules, h, i, 0.0, false)
+    }
+
+    /// `Service_Utiliser` with the bounty `score` of a kill (and its XP with `experience`).
+    pub(crate) fn use_service_score(&mut self, rules: &Rules, h: usize, i: usize, score: f64, experience: bool) -> Res {
         let s = self.houses.get(h).ok_or(())?.service;
+        let m = &self.houses[h];
+        let (x, y) = (m.x as f64 + m.w as f64 / 2.0, m.y as f64);
         match s {
             1 => {
                 self.revive(rules, i);
@@ -784,8 +794,13 @@ impl World {
                 let m = &mut self.houses[h];
                 m.set_stock_raw(m.stock() - 1.0);
             }
-            // Bounties come with a score from combat (TODO); the command passes 0.
-            2 => {}
+            2 => {
+                self.houses[h].money += score;
+                if experience {
+                    self.persos[i].train_bounty(rules, score);
+                }
+                self.number(x, y, score, NumberKind::Money, false);
+            }
             _ => {}
         }
         if i != self.houses[h].owner {
@@ -793,9 +808,12 @@ impl World {
             let price = p.bargained(rules, rules.services[s].price) as f64;
             p.set_money(p.money() - price);
             self.houses[h].money += price;
-            p.train_special(rules, 3, price);
+            self.number(x, y, price, NumberKind::Money, false);
+            self.persos[i].train_special(rules, 3, price);
         }
-        // TODO: the service's visual effect
+        let m = &self.houses[h];
+        let (w, hh) = (m.w as f64, m.h as f64);
+        self.effect(rules.services[s].effect, m.x as f64, m.y as f64, w, hh);
         Ok(())
     }
 
@@ -810,6 +828,9 @@ impl World {
             p.money -= price;
             self.houses[h].money += price;
             self.take_from_house(rules, i, slot, h, 1);
+            let m = &self.houses[h];
+            let (x, y) = (m.x as f64 + m.w as f64 / 2.0, m.y as f64);
+            self.number(x, y, price, NumberKind::Money, false);
             self.persos[i].train_special(rules, 3, price);
         }
         Ok(())
@@ -998,7 +1019,9 @@ impl World {
             self.change_emperor(rules, f, -1, false);
             if rules.buildings[self.houses[i].kind].emperor && self.houses[i].visible() {
                 self.demolish(rules, i, i, true);
-                // TODO: the "house destroyed" visual effect
+                let m = &self.houses[i];
+                let (x, y, w, h) = (m.x as f64, m.y as f64, m.w as f64, m.h as f64);
+                self.effect(rules.effect_house_destroyed, x, y, w, h);
             }
             let p = &mut self.persos[i];
             for s in 0..p.equipped.len() {
@@ -1089,8 +1112,13 @@ impl World {
                 .map(|&o| rules.objects[o].skill);
             self.persos[i].slow_recovery(rules, skill);
             let p = &mut self.persos[i];
-            if p.poison >= 1 && p.set_life(rules, p.bars[0] - p.poison as f64) {
-                self.kill(rules, i);
+            if p.poison >= 1 {
+                let poison = p.poison as f64;
+                let (x, y) = (p.x as f64 + p.w as f64 / 2.0, p.y as f64);
+                if p.set_life(rules, p.bars[0] - poison) {
+                    self.kill(rules, i);
+                }
+                self.number(x, y, poison, NumberKind::Damage, false);
                 // TODO: the poisoner gets the kill (`Perso_Tuer_Perso(PoisonLanceur)`, combat)
             }
         } else if p.in_own_castle {

@@ -1,7 +1,6 @@
 //! Characters ("persos"): state, creation and movement (`ClsJeuPerso`).
 
 use serde::{Deserialize, Serialize};
-use crate::files::Files;
 use crate::items::{Recharge, TempEffect};
 use crate::rules::Rules;
 use crate::stats::{XP_COEFS, XP_OBJECT, XP_RESOURCE, XP_SERVICE, XP_SPECIAL};
@@ -297,6 +296,14 @@ pub struct Perso {
     pub ammo_quantity: f64,
     /// `NumeroObjetUtilise`: an object waiting for `Gestion_Utilisation_Speciale`, -1 for none.
     pub used_object: i64,
+    /// `NumeroProjectileLance`: the projectile race to launch later in the tick, -1 for none.
+    pub projectile_launch: i64,
+    /// `Pietinement`: tramples the enemies with less of it while walking.
+    pub trample: i64,
+    /// `Bestiaire`: kills per race.
+    pub bestiary: Vec<i64>,
+    /// `FragsPersos`, `FragsBatiments`, `FragsChateaux`.
+    pub frags: [i64; 3],
 }
 
 fn skills(n: usize, carac: i64, k: f64) -> Vec<Skill> {
@@ -449,6 +456,10 @@ impl Perso {
             ammo: 0,
             ammo_quantity: 0.0,
             used_object: -1,
+            projectile_launch: -1,
+            trample: 0,
+            bestiary: vec![0; rules.races.len()],
+            frags: [0; 3],
         };
         p.change_race(rules, rng, 0, false);
         p.adjust_bonus(rules);
@@ -519,6 +530,7 @@ impl Perso {
             }
         }
         self.adjust_bonus(rules);
+        self.trample = r.trample;
         self.untargetable = r.untargetable;
         self.ai_equip = r.ai_equip;
         self.ai_eat = r.ai_eat;
@@ -542,31 +554,21 @@ impl Perso {
         }
     }
 
-    /// `Tirer_Apparence_Au_Hasard`: a random sheet, or one random layer per category.
-    pub fn pick_look(&mut self, rules: &Rules, files: &Files, rng: &mut Rnd) {
+    /// `Tirer_Apparence_Au_Hasard`: a random sheet, or one random layer per category; an
+    /// empty folder draws nothing.
+    pub fn pick_look(&mut self, rules: &Rules, rng: &mut Rnd) {
         let r = &rules.races[self.race];
-        let sex = self.female as usize;
-        let mut pick = |dir: String| -> Option<String> {
-            let list = files.list_files(&dir);
-            if list.is_empty() {
-                return None;
-            }
+        let mut picks = r.look_files[self.female as usize].iter().filter(|l| !l.is_empty()).map(|list| {
             let i = rng.below(list.len() as i64) as usize;
-            Some(list[i].clone())
-        };
+            list[i].clone()
+        });
         self.look = if r.whole_sheet {
-            let dir = format!("Images/Persos/{}", r.sheet_folder[sex]);
-            match pick(dir) {
+            match picks.next() {
                 Some(f) => Look::Sheet(f),
                 None => Look::Layers(Vec::new()),
             }
         } else {
-            Look::Layers(
-                r.layer_folders[sex]
-                    .iter()
-                    .filter_map(|f| pick(format!("Images/Apparences/{f}")))
-                    .collect(),
-            )
+            Look::Layers(picks.collect())
         };
     }
 
@@ -634,6 +636,14 @@ impl Perso {
                 self.comment_tick = tick;
             }
             self.comment = text;
+        }
+    }
+
+    /// `Effet_Attaque`: the visual effect of its hits, the main weapon's or the race's.
+    pub fn attack_effect(&self, rules: &Rules) -> i64 {
+        match self.equipped.first().copied().flatten() {
+            Some(it) => rules.objects[it.object].attack_effect,
+            None => self.attack_effect,
         }
     }
 

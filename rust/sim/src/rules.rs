@@ -135,6 +135,15 @@ pub struct Race {
     pub attack_cause_effect: i64,
     /// `ApparenceVerouillee`: equipment overlays other than mounts are not drawn.
     pub look_locked: bool,
+    /// `Pietinement`: tramples the enemies with less of it while walking, 0 for none.
+    pub trample: i64,
+    /// `Tombe`: decor left where it dies, -1 for none.
+    pub tomb: i64,
+    /// `EffetMort`: visual effect when it dies, -1 for none.
+    pub death_effect: i64,
+    /// The image files `Tirer_Apparence_Au_Hasard` draws from, per sex: one list per draw (the
+    /// sheet folder for a whole-sheet race, else one per appearance category).
+    pub look_files: BySex<Vec<Vec<String>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -200,6 +209,41 @@ pub struct Rules {
     /// `ResistanceMinimum`, `ResistanceMaximum` (Singles).
     pub resistance_min: f64,
     pub resistance_max: f64,
+    pub combat: Combat,
+    /// `[Effets] EffetMaisonDetruite`, `EffetChateauDetruit`: 0-based effect indices.
+    pub effect_house_destroyed: i64,
+    pub effect_castle_destroyed: i64,
+    /// `EtiquetteNiveau` and `EtiquetteTombeMasculin/Feminin`, for the labels of tombs.
+    pub label_level: String,
+    pub label_tomb: BySex<String>,
+}
+
+/// `Combat.ini` (`ModCombat.Init_Combat`), all Singles.
+#[derive(Debug, Clone)]
+pub struct Combat {
+    /// `CoefDegatPerso`: damage per point of attack above the defence.
+    pub damage_coef: f64,
+    /// `CoefDegatBatiment`
+    pub building_damage_coef: f64,
+    /// `DureeImmobilisation`: ticks a hit character stays stunned (an Integer).
+    pub stun: i64,
+    /// `ChanceCoupCritique`, `CoefDegatCoupCritique`.
+    pub critical_chance: f64,
+    pub critical_coef: f64,
+    /// `ChanceEchecCritique`, `PerteEchecCritique`: a miss costs that many attack points.
+    pub failure_chance: f64,
+    pub failure_loss: f64,
+    /// `MaxDegatBatiment`: attack points spent at most per hit on a building.
+    pub max_building_damage: f64,
+    /// `CoefPillageArgent/Ressources/ObjetsPersoMort`, `CoefDestructionObjets`: looting a kill.
+    pub loot_money: f64,
+    pub loot_resources: f64,
+    pub loot_objects: f64,
+    pub destroy_objects: f64,
+    /// `CoefPillageArgent/Ressources/ObjetsMaison`: looting a destroyed house.
+    pub house_loot_money: f64,
+    pub house_loot_resources: f64,
+    pub house_loot_objects: f64,
 }
 
 fn ini(files: &Files, path: &str) -> Result<Ini, String> {
@@ -374,7 +418,7 @@ impl Rules {
             (1..=r.int(count, 0)).map(|j| crate::vb::clng(r.num_j(key, j, 1.0) - 1.0).max(0) as usize).collect()
         };
         let common = objects_of(params.global(Kind::Races), "NombreObjets", "Objet");
-        let races = params
+        let races: Vec<Race> = params
             .list(Kind::Races)
             .iter()
             .map(|r| {
@@ -474,6 +518,10 @@ impl Rules {
                     attack_resistance: r.get("AttaqueResistance").map_or(0, |v| crate::vb::clng(crate::ini::vb_val(v) - 1.0)),
                     attack_cause_effect: r.get("AttaqueCauseEffet").map_or(-1, |v| crate::vb::clng(crate::ini::vb_val(v) - 1.0)),
                     look_locked: r.flag("ApparenceVerouillee"),
+                    trample: r.int("Pietinement", 0),
+                    tomb: r.get("Tombe").map_or(-1, |v| crate::vb::clng(crate::ini::vb_val(v) - 1.0)),
+                    death_effect: r.get("EffetMort").map_or(-1, |v| crate::vb::clng(crate::ini::vb_val(v) - 1.0)),
+                    look_files: Default::default(),
                 }
             })
             .map(|mut race| {
@@ -533,6 +581,43 @@ impl Rules {
             })
             .collect();
         let comment_duration = com.num_or("Commentaires", "Duree", 0.0) / 100.0;
+        let races: Vec<Race> = races
+            .into_iter()
+            .map(|mut race: Race| {
+                for sex in 0..2 {
+                    let dirs = if race.whole_sheet {
+                        vec![format!("Images/Persos/{}", race.sheet_folder[sex])]
+                    } else {
+                        race.layer_folders[sex].iter().map(|f| format!("Images/Apparences/{f}")).collect()
+                    };
+                    race.look_files[sex] = dirs.iter().map(|d| files.list_files(d)).collect();
+                }
+                race
+            })
+            .collect();
+        let combat_ini = ini(files, "Donnees/Combat.ini")?;
+        let single = |k: &str| combat_ini.num_or("Combat", k, 0.0) as f32 as f64;
+        let combat = Combat {
+            damage_coef: single("CoefDegatPerso"),
+            building_damage_coef: single("CoefDegatBatiment"),
+            stun: combat_ini.int_or("Combat", "DureeImmobilisation", 0),
+            critical_chance: single("ChanceCoupCritique"),
+            critical_coef: single("CoefDegatCoupCritique"),
+            failure_chance: single("ChanceEchecCritique"),
+            failure_loss: single("PerteEchecCritique"),
+            max_building_damage: single("MaxDegatBatiment"),
+            loot_money: single("CoefPillageArgentPersoMort"),
+            loot_resources: single("CoefPillageRessourcesPersoMort"),
+            loot_objects: single("CoefPillageObjetsPersoMort"),
+            destroy_objects: single("CoefDestructionObjets"),
+            house_loot_money: single("CoefPillageArgentMaison"),
+            house_loot_resources: single("CoefPillageRessourcesMaison"),
+            house_loot_objects: single("CoefPillageObjetsMaison"),
+        };
+        let effects = params.global(Kind::Effets);
+        let effect_global = |k: &str| crate::vb::clng(val(effects.get(k)) - 1.0);
+        let globals = ini(files, &format!("Donnees/{lang}/Parametres_Globales.ini"))?;
+        let label = |k: &str| globals.str_or("Parametres_Globales", k, "").to_owned();
         let ais = crate::ia_file::load_all(files, &eco.buildings, epochs.len())?;
 
         Ok(Rules {
@@ -573,6 +658,11 @@ impl Rules {
             resistances: params.list(Kind::Resistances).iter().map(|r| r.get("Nom").unwrap_or("").to_owned()).collect(),
             resistance_min,
             resistance_max,
+            combat,
+            effect_house_destroyed: effect_global("EffetMaisonDetruite"),
+            effect_castle_destroyed: effect_global("EffetChateauDetruit"),
+            label_level: label("EtiquetteNiveau"),
+            label_tomb: [label("EtiquetteTombeMasculin"), label("EtiquetteTombeFeminin")],
         })
     }
 

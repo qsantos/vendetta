@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use crate::ai::Ai;
 use crate::building::Building;
+use crate::event::Event;
 use crate::fief::Fief;
 use crate::files::Files;
 use crate::ini::Ini;
@@ -52,6 +53,9 @@ pub struct World {
     pub ai: Ai,
     /// `Victoire(0)`: the local player's team has won (standard victory).
     pub victory: bool,
+    /// What this tick produced for the client to show, cleared when the next one starts.
+    #[serde(skip)]
+    pub events: Vec<Event>,
 }
 
 /// One fief of the setup screen.
@@ -130,6 +134,7 @@ impl World {
             player: None,
             ai: Ai::default(),
             victory: false,
+            events: Vec::new(),
         };
         world.create_citizens(rules);
         world.castles = world
@@ -200,7 +205,7 @@ impl World {
         // TODO: difficulty XP bonus for NPCs (`BonusXP`, `Gestion_Tous_Niveaux`)
         for i in 0..world.persos.len() {
             let mut p = std::mem::replace(&mut world.persos[i], Perso::new(rules, &mut Rnd::default(), 0, 0, false));
-            p.pick_look(rules, files, &mut world.rng);
+            p.pick_look(rules, &mut world.rng);
             // Perso_Finalier: an unknown AI file disables the scripted AI.
             if p.choose_ai {
                 p.ai_index = crate::ia_file::find(&rules.ais, &p.ai_file);
@@ -330,6 +335,7 @@ impl World {
 
     /// One simulation tick (`FrmMoteur2D.MoteurJeu`, solo branch).
     pub fn step(&mut self, rules: &Rules, orders: &[Order]) {
+        self.events.clear();
         self.tick += 1;
         // Lire_Commandes: a failing command drops the rest of the queue.
         for order in orders {
