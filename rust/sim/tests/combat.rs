@@ -370,3 +370,40 @@ fn arrows_fly_and_hit() {
     assert!(!w.persos[n].alive(), "and vanished");
     assert_eq!(w.persos[a].projectiles, 0);
 }
+
+const HEAL_OTHERS: usize = 41; // Guérison d'autrui: +10 Vie to the nearest wounded ally
+const TAX: usize = 199; // Impôt: a tenth of the money of the fief's citizens
+
+/// Uses `object` from perso `i`'s bag; it takes effect at the end of the next tick.
+fn use_object(w: &mut World, rules: &Rules, i: usize, object: usize) {
+    let p = &mut w.persos[i];
+    p.add_object(rules, object);
+    let slot = p.inventory.iter().position(|s| s.is_some_and(|it| it.object == object)).unwrap();
+    for b in 0..4 {
+        p.bars[b] = p.bonus_max[b] as f64;
+    }
+    assert_eq!(w.equip_object_at(rules, i, Some(slot), false), sim::items::Equip::Used);
+    w.step(rules, &[]);
+}
+
+#[test]
+fn healing_and_taxes() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = fighter(&mut w, &rules, 0, 300, 300);
+    let j = w.persos.iter().rposition(|p| p.fief == 0).unwrap();
+    let q = &mut w.persos[j];
+    (q.x, q.y) = (350, 300);
+    q.set_visible(true);
+    q.bars[0] = 5.0;
+    use_object(&mut w, &rules, i, HEAL_OTHERS);
+    let coef = w.persos[i].bonus_max[0] as f64 / w.persos[i].max[0] as f64;
+    assert!(w.persos[j].recovery[0] >= 10.0 * coef - 1.0, "{}", w.persos[j].recovery[0]);
+    assert!(w.events.iter().any(|e| matches!(e, Event::Number { kind: NumberKind::Heal, .. })));
+
+    w.persos[i].set_money(0.0);
+    w.persos[j].set_money(100.0);
+    use_object(&mut w, &rules, i, TAX);
+    assert_eq!(w.persos[j].money(), 90.0);
+    assert_eq!(w.persos[i].money(), 10.0);
+}

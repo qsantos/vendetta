@@ -769,13 +769,12 @@ impl World {
             tr.set_resource(rules, r, tr.resource(r) + stock * c.house_loot_resources);
         }
         for (s, n) in stocks.into_iter().enumerate() {
-            let mut j = 0.0;
-            while j <= n - 1.0 {
+            // `For j = 0 To Stock_Objets(i) - 1` with an Integer counter.
+            for _ in 0..=clng(n - 1.0) {
                 if c.house_loot_objects > self.rng.next() {
                     let o = rules.buildings[kind].objects[s];
                     self.treasures[t].add_object(rules, o);
                 }
-                j += 1.0;
             }
         }
         if self.treasures[t].empty() {

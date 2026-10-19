@@ -455,7 +455,7 @@ impl Perso {
     }
 
     /// `Manger_Ressources_Coef`
-    fn eat_coef(&self, i: usize) -> f64 {
+    pub(crate) fn eat_coef(&self, i: usize) -> f64 {
         self.bonus_max[i] as f64 / self.max[i] as f64
     }
 

@@ -4,11 +4,29 @@
 
 use crate::building::Building;
 use crate::combat::{ATTACK_CASTLE, ATTACK_HOUSE, ATTACK_PERSO, Target};
-use crate::items::invocation_sup;
+use crate::event::NumberKind;
+use crate::items::{bonus_sup, gain_sup, invocation_sup, range_sup};
 use crate::perso::{Perso, action};
 use crate::rules::Rules;
 use crate::vb::clng;
 use crate::world::World;
+
+/// The parameters of `Effets_Proches`.
+struct Near {
+    /// `CreerObjetAllie`, `CreerObjetEnnemi` of the used object.
+    ally: i64,
+    enemy: i64,
+    zone: i64,
+    /// Added to the Vie, Energie, Magie and Moral recovery pools.
+    gains: [f64; 4],
+    resurrection: i64,
+    quantity: i64,
+    effect: i64,
+    /// The caster's item skill level.
+    level: i64,
+    /// The resistance that opposes the effect.
+    resistance: i64,
+}
 
 impl World {
     /// `Gestion_Utilisation_Speciale`: for every perso (not those it creates), the projectiles
@@ -32,7 +50,9 @@ impl World {
         }
     }
 
-    /// The effect of object `n` used by perso `i`, scaled by its item skill.
+    /// The effect of object `n` used by perso `i`, scaled by its item skill: summons, then
+    /// healing and effects on the nearest persos within its range of use (or on itself), a
+    /// tax, and the object's effect on itself with the chance of its resistance.
     fn use_special(&mut self, rules: &Rules, i: usize, n: usize) {
         let o = &rules.objects[n];
         let c = self.persos[i].object_skill_level(rules, n);
@@ -41,6 +61,156 @@ impl World {
             let max = invocation_sup(rules, c, o.quantity_max).floor() as i64;
             self.create_invocation(rules, race, quantity, i, o.attack_effect, false, max, &o.invocation_ai);
         }
+        let p = &self.persos[i];
+        let gains = [0, 1, 2, 3].map(|b| bonus_sup(rules, c, o.gain[b]) as f64 * p.eat_coef(b));
+        if o.use_range > 0 {
+            let near = Near {
+                ally: o.create_object[1],
+                enemy: o.create_object[2],
+                zone: range_sup(rules, c, o.use_range as f64),
+                gains,
+                resurrection: o.resurrection,
+                quantity: bonus_sup(rules, c, o.quantity),
+                effect: o.attack_effect,
+                level: c,
+                resistance: o.attack_resistance,
+            };
+            self.effects_near(rules, i, &near);
+        } else {
+            if o.self_resurrection {
+                self.resurrect(rules, i, o.attack_effect);
+            }
+            let p = &mut self.persos[i];
+            for (b, g) in gains.into_iter().enumerate() {
+                p.recovery[b] += g;
+            }
+            if gains[0] > 0.0 {
+                let (x, y) = (p.x as f64 + p.w as f64 / 2.0, p.y as f64);
+                self.number(x, y, gains[0], NumberKind::Heal, false);
+            }
+            if o.invocation < 0 {
+                self.effect_on(o.attack_effect, i);
+            }
+        }
+        if o.tax {
+            let range = range_sup(rules, c, o.use_range as f64);
+            self.tax(i, o.quantity, o.attack_effect, range);
+        }
+        let res = self.persos[i].resistance(o.attack_resistance);
+        if res > rules.resistance_min && self.rng.next() < res {
+            self.effect_on_perso(rules, i, n as i64, c, 0, i);
+        }
+    }
+
+    /// `Effets_Proches`: up to `quantity` times, the nearest perso (other than `l`, each once)
+    /// that is an ally for `ally`, an enemy for `enemy`, or a wounded ally, attackable and
+    /// failing its resistance roll (one `Rnd` per closer candidate) is affected if within
+    /// `zone`: healed and given the ally or enemy effect. Resurrections cannot happen since the
+    /// dead are not attackable.
+    fn effects_near(&mut self, rules: &Rules, l: usize, near: &Near) {
+        let diagonal = ((self.terrain.width as f64 * 16.0).powi(2) + (self.terrain.height as f64 * 16.0).powi(2)).sqrt();
+        let mut affected: Vec<usize> = Vec::new();
+        for _ in 0..near.quantity.max(1) {
+            let (mut best, mut distance, mut friend) = (None, diagonal, false);
+            for i in 0..self.persos.len() {
+                let (p, q) = (&self.persos[l], &self.persos[i]);
+                let same = p.team == q.team;
+                let wounded = q.bar_total(0) < q.bonus_max[0] as f64 && q.alive() && near.resurrection == 0;
+                let ghost = !q.alive() && near.resurrection > 0 && !q.invocation();
+                let wanted = near.ally >= 0 && q.alive() && same
+                    || near.enemy >= 0 && q.alive() && !same
+                    || same && (wounded || ghost);
+                if i == l || !wanted || !q.attackable() {
+                    continue;
+                }
+                let d = (((p.x - q.x) as f64).powi(2) + ((p.y - q.y) as f64).powi(2)).sqrt();
+                let res = q.resistance(near.resistance);
+                if distance > d && res > rules.resistance_min && self.rng.next() < res && !affected.contains(&i) {
+                    (best, distance, friend) = (Some(i), d, same);
+                }
+            }
+            let Some(t) = best.filter(|_| distance < near.zone as f64) else { break };
+            if !self.persos[t].alive() && near.resurrection > 0 {
+                self.resurrect(rules, t, near.effect);
+            }
+            let g = near.gains;
+            if g.iter().sum::<f64>() > 0.0 {
+                let q = &mut self.persos[t];
+                q.recovery[0] += g[0];
+                let (x, y) = (q.x as f64 + q.w as f64 / 2.0, q.y as f64);
+                if g[0] > 0.0 {
+                    self.number(x, y, g[0], NumberKind::Heal, false);
+                }
+                let q = &mut self.persos[t];
+                for b in 1..4 {
+                    q.recovery[b] += g[b];
+                }
+            }
+            if friend {
+                self.effect_on_perso(rules, t, near.ally, near.level, 1, l);
+            } else {
+                self.effect_on_perso(rules, t, near.enemy, near.level, 2, l);
+            }
+            affected.push(t);
+            self.effect_on(near.effect, t);
+        }
+    }
+
+    /// `Effet_Sur_Perso(t, n, C, k, caster)`: the object `CreerObjet`/`Allie`/`Ennemi` (`k` 0,
+    /// 1, 2) of object `n` affects perso `t`: as a temporary effect cast by `caster` when `n`
+    /// has a duration, else given (`Quantite` times). Quirk: the area effects pass the created
+    /// object itself as `n`, so its own `CreerObjetAllie`/`Ennemi` is used.
+    fn effect_on_perso(&mut self, rules: &Rules, t: usize, n: i64, level: i64, k: usize, caster: usize) {
+        let Ok(n) = usize::try_from(n) else { return };
+        let o = &rules.objects[n];
+        let Ok(created) = usize::try_from(o.create_object[k]) else { return };
+        if o.duration != 0 {
+            let duration = if o.duration == -1 { -1 } else { clng(gain_sup(rules, level, o.duration as f64)) };
+            let owner = (caster != t).then(|| (caster, self.persos[caster].object_skill_level(rules, created)));
+            self.persos[t].add_effect(rules, created, duration, -1, owner);
+        } else {
+            // `For k = 1 To Quantite` with a Long counter.
+            let count = if o.quantity > 1.0 { clng(o.quantity) } else { 1 };
+            for _ in 0..count {
+                self.persos[t].add_new_object(rules, created);
+            }
+        }
+    }
+
+    /// `Prelever_Impots`: every living citizen of the caster's fief within `range` pays the
+    /// share `rate` of its money, and so does every house of theirs in range with at least
+    /// `1 / rate`; the caster gets the total (Longs).
+    fn tax(&mut self, l: usize, rate: f64, effect: i64, range: i64) {
+        let (f, lx, ly) = (self.persos[l].fief, self.persos[l].x as f64, self.persos[l].y as f64);
+        let range = range as f64;
+        let mut total = 0;
+        for i in 0..self.persos.len() {
+            if self.persos[i].fief != f || i == l {
+                continue;
+            }
+            let q = &mut self.persos[i];
+            if q.alive() && range >= ((q.x as f64 - lx).powi(2) + (q.y as f64 - ly).powi(2)).sqrt() {
+                let tax = clng(q.money() * rate);
+                q.set_money(q.money() - tax as f64);
+                total += tax;
+                let (x, y) = (q.x as f64 + q.w as f64 / 2.0, q.y as f64);
+                self.number(x, y, -tax as f64, NumberKind::Money, false);
+            }
+            let m = &mut self.houses[i];
+            let min = (1.0 / rate as f32) as f64;
+            if m.visible() && m.money >= min && range >= ((m.x as f64 - lx).powi(2) + (m.y as f64 - ly).powi(2)).sqrt() {
+                let tax = clng(m.money * rate);
+                m.money -= tax as f64;
+                total += tax;
+                let (x, y) = (m.x as f64 + m.w as f64 / 2.0, m.y as f64);
+                self.number(x, y, -tax as f64, NumberKind::Money, false);
+            }
+        }
+        let p = &mut self.persos[l];
+        p.set_money(p.money() + total as f64);
+        let (x, y) = (p.x as f64 + p.w as f64 / 2.0, p.y as f64);
+        self.effect_on(effect, l);
+        self.number(x, y, total as f64, NumberKind::Money, true);
     }
 
     /// `Collision_Projectile`: a projectile flying over the first obstacle of its kind (an
