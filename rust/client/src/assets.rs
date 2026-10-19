@@ -15,6 +15,20 @@ pub const ROOT: &str = "assets";
 /// most of that latency (browsers queue beyond their own per-server limit).
 const PARALLEL: usize = 16;
 
+/// How long loading may work before letting the page breathe (draw, answer its menus): the
+/// game loads behind the page's menus, on the same thread.
+const SLICE: f64 = 0.008;
+
+/// Lets the page have the rest of this frame: loading goes on at the next one (the loading
+/// coroutine is polled once per frame).
+pub async fn yield_now() {
+    let mut yielded = false;
+    std::future::poll_fn(|_| {
+        if std::mem::replace(&mut yielded, true) { Poll::Ready(()) } else { Poll::Pending }
+    })
+    .await
+}
+
 /// Runs `jobs` with at most `PARALLEL` in flight, handing each result to `done` as it
 /// completes. Every pending job is polled whenever this is: macroquad's downloads never
 /// wake their waker, they rely on being polled each frame.
@@ -22,6 +36,8 @@ async fn run_parallel<T>(jobs: Vec<Pin<Box<dyn Future<Output = T> + Send>>>, mut
     let mut queue = jobs.into_iter();
     let mut running: Vec<Pin<Box<dyn Future<Output = T> + Send>>> = Vec::new();
     std::future::poll_fn(|cx| {
+        // results handled at most for a slice of time per frame (cached files all come at once)
+        let start = crate::perf::now();
         while running.len() < PARALLEL {
             match queue.next() {
                 Some(job) => running.push(job),
@@ -29,7 +45,7 @@ async fn run_parallel<T>(jobs: Vec<Pin<Box<dyn Future<Output = T> + Send>>>, mut
             }
         }
         let mut i = 0;
-        while i < running.len() {
+        while i < running.len() && crate::perf::now() - start < SLICE {
             if let Poll::Ready(v) = running[i].as_mut().poll(cx) {
                 drop(running.swap_remove(i));
                 done(v);
@@ -250,8 +266,13 @@ impl Textures {
         })
         .await;
         images.sort_by_key(|(k, image)| (std::cmp::Reverse(image.height), k.clone()));
+        let mut start = crate::perf::now();
         for (k, image) in images {
             self.pack(k, image);
+            if crate::perf::now() - start > SLICE {
+                yield_now().await;
+                start = crate::perf::now();
+            }
         }
     }
 

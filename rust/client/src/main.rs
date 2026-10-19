@@ -167,8 +167,10 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files).await;
     // The page loads the game behind its menus: the world waits for a game to be chosen.
+    // (a frame at a time: `wait_seconds` takes off the last frame's duration, so it is over at
+    // once after a slow frame, and would spin here forever)
     while !storage::started() {
-        macroquad::experimental::coroutines::wait_seconds(0.05).await;
+        assets::yield_now().await;
     }
     progress.message(&progress.label(2));
     let options = options::Options::load();
