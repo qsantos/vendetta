@@ -20,7 +20,7 @@
 //!
 //! From the server:
 //! - `{"t":"lobby","room":…,"you":k,"token":…,"host":k,"players":[{"name","fief","online"}],"items":[…]}`;
-//! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"you":k}`, with `"resume":true`
+//! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"names":[…],"you":k}`, with `"resume":true`
 //!   after a rejoin;
 //! - `{"t":"wait","ready":n,"players":m}`: n of the m players are ready;
 //! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
@@ -163,6 +163,13 @@ impl Room {
         for tx in self.players.iter().filter_map(|p| p.tx.as_ref()) {
             let _ = tx.send(text.clone());
         }
+    }
+
+    /// The start of the game, for player k: what makes the world, and its place.
+    fn start(&self, k: usize, resume: bool) -> Value {
+        let fiefs: Vec<usize> = self.players.iter().map(|p| p.fief).collect();
+        let names: Vec<&str> = self.players.iter().map(|p| p.name.as_str()).collect();
+        json!({"t": "start", "items": self.items, "seed": self.seed, "players": fiefs, "names": names, "you": k, "resume": resume})
     }
 
     fn send_lobby(&self, code: &str) {
@@ -315,8 +322,7 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
             p.rejoining = true;
             *joined = Some((code, p.id));
             room.empty_since = None;
-            let fiefs: Vec<usize> = room.players.iter().map(|p| p.fief).collect();
-            room.send(k, &json!({"t": "start", "items": room.items, "seed": room.seed, "players": fiefs, "you": k, "resume": true}));
+            room.send(k, &room.start(k, true));
         }
         msg => {
             let Some((code, id)) = joined.as_ref() else { return error(tx, "pas dans une partie") };
@@ -344,9 +350,8 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
                     room.started_at = Some(Instant::now());
                     room.seed = room.items.iter().find_map(|o| o.strip_prefix("seed=")?.parse::<u32>().ok()).unwrap_or(rooms.random(2) as u32);
                     room.items.retain(|o| !o.starts_with("seed="));
-                    let fiefs: Vec<usize> = room.players.iter().map(|p| p.fief).collect();
                     for k in 0..room.players.len() {
-                        room.send(k, &json!({"t": "start", "items": room.items, "seed": room.seed, "players": fiefs, "you": k}));
+                        room.send(k, &room.start(k, false));
                     }
                     tokio::spawn(ticker(rooms.clone(), code.to_owned()));
                 }

@@ -323,7 +323,13 @@
     try {
       localStorage.setItem(lastKey, kept.filter((o) => o !== "play").join("&"));
     } catch (e) {}
-    startHash = items.join("&");
+    // a solo character takes the name last used in the lobby (unless the hash gives one)
+    let name = null;
+    try {
+      name = localStorage.getItem("vendetta-name");
+    } catch (e) {}
+    const named = name && !items.some((o) => o.startsWith("names="));
+    startHash = (named ? [...items, "names=" + encodeURIComponent(name)] : items).join("&");
     setHash(kept);
     document.getElementById("menu").hidden = true;
     loadingScreen.hidden = false;
@@ -549,7 +555,7 @@
     const startNet = (msg) => {
       netStarted = true;
       const resume = msg.resume ? ["resume"] : [];
-      startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "me=" + msg.you, "room=" + netRoom, ...resume, "play"].join("&");
+      startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "names=" + msg.names.map(encodeURIComponent).join("+"), "me=" + msg.you, "room=" + netRoom, ...resume, "play"].join("&");
       document.getElementById("menu").hidden = true;
       loadingScreen.hidden = false;
       bubble.hidden = false;

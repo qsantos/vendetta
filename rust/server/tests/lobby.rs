@@ -74,6 +74,7 @@ async fn lobby_and_lockstep() {
     assert_eq!(start["seed"], 7);
     assert_eq!(start["items"], json!(["fiefs=6"]));
     assert_eq!(start["players"], json!([1, 3]));
+    assert_eq!(start["names"], json!(["Alice", "Bob"]));
     assert_eq!(start["you"], 1);
 
     // a late comer is turned away

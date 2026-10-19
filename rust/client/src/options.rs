@@ -46,6 +46,9 @@ pub struct Options {
     /// `players=1+1+3`: one human player per entry, in that fief (numbered from 1, as listed at
     /// the bottom right); several may share a fief. One in the first fief by default.
     pub players: Vec<usize>,
+    /// `names=Alice+Bob`: the human players' names, in the order of `players`, each
+    /// percent-encoded (`encodeURIComponent`).
+    pub names: Vec<String>,
     /// `me=k`: network play (see `net.rs`), as the k-th player of `players` (from 0).
     pub me: Option<usize>,
     /// `room=CODE`: the network game's room, whose world is saved apart from the solo one.
@@ -93,6 +96,7 @@ impl Options {
                     }
                 }
                 "me" => o.me = value.parse().ok(),
+                "names" => o.names = value.split('+').map(percent_decode).collect(),
                 "room" => o.room = value.to_uppercase(),
                 "resume" => o.resume = true,
                 "players" => {
@@ -117,7 +121,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, perf: o.perf, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, names: o.names, perf: o.perf, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
@@ -131,4 +135,24 @@ impl Options {
 
 fn clamp_size(v: usize) -> usize {
     v.clamp(*SIZES.start(), *SIZES.end())
+}
+
+/// Undoes `encodeURIComponent` (`%XX` bytes, UTF-8).
+fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        match (b[i], b.get(i + 1..i + 3).and_then(|h| u8::from_str_radix(std::str::from_utf8(h).ok()?, 16).ok())) {
+            (b'%', Some(v)) => {
+                out.push(v);
+                i += 3;
+            }
+            (c, _) => {
+                out.push(c);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
 }
