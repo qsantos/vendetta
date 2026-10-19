@@ -61,6 +61,8 @@ pub type BySex<T> = [T; 2];
 #[derive(Debug, Clone)]
 pub struct Race {
     pub name: BySex<String>,
+    /// `NomMPluriel`, `NomFPluriel` (`NomPluriel` sets both).
+    pub plural: BySex<String>,
     pub random_name: bool,
     pub playable: bool,
     /// `RestrictionFeminin`: never female.
@@ -438,6 +440,7 @@ impl Rules {
                 let acceleration = r.int("Acceleration", 0);
                 Race {
                     name: sexed("Nom", 0),
+                    plural: ["NomMPluriel", "NomFPluriel"].map(|k| last_of(r, &["NomPluriel", k], 0, &suffix).unwrap_or("").to_owned()),
                     random_name: r.flag("NomAleatoire"),
                     playable: r.flag("Jouable"),
                     no_female: r.flag("RestrictionFeminin"),

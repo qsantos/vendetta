@@ -49,6 +49,8 @@ const SCENES = {
   recharges: { hash: "seed=1&recharges=40:5+41:25+42:3", steps: [["move", 512, 600]] },
   // The epoch box while changing epoch, and the emperor's life bar under it.
   epoch: { hash: "seed=1&emperor&advance=40", steps: [["move", 512, 600]] },
+  // The message log: a tip (F9).
+  messages: { hash: "seed=1", steps: [["key", "F9"], ["move", 512, 600]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
 };
 

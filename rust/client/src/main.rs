@@ -234,6 +234,11 @@ async fn main() {
     }
 
 
+    // `Afficher_Conseil`: a tip to start with (not in the still scenes of the rendering tests).
+    if !options::test_mode() {
+        rand::srand((macroquad::miniquad::date::now() * 1000.0) as u64);
+        hud.add_tip(rand::gen_range(0.0, 1.0));
+    }
     let mut scales = Scales::load();
     let mut view = (0, 0);
     let mut cam = (0, 0);
@@ -427,6 +432,7 @@ async fn main() {
             perf.time(perf::Part::Tick, || world.step(&rules, &orders));
             orders.clear();
             effects.tick(&world.events);
+            hud.update_messages(&world, &rules, player);
             hud.automatic_actions(&world, player, &mut orders);
             hud.craft_from_queue(&world, &rules, player, &mut orders);
         }
@@ -436,14 +442,19 @@ async fn main() {
         if ticks > 0 {
             cam = follow(&world, player, view);
         }
+        // `ToucheSauvegarderMonde` (F12) saves now and says so (`Enregistrer_Sauvegarde_Monde`).
+        let save_now = is_key_pressed(KeyCode::F12) && !options::test_mode();
         // Big worlds are saved less often: a second per megabyte (51 MB at 15000 characters).
-        if get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6) {
+        if save_now || get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6) {
             last_save = get_time();
             perf.time(perf::Part::Save, || {
                 let bytes = world.save();
                 save_size = bytes.len();
                 storage::store("save", &bytes);
             });
+            if save_now {
+                hud.add_saved_message();
+            }
         }
         // The mood's music, every frame (`FrmMoteur2D.frm:426-438`).
         let p = &world.persos[player];

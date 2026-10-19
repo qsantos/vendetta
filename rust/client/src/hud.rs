@@ -3,6 +3,7 @@
 mod bars;
 mod bubbles;
 mod buttons;
+mod messages;
 mod object_tooltip;
 mod shortcuts;
 mod temp_effects;
@@ -121,6 +122,8 @@ pub struct Hud {
     tooltip_labels: object_tooltip::TooltipLabels,
     /// Object shortcut keys.
     shortcuts: shortcuts::Shortcuts,
+    /// The message log at the top left.
+    messages: messages::MessageLog,
     /// The recharge clocks over the shortcut slots.
     clocks: [Option<shortcuts::Clock>; 2],
     /// The bag or equipment object under the cursor, for binding it with a digit.
@@ -273,6 +276,7 @@ impl Hud {
             craft_queue: Vec::new(),
             shortcuts: shortcuts::Shortcuts::load(objects),
             clocks: shortcuts::recharge_clocks(files),
+            messages: messages::MessageLog::load(files, "Francais"),
             hovered_object: None,
             tooltip_labels,
             build_hover: None,
@@ -343,6 +347,8 @@ impl Hud {
             self.frames = 0;
             self.fps_timer = get_time();
         }
+        // The message log is under the interface.
+        self.draw_messages();
         let p = &world.persos[player];
 
         // Status bars: Moral, Magie, Energie, Vie (bottom to top), then their contours.

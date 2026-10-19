@@ -481,6 +481,10 @@ impl Hud {
         if is_key_pressed(KeyCode::Delete) {
             orders.push(Order::Demolish { perso: player });
         }
+        // `ToucheAfficherConseil` (F9): a tip; always the first one in the rendering tests.
+        if is_key_pressed(KeyCode::F9) {
+            self.add_tip(if crate::options::test_mode() { 0.0 } else { rand::gen_range(0.0, 1.0) });
+        }
     }
 
     /// Top-left corners of the radial buttons of the current category.
