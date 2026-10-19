@@ -60,6 +60,9 @@ pub enum Order {
     SelectMoney { perso: usize, quantity: f64 },
     /// `PersoObjetSelectionne`: hold object type `object` (-1 for none).
     SelectObject { perso: usize, object: i64 },
+    /// Inventory click: take one object of inventory slot `slot` onto the cursor (anything
+    /// already held goes back to the bag first).
+    HoldObject { perso: usize, slot: usize },
     /// `PersoObjetDeSelectionne`
     Unselect { perso: usize },
     /// `PersoAllerVendre`: sell the selection at castle `target`, or at market house `target`.
@@ -132,6 +135,7 @@ impl World {
             | UnselectResource { perso, .. }
             | SelectMoney { perso, .. }
             | SelectObject { perso, .. }
+            | HoldObject { perso, .. }
             | Unselect { perso }
             | GoSell { perso, .. }
             | SellSelection { perso, .. }
@@ -217,6 +221,12 @@ impl World {
             }
             SelectMoney { quantity, .. } => p.select_money(quantity, false),
             SelectObject { object, .. } => p.selected_object = object,
+            HoldObject { slot, .. } => {
+                p.clear_selection(rules);
+                let item = p.inventory.get(slot).copied().flatten().ok_or(())?;
+                p.unload_slot(slot);
+                p.selected_object = item.object as i64;
+            }
             Unselect { .. } => p.clear_selection(rules),
             GoSell { target, market, .. } => self.go_sell(rules, perso, target, market)?,
             SellSelection { fief, .. } => {

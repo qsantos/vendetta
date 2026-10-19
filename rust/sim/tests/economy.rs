@@ -355,3 +355,20 @@ fn crafting_and_selling_an_object() {
     let cost: i64 = obj.price_resources.iter().sum();
     assert!((gained - cost as f64).abs() < 1e-9, "{gained} vs {cost}");
 }
+
+/// Holding an inventory object takes it out of the bag; unselecting puts it back.
+#[test]
+fn hold_and_put_back_an_object() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = World::create(&rules, &files, &WorldSetup { seed: 3, ..Default::default() }).unwrap();
+    let p = w.persos.iter().position(|p| p.player).unwrap();
+    let o = rules.buildings.iter().find(|b| b.factory).unwrap().objects[0];
+    w.persos[p].add_object(&rules, o);
+    let slot = w.persos[p].inventory.iter().position(|s| s.is_some_and(|it| it.object == o)).unwrap();
+    w.step(&rules, &[Order::HoldObject { perso: p, slot }]);
+    assert_eq!(w.persos[p].selected_object, o as i64);
+    assert!(w.persos[p].inventory.iter().all(|s| s.is_none_or(|it| it.object != o)));
+    w.step(&rules, &[Order::Unselect { perso: p }]);
+    assert_eq!(w.persos[p].selected_object, -1);
+    assert!(w.persos[p].inventory.iter().any(|s| s.is_some_and(|it| it.object == o)));
+}
