@@ -233,7 +233,14 @@ async fn main() {
                 0 | 16 | 999 => hud.open_radial((hx, hy), 4),
                 1 => hud.open_radial((hx, hy), 1),
                 4..=8 | 12 => hud.open_radial((hx, hy), 0),
-                // TODO: 9-11 "Chargez!" (army attack)
+                // "Chargez!": the soldiers attack the enemy, house or castle.
+                9..=11 => orders.push(Order::Charge {
+                    perso: player,
+                    kind: (hover - 9) as i64,
+                    target: hit as i64,
+                    ctrl: is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl),
+                    shift: is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift),
+                }),
                 _ => {}
             }
         }
@@ -253,14 +260,27 @@ async fn main() {
                 6 => Order::GoOwnCastle { perso },
                 7 => Order::GoToHouse { perso, house: hit, repair: false },
                 8 => Order::GoToCastle { perso, castle: hit },
+                9 => Order::AttackPerso { perso, target: hit },
+                10 => Order::AttackHouse { perso, house: hit },
+                11 => Order::AttackCastle { perso, castle: hit },
                 13 => Order::GoToTreasure { perso, treasure: hit },
-                // TODO: 9/10/11 attack once combat exists
                 _ => Order::Move {
                     perso,
                     x: wx as i64 - p.w as i64 / 2,
                     y: wy as i64 - p.h as i64 / 2,
                 },
             });
+        }
+        if !on_ui && is_mouse_button_pressed(MouseButton::Middle) {
+            // The middle button shoots at the ground, or at the house or castle under it
+            // (`FrmMoteur2D.frm:681-685`).
+            let p = &world.persos[player];
+            let kind = match hover {
+                10 => 1,
+                11 => 2,
+                _ => 0,
+            };
+            orders.push(Order::AttackGround { perso: player, x: wx as i64 - p.w as i64 / 2, y: wy as i64 - p.h as i64 / 2, kind });
         }
         hud.overlay(&world, &rules, &textures, player, &input, placement, (!on_ui).then_some((hover, hit)));
         present(&target);
