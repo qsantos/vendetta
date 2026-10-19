@@ -211,6 +211,14 @@ async fn main() {
         let to_world = |p: f32, c: i32| c + (p / zoom).floor() as i32;
         let (wx, wy) = (to_world(mx, cam.0), to_world(my, cam.1));
         let (hover, hit) = world.obstacle_at(&rules, player, wx, wy, 0, 0);
+        // Ctrl enters the finished home without repairing it, and repairs a damaged allied
+        // house (`FrmMoteur2D.frm:1447-1456`).
+        let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
+        let hover = match hover {
+            4 if ctrl && world.houses[hit].built => 5,
+            7 if ctrl && world.houses[hit].life < world.houses[hit].max_life as f64 => 4,
+            h => h,
+        };
         // The cursor image is drawn at the interface's scale: its centre on the map.
         let centre = (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1));
 
@@ -260,7 +268,8 @@ async fn main() {
                 8 if held >= 0 => Order::GoSell { perso, target: hit, market: false },
                 0 | 16 | 999 if held >= 0 => Order::DropObject { perso, object: held as usize, from_inventory: false },
                 1 => Order::Harvest { perso, node: hit },
-                4 => Order::GoHome { perso, enter: false },
+                4 if hit == perso => Order::GoHome { perso, enter: false },
+                4 => Order::GoToHouse { perso, house: hit, repair: true },
                 5 => Order::GoHome { perso, enter: true },
                 6 => Order::GoOwnCastle { perso },
                 7 => Order::GoToHouse { perso, house: hit, repair: false },
