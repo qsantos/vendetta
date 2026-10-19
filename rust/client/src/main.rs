@@ -84,14 +84,16 @@ fn camera(target: &RenderTarget, size: (f32, f32)) -> Camera2D {
 }
 
 /// `Scrolling_Immediat`: centre the player's top-left corner, clamped to the map. `view` is
-/// the visible area in world pixels.
+/// the visible area in world pixels. Zoomed out beyond the map's size, the player simply stays
+/// centred on that axis instead of the map sticking to the top-left corner.
 fn follow(world: &World, player: usize, view: (i32, i32)) -> (i32, i32) {
     let p = &world.persos[player];
-    let max_x = world.terrain.width as i32 * 16 - view.0;
-    let max_y = world.terrain.height as i32 * 16 - view.1;
-    let x = (p.x as i32 - view.0 / 2).min(max_x).max(0);
-    let y = (p.y as i32 - view.1 / 2).min(max_y).max(0);
-    (x, y)
+    let axis = |pos: i64, view: i32, size: usize| {
+        let centred = pos as i32 - view / 2;
+        let max = size as i32 * 16 - view;
+        if max < 0 { centred } else { centred.min(max).max(0) }
+    };
+    (axis(p.x, view.0, world.terrain.width), axis(p.y, view.1, world.terrain.height))
 }
 
 const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
