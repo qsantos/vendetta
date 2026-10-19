@@ -6,5 +6,5 @@ publish = false
 
 [dependencies]
 sim = { path = "../sim" }
-macroquad = "0.4"
+macroquad = { version = "0.4", features = ["audio"] }
 fontdue = "0.9"

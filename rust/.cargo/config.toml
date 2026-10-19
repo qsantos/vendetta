@@ -1,0 +1,5 @@
+# Recent Rust no longer lets wasm32-unknown-unknown links leave symbols undefined, but
+# macroquad's plugins (audio among them) rely on that: their functions are provided by
+# mq_js_bundle.js at load time, as `env` imports.
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "link-arg=--allow-undefined"]
