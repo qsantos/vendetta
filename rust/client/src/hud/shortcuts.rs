@@ -96,7 +96,7 @@ impl Hud {
                 let row = enabled as i32 + 2 * set;
                 for (sx, sy, w, h) in [(0, 0, 32, 3), (0, 29, 32, 3), (0, 3, 3, 26), (29, 3, 3, 26)] {
                     let src = Rect::new((32 * i + sx) as f32, (32 * row + sy) as f32, w as f32, h as f32);
-                    draw_texture_ex(tex, (x + sx) as f32, (y + sy) as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+                    tex.draw_ex((x + sx) as f32, (y + sy) as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
                 }
             }
             // Owned objects first, then the first worn one again on top.
@@ -122,7 +122,7 @@ impl Hud {
             for &o in &icons {
                 if let Some(tex) = textures.get(&format!("{}.bmp", rules.objects[o].image)) {
                     let src = Rect::new(0.0, 0.0, 32.0, 32.0);
-                    draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+                    tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
                 }
                 let weapon = rules.objects[o].category <= 1;
                 let (max_attack, max_defense) = (p.bonus_max[4] as f64, p.bonus_max[5] as f64);

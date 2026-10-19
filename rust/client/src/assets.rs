@@ -1,5 +1,6 @@
 //! Loading game files and textures, from disk natively or over HTTP in the browser.
 
+use crate::atlas::Shelf;
 use crate::loading::Progress;
 use std::future::Future;
 use std::pin::Pin;
@@ -151,15 +152,47 @@ pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<File
     }
 }
 
-/// Texture cache keyed like `Files` (case-insensitive, `.bmp` → `.png`).
+/// Side of an atlas page. WebGL guarantees at least 4096; the images the game loads fit in two.
+const PAGE: u16 = 4096;
+
+/// An image, wherever it was packed: a part of an atlas page.
+#[derive(Clone)]
+pub struct Sprite {
+    page: Texture2D,
+    rect: Rect,
+}
+
+impl Sprite {
+    /// `draw_texture_ex` for this image: `params.source` is a part of the image.
+    pub fn draw_ex(&self, x: f32, y: f32, colour: Color, params: DrawTextureParams) {
+        let source = match params.source {
+            Some(s) => Rect::new(self.rect.x + s.x, self.rect.y + s.y, s.w, s.h),
+            None => self.rect,
+        };
+        draw_texture_ex(&self.page, x, y, colour, DrawTextureParams { source: Some(source), ..params });
+    }
+
+    /// `draw_texture` for this image.
+    pub fn draw(&self, x: f32, y: f32, colour: Color) {
+        self.draw_ex(x, y, colour, DrawTextureParams::default());
+    }
+}
+
+/// Images keyed like `Files` (case-insensitive, `.bmp` → `.png`). They are packed at load time
+/// into big textures (atlases), so that the map and the interface switch textures rarely; the
+/// files themselves stay one per image, as mods expect.
 #[derive(Default)]
 pub struct Textures {
     /// Versioned URL of every image, by key.
     urls: HashMap<String, String>,
-    loaded: HashMap<String, Texture2D>,
     /// The appearance sheets (`Images/Apparences/...`) by bare file name ("hut.bmp"), as
     /// objects name their overlays.
     appearances: HashMap<String, String>,
+    loaded: HashMap<String, Sprite>,
+    /// The pages, the last one being filled.
+    pages: Vec<(Texture2D, Shelf)>,
+    /// Pixels kept on the CPU: the terrain tileset, which the zoomed-out overview averages.
+    pixels: HashMap<String, Image>,
 }
 
 impl Textures {
@@ -176,7 +209,7 @@ impl Textures {
             .filter(|(p, _)| p.starts_with("Images/Apparences/") && p.ends_with(".png"))
             .map(|(p, _)| (p.rsplit('/').next().unwrap_or(p).to_lowercase().replace(".png", ".bmp"), p.clone()))
             .collect();
-        Textures { urls, appearances, loaded: HashMap::new() }
+        Textures { urls, appearances, ..Default::default() }
     }
 
     /// Images among `paths` not loaded yet, without duplicates.
@@ -192,29 +225,69 @@ impl Textures {
             .collect()
     }
 
-    /// Loads a list of images, several at once, counting their bytes into `progress`.
+    /// Loads a list of images, several at once, counting their bytes into `progress`, then
+    /// packs them into the atlas pages, tallest first.
     pub async fn load_all(&mut self, manifest: &Manifest, paths: &[String], progress: &Progress, message: &str) {
         let jobs = self
             .missing(paths)
             .into_iter()
             .map(|p| -> Pin<Box<dyn Future<Output = _> + Send>> {
                 let url = self.urls[&key(&p)].clone();
-                Box::pin(async move { (p, load_texture(&url).await) })
+                Box::pin(async move { (p, load_file(&url).await) })
             })
             .collect();
-        let loaded = &mut self.loaded;
-        run_parallel(jobs, |(p, texture)| {
-            if let Ok(t) = texture {
-                t.set_filter(FilterMode::Nearest);
-                loaded.insert(key(&p), t);
-            }
+        let mut images = Vec::new();
+        run_parallel(jobs, |(p, bytes)| {
             progress.add(manifest.size(&p), message);
+            match bytes.map_err(|e| e.to_string()).and_then(|b| {
+                Image::from_file_with_format(&b, Some(ImageFormat::Png)).map_err(|e| e.to_string())
+            }) {
+                Ok(image) => images.push((key(&p), image)),
+                Err(e) => {
+                    warn!("{p}: {e}");
+                }
+            }
         })
         .await;
+        images.sort_by_key(|(k, image)| (std::cmp::Reverse(image.height), k.clone()));
+        for (k, image) in images {
+            self.pack(k, image);
+        }
     }
 
-    pub fn get(&self, path: &str) -> Option<&Texture2D> {
+    fn pack(&mut self, k: String, image: Image) {
+        let (w, h) = (image.width, image.height);
+        let at = self.pages.last_mut().and_then(|(_, shelf)| shelf.place(w, h));
+        let (x, y) = match at {
+            Some(at) => at,
+            None => {
+                let page = Texture2D::from_rgba8(PAGE, PAGE, &vec![0; PAGE as usize * PAGE as usize * 4]);
+                page.set_filter(FilterMode::Nearest);
+                let mut shelf = Shelf::new(PAGE);
+                let Some(at) = shelf.place(w, h) else {
+                    warn!("{k}: {w}×{h} is bigger than an atlas page");
+                    return;
+                };
+                self.pages.push((page, shelf));
+                at
+            }
+        };
+        let page = self.pages.last().unwrap().0.clone();
+        page.update_part(&image, x as i32, y as i32, w as i32, h as i32);
+        let rect = Rect::new(x as f32, y as f32, w as f32, h as f32);
+        if k.starts_with("images/terrains/") {
+            self.pixels.insert(k.clone(), image);
+        }
+        self.loaded.insert(k, Sprite { page, rect });
+    }
+
+    pub fn get(&self, path: &str) -> Option<&Sprite> {
         self.loaded.get(&key(path))
+    }
+
+    /// The pixels of an image kept on the CPU (only the terrain tileset).
+    pub fn pixels(&self, path: &str) -> Option<&Image> {
+        self.pixels.get(&key(path))
     }
 
     /// The path of the appearance sheet an object names (`FichierApparence`).

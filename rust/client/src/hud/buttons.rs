@@ -2,7 +2,7 @@
 //! (`ClsInterface.Interieur_Boutons`).
 
 use super::{DEPLACEMENT, Hud, INFOS, RED, outline};
-use crate::assets::Textures;
+use crate::assets::{Sprite, Textures};
 use crate::layout::{ax, screen_h, screen_w};
 use macroquad::prelude::*;
 use sim::rules::Rules;
@@ -53,7 +53,7 @@ fn inside(m: (i32, i32), x: i32, y: i32, w: i32, h: i32) -> bool {
     m.0 >= x && m.0 <= x + w && m.1 >= y && m.1 <= y + h
 }
 
-fn blit(tex: &Texture2D, x: i32, y: i32, src: Rect) {
+fn blit(tex: &Sprite, x: i32, y: i32, src: Rect) {
     // Sprites are clipped at the screen's left edge by shrinking the source rectangle.
     let mut src = src;
     let mut x = x as f32;
@@ -63,7 +63,7 @@ fn blit(tex: &Texture2D, x: i32, y: i32, src: Rect) {
         x = 0.0;
     }
     if src.w > 0.0 {
-        draw_texture_ex(tex, x, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+        tex.draw_ex(x, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
     }
 }
 

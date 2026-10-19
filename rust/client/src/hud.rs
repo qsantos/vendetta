@@ -344,7 +344,7 @@ impl Hud {
             if let Some(tex) = textures.get(&path) {
                 let src = Rect::new(0.0, 0.0, 32.0, 32.0);
                 let (x, y) = (input.mouse.0 - 12, input.mouse.1 - 12);
-                draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+                tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
             }
         }
         let cursor = placement.unwrap_or(match hover {
@@ -352,8 +352,7 @@ impl Hud {
             _ => 0,
         });
         if let Some(tex) = textures.get(CURSOR) {
-            draw_texture_ex(
-                tex,
+            tex.draw_ex(
                 input.mouse.0 as f32,
                 input.mouse.1 as f32,
                 WHITE,

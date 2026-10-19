@@ -152,7 +152,7 @@ impl Effects {
             if let Some(tex) = textures.get(&t.image) {
                 let src = Rect::new(frame as f32 * t.w as f32, 0.0, t.w as f32, t.h as f32);
                 let params = DrawTextureParams { source: Some(src), ..Default::default() };
-                draw_texture_ex(tex, (a.x - cam.0) as f32, (a.y - cam.1) as f32, WHITE, params);
+                tex.draw_ex((a.x - cam.0) as f32, (a.y - cam.1) as f32, WHITE, params);
             }
             if !a.sounded && frame >= 1.0 && on_screen(a.x, a.y, t.w, t.h) {
                 a.sounded = true;

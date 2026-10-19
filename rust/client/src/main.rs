@@ -1,4 +1,5 @@
 mod assets;
+mod atlas;
 mod hud;
 mod layout;
 mod effects;

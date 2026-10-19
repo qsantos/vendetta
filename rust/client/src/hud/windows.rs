@@ -160,7 +160,7 @@ fn cell(textures: &Textures, sheet: &str, x: i32, y: i32, col: i32, row: i32, si
         draw_rectangle(x as f32, y as f32, size.0 as f32, size.1 as f32, BLACK);
     }
     let src = Rect::new((col * size.0) as f32, (row * size.1) as f32, size.0 as f32, size.1 as f32);
-    draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+    tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
 }
 
 /// How many objects one click queues or takes: 1, 5 with Ctrl, 10 with Shift, 20 with both.
@@ -299,7 +299,7 @@ impl Hud {
                 self.skill_bars(world, rules, player, (x, y));
             }
             if let Some(tex) = textures.get(&background(i, female, house)) {
-                draw_texture(tex, x as f32, y as f32, WHITE);
+                tex.draw(x as f32, y as f32, WHITE);
             }
             match i {
                 0 => self.building_window(world, rules, textures, player, (x, y), &mut hits),
@@ -575,7 +575,7 @@ impl Hud {
         let icon = |obj: usize, x: i32, y: i32| {
             if let Some(tex) = textures.get(&object_icon(rules, obj)) {
                 let src = Rect::new(0.0, 0.0, 32.0, 32.0);
-                draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+                tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
             }
         };
         let held = p.selected_object >= 0;
@@ -591,7 +591,7 @@ impl Hud {
                     if let Some(tex) = textures.get(&object_icon(rules, item.object)) {
                         let src = Rect::new(0.0, 0.0, 32.0, 32.0);
                         let colour = Color::new(1.0, 1.0, 1.0, 0.5);
-                        draw_texture_ex(tex, x as f32, y as f32, colour, DrawTextureParams { source: Some(src), ..Default::default() });
+                        tex.draw_ex(x as f32, y as f32, colour, DrawTextureParams { source: Some(src), ..Default::default() });
                     }
                 }
             }
@@ -742,7 +742,7 @@ impl Hud {
                 // the 32×32 icon at three quarters
                 let src = Rect::new(0.0, 0.0, 32.0, 32.0);
                 let params = DrawTextureParams { source: Some(src), dest_size: Some(vec2(24.0, 24.0)), ..Default::default() };
-                draw_texture_ex(tex, (o.0 + 168) as f32, (o.1 + y - 6) as f32, WHITE, params);
+                tex.draw_ex((o.0 + 168) as f32, (o.1 + y - 6) as f32, WHITE, params);
             }
             let stock = house.object_stock(slot);
             self.text(o.0 + 200, o.1 + y, &format!("x{}", stock.floor()), BLACK);

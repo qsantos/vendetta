@@ -1,6 +1,6 @@
 //! Drawing the world, following `FrmMoteur2D`'s frame composition.
 
-use crate::assets::{Manifest, Textures};
+use crate::assets::{Manifest, Sprite, Textures};
 use crate::hud::{status_bar, status_bar_v};
 use macroquad::prelude::*;
 use sim::rules::Rules;
@@ -155,10 +155,10 @@ fn draw_look(p: &Perso, rules: &Rules, textures: &Textures, (x, y): (i32, i32), 
         let o = &rules.objects[p.overlays[i]];
         textures.appearance(&o.appearance[p.female as usize]).and_then(|path| textures.get(path))
     };
-    let blit = |tex: Option<&Texture2D>, x: i32, y: i32, (col, row): (i32, i32), (w, h): (i32, i32)| {
+    let blit = |tex: Option<&Sprite>, x: i32, y: i32, (col, row): (i32, i32), (w, h): (i32, i32)| {
         if let Some(tex) = tex {
             let src = Rect::new((col * w) as f32, (row * h) as f32, w as f32, h as f32);
-            draw_texture_ex(tex, x as f32, y as f32, tint, DrawTextureParams { source: Some(src), ..Default::default() });
+            tex.draw_ex(x as f32, y as f32, tint, DrawTextureParams { source: Some(src), ..Default::default() });
         }
     };
     let cell = p.sprite_cell();
@@ -204,9 +204,8 @@ fn draw_look(p: &Perso, rules: &Rules, textures: &Textures, (x, y): (i32, i32), 
 }
 
 
-fn blit(tex: &Texture2D, x: i32, y: i32, src: Rect) {
-    draw_texture_ex(
-        tex,
+fn blit(tex: &Sprite, x: i32, y: i32, src: Rect) {
+    tex.draw_ex(
         x as f32,
         y as f32,
         WHITE,
@@ -221,7 +220,7 @@ pub const OVERVIEW_ZOOM: f32 = 0.25;
 /// The terrain with one pixel per cell, each the average colour of its tile: what the map
 /// looks like zoomed far out (not in the original, which did not zoom out).
 pub fn terrain_overview(world: &World, textures: &Textures) -> Option<Texture2D> {
-    let tiles = textures.get(TILESET)?.get_texture_data();
+    let tiles = textures.pixels(TILESET)?;
     let (cols, rows) = (tiles.width() / CELL as usize, tiles.height() / CELL as usize);
     let mut average = vec![[0u8; 4]; cols * rows];
     for (k, avg) in average.iter_mut().enumerate() {

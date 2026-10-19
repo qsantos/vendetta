@@ -2,6 +2,7 @@
 //! interface scale. Glyphs are packed into a shared texture (an atlas), so that a line of text
 //! is drawn in one batch rather than one draw call per letter.
 
+use crate::atlas::Shelf;
 use macroquad::prelude::*;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -9,33 +10,16 @@ use std::collections::HashMap;
 /// Side of an atlas texture, in pixels.
 const ATLAS: u16 = 1024;
 
-/// A texture glyphs are packed into, row by row.
+/// A texture glyphs are packed into.
 struct Atlas {
     texture: Texture2D,
-    /// Where the next glyph goes, and the height of the current row.
-    x: u16,
-    y: u16,
-    row: u16,
+    shelf: Shelf,
 }
 
 impl Atlas {
     fn new() -> Atlas {
         let texture = Texture2D::from_rgba8(ATLAS, ATLAS, &vec![0; ATLAS as usize * ATLAS as usize * 4]);
-        Atlas { texture, x: 0, y: 0, row: 0 }
-    }
-
-    /// Room for a `w`×`h` glyph (with a pixel of space around), or None when full.
-    fn place(&mut self, w: u16, h: u16) -> Option<(u16, u16)> {
-        if self.x + w + 1 > ATLAS {
-            (self.x, self.y, self.row) = (0, self.y + self.row + 1, 0);
-        }
-        if self.y + h + 1 > ATLAS || w + 1 > ATLAS {
-            return None;
-        }
-        let at = (self.x, self.y);
-        self.x += w + 1;
-        self.row = self.row.max(h);
-        Some(at)
+        Atlas { texture, shelf: Shelf::new(ATLAS) }
     }
 }
 
@@ -82,9 +66,9 @@ impl TextRenderer {
         let texture = (m.width > 0 && m.height > 0).then(|| {
             let (w, h) = (m.width as u16, m.height as u16);
             let mut atlas = self.atlas.borrow_mut();
-            let (x, y) = atlas.place(w, h).unwrap_or_else(|| {
+            let (x, y) = atlas.shelf.place(w, h).unwrap_or_else(|| {
                 *atlas = Atlas::new();
-                atlas.place(w, h).expect("a glyph bigger than an atlas")
+                atlas.shelf.place(w, h).expect("a glyph bigger than an atlas")
             });
             let bytes: Vec<u8> = alpha.iter().flat_map(|&a| [255, 255, 255, a]).collect();
             let image = Image { bytes, width: w, height: h };
