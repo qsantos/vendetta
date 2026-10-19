@@ -73,19 +73,12 @@ impl Scales {
     }
 }
 
-/// Draws the frame (in physical pixels) to the window (in CSS pixels).
-fn present(target: &RenderTarget) {
-    set_default_camera();
-    clear_background(BLACK);
-    let size = vec2(screen_width(), screen_height());
-    draw_texture_ex(&target.texture, 0.0, 0.0, WHITE, DrawTextureParams { dest_size: Some(size), flip_y: true, ..Default::default() });
-}
-
-/// A camera drawing `size` units over the whole render target (fractional, so drawing and
-/// mouse use exactly the same scale).
-fn camera(target: &RenderTarget, size: (f32, f32)) -> Camera2D {
+/// A camera drawing `size` units over the whole window (fractional, so drawing and mouse use
+/// exactly the same scale). The window is drawn to directly, in physical pixels.
+fn camera(size: (f32, f32)) -> Camera2D {
     let mut c = Camera2D::from_display_rect(Rect::new(0.0, 0.0, size.0, size.1));
-    c.render_target = Some(target.clone());
+    // `from_display_rect` is upside down on the window (it suits render targets).
+    c.zoom.y = -c.zoom.y;
     c
 }
 
@@ -213,7 +206,6 @@ async fn main() {
     let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"), hud::TooltipLabels::load(&files, "Francais"), rules.objects.len());
 
 
-    let mut target = render_target(1, 1);
     let mut scales = Scales::load();
     let mut view = (0, 0);
     let mut cam = (0, 0);
@@ -232,10 +224,6 @@ async fn main() {
         // `screen_width()` and the mouse are in CSS pixels; the frame is in physical pixels.
         let dpi = screen_dpi_scale();
         let (w, h) = ((screen_width() * dpi) as i32, (screen_height() * dpi) as i32);
-        if (w, h) != (target.texture.width() as i32, target.texture.height() as i32) {
-            target = render_target(w as u32, h as u32);
-            target.texture.set_filter(FilterMode::Nearest);
-        }
         let (zoom, ui) = scales.effective();
         let view_f = (w as f32 / zoom, h as f32 / zoom);
         let new_view = (view_f.0.ceil() as i32, view_f.1.ceil() as i32);
@@ -268,7 +256,7 @@ async fn main() {
         // The cursor image is drawn at the interface's scale: its centre on the map.
         let centre = (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1));
 
-        set_camera(&camera(&target, view_f));
+        set_camera(&camera(view_f));
         clear_background(BLACK);
         let map_start = perf::now();
         let overview = (zoom < render::OVERVIEW_ZOOM).then_some(()).and_then(|()| {
@@ -281,7 +269,7 @@ async fn main() {
         effects.draw(&textures, cam, view, zoom);
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         // (changing the camera submits the map's drawings)
-        set_camera(&camera(&target, hud_f));
+        set_camera(&camera(hud_f));
         let hud_start = perf::now();
         perf.add(perf::Part::Map, hud_start - map_start);
         hud.draw_comments(&world, |x, y| ((((x as i32 - cam.0) as f32) * zoom / ui) as i32, (((y as i32 - cam.1) as f32) * zoom / ui) as i32));
@@ -357,7 +345,8 @@ async fn main() {
         }
         let present_start = perf::now();
         perf.add(perf::Part::Hud, present_start - hud_start);
-        present(&target);
+        // (going back to the default camera submits the interface's drawings)
+        set_default_camera();
         let end = perf::now();
         perf.add(perf::Part::Present, end - present_start);
         perf.add(perf::Part::Frame, end - frame_start);
