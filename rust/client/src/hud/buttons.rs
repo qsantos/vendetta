@@ -514,15 +514,15 @@ impl Hud {
     }
 
     /// Building placement on the map; returns whether the click was used.
-    /// `wm` is the mouse in world pixels.
-    pub fn map_input(&mut self, world: &World, rules: &Rules, player: usize, input: &Input, wm: (i32, i32), orders: &mut Vec<Order>) -> bool {
+    /// `centre` is the cursor's centre in world pixels.
+    pub fn map_input(&mut self, world: &World, rules: &Rules, player: usize, input: &Input, centre: (i32, i32), orders: &mut Vec<Order>) -> bool {
         let Some(kind) = self.placing else { return false };
         if input.right_pressed {
             self.placing = None;
             return true;
         }
         if input.left_released {
-            let (x, y, ok) = self.footprint(world, rules, player, kind, wm);
+            let (x, y, ok) = self.footprint(world, rules, player, kind, centre);
             if ok {
                 orders.push(Order::BuildHouse { perso: player, x, y, kind });
                 if !(input.ctrl || input.shift) {
@@ -535,11 +535,11 @@ impl Hud {
     }
 
     /// The building's world rectangle under the cursor and whether it can be placed there.
-    fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, wm: (i32, i32)) -> (i32, i32, bool) {
+    /// Centred on the cursor's centre (`mouse + 12`: the cursor is 24×24, hot spot top-left).
+    fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, centre: (i32, i32)) -> (i32, i32, bool) {
         let (w, h) = rules.buildings[kind].size;
-        // Centred on the cursor's centre (its image is 24×24, hot spot top-left).
-        let x = wm.0 - w / 2 + 12;
-        let y = wm.1 - h / 2 + 12;
+        let x = centre.0 - w / 2;
+        let y = centre.1 - h / 2;
         let inside_map = x >= 0
             && y >= 0
             && x + w <= world.terrain.width as i32 * 16
@@ -549,12 +549,12 @@ impl Hud {
     }
 
     /// `Afficher_Surface_A_Batir`: the hatched footprint, green when free, red when blocked.
-    /// Drawn with the map's camera; `wm` is the mouse in world pixels. Returns the cursor
-    /// type (2 or 3) while placing.
-    pub fn draw_placement(&self, world: &World, rules: &Rules, player: usize, wm: (i32, i32), cam: (i32, i32)) -> Option<i32> {
+    /// Drawn with the map's camera; `centre` is the cursor's centre in world pixels. Returns
+    /// the cursor type (2 or 3) while placing.
+    pub fn draw_placement(&self, world: &World, rules: &Rules, player: usize, centre: (i32, i32), cam: (i32, i32)) -> Option<i32> {
         let kind = self.placing?;
         let (w, h) = rules.buildings[kind].size;
-        let (x, y, ok) = self.footprint(world, rules, player, kind, wm);
+        let (x, y, ok) = self.footprint(world, rules, player, kind, centre);
         let (x, y) = (x - cam.0, y - cam.1);
         let c = if ok { Color::from_rgba(0, 192, 0, 255) } else { RED };
         // TODO: rounded corners (radius 10)

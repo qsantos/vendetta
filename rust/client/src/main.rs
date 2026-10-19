@@ -181,15 +181,18 @@ async fn main() {
         // What is under the cursor on the map (`Obstacle` on the cursor's top-left).
         let (wx, wy) = (cam.0 + (mx / scales.zoom) as i32, cam.1 + (my / scales.zoom) as i32);
         let (hover, hit) = world.obstacle_at(&rules, player, wx, wy, 0, 0);
+        // The cursor image is drawn at the interface's scale: its centre on the map.
+        let to_world = |p: f32, c: i32| c + (p / scales.zoom) as i32;
+        let centre = (to_world(mx + 12.0 * scales.ui, cam.0), to_world(my + 12.0 * scales.ui, cam.1));
 
         set_camera(&camera(&target, view));
         clear_background(BLACK);
         render::draw_world(&world, &rules, &textures, cam, player, view);
-        let placement = hud.draw_placement(&world, &rules, player, (wx, wy), cam);
+        let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         set_camera(&camera(&target, hud_size));
         let radial_was_open = hud.radial_open();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
-        let placed = !on_ui && hud.map_input(&world, &rules, player, &input, (wx, wy), &mut orders);
+        let placed = !on_ui && hud.map_input(&world, &rules, player, &input, centre, &mut orders);
         if !on_ui && !placed && input.right_pressed {
             // Right click on the map: the radial buttons (`FrmMoteur2D.frm:943-961`).
             match hover {
