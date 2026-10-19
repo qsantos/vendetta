@@ -146,6 +146,24 @@ pub fn images(rules: &Rules) -> Vec<String> {
 }
 
 /// GDI `Rectangle` outline: covers x∈[l, r-1], y∈[t, b-1].
+/// GDI `RoundRect(l, t, r, b, 10, 10)` with a 1-pixel pen: [`outline`] with corners of radius
+/// 5 (the 10 is the size of the corners' ellipse).
+pub(crate) fn rounded_outline(l: i32, t: i32, r: i32, b: i32, c: Color) {
+    const R: f32 = 5.0;
+    if r - l <= 2 * R as i32 || b - t <= 2 * R as i32 {
+        return outline(l, t, r, b, c);
+    }
+    let (l, t, r, b) = (l as f32, t as f32, r as f32, b as f32);
+    draw_rectangle(l + R, t, r - l - 2.0 * R, 1.0, c);
+    draw_rectangle(l + R, b - 1.0, r - l - 2.0 * R, 1.0, c);
+    draw_rectangle(l, t + R, 1.0, b - t - 2.0 * R, c);
+    draw_rectangle(r - 1.0, t + R, 1.0, b - t - 2.0 * R, c);
+    // quarter circles, angles clockwise from +x as y points down
+    for (x, y, start) in [(l + R, t + R, 180.0), (r - R, t + R, 270.0), (r - R, b - R, 0.0), (l + R, b - R, 90.0)] {
+        draw_arc(x, y, 8, R - 1.0, start, 1.0, 90.0, c);
+    }
+}
+
 pub(crate) fn outline(l: i32, t: i32, r: i32, b: i32, c: Color) {
     if r - l <= 0 || b - t <= 0 {
         return;

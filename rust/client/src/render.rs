@@ -51,7 +51,34 @@ fn look_sheets(look: &Look) -> &[String] {
 
 /// `Afficher_CadreSelection` for a character: a 1-px ellipse at its feet.
 /// Mounted, it uses the mount's size and offsets. Red in combat, white when inactive.
-fn draw_selection(p: &Perso, rules: &Rules, cam: (i32, i32)) {
+/// Inside a building, a rounded frame around it instead.
+fn draw_selection(world: &World, p: &Perso, rules: &Rules, cam: (i32, i32)) {
+    let colour = if p.fighting() {
+        Color::from_rgba(255, 0, 0, 255)
+    } else if p.idle() {
+        WHITE
+    } else {
+        Color::from_rgba(0, 0, 192, 255)
+    };
+    let building = if p.in_own_house {
+        world.houses.get(p.numero).map(|m| (m.x, m.y, m.w, m.h))
+    } else if p.in_house {
+        world.houses.get(p.house_target).map(|m| (m.x, m.y, m.w, m.h))
+    } else if p.in_own_castle {
+        world.castles.get(p.fief).map(|c| (c.x, c.y, c.w, c.h))
+    } else if p.in_castle {
+        world.castles.get(p.castle_target).map(|c| (c.x, c.y, c.w, c.h))
+    } else {
+        None
+    };
+    if let Some((x, y, w, h)) = building {
+        let (x, y) = (x - cam.0, y - cam.1);
+        crate::hud::rounded_outline(x, y, x + w, y + h, colour);
+        return;
+    }
+    if !(p.visible() && p.alive()) {
+        return;
+    }
     let (mut l, mut h) = (p.w as f32, p.h as f32);
     let (mut x, mut y) = ((p.x as i32 - cam.0) as f32, (p.y as i32 - cam.1) as f32);
     if let Some(&o) = p.mount.checked_sub(1).and_then(|m| p.overlays.get(m)) {
@@ -68,13 +95,6 @@ fn draw_selection(p: &Perso, rules: &Rules, cam: (i32, i32)) {
     }
     let (x1, y1) = (x + l / 12.0, y + h - l / 3.0 - h / 8.0);
     let (x2, y2) = (x + l - l / 12.0, y + h + l / 3.0 - h / 6.0);
-    let colour = if p.fighting() {
-        Color::from_rgba(255, 0, 0, 255)
-    } else if p.idle() {
-        WHITE
-    } else {
-        Color::from_rgba(0, 0, 192, 255)
-    };
     draw_ellipse_lines((x1 + x2) / 2.0, (y1 + y2) / 2.0, (x2 - x1) / 2.0, (y2 - y1) / 2.0, 0.0, 1.0, colour);
 }
 
@@ -382,9 +402,7 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
         }
     }
     if let Some(p) = world.persos.get(player) {
-        if p.visible() && p.alive() {
-            draw_selection(p, rules, cam);
-        }
+        draw_selection(world, p, rules, cam);
     }
     draw_work_state(world, rules, player, cam);
     draw_persos(world, rules, textures, cam, view);

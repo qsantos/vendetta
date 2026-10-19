@@ -655,8 +655,7 @@ impl Hud {
         let (x, y, ok) = self.footprint(world, rules, player, kind, centre);
         let (x, y) = (x - cam.0, y - cam.1);
         let c = if ok { Color::from_rgba(0, 192, 0, 255) } else { RED };
-        // TODO: rounded corners (radius 10)
-        outline(x, y, x + w, y + h, c);
+        super::rounded_outline(x, y, x + w, y + h, c);
         let mut d = 0;
         while d < w + h {
             // upward diagonal hatch, clipped to the rectangle
