@@ -108,6 +108,8 @@ pub struct Hud {
     radial_angle: [f32; 2],
     /// The left release that follows a click closing the radial buttons is not a map click.
     swallow_release: bool,
+    /// `FileFabricationObjets`: crafting slots queued in the own workshop.
+    craft_queue: Vec<usize>,
     /// Automatic restoring of the status bars.
     auto: bars::AutoRestore,
     /// Build buttons' (state, image), see `refresh_build_buttons`.
@@ -226,6 +228,7 @@ impl Hud {
             swallow_release: false,
             build_cache: Vec::new(),
             auto: bars::AutoRestore::load(),
+            craft_queue: Vec::new(),
             fps: 0,
             frames: 0,
             fps_timer: get_time(),

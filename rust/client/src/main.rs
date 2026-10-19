@@ -266,6 +266,7 @@ async fn main() {
             world.step(&rules, &orders);
             orders.clear();
             hud.automatic_actions(&world, player, &mut orders);
+            hud.craft_from_queue(&world, &rules, player, &mut orders);
             cam = follow(&world, player, view);
         }
         if get_time() - last_save > AUTOSAVE_INTERVAL {

@@ -6,6 +6,7 @@ use crate::layout::{ax, ay, screen_h, screen_w};
 use macroquad::prelude::*;
 use sim::files::Files;
 use sim::ini::Ini;
+use sim::perso::action;
 use sim::rules::Rules;
 use sim::world::{Order, World};
 
@@ -133,6 +134,16 @@ fn cell(textures: &Textures, sheet: &str, x: i32, y: i32, col: i32, row: i32, si
     draw_texture_ex(tex, x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
 }
 
+/// How many objects one click queues or takes: 1, 5 with Ctrl, 10 with Shift, 20 with both.
+fn queue_quantity(ctrl: bool, shift: bool) -> usize {
+    match (ctrl, shift) {
+        (true, true) => 20,
+        (false, true) => 10,
+        (true, false) => 5,
+        (false, false) => 1,
+    }
+}
+
 fn inside(m: (i32, i32), x: i32, y: i32, w: i32, h: i32) -> bool {
     m.0 >= x && m.0 <= x + w && m.1 >= y && m.1 <= y + h
 }
@@ -142,6 +153,8 @@ struct Hit {
     tip: String,
     left: Option<Order>,
     right: Option<Order>,
+    /// Left click queues this crafting slot, right click unqueues it (with Ctrl/Shift).
+    queue: Option<usize>,
 }
 
 impl Windows {
@@ -234,7 +247,11 @@ impl Hud {
         for (r, hit) in &hits {
             if inside(m, r.x as i32, r.y as i32, r.w as i32, r.h as i32) {
                 *tip = hit.tip.clone();
-                if input.left_pressed {
+                if let Some(slot) = hit.queue {
+                    if input.left_pressed || input.right_pressed {
+                        self.change_craft_queue(player, slot, input.left_pressed, input, orders);
+                    }
+                } else if input.left_pressed {
                     orders.extend(hit.left.clone());
                 } else if input.right_pressed {
                     orders.extend(hit.right.clone());
@@ -340,7 +357,7 @@ impl Hud {
             cell(textures, COMMERCE, o.0 + 216 + 24 * j, o.1 + 48, 6 + j, dead, (24, 24), true);
             let label = &s.total[(2 - j) as usize + if in_castle { 0 } else { 3 }];
             // TODO: global sell/take orders
-            hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { tip: label.clone(), left: None, right: None }));
+            hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { queue: None, tip: label.clone(), left: None, right: None }));
         }
         let own_house = p.in_own_house && world.houses[player].visible();
         let product = if own_house { rules.buildings[world.houses[player].kind].product } else { -1 };
@@ -365,7 +382,7 @@ impl Hud {
                     .collect();
                 let tip = format!("Manger : {}  {gains}", res.name.to_lowercase());
                 let eat = Order::Eat { perso, resource: k };
-                hits.push((rect(184, y - 6, 24, 24), Hit { tip, left: Some(eat), right: None }));
+                hits.push((rect(184, y - 6, 24, 24), Hit { queue: None, tip, left: Some(eat), right: None }));
             }
             let quantities = [1.0, 5.0, p.resource(k).floor()];
             if own_house && product == k as i64 && world.houses[player].max_stock > 0.0 {
@@ -373,7 +390,7 @@ impl Hud {
                     cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + y - 6, 3 + j, 0, (24, 24), true);
                     let deposit = Order::DepositStock { perso, quantity: quantities[j as usize], all: j == 2 };
                     let tip = s.deposit_stock[j as usize].clone();
-                    hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { tip, left: Some(deposit), right: None }));
+                    hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { queue: None, tip, left: Some(deposit), right: None }));
                 }
                 continue;
             }
@@ -383,13 +400,13 @@ impl Hud {
                 let q = quantities[j as usize];
                 let hit = if in_castle {
                     let order = Order::SellResource { perso, resource: k, quantity: q };
-                    Hit {
+                    Hit { queue: None,
                         tip: format!("Vendre {q} {}  #{} : {}", res.name, s.price, q * res.price),
                         left: Some(order.clone()),
                         right: Some(order),
                     }
                 } else {
-                    Hit {
+                    Hit { queue: None,
                         tip: format!("Prendre {q} {}  #{} : {}", res.name, s.price, q * res.price),
                         left: Some(Order::SelectResource { perso, resource: k, quantity: q }),
                         right: Some(Order::UnselectResource { perso, resource: k, quantity: q }),
@@ -407,7 +424,44 @@ impl Hud {
                 cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + 48, 3 + j, 0, (24, 24), true);
                 let q = [1.0, 5.0, p.money().floor()][j as usize];
                 let tip = s.deposit_money[j as usize].clone();
-                hits.insert(0, (rect(216 + 24 * j, 48, 24, 24), Hit { tip, left: Some(Order::DepositMoney { perso, quantity: q }), right: None }));
+                hits.insert(0, (rect(216 + 24 * j, 48, 24, 24), Hit { queue: None, tip, left: Some(Order::DepositMoney { perso, quantity: q }), right: None }));
+            }
+        }
+    }
+
+    /// `FileFabricationObjets_Changer`: queue (or unqueue) 1, 5 (Ctrl), 10 (Shift) or 20 (both)
+    /// of a crafting slot. Unqueuing the last one of an object stops the current craft.
+    fn change_craft_queue(&mut self, player: usize, slot: usize, add: bool, input: &Input, orders: &mut Vec<Order>) {
+        let perso = player;
+        for _ in 0..queue_quantity(input.ctrl, input.shift) {
+            if add {
+                self.craft_queue.push(slot);
+            } else if self.craft_queue.is_empty() {
+                orders.push(Order::StopCraft { perso });
+            } else if let Some(k) = self.craft_queue.iter().position(|&q| q == slot) {
+                self.craft_queue.remove(k);
+            } else {
+                // none of this object queued: stop making it
+                orders.push(Order::StopCraft { perso });
+            }
+        }
+    }
+
+    /// `Actions_Automatiques`, once per tick: while idle in the own workshop, take the next
+    /// queued object and make it if possible (it is dropped otherwise); outside, the queue
+    /// empties.
+    pub fn craft_from_queue(&mut self, world: &World, rules: &Rules, player: usize, orders: &mut Vec<Order>) {
+        let p = &world.persos[player];
+        if !p.in_own_house {
+            self.craft_queue.clear();
+            return;
+        }
+        // `Inactif`: idle outside or resting at home
+        let inactive = p.action == action::IDLE || p.action == action::AT_HOME;
+        if inactive && !self.craft_queue.is_empty() {
+            let slot = self.craft_queue.remove(0);
+            if world.can_craft(rules, player, slot as i64, player) {
+                orders.push(Order::Craft { perso: player, slot: slot as i64 });
             }
         }
     }
@@ -461,13 +515,22 @@ impl Hud {
                 tip += &if have >= q as f64 { format!("#({q} {name})") } else { format!("#&({} / {q} {name})", have.floor()) };
             }
             if own {
-                let craft = (state == 0 && p.alive()).then_some(Order::Craft { perso, slot: slot as i64 });
-                hits.push((rect(232, y - 4, 24, 24), Hit { tip: tip.clone(), left: craft.clone(), right: Some(Order::StopCraft { perso }) }));
-                // The icon takes a made object, or starts making one when there are none.
-                let icon = if stock >= 1.0 { Some(Order::TakeObjects { perso, slot, count: 1 }) } else { craft };
-                hits.push((rect(168, y - 6, 48, 24), Hit { tip: t.name.clone(), left: icon, right: Some(Order::StopCraft { perso }) }));
+                let queued = self.craft_queue.iter().filter(|&&q| q == slot).count();
+                if queued > 0 {
+                    self.text(o.0 + 232, o.1 + y, &format!("+{queued}"), WHITE);
+                }
+                let queue = (state == 0 && p.alive()).then_some(slot);
+                hits.push((rect(232, y - 4, 24, 24), Hit { queue, tip: tip.clone(), left: None, right: None }));
+                // The icon takes made objects, or queues some when there are none.
+                if stock >= 1.0 {
+                    let count = queue_quantity(is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl), is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift));
+                    let take = Some(Order::TakeObjects { perso, slot, count: count as i64 });
+                    hits.push((rect(168, y - 6, 48, 24), Hit { queue: None, tip: t.name.clone(), left: take, right: None }));
+                } else {
+                    hits.push((rect(168, y - 6, 48, 24), Hit { queue, tip: t.name.clone(), left: None, right: None }));
+                }
             } else if stock >= 1.0 {
-                hits.push((rect(168, y - 6, 48, 24), Hit { tip: t.name.clone(), left: Some(Order::BuyObject { perso, house: h, slot }), right: None }));
+                hits.push((rect(168, y - 6, 48, 24), Hit { queue: None, tip: t.name.clone(), left: Some(Order::BuyObject { perso, house: h, slot }), right: None }));
             }
         }
         if objects.len() > 8 {
@@ -504,7 +567,7 @@ impl Hud {
                         cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + 90, j, 0, (24, 24), true);
                         let q = [1.0, 5.0, house.money.floor()][j as usize];
                         let tip = s.take_money[j as usize].clone();
-                        hits.push((rect(216 + 24 * j, 90, 24, 24), Hit { tip, left: Some(Order::TakeMoney { perso, quantity: q }), right: None }));
+                        hits.push((rect(216 + 24 * j, 90, 24, 24), Hit { queue: None, tip, left: Some(Order::TakeMoney { perso, quantity: q }), right: None }));
                     }
                 }
             }
@@ -522,12 +585,12 @@ impl Hud {
                         let q = [1.0, 5.0, stock.floor()][j as usize];
                         let hit = if own {
                             cell(textures, TRANSFERT, o.0 + 216 + 24 * j, o.1 + 132, j, 0, (24, 24), true);
-                            Hit { tip: s.take_stock[j as usize].clone(), left: Some(Order::TakeStock { perso, quantity: q }), right: None }
+                            Hit { queue: None, tip: s.take_stock[j as usize].clone(), left: Some(Order::TakeStock { perso, quantity: q }), right: None }
                         } else {
                             cell(textures, COMMERCE, o.0 + 216 + 24 * j, o.1 + 132, j, dead, (24, 24), true);
                             let price = q * res.price * rules.buy_coef;
                             let red = if price > p.money() { "&" } else { "" };
-                            Hit {
+                            Hit { queue: None,
                                 tip: format!("Acheter {q} {}  #{red}{} : {price}", res.name, s.price),
                                 left: Some(Order::BuyFromHouse { perso, house: h, quantity: q }),
                                 right: None,
@@ -545,7 +608,7 @@ impl Hud {
                 };
                 self.text(o.0 + 32, o.1 + 138, &line, BLACK);
                 cell(textures, ACTION, o.0 + 216, o.1 + 136, 5, (stock < 1.0) as i32, (24, 24), true);
-                hits.push((rect(216, 136, 24, 24), Hit { tip: " (Entrée)".to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
+                hits.push((rect(216, 136, 24, 24), Hit { queue: None, tip: " (Entrée)".to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
                 if house.max_stock > 0.0 || own {
                     self.text(o.0 + 32, o.1 + 160, &svc.description, BLACK);
                 }
@@ -566,7 +629,7 @@ impl Hud {
             for j in 0..3 {
                 cell(textures, ACTION, o.0 + 216 + 24 * j, o.1 + 48, 2 + j, dead, (24, 24), true);
                 let q = [5.0, 50.0, p.money().floor()][j as usize];
-                hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { tip: s.restore[j as usize].clone(), left: Some(Order::DonateToCastle { perso, quantity: q }), right: None }));
+                hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { queue: None, tip: s.restore[j as usize].clone(), left: Some(Order::DonateToCastle { perso, quantity: q }), right: None }));
             }
         }
         for r in 0..ROWS {
@@ -589,7 +652,7 @@ impl Hud {
                 };
                 let red = if q * price > p.money() { "&" } else { "" };
                 let order = Order::BuyResource { perso, resource: k, quantity: [1.0, 5.0, p.max_resource(k)][j as usize] };
-                hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit {
+                hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { queue: None,
                     tip: format!("Acheter {q} {}  #{red}{} : {}", res.name, s.price, q * price),
                     left: Some(order),
                     right: None,
