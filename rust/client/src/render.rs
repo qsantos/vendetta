@@ -45,13 +45,31 @@ fn look_sheets(look: &Look) -> &[String] {
 }
 
 /// `Afficher_CadreSelection` for a character: a 1-px ellipse at its feet.
-fn draw_selection(p: &Perso, cam: (i32, i32)) {
-    let (l, h) = (p.w as f32, p.h as f32);
-    let (x, y) = ((p.x as i32 - cam.0) as f32, (p.y as i32 - cam.1) as f32);
+/// Mounted, it uses the mount's size and offsets. Red in combat, white when inactive.
+fn draw_selection(p: &Perso, rules: &Rules, cam: (i32, i32)) {
+    let (mut l, mut h) = (p.w as f32, p.h as f32);
+    let (mut x, mut y) = ((p.x as i32 - cam.0) as f32, (p.y as i32 - cam.1) as f32);
+    if let Some(&o) = p.mount.checked_sub(1).and_then(|m| p.overlays.get(m)) {
+        // `ApparenceLargeur/Hauteur`, `ApparenceDecalageX/YTemp`
+        let (mw, mh) = rules.objects[o].appearance_size;
+        if mw != 0 {
+            x -= clng((mw as f64 - l as f64) / 2.0) as f32;
+            l = mw as f32;
+        }
+        if mh != 0 {
+            y -= clng((mh as f64 - h as f64) / 2.0) as f32;
+            h = mh as f32;
+        }
+    }
     let (x1, y1) = (x + l / 12.0, y + h - l / 3.0 - h / 8.0);
     let (x2, y2) = (x + l - l / 12.0, y + h + l / 3.0 - h / 6.0);
-    // TODO: red in combat, white when inactive
-    let colour = Color::from_rgba(0, 0, 192, 255);
+    let colour = if p.fighting() {
+        Color::from_rgba(255, 0, 0, 255)
+    } else if p.idle() {
+        WHITE
+    } else {
+        Color::from_rgba(0, 0, 192, 255)
+    };
     draw_ellipse_lines((x1 + x2) / 2.0, (y1 + y2) / 2.0, (x2 - x1) / 2.0, (y2 - y1) / 2.0, 0.0, 1.0, colour);
 }
 
@@ -332,7 +350,7 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
     }
     if let Some(p) = world.persos.get(player) {
         if p.visible() && p.alive() {
-            draw_selection(p, cam);
+            draw_selection(p, rules, cam);
         }
     }
     draw_work_state(world, rules, player, cam);
