@@ -95,9 +95,12 @@ fn draw_work_state(world: &World, rules: &Rules, i: usize, cam: (i32, i32)) {
 
 fn draw_persos(world: &World, textures: &Textures, cam: (i32, i32)) {
     for p in world.persos.iter().rev() {
-        if !p.visible() || !p.alive() {
+        // The player's ghost is drawn, translucent: the original's `AfficherFantomes` option,
+        // off by default there, but otherwise a dead player sees nothing of themselves.
+        if !p.visible() || !(p.alive() || p.player) {
             continue;
         }
+        let tint = if p.alive() { WHITE } else { Color::new(1.0, 1.0, 1.0, 0.5) };
         // Bars below the sprite, drawn before it (`FrmMoteur2D.frm:1898-1940`): life, then
         // attack (or the reload) and defence while any is not full.
         let (x, y) = (p.x as i32 - cam.0, p.y as i32 - cam.1 + p.h);
@@ -120,7 +123,8 @@ fn draw_persos(world: &World, textures: &Textures, cam: (i32, i32)) {
         let src = Rect::new((col * p.w) as f32, (row * p.h) as f32, p.w as f32, p.h as f32);
         for sheet in look_sheets(&p.look) {
             if let Some(tex) = textures.get(sheet) {
-                blit(tex, p.x as i32 - cam.0, p.y as i32 - cam.1, src);
+                let params = DrawTextureParams { source: Some(src), ..Default::default() };
+                draw_texture_ex(tex, (p.x as i32 - cam.0) as f32, (p.y as i32 - cam.1) as f32, tint, params);
             }
         }
     }
