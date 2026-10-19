@@ -336,8 +336,10 @@ impl Hud {
                     }
                 }
                 let click = if i <= 1 { input.left_released } else { input.left_pressed };
-                if click {
-                    if let Some(o) = self.move_order(world, player, i) {
+                // Right clicks: the attack buttons also send the soldiers.
+                let right = input.right_pressed && (10..=14).contains(&i);
+                if click || right {
+                    if let Some(o) = self.move_order(world, player, i, right) {
                         orders.push(o);
                     }
                 }
@@ -383,28 +385,37 @@ impl Hud {
         on_ui
     }
 
-    /// The command of move button `i`.
-    fn move_order(&mut self, world: &World, player: usize, i: usize) -> Option<Order> {
+    /// The command of move button `i` or its key (`ClsInterface.cls:3955-4050`,
+    /// `ClsIntTouches.cls:540-610`). With `right` (a right click) or a modifier, the attack
+    /// buttons also send the soldiers; Ctrl on the home button enters without repairing.
+    fn move_order(&mut self, world: &World, player: usize, i: usize, right: bool) -> Option<Order> {
         let perso = player;
+        let p = &world.persos[player];
+        let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
+        let shift = is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift);
+        let alt = is_key_down(KeyCode::LeftAlt) || is_key_down(KeyCode::RightAlt);
+        let alive = p.alive();
         Some(match i {
             0 => Order::GoOwnCastle { perso },
-            1 => Order::GoHome { perso, enter: false },
-            2..=9 => Order::FindResource { perso, kind: i - 2 },
-            13 => Order::FindTreasure { perso },
-            16 => Order::Stop { perso },
-            // TODO: 10-12 attack nearest (combat), 14 auto mode (AI), 15 attack allies, 17 formation
-            _ => {
-                let _ = world;
-                return None;
-            }
+            1 => Order::GoHome { perso, enter: ctrl && world.houses[player].built },
+            2..=9 if alive => Order::FindResource { perso, kind: i - 2 },
+            10..=12 if alive => Order::AttackNearest { perso, kind: (i - 10) as u8, send: right || ctrl || shift || alt, ctrl, shift },
+            13 if alive => Order::FindTreasure { perso },
+            14 => Order::SetAi { perso, ai: !p.ai },
+            16 if !right => Order::Stop { perso },
+            17 if alive => Order::Formation { perso, change: true },
+            // TODO: 15 attack allies, after the original's confirmation window
+            _ => return None,
         })
     }
 
     /// The keyboard shortcuts of the buttons (`Touches.ini`).
     fn keyboard(&mut self, world: &World, player: usize, orders: &mut Vec<Order>) {
-        const MOVE_KEYS: [(KeyCode, usize); 12] = [
+        // `Touches.ini` holds DirectInput scancodes, physical positions like macroquad's key
+        // codes, which are named after QWERTY: AZERTY's M is `Semicolon`, W is `Z`, A is `Q`.
+        const MOVE_KEYS: [(KeyCode, usize); 17] = [
             (KeyCode::G, 0),
-            (KeyCode::M, 1),
+            (KeyCode::Semicolon, 1),
             (KeyCode::F1, 2),
             (KeyCode::F2, 3),
             (KeyCode::F3, 4),
@@ -413,12 +424,17 @@ impl Hud {
             (KeyCode::F6, 7),
             (KeyCode::F7, 8),
             (KeyCode::F8, 9),
+            (KeyCode::Z, 10),
+            (KeyCode::X, 11),
+            (KeyCode::C, 12),
             (KeyCode::V, 13),
+            (KeyCode::Q, 14),
             (KeyCode::S, 16),
+            (KeyCode::F, 17),
         ];
         for (key, i) in MOVE_KEYS {
             if is_key_pressed(key) && self.move_visible(world, player, i) {
-                if let Some(o) = self.move_order(world, player, i) {
+                if let Some(o) = self.move_order(world, player, i, false) {
                     orders.push(o);
                 }
             }
