@@ -43,6 +43,9 @@ pub struct Options {
     pub emperor: bool,
     /// `advance=N`: the player's fief is N % into changing epoch.
     pub advance: Option<f64>,
+    /// `inventory=Hache+40:3`: objects in the player's bag, by name (`Parametres_Objets.ini`,
+    /// any case) or index, with a count after `:`. Only for a new world, not a resumed one.
+    pub inventory: Vec<(String, i64)>,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -78,6 +81,12 @@ impl Options {
                         if let Ok(object) = object.parse() {
                             o.effects.push((object, left.parse().ok()));
                         }
+                    }
+                }
+                "inventory" => {
+                    for e in value.split('+').filter(|e| !e.is_empty()) {
+                        let (object, count) = e.split_once(':').unwrap_or((e, "1"));
+                        o.inventory.push((object.to_owned(), count.parse().unwrap_or(1)));
                     }
                 }
                 "recharges" => {

@@ -143,6 +143,9 @@ struct Loaded {
     test_emperor: bool,
     test_hold: Option<usize>,
     test_advance: Option<f64>,
+    test_inventory: Vec<(String, i64)>,
+    /// The world was just made, not resumed from the save.
+    created: bool,
     show_perf: bool,
     music: music::Music,
     effects: effects::Effects,
@@ -194,9 +197,11 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             None
         }
     });
+    let mut created = false;
     let world = match saved {
         Some(world) => world,
         None => {
+            created = true;
             storage::store("setup", options.setup_key().as_bytes());
             World::create(&rules, &files, &setup)?
         }
@@ -211,7 +216,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files).await;
-    Ok(Loaded { god: options.god, test_effects: options.effects, test_recharges: options.recharges, test_emperor: options.emperor, test_hold: options.hold, test_advance: options.advance, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { god: options.god, test_effects: options.effects, test_recharges: options.recharges, test_emperor: options.emperor, test_hold: options.hold, test_advance: options.advance, test_inventory: options.inventory, created, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -223,7 +228,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { god, test_effects, test_recharges, test_emperor, test_hold, test_advance, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { god, test_effects, test_recharges, test_emperor, test_hold, test_advance, test_inventory, created, show_perf, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -257,6 +262,19 @@ async fn main() {
         p.add_effect(&rules, object, d, d, None);
         if let (Some(left), Some(e)) = (left, p.effects.last_mut()) {
             e.duration = left;
+        }
+    }
+    if created {
+        for (name, count) in &test_inventory {
+            let object = name.parse::<usize>().ok().filter(|&o| o < rules.objects.len()).or_else(|| {
+                rules.objects.iter().position(|o| o.name.to_lowercase() == name.to_lowercase())
+            });
+            match object {
+                Some(object) => (0..*count).for_each(|_| world.persos[player].add_object(&rules, object)),
+                None => {
+                    warn!("inventory: no object {name}");
+                }
+            }
         }
     }
     // The game starts with a "Debut" track (`FrmMoteur2D.frm:405`).
