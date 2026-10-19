@@ -29,7 +29,8 @@ fn window_conf() -> Conf {
 }
 
 /// Map zooms and interface scales the mouse wheel steps through.
-const ZOOMS: [f32; 7] = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
+/// Zooming out stops once the whole map is in view.
+const ZOOMS: [f32; 14] = [1.0 / 64.0, 1.0 / 32.0, 1.0 / 16.0, 0.125, 0.1875, 0.25, 0.375, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 4.0];
 const UI_SCALES: [f32; 8] = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
 
 /// The next value of `steps` after `v`, upward or downward.
@@ -201,6 +202,8 @@ async fn main() {
     let mut cam = (0, 0);
     let mut orders = Vec::new();
     let mut last_tick = get_time();
+    // Made the first time the map is zoomed far out.
+    let mut terrain_overview = None;
     // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
     let mut pressed_on_map = false;
     loop {
@@ -248,7 +251,13 @@ async fn main() {
         render::request_looks(&world, &mut textures);
         set_camera(&camera(&target, view_f));
         clear_background(BLACK);
-        render::draw_world(&world, &rules, &textures, cam, player, view);
+        let overview = (zoom < render::OVERVIEW_ZOOM).then_some(()).and_then(|()| {
+            if terrain_overview.is_none() {
+                terrain_overview = render::terrain_overview(&world, &textures);
+            }
+            terrain_overview.as_ref()
+        });
+        render::draw_world(&world, &rules, &textures, cam, player, view, overview);
         effects.draw(&textures, cam, view, zoom);
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         set_camera(&camera(&target, hud_f));
@@ -333,7 +342,11 @@ async fn main() {
                 Some(true) => {}
                 Some(false) => scales.ui = step(&UI_SCALES, scales.ui, up),
                 None if on_ui => scales.ui = step(&UI_SCALES, scales.ui, up),
-                None => scales.zoom = step(&ZOOMS, scales.zoom, up),
+                // out only while some of the map is out of view
+                None if up || view.0 < world.terrain.width as i32 * sim::terrain::CELL || view.1 < world.terrain.height as i32 * sim::terrain::CELL => {
+                    scales.zoom = step(&ZOOMS, scales.zoom, up)
+                }
+                None => {}
             }
             scales.store();
         }

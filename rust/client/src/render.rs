@@ -149,6 +149,43 @@ fn blit(tex: &Texture2D, x: i32, y: i32, src: Rect) {
     );
 }
 
+/// Below this many screen pixels per map pixel (tiles under 4 pixels), the terrain is drawn
+/// from [`terrain_overview`] rather than tile by tile.
+pub const OVERVIEW_ZOOM: f32 = 0.25;
+
+/// The terrain with one pixel per cell, each the average colour of its tile: what the map
+/// looks like zoomed far out (not in the original, which did not zoom out).
+pub fn terrain_overview(world: &World, textures: &Textures) -> Option<Texture2D> {
+    let tiles = textures.get(TILESET)?.get_texture_data();
+    let (cols, rows) = (tiles.width() / CELL as usize, tiles.height() / CELL as usize);
+    let mut average = vec![[0u8; 4]; cols * rows];
+    for (k, avg) in average.iter_mut().enumerate() {
+        let (tx, ty) = (k % cols * CELL as usize, k / cols * CELL as usize);
+        let (mut sum, mut n) = ([0u32; 3], 0);
+        for y in ty..ty + CELL as usize {
+            for x in tx..tx + CELL as usize {
+                let p = &tiles.bytes[(y * tiles.width() + x) * 4..][..4];
+                if p[3] > 0 {
+                    (0..3).for_each(|c| sum[c] += p[c] as u32);
+                    n += 1;
+                }
+            }
+        }
+        if n > 0 {
+            *avg = [(sum[0] / n) as u8, (sum[1] / n) as u8, (sum[2] / n) as u8, 255];
+        }
+    }
+    let t = &world.terrain;
+    let mut bytes = Vec::with_capacity(t.width * t.height * 4);
+    for k in 0..t.width * t.height {
+        let tile = t.category[k] as usize * cols + t.shape[k] as usize;
+        bytes.extend(average.get(tile).copied().unwrap_or([0, 0, 0, 255]));
+    }
+    let texture = Texture2D::from_rgba8(t.width as u16, t.height as u16, &bytes);
+    texture.set_filter(FilterMode::Nearest);
+    Some(texture)
+}
+
 /// `ClsAffTerrain.AfficheFast`: one 16×16 tile per visible cell.
 fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32, i32)) {
     let Some(tiles) = textures.get(TILESET) else { return };
@@ -177,8 +214,15 @@ fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32,
 }
 
 /// `view` is the size of the visible area in world pixels.
-pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32)) {
-    draw_terrain(world, textures, cam, view);
+/// `overview`: draw the terrain from that image ([`terrain_overview`]) instead of its tiles.
+pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32), overview: Option<&Texture2D>) {
+    match overview {
+        Some(o) => {
+            let size = vec2((world.terrain.width as i32 * CELL) as f32, (world.terrain.height as i32 * CELL) as f32);
+            draw_texture_ex(o, -cam.0 as f32, -cam.1 as f32, WHITE, DrawTextureParams { dest_size: Some(size), ..Default::default() });
+        }
+        None => draw_terrain(world, textures, cam, view),
+    }
     if let Some(tex) = textures.get(RESOURCES) {
         let s = RESOURCE_SIZE as f32;
         for r in &world.resources {
