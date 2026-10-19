@@ -407,25 +407,72 @@ impl World {
 
     /// `IA_Attaquer_Perso`: the next slice of the search for an attackable enemy; the radius
     /// grows by 48 each time the cursor wraps (from 0, then 64..640).
+    ///
+    /// The original checks one perso per step, `searches + 1` steps from the cursor (60 % of all
+    /// persos). Here each stretch of indices between wraps is one query of the persos' grid: the
+    /// lowest index in the stretch within the radius, which is what the steps would stop at.
+    /// Debug builds compare with the steps (`search_enemy_steps`).
     fn search_enemy(&mut self, i: usize) -> Option<usize> {
+        #[cfg(debug_assertions)]
+        let expected = {
+            let s = &self.ai.persos[i];
+            self.search_enemy_steps(i, s.enemy_cursor, s.enemy_distance)
+        };
         let lb = self.persos.len() - 1;
-        for _ in 0..=self.ai.searches {
-            let s = &mut self.ai.persos[i];
-            if s.enemy_cursor > lb {
-                s.enemy_cursor = 0;
-                s.enemy_distance += PERSO_SEARCH_STEP;
-                if s.enemy_distance > ENEMY_MAX {
-                    s.enemy_distance = ENEMY_MIN;
+        let s = &self.ai.persos[i];
+        let (mut cursor, mut distance) = (s.enemy_cursor, s.enemy_distance);
+        let mut budget = self.ai.searches as usize + 1;
+        let (px, py, team) = (self.persos[i].x, self.persos[i].y, self.persos[i].team);
+        let mut found = None;
+        while budget > 0 {
+            if cursor > lb {
+                cursor = 0;
+                distance += PERSO_SEARCH_STEP;
+                if distance > ENEMY_MAX {
+                    distance = ENEMY_MIN;
                 }
             }
-            let c = s.enemy_cursor;
-            let (p, q) = (&self.persos[i], &self.persos[c]);
-            if s.enemy_distance as f64 > dist((p.x, p.y), (q.x, q.y)) && q.team != p.team && q.attackable() {
-                return Some(c);
+            let last = lb.min(cursor + budget - 1);
+            let reach = distance + crate::spatial::DRIFT + 1;
+            let near = ((px - reach) as i32, (py - reach) as i32, (px + reach) as i32, (py + reach) as i32);
+            let first = cursor;
+            found = self.spatial.persos.first(last + 1, near, |c| {
+                let q = &self.persos[c];
+                c >= first && distance as f64 > dist((px, py), (q.x, q.y)) && q.team != team && q.attackable()
+            });
+            if let Some(c) = found {
+                cursor = c;
+                break;
             }
-            s.enemy_cursor += 1;
+            budget -= last + 1 - cursor;
+            cursor = last + 1;
         }
-        None
+        let s = &mut self.ai.persos[i];
+        (s.enemy_cursor, s.enemy_distance) = (cursor, distance);
+        #[cfg(debug_assertions)]
+        assert_eq!((found, cursor, distance), expected, "search_enemy({i})");
+        found
+    }
+
+    /// `search_enemy` one perso per step, as the original: (found, cursor, radius) after.
+    #[cfg(debug_assertions)]
+    fn search_enemy_steps(&self, i: usize, mut cursor: usize, mut distance: i64) -> (Option<usize>, usize, i64) {
+        let lb = self.persos.len() - 1;
+        for _ in 0..=self.ai.searches {
+            if cursor > lb {
+                cursor = 0;
+                distance += PERSO_SEARCH_STEP;
+                if distance > ENEMY_MAX {
+                    distance = ENEMY_MIN;
+                }
+            }
+            let (p, q) = (&self.persos[i], &self.persos[cursor]);
+            if distance as f64 > dist((p.x, p.y), (q.x, q.y)) && q.team != p.team && q.attackable() {
+                return (Some(cursor), cursor, distance);
+            }
+            cursor += 1;
+        }
+        (None, cursor, distance)
     }
 
     /// `IA_Attaquer_Assaillant_Perso`: someone attacking perso `t`, its house or its castle
