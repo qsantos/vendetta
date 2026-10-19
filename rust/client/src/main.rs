@@ -84,7 +84,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let files = assets::load_files(&manifest, &progress).await?;
     let rules = Rules::load(&files, "Francais")?;
     progress.message(&progress.label(2));
-    let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u32, ..Default::default() };
+    let setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
     // Resume the saved game if there is one that fits these rules.
     let saved = storage::load().and_then(|bytes| match World::load(&rules, &bytes) {
         Ok(world) => Some(world),
