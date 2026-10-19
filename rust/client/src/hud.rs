@@ -253,6 +253,13 @@ impl Hud {
 
     /// `ClsIntMessage.Afficher`: `#` breaks lines (16 px apart); a line starting with `&` is red,
     /// with `$` blue. `(x, y)` is the top of the text cell, like GDI `DrawText`.
+    /// Lines of text under the FPS counter, in white (the `#perf` timings).
+    pub fn debug_lines(&self, lines: &[String]) {
+        for (i, line) in lines.iter().enumerate() {
+            self.text(crate::layout::screen_w() - 260, 18 + 16 * i as i32, line, WHITE);
+        }
+    }
+
     /// `Afficher_Commentaires`: what characters say, in white at their top-left plus (24, -16),
     /// at the interface's size. `to_screen` maps map pixels to interface pixels.
     pub fn draw_comments(&self, world: &World, to_screen: impl Fn(i64, i64) -> (i32, i32)) {

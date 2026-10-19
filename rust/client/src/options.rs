@@ -18,6 +18,8 @@ pub struct Options {
     /// `roads=ring`: the original's ring of roads in fief order, instead of joining each
     /// castle to its nearest ones.
     pub ring_roads: bool,
+    /// `perf`: show where the time goes (see `perf.rs`).
+    pub perf: bool,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -31,6 +33,7 @@ impl Options {
             let (key, value) = item.split_once('=').unwrap_or((item, ""));
             match key.to_ascii_lowercase().as_str() {
                 "god" => o.god = true,
+                "perf" => o.perf = true,
                 "size" => {
                     let (w, h) = value.split_once(['x', 'X']).unwrap_or((value, value));
                     if let (Ok(w), Ok(h)) = (w.parse(), h.parse()) {

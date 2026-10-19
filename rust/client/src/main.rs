@@ -5,6 +5,7 @@ mod effects;
 mod loading;
 mod music;
 mod options;
+mod perf;
 mod render;
 mod storage;
 mod text;
@@ -107,6 +108,7 @@ const AUTOSAVE_INTERVAL: f64 = 5.0;
 
 struct Loaded {
     god: bool,
+    show_perf: bool,
     music: music::Music,
     effects: effects::Effects,
     files: Files,
@@ -177,7 +179,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     let effects = effects::Effects::new(&files, &manifest);
-    Ok(Loaded { god: options.god, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { god: options.god, show_perf: options.perf, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -189,7 +191,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { god, mut music, mut effects, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
+    let Loaded { god, show_perf, mut music, mut effects, files, rules, mut world, mut textures } = match task.retrieve().unwrap() {
         Ok(l) => {
             screen.finish();
             l
@@ -220,7 +222,10 @@ async fn main() {
     let mut terrain_overview = None;
     // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
     let mut pressed_on_map = false;
+    let mut perf = perf::Perf::default();
     loop {
+        let frame_start = perf::now();
+        perf.frame();
         // The frame covers the window; the map and the interface each have their own scale.
         // `screen_width()` and the mouse are in CSS pixels; the frame is in physical pixels.
         let dpi = screen_dpi_scale();
@@ -343,7 +348,11 @@ async fn main() {
             orders.push(Order::AttackGround { perso: player, x: wx as i64 - p.w as i64 / 2, y: wy as i64 - p.h as i64 / 2, kind });
         }
         hud.overlay(&world, &rules, &textures, player, &input, placement, (!on_ui).then_some((hover, hit)));
+        if show_perf {
+            hud.debug_lines(&perf.lines());
+        }
         present(&target);
+        perf.add(perf::Part::Frame, perf::now() - frame_start);
 
         // The wheel: scrolls the window lists under it (done by the HUD), rotates the radial
         // buttons, zooms the map, or scales the rest of the interface.
@@ -368,7 +377,7 @@ async fn main() {
         // One tick whenever a tick's worth of time has passed; extra time is dropped.
         if !hud.paused() && get_time() - last_tick > 1.0 / TICKS_PER_SECOND {
             last_tick = get_time();
-            world.step(&rules, &orders);
+            perf.time(perf::Part::Tick, || world.step(&rules, &orders));
             orders.clear();
             effects.tick(&world.events, &mut textures);
             hud.automatic_actions(&world, player, &mut orders);
@@ -377,7 +386,7 @@ async fn main() {
         }
         if get_time() - last_save > AUTOSAVE_INTERVAL {
             last_save = get_time();
-            storage::store("save", &world.save());
+            perf.time(perf::Part::Save, || storage::store("save", &world.save()));
         }
         // Ctrl+N: a new game, until the setup screens exist.
         if (is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl)) && is_key_pressed(KeyCode::N) {

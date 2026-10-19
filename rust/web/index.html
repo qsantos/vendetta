@@ -154,6 +154,8 @@
         pendingRead = Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
         return pendingRead.length;
       };
+      // A precise clock for the #perf timings (macroquad's uses Date.now(), to the millisecond).
+      importObject.env.vendetta_now = () => performance.now() / 1000;
       // Options in the URL's hash (see client/src/options.rs), read like a stored value.
       importObject.env.vendetta_hash_size = () => {
         pendingRead = new TextEncoder().encode(decodeURIComponent(location.hash.slice(1)));
