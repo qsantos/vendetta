@@ -290,6 +290,15 @@ impl Perso {
         self.defense = v;
     }
 
+    /// `Niveau`: a tenth of the bar levels and a hundredth of the skill levels, plus 1.
+    pub fn level(&self) -> f64 {
+        let mut v = self.bar_xp.iter().map(|x| x.level).sum::<i64>() as f64 * 0.1 + 1.0;
+        for s in self.special.iter().chain(&self.resource_skills).chain(&self.services).chain(&self.objects) {
+            v += s.xp.level as f64 * 0.01;
+        }
+        v
+    }
+
     pub fn money(&self) -> f64 {
         self.money
     }

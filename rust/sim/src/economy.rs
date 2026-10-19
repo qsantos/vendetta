@@ -279,8 +279,12 @@ impl World {
         let p = &self.persos[i];
         let ht = p.house_target;
         if p.in_house && self.persos.get(ht).is_some_and(|o| o.chef == i as i64) && !main {
-            // TODO: the commanded invocation is killed too (invocations)
+            // The house of a summon: it goes, and the summon dies.
             self.demolish(rules, ht, ht, false);
+            if self.persos[ht].alive() {
+                self.kill_loot(rules, i, ht, false);
+                self.kill(rules, ht);
+            }
         } else if self.houses[h].max_life > 0 {
             let (m, t) = (&self.houses[h], &rules.buildings[self.houses[h].kind]);
             let share = |q: f64| q * RECYCLING * m.life / m.max_life as f64;
@@ -1125,7 +1129,12 @@ impl World {
                     self.kill(rules, i);
                 }
                 self.number(x, y, poison, NumberKind::Damage, false);
-                // TODO: the poisoner gets the kill (`Perso_Tuer_Perso(PoisonLanceur)`, combat)
+                // The poisoner gets the kill.
+                if let Ok(k) = usize::try_from(self.persos[i].poisoner)
+                    && !self.persos[i].alive()
+                {
+                    self.kill_loot(rules, k, i, false);
+                }
             }
         } else if p.in_own_castle {
             let f = p.fief;

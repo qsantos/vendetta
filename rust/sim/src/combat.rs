@@ -5,6 +5,7 @@
 use crate::event::NumberKind;
 use crate::perso::action;
 use crate::rules::Rules;
+use crate::treasure::TREASURE_SIZE;
 use crate::vb::clng;
 use crate::world::World;
 
@@ -410,8 +411,7 @@ impl World {
             }
             self.persos[d].set_defense(rules, def - att);
             if !self.persos[d].alive() {
-                let _ = coup;
-                // TODO: the kill's credit and loot (`Perso_Tuer_Perso`)
+                self.credit_kill(rules, a, d, coup);
             } else {
                 self.hit_effects(rules, a, d);
                 self.hit_reaction(rules, a, d);
@@ -426,6 +426,175 @@ impl World {
             p.set_attack(rules, p.attack - spent);
         } else {
             p.attack -= spent;
+        }
+    }
+
+    /// The kill part of `Perso_Attaquer_Perso`: whoever killed a summon may turn on its chef,
+    /// whose soldiers charge back; the kill, the loot and the bounty of a mercenary house go to
+    /// the attacker, or to the chef of a summon.
+    fn credit_kill(&mut self, rules: &Rules, a: usize, d: usize, coup: bool) {
+        let (p, q) = (&self.persos[a], &self.persos[d]);
+        if q.invocation() {
+            let chef = q.chef as usize;
+            if !p.ai_pacific && p.vitality == 1.0 && self.persos[chef].alive() {
+                if p.ai {
+                    self.attack_perso(rules, a, chef);
+                    self.say(rules, a, 44);
+                }
+                if self.persos[chef].soldiers > 0 && self.persos[chef].ai {
+                    // Ctrl, Shift and Alt (unused), in that order.
+                    let ctrl = self.rng.next() > 0.5;
+                    let shift = self.rng.next() > 0.5;
+                    let _alt = self.rng.next() > 0.8;
+                    self.order_charge(rules, chef, 0, a as i64, ctrl, shift, false);
+                }
+            }
+        }
+        let (p, q) = (&self.persos[a], &self.persos[d]);
+        let race = q.race;
+        // `Definir_MaxAttaque + Definir_MaxDefense + Definir_MaxVie` times the bounty rate.
+        let bounty = (q.bonus_max[4] + q.bonus_max[5] + q.bonus_max[0]) as f64 * rules.services[2].coef;
+        let start = rules.start_service as f64;
+        let mercenary = |w: &World, i: usize| w.houses[i].service == 2 && w.houses[i].built;
+        if p.invocation() {
+            let chef = p.chef as usize;
+            if p.kamikaze || p.projectile {
+                self.persos[chef].bestiary[race] += 1;
+                if mercenary(self, chef) {
+                    let score = bounty * (self.persos[chef].services[1].bonus as f64 + start) / start;
+                    let _ = self.use_service_score(rules, chef, chef, score, true);
+                }
+            } else {
+                self.persos[a].bestiary[race] += 1;
+            }
+            // Summons offer their kills to their chef.
+            let killer = if self.persos[chef].alive() { chef } else { a };
+            self.kill_loot(rules, killer, d, coup);
+            self.persos[chef].frags[0] += 1;
+        } else {
+            self.kill_loot(rules, a, d, coup);
+            let p = &mut self.persos[a];
+            p.bestiary[race] += 1;
+            p.frags[0] += 1;
+            if mercenary(self, a) {
+                let level = self.persos[a].services[1].bonus as f64;
+                let score = bounty * ((level - start + 1.0) / start / 10.0 + 1.0);
+                let _ = self.use_service_score(rules, a, a, score, true);
+            }
+        }
+    }
+
+    /// `Perso_Tuer_Perso(a, d, CoupDEtat)`: `a` loots its victim `d` (into a treasure where
+    /// `d` lies unless they touch): a share of its money and resources, and each object with
+    /// some chance, either taken or destroyed. Killing the own emperor takes the crown; a tomb
+    /// marks the place.
+    pub fn kill_loot(&mut self, rules: &Rules, a: usize, d: usize, coup: bool) {
+        let c = &rules.combat;
+        let (p, q) = (&self.persos[a], &self.persos[d]);
+        // Someone it was attacking thanks the killer.
+        let t = q.perso_target;
+        if self.persos[t].team == p.team && t != a && q.action == ATTACK_PERSO {
+            self.say_now(rules, t, 14);
+        }
+        let (p, q) = (&self.persos[a], &self.persos[d]);
+        let looted = q.x + q.w as i64 >= p.x && q.y + q.h as i64 >= p.y && q.x <= p.x + p.w as i64 && q.y <= p.y + p.h as i64;
+        let tr = if looted {
+            None
+        } else {
+            let half = TREASURE_SIZE as f64 / 2.0;
+            let x = clng(q.x as f64 + q.w as f64 / 2.0 - half) as i32;
+            let y = clng(q.y as f64 + q.h as f64 / 2.0 - half) as i32;
+            Some(self.treasure_create(rules, x, y))
+        };
+        let money = self.persos[d].money() * c.loot_money;
+        match tr {
+            None => {
+                let p = &mut self.persos[a];
+                p.set_money(p.money() + money);
+            }
+            Some(t) => {
+                let t = &mut self.treasures[t];
+                t.set_money(rules, t.money() + money);
+            }
+        }
+        let q = &mut self.persos[d];
+        q.set_money(q.money() * (1.0 - c.loot_money));
+        for r in 0..rules.resources.len() {
+            let n = self.persos[d].resource(r) * c.loot_resources;
+            match tr {
+                None => {
+                    let p = &mut self.persos[a];
+                    p.set_resource(r, p.resource(r) + n);
+                }
+                Some(t) => {
+                    let t = &mut self.treasures[t];
+                    t.set_resource(rules, r, t.resource(r) + n);
+                }
+            }
+            let q = &mut self.persos[d];
+            q.set_resource(r, q.resource(r) * (1.0 - c.loot_resources));
+        }
+        // Each object is taken (or destroyed) with some chance; one draw per object even when
+        // it is indestructible.
+        let n = self.persos[d].equipped.len();
+        for s in 0..n + self.persos[d].inventory.len() {
+            let item = if s < n { self.persos[d].equipped[s] } else { self.persos[d].inventory[s - n] };
+            let Some(item) = item else { continue };
+            if self.rng.next() < c.loot_objects && !rules.objects[item.object].indestructible {
+                if self.rng.next() > c.destroy_objects {
+                    match tr {
+                        None => self.persos[a].add_new_object(rules, item.object),
+                        Some(t) => self.treasures[t].add_object(rules, item.object),
+                    }
+                }
+                let q = &mut self.persos[d];
+                if s < n {
+                    q.destroy_equipped(rules, s);
+                } else {
+                    q.unload_slot(s - n);
+                }
+            }
+        }
+        if coup {
+            let f = self.persos[a].fief;
+            self.change_emperor(rules, f, a as i64, false);
+            self.attack_allies(rules, a, false);
+        }
+        if let Some(t) = tr {
+            if self.treasures[t].empty() {
+                self.treasures.remove(t);
+            } else {
+                self.treasure_check(rules, t);
+            }
+        }
+        let q = &self.persos[d];
+        if let Ok(tomb) = usize::try_from(rules.races[q.race].tomb) {
+            let level = q.level().floor();
+            let killed_by = &rules.label_tomb[q.female as usize];
+            let name = format!("&{} ({} {level}){killed_by}{}", q.name, rules.label_level, self.persos[a].name);
+            let (x, y) = (q.x as i32, q.y as i32);
+            self.decor_create(rules, tomb, x, y, name);
+        }
+    }
+
+    /// `Attaquer_Allies(v)`: hostile to everybody (its team becomes `-Numero`, and it stops),
+    /// or back in its fief's team; its summons follow and stop.
+    pub fn attack_allies(&mut self, rules: &Rules, i: usize, v: bool) {
+        if v {
+            self.persos[i].team = -(i as i64);
+            self.stop(rules, i);
+        } else {
+            let f = self.persos[i].fief;
+            self.persos[i].team = self.fiefs[f].team;
+        }
+        if self.persos[i].soldiers > 0 {
+            let team = self.persos[i].team;
+            for j in 0..self.persos.len() {
+                if self.persos[j].chef == i as i64 {
+                    self.persos[j].team = team;
+                    self.stop(rules, j);
+                }
+            }
         }
     }
 

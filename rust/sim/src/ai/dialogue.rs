@@ -29,7 +29,7 @@ impl World {
     }
 
     /// `Definir_Commentaires = ""` then the line: says it even over a current line.
-    fn say_now(&mut self, rules: &Rules, i: usize, n: i64) {
+    pub(crate) fn say_now(&mut self, rules: &Rules, i: usize, n: i64) {
         let tick = self.tick;
         self.persos[i].set_comment(String::new(), tick);
         self.say(rules, i, n);

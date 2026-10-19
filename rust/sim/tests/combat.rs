@@ -135,3 +135,38 @@ fn attacking_walks_then_hits() {
     assert!((p.x - q.x).abs() <= p.w as i64 + 1, "in range");
     assert!(!p.force_attack);
 }
+
+/// A killing blow: the killer, touching its victim, takes a quarter of its money and
+/// resources; the kill is counted and a tomb is left. Out of reach, the loot is a treasure.
+#[test]
+fn a_kill_is_looted() {
+    let Some((files, rules)) = load() else { return };
+    for touching in [true, false] {
+        let mut w = world(&files, &rules);
+        let a = fighter(&mut w, &rules, 0, 100, 100);
+        let d = fighter(&mut w, &rules, 1, if touching { 110 } else { 300 }, 100);
+        w.persos[a].set_money(0.0);
+        w.persos[d].set_money(100.0);
+        w.persos[a].attack = 200.0;
+        w.persos[d].bars[0] = 1.0;
+        let (treasures, decors) = (w.treasures.len(), w.decors.len());
+        w.rng = seed_for(rules.combat.failure_chance, &[true, true]);
+        w.hit_perso(&rules, a, d, true);
+        assert!(!w.persos[d].alive());
+        assert_eq!(w.persos[d].money(), 75.0);
+        assert_eq!(w.persos[d].deaths, 1);
+        assert_eq!(w.persos[a].frags[0], 1);
+        assert_eq!(w.persos[a].bestiary[w.persos[d].race], 1);
+        if touching {
+            assert_eq!(w.persos[a].money(), 25.0);
+        } else {
+            assert_eq!(w.persos[a].money(), 0.0);
+            assert_eq!(w.treasures.len(), treasures + 1);
+            assert!(w.treasures.last().unwrap().money() >= 25.0);
+        }
+        let tomb = w.decors.last().unwrap();
+        assert_eq!(w.decors.len(), decors + 1);
+        assert!(tomb.name.starts_with(&format!("&{} (", w.persos[d].name)), "{}", tomb.name);
+        assert!(tomb.name.ends_with(&w.persos[a].name));
+    }
+}
