@@ -349,8 +349,10 @@ impl Hud {
     /// `Afficher_Messages`: the message log, under the rest of the interface.
     pub(super) fn draw_messages(&mut self) {
         self.messages.expire();
+        // (the touch interface has no trays on the left to keep clear of)
+        let x = if crate::layout::touch() { 8 } else { POSITION.0 };
         for (i, line) in self.messages.lines.iter().enumerate() {
-            self.text(POSITION.0, POSITION.1 + LINE * i as i32, line, WHITE_);
+            self.text(x, POSITION.1 + LINE * i as i32, line, WHITE_);
         }
     }
 }
