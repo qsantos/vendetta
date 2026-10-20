@@ -2,7 +2,7 @@
 //! made from macroquad's touches, or from the mouse's left button for trying it on a desktop.
 //! Not in the original.
 
-use macroquad::input::{Touch, TouchPhase, is_mouse_button_down, mouse_position, touches};
+use macroquad::input::{Touch, TouchPhase, is_mouse_button_down, is_mouse_button_pressed, mouse_position, touches};
 use macroquad::time::get_time;
 
 /// How far a finger may wander (in CSS pixels) and still tap.
@@ -56,9 +56,12 @@ impl Gestures {
         // Touches are in frame pixels; the mouse in CSS pixels.
         let mut points: Vec<Touch> = touches();
         points.sort_by_key(|t| t.id);
-        if points.is_empty() && is_mouse_button_down(macroquad::input::MouseButton::Left) {
+        // (a click within a frame still counts, as a touch ending at once)
+        let left = macroquad::input::MouseButton::Left;
+        if points.is_empty() && (is_mouse_button_down(left) || is_mouse_button_pressed(left)) {
             let (x, y) = mouse_position();
-            points.push(Touch { id: 0, phase: TouchPhase::Moved, position: macroquad::math::vec2(x * dpi, y * dpi) });
+            let phase = if is_mouse_button_down(left) { TouchPhase::Moved } else { TouchPhase::Ended };
+            points.push(Touch { id: 0, phase, position: macroquad::math::vec2(x * dpi, y * dpi) });
         }
         let ended = |t: &Touch| matches!(t.phase, TouchPhase::Ended | TouchPhase::Cancelled);
         let active = points.iter().filter(|t| !ended(t)).count();
