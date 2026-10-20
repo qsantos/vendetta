@@ -87,6 +87,8 @@ const SCENES = {
   touch_auto: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 490, 40], ["tap", 147, 338], ["tap", 140, 160], ["tap", 270, 192]] },
   // The bar's Menu button, at its far end: the in-game menu, the solo game paused behind it.
   touch_menu: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 315]] },
+  // The map window (Fenêtres, then Carte); a finger dragging on the minimap moves the view.
+  touch_minimap: { hash: "seed=3&size=256&fiefs=6&villagers=20&layout=touch", phone: [800, 360], steps: [["tap", 770, 146], ["tap", 430, 75], ["swipe", 330, 150, 360, 250]] },
   // Lists scroll under a dragging finger.
   touch_scroll: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["swipe", 300, 300, 300, 150]] },
 };

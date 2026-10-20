@@ -69,6 +69,8 @@ pub struct Touch {
     pub front: Option<usize>,
     /// Dragged on the window since its list last scrolled by a row.
     pub window_dragged: f32,
+    /// A finger is dragging on the minimap, moving the view (see `minimap_input`).
+    pub minimap_drag: bool,
     /// In a building in the previous frame: entering one shows its window.
     in_building: bool,
     /// The centre of the building being placed, in map pixels.
@@ -282,6 +284,9 @@ impl Hud {
         let perso = player;
         let mut on_ui = false;
         let mut tip = None;
+        if !input.hover {
+            self.touch.minimap_drag = false;
+        }
 
         // What is being placed or demolished, at the top: its tooltip; buttons to confirm or
         // cancel next to the building's footprint (which they follow), or to the question.

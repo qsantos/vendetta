@@ -1428,7 +1428,11 @@ impl Hud {
         let wy = (m.1 - y) as f64 / ch as f64 * world_px.1;
         let p = &world.persos[player];
         let perso = player;
-        if is_mouse_button_down(MouseButton::Right) {
+        // A finger has no right button: dragging on the map does the same (a tap still moves).
+        if crate::layout::touch() && input.drag != (0.0, 0.0) {
+            self.touch.minimap_drag = true;
+        }
+        if is_mouse_button_down(MouseButton::Right) || self.touch.minimap_drag && input.hover {
             self.windows.camera = Some((clng(wx) as i32, clng(wy) as i32));
         } else if let (9, enemy) = world.obstacle_at(rules, player, clng(wx) as i32, clng(wy) as i32, p.w, p.h) {
             if input.left_pressed {
