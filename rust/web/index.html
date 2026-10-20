@@ -25,7 +25,7 @@
   #bubble { position: fixed; left: 24px; top: 20px; z-index: 2; pointer-events: none;
             background: rgb(255, 255, 192); border: 1px solid #000; padding: 1px 2px;
             color: #000; font: bold 13px Arial, "Liberation Sans", sans-serif; line-height: 16px;
-            white-space: pre; }
+            white-space: pre-wrap; overflow-wrap: anywhere; max-width: min(50ch, calc(100vw - 54px)); }
   #bubble .red { color: #f00; }
   /* Errors (a crash of the game, a failing script), shown over everything: on a phone there
      is no console to read them in. A tap dismisses them. */
