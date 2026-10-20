@@ -2,12 +2,15 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<!-- phones: the page at the screen's width, not zoomed by the browser (the game zooms itself) -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Vendetta</title>
 <!-- The original executable's icon, a 16×16 crown, also scaled up pixel by pixel. -->
 <link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-  canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* the game takes the touches: no scrolling, zooming or double-tap zoom of the page */
+  canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   /* the game loads behind the menus: nothing to show (or composite) until one is started */
   canvas.waiting { visibility: hidden; }
   /* The loading screen (`Afficher_Image_Chargement`): a random artwork letterboxed to 4:3,
@@ -287,6 +290,8 @@
       };
       // The game loads behind the menus, then waits for one to start it (`begin`).
       importObject.env.vendetta_started = () => startHash !== null;
+      // The touch interface on phones and tablets (see client/src/layout.rs).
+      importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
       // after the pending writes, so that none is lost
       window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
       importObject.env.vendetta_read = (ptr) => {

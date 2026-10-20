@@ -12,6 +12,8 @@ unsafe extern "C" {
     fn vendetta_hash_size() -> usize;
     /// Whether a game was chosen in the page's menus (and so its options are known).
     fn vendetta_started() -> bool;
+    /// Whether the main pointer is a finger (`pointer: coarse`).
+    fn vendetta_touch_screen() -> bool;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -60,6 +62,15 @@ pub fn started() -> bool {
     return unsafe { vendetta_started() };
     #[cfg(not(target_arch = "wasm32"))]
     true
+}
+
+/// Whether the screen is mainly used by touch (a phone or a tablet); never natively.
+pub fn touch_screen() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    return unsafe { vendetta_touch_screen() };
+    #[cfg(not(target_arch = "wasm32"))]
+    false
 }
 
 /// The options given to the game: the URL's hash in the browser, the arguments natively.

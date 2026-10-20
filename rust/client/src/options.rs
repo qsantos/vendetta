@@ -58,6 +58,9 @@ pub struct Options {
     /// `inventory=Hache+40:3`: objects in the player's bag, by name (`Parametres_Objets.ini`,
     /// any case) or index, with a count after `:`. Only for a new world, not a resumed one.
     pub inventory: Vec<(String, i64)>,
+    /// `layout=touch` or `layout=desktop`: the touch interface or the original one, whatever
+    /// the screen (by default, the touch one on touch screens).
+    pub touch: Option<bool>,
 }
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
@@ -99,6 +102,13 @@ impl Options {
                 "names" => o.names = value.split('+').map(percent_decode).collect(),
                 "room" => o.room = value.to_uppercase(),
                 "resume" => o.resume = true,
+                "layout" => {
+                    o.touch = match value.to_ascii_lowercase().as_str() {
+                        "touch" => Some(true),
+                        "desktop" => Some(false),
+                        _ => None,
+                    }
+                }
                 "players" => {
                     o.players = value.split('+').filter_map(|f| f.parse::<usize>().ok()).filter(|&f| f >= 1).map(|f| f - 1).collect();
                 }
@@ -121,7 +131,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, names: o.names, perf: o.perf, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
