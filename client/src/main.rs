@@ -136,6 +136,17 @@ fn wrap_cam(world: &World, cam: (i32, i32)) -> (i32, i32) {
     world.terrain.wrap32(cam)
 }
 
+/// The free camera's top-left kept on the map (or, zoomed out beyond the map's size, where it
+/// is); on a torus, it goes round.
+fn clamp_free_cam(world: &World, (x, y): (f32, f32), view: (i32, i32)) -> (f32, f32) {
+    let (w, h) = world.terrain.size_px();
+    let clamp = |v: f32, view: i32, size: i64| {
+        let max = (size as i32 - view) as f32;
+        if world.terrain.torus { v.rem_euclid(size as f32) } else if max < 0.0 { v } else { v.clamp(0.0, max) }
+    };
+    (clamp(x, view.0, w), clamp(y, view.1, h))
+}
+
 /// Whether the map can zoom out from showing `view`: while some of the map is out of view (on a
 /// torus, the whole map then shows, with some of it twice on the longer axis).
 fn can_zoom_out(world: &World, view: (i32, i32)) -> bool {
@@ -428,6 +439,10 @@ async fn main() {
     let mut pinched = 1.0f32;
     // The camera dragged away from the character (top-left, map pixels), and the mouse's drag.
     let mut free_cam: Option<(f32, f32)> = None;
+    // The last frame's zoom, and the point of the screen (physical pixels) whose spot on the map
+    // stays put when the zoom changes with the camera free (the middle of the screen if `None`).
+    let mut last_zoom = 0.0f32;
+    let mut zoom_anchor: Option<(f32, f32)> = None;
     let mut pan_from: Option<(f32, f32)> = None;
     let mut panning = false;
     loop {
@@ -472,6 +487,15 @@ async fn main() {
             view = new_view;
             cam = follow(&world, player, view);
         }
+        if let Some((fx, fy)) = free_cam
+            && last_zoom > 0.0
+            && zoom != last_zoom
+        {
+            let (ax, ay) = zoom_anchor.unwrap_or((w as f32 / 2.0, h as f32 / 2.0));
+            let moved = (fx + ax / last_zoom - ax / zoom, fy + ay / last_zoom - ay / zoom);
+            free_cam = Some(clamp_free_cam(&world, moved, view));
+        }
+        (last_zoom, zoom_anchor) = (zoom, None);
         let hud_f = (w as f32 / ui, h as f32 / ui);
         let hud_size = (hud_f.0 as i32, hud_f.1 as i32);
         layout::set_screen(hud_size.0, hud_size.1);
@@ -507,14 +531,7 @@ async fn main() {
         };
         if let Some((dx, dy)) = pan {
             let (fx, fy) = free_cam.unwrap_or((cam.0 as f32, cam.1 as f32));
-            let torus = world.terrain.torus;
-            let clamp = |v: f32, view: i32, size: usize| {
-                let size = size as i32 * sim::terrain::CELL;
-                let max = (size - view) as f32;
-                // (on a torus, it goes round)
-                if torus { v.rem_euclid(size as f32) } else if max < 0.0 { v } else { v.clamp(0.0, max) }
-            };
-            free_cam = Some((clamp(fx - dx / zoom, view.0, world.terrain.width), clamp(fy - dy / zoom, view.1, world.terrain.height)));
+            free_cam = Some(clamp_free_cam(&world, (fx - dx / zoom, fy - dy / zoom), view));
         }
         // (a release that ends a drag is not a click)
         let input = if panning && input.left_released { hud::Input { left_released: false, ..input } } else { input };
@@ -717,7 +734,8 @@ async fn main() {
                 None if on_ui => scales.ui = step(&UI_SCALES, scales.ui, up),
                 // out only while some of the map is out of view
                 None if up || can_zoom_out(&world, view) => {
-                    scales.zoom = step(&ZOOMS, scales.zoom, up)
+                    scales.zoom = step(&ZOOMS, scales.zoom, up);
+                    zoom_anchor = Some((mx, my));
                 }
                 None => {}
             }
@@ -734,6 +752,7 @@ async fn main() {
             pinched = 1.0;
             if up || can_zoom_out(&world, view) {
                 scales.zoom = step(&ZOOMS, scales.zoom, up);
+                zoom_anchor = Some((mx, my));
                 scales.store();
             }
         }

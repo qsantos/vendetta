@@ -66,6 +66,8 @@ const SCENES = {
   // pointing at it.
   pan: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["move", 512, 400]] },
   // Space follows the character again.
+  // then zooming in: what is under the cursor stays there
+  pan_zoom: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["move", 475, 465], ["wheel", 475, 465, -120], ["wait", 0.3], ["move", 475, 465]] },
   pan_back: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["key", "Space"], ["move", 512, 600]] },
   // On a torus (`edges=torus`): the view and the minimap's rectangle across the left edge, then
   // the view put across the bottom-right corner from the minimap, and zoomed out as far as it
