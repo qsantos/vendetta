@@ -29,28 +29,6 @@ pub async fn yield_now() {
     .await
 }
 
-/// Times a failed download is tried again: over a phone's network, one of the hundreds
-/// of files may fail now and then.
-const RETRIES: u32 = 3;
-
-/// `load_file`, tried again after a pause (half a second more each time) when it fails.
-async fn download(url: &str) -> Result<Vec<u8>, macroquad::Error> {
-    let mut tries = 0;
-    loop {
-        match load_file(url).await {
-            Err(e) if tries < RETRIES => {
-                tries += 1;
-                warn!("{url}: {e}, trying again");
-                let until = get_time() + 0.5 * tries as f64;
-                while get_time() < until {
-                    yield_now().await;
-                }
-            }
-            result => return result,
-        }
-    }
-}
-
 /// Runs `jobs` with at most `PARALLEL` in flight, handing each result to `done` as it
 /// completes. Every pending job is polled whenever this is: macroquad's downloads never
 /// wake their waker, they rely on being polled each frame.
@@ -170,7 +148,7 @@ pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<File
         .map(|(path, size)| -> Pin<Box<dyn Future<Output = _> + Send>> {
             let url = manifest.url(&path).unwrap_or_default().to_owned();
             Box::pin(async move {
-                let data = download(&url).await;
+                let data = load_file(&url).await;
                 (path, size, data)
             })
         })
@@ -271,7 +249,7 @@ impl Textures {
             .into_iter()
             .map(|p| -> Pin<Box<dyn Future<Output = _> + Send>> {
                 let url = self.urls[&key(&p)].clone();
-                Box::pin(async move { (p, download(&url).await) })
+                Box::pin(async move { (p, load_file(&url).await) })
             })
             .collect();
         let mut images = Vec::new();

@@ -35,6 +35,9 @@
             overflow: auto; background: #fff; color: #c00; border: 2px solid #c00; padding: 6px;
             font: 12px monospace; white-space: pre-wrap; word-break: break-word; }
   #errors[hidden] { display: none; }
+  #netstatus { position: fixed; left: 24px; top: 4px; z-index: 2; color: #fc6;
+               font: bold 12px Arial, "Liberation Sans", sans-serif; pointer-events: none; }
+  #netstatus[hidden] { display: none; }
   /* The pre-game menu: the solo game's settings, kept in the address's hash. */
   #menu { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center;
           justify-content: center; background: #000;
@@ -160,6 +163,7 @@
 </div>
 <div id="bubble" hidden>Chargement…</div>
 <div id="errors" hidden></div>
+<div id="netstatus" hidden></div>
 <canvas id="glcanvas" class="waiting" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
 <!-- build-web.sh appends ?v=<hash> to these two URLs so they can be cached for good -->
 <script src="mq_js_bundle.js"></script>
@@ -196,30 +200,89 @@
   }
   window.addEventListener("error", (e) => showError(e.message + (e.filename ? ` (${e.filename.split("/").pop()}:${e.lineno})` : "")));
   window.addEventListener("unhandledrejection", (e) => showError("Promise: " + (e.reason?.stack || e.reason)));
-  // The game's downloads (miniquad's XMLHttpRequests) have no time limit: one stalled on a
-  // phone's network left the loading screen waiting forever. One that receives nothing for
-  // 20 s is aborted, which the game takes for a failure and tries again.
-  {
-    const inFlight = new Set();
-    const open = XMLHttpRequest.prototype.open;
-    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-      open.call(this, method, url, ...rest);
-      this.vendettaUrl = url;
-      this.vendettaSeen = performance.now();
-      const seen = () => (this.vendettaSeen = performance.now());
-      this.addEventListener("loadstart", () => (seen(), inFlight.add(this)));
-      this.addEventListener("progress", seen);
-      this.addEventListener("loadend", () => inFlight.delete(this));
-    };
-    setInterval(() => {
-      for (const xhr of inFlight) {
-        if (performance.now() - xhr.vendettaSeen > 20000) {
-          inFlight.delete(xhr);
-          showError(`Téléchargement bloqué, nouvel essai : ${String(xhr.vendettaUrl).split("?")[0]}`);
-          xhr.abort();
+  // Downloads that last on a poor connection (a phone's, a tunnel's): one that receives
+  // nothing for much longer than the server usually takes to answer (5 times as long, from
+  // 1 s to 8 s) is cut and taken up again where it stopped (a Range request, the files never
+  // change under their URLs), at once, then after a pause growing to 2 s.
+  // Only an answer like "not found" fails. At most 6 at a time, the browsers' connections to
+  // a server: queued, the others would seem stalled. While the connection struggles, the
+  // loading screen counts the attempts made again.
+  // How long the server takes to answer, on average (ms).
+  let answerMs = 700;
+  const stallMs = () => Math.min(Math.max(5 * answerMs, 1000), 8000);
+  const MAX_DOWNLOADS = 6;
+  const downloadQueue = [];
+  let downloading = 0;
+  let downloadRetries = 0;
+  const netStatus = document.getElementById("netstatus");
+  function noteRetry() {
+    downloadRetries++;
+    netStatus.textContent = `Connexion instable : ${downloadRetries} reprise${downloadRetries > 1 ? "s" : ""}`;
+    netStatus.hidden = false;
+  }
+  // The bytes at `url`; `onBytes(n)` as they come, `onSize(n)` when their number is known.
+  function download(url, onBytes = () => {}, onSize = () => {}) {
+    return new Promise((resolve, reject) => {
+      downloadQueue.push(() => downloadNow(url, onBytes, onSize).then(resolve, reject));
+      nextDownload();
+    });
+  }
+  function nextDownload() {
+    while (downloading < MAX_DOWNLOADS && downloadQueue.length) {
+      downloading++;
+      downloadQueue.shift()().finally(() => {
+        downloading--;
+        nextDownload();
+      });
+    }
+  }
+  async function downloadNow(url, onBytes, onSize) {
+    let chunks = [];
+    let have = 0;
+    for (let attempt = 0; ; attempt++) {
+      const abort = new AbortController();
+      let seen = performance.now();
+      const watch = setInterval(() => performance.now() - seen > stallMs() && abort.abort(), 250);
+      try {
+        const headers = have > 0 ? { Range: `bytes=${have}-` } : {};
+        const response = await fetch(url, { signal: abort.signal, headers });
+        answerMs = 0.9 * answerMs + 0.1 * (performance.now() - seen);
+        seen = performance.now();
+        if (response.status === 404 || response.status === 403 || response.status === 410) {
+          throw Object.assign(new Error(`${url.split("?")[0]}: ${response.status}`), { final: true });
         }
+        if (!response.ok) throw new Error(`${response.status}`);
+        if (have === 0 && response.headers.get("Content-Length")) onSize(Number(response.headers.get("Content-Length")));
+        // a server without ranges sends it all again
+        if (have > 0 && response.status !== 206) {
+          onBytes(-have);
+          chunks = [];
+          have = 0;
+        }
+        const reader = response.body.getReader();
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          seen = performance.now();
+          chunks.push(value);
+          have += value.length;
+          onBytes(value.length);
+        }
+        const bytes = new Uint8Array(have);
+        let at = 0;
+        for (const c of chunks) {
+          bytes.set(c, at);
+          at += c.length;
+        }
+        return bytes;
+      } catch (e) {
+        if (e.final) throw e;
+        noteRetry();
+        await new Promise((r) => setTimeout(r, Math.min(250 * attempt, 2000)));
+      } finally {
+        clearInterval(watch);
       }
-    }, 1000);
+    }
   }
   // the game's panics and errors go to console.error
   {
@@ -299,6 +362,17 @@
     name: "vendetta_loading",
     version: 1,
     register_plugin: (importObject) => {
+      // The game's files, with the downloads above rather than miniquad's (which never
+      // time out nor resume); failing, the game gets miniquad's failure.
+      importObject.env.fs_load_file = (ptr, len) => {
+        const url = UTF8ToString(ptr, len);
+        const id = FS.unique_id++;
+        download(url).then(
+          (bytes) => (FS.loaded_files[id] = bytes),
+          (e) => (console.warn(e), (FS.loaded_files[id] = null)),
+        ).then(() => wasm_exports.file_loaded(id));
+        return id;
+      };
       importObject.env.vendetta_loading = (done, total, ptr, len) => {
         if (total > 0) {
           // until the game knows its sizes, keep the estimate
@@ -310,6 +384,7 @@
       };
       importObject.env.vendetta_loaded = () => {
         loadingScreen.remove();
+        netStatus.hidden = true;
         bubble.remove();
       };
 
@@ -493,22 +568,15 @@
   // Download the game ourselves to show its progress, then hand it to miniquad's loader.
   const startGame = async () => {
     try {
-      const response = await fetch("client.wasm");
-      if (!response.ok) throw new Error(`client.wasm: ${response.status}`);
-      bytes.wasmTotal = Number(response.headers.get("Content-Length")) || 2000000;
-      const reader = response.body.getReader();
-      const chunks = [];
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        bytes.wasm += value.length;
+      bytes.wasmTotal = 2000000;
+      const wasm = await download("client.wasm", (n) => {
+        bytes.wasm += n;
         bytes.wasmTotal = Math.max(bytes.wasmTotal, bytes.wasm);
         showProgress();
-      }
+      }, (size) => (bytes.wasmTotal = size));
       bytes.wasmTotal = bytes.wasm;
       await storageReady;
-      load(URL.createObjectURL(new Blob(chunks, { type: "application/wasm" })));
+      load(URL.createObjectURL(new Blob([wasm], { type: "application/wasm" })));
     } catch (e) {
       showMessage("&Erreur#" + e.message);
     }
