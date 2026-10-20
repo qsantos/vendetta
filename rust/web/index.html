@@ -57,6 +57,13 @@
   #lobby td { padding: 3px 4px; }
   #lobby tr.offline { color: #999; }
   #lobby .link { font-size: 12px; word-break: break-all; }
+  /* Small screens (phones): the menus keep off the edges, and scroll when taller than it. */
+  @media (max-width: 480px), (max-height: 480px) {
+    #menu { overflow-y: auto; align-items: safe center; }
+    #menu form, #main, #lobby { min-width: 0; max-width: calc(100vw - 24px); box-sizing: border-box;
+                                padding: 12px 16px; margin: 12px auto; }
+    #menu label { grid-template-columns: 1fr 55%; gap: 8px; }
+  }
 </style>
 </head>
 <body>
@@ -326,6 +333,13 @@
     canvas.classList.remove("waiting");
     canvas.focus();
   }
+  // On a touch screen, the game takes the whole screen (no address bar) from the first
+  // button pressed in the menus (it needs a press).
+  document.getElementById("menu").addEventListener("click", (e) => {
+    if (e.target.tagName === "BUTTON" && matchMedia("(pointer: coarse)").matches && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  });
   function begin(items) {
     const kept = items.filter((o) => o !== "new");
     try {
