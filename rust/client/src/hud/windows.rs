@@ -302,6 +302,9 @@ impl Hud {
     }
 
     fn window_visible(&self, world: &World, player: usize, i: usize) -> bool {
+        if crate::layout::touch() {
+            return self.touch.front == Some(i) && (i != 0 || self.in_building(world, player));
+        }
         let p = &world.persos[player];
         match i {
             // Only inside a building (`Afficher_Fenetres`).
@@ -315,8 +318,16 @@ impl Hud {
     pub(super) fn windows(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, orders: &mut Vec<Order>, tip: &mut String) -> bool {
         self.hovered_object = None;
         // `RePositionner_Fenetres`: default positions follow the screen edges; all are clamped.
+        // The touch interface's one window is in the middle.
+        let touch = crate::layout::touch();
         for i in 0..8 {
-            let (x, y) = if self.windows.moved[i] { self.windows.pos[i] } else { (ax(DEFAULT_POS[i].0), ay(DEFAULT_POS[i].1)) };
+            let (x, y) = if touch {
+                ((screen_w() - W) / 2, (screen_h() - H) / 2)
+            } else if self.windows.moved[i] {
+                self.windows.pos[i]
+            } else {
+                (ax(DEFAULT_POS[i].0), ay(DEFAULT_POS[i].1))
+            };
             self.windows.pos[i] = (x.clamp(0, (screen_w() - W).max(0)), y.clamp(0, (screen_h() - H).max(0)));
         }
         let mut hits: Vec<(Rect, Hit)> = Vec::new();
@@ -351,9 +362,11 @@ impl Hud {
                     self.text(x + tx, y + 32, title, BLACK);
                 }
             }
-            // Close and move buttons, opaque.
+            // Close and move buttons, opaque (the touch interface's window does not move).
             cell(textures, ACTION, x + 280, y + 16, 6, 0, (24, 24), true);
-            cell(textures, ACTION, x + 256, y + 16, 8, 0, (24, 24), true);
+            if !touch {
+                cell(textures, ACTION, x + 256, y + 16, 8, 0, (24, 24), true);
+            }
         }
 
         let m = input.mouse;
@@ -388,6 +401,19 @@ impl Hud {
             }
         }
 
+        // A finger dragging on a window scrolls its list, a row per 24 pixels.
+        if touch && input.drag.1 != 0.0 {
+            if let Some(i) = (0..8).find(|&i| self.window_visible(world, player, i) && inside(m, self.windows.pos[i].0, self.windows.pos[i].1, W, H)) {
+                if let Some((list, n)) = self.scroll_list(world, rules, player, i) {
+                    self.touch.window_dragged += input.drag.1;
+                    let rows = (self.touch.window_dragged / 24.0).trunc();
+                    self.touch.window_dragged -= rows * 24.0;
+                    let offset = self.scroll_offset(list);
+                    *offset = (*offset as i64 - rows as i64).clamp(0, n as i64) as usize;
+                }
+            }
+        }
+
         // Window buttons, in the original's precedence: contents, then close/move.
         for (r, hit) in &hits {
             if inside(m, r.x as i32, r.y as i32, r.w as i32, r.h as i32) {
@@ -416,15 +442,18 @@ impl Hud {
                 continue;
             }
             let (x, y) = self.windows.pos[i];
-            if inside(m, x + 280, y + 16, 24, 24) {
+            // (for a finger, the close button reaches to the window's corner)
+            if inside(m, x + 280, y + 16, 24, 24) || touch && inside(m, x + 264, y, W - 264, 48) {
                 *tip = self.windows.strings.close.clone();
-                if input.left_pressed {
+                if input.left_pressed && touch {
+                    self.touch.front = None;
+                } else if input.left_pressed {
                     let b = if i == 7 { 8 } else { i };
                     self.info_enabled[b] = !self.info_enabled[b];
                 }
                 return true;
             }
-            if inside(m, x + 256, y + 16, 24, 24) {
+            if !touch && inside(m, x + 256, y + 16, 24, 24) {
                 *tip = self.windows.strings.move_.clone();
                 if input.left_pressed {
                     self.windows.dragging = Some(i);
@@ -489,8 +518,9 @@ impl Hud {
                 return true;
             }
         }
-        // Clicks on empty window areas go through to the map, like the original.
-        false
+        // Clicks on empty window areas go through to the map, like the original; not taps,
+        // which would be surprising there.
+        touch && self.over_window(world, rules, player, m).is_some()
     }
 
     fn title(&self, origin: (i32, i32), title: &str) {

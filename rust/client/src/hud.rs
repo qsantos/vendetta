@@ -7,6 +7,7 @@ mod messages;
 mod object_tooltip;
 mod shortcuts;
 mod temp_effects;
+mod touch;
 mod windows;
 
 pub use buttons::Input;
@@ -14,7 +15,7 @@ pub use object_tooltip::TooltipLabels;
 pub use windows::WindowStrings;
 
 use crate::assets::Textures;
-use crate::layout::{ax, ay, cx};
+use crate::layout::{ax, ay, cx, touch};
 use crate::text::TextRenderer;
 use macroquad::prelude::*;
 use sim::files::Files;
@@ -147,6 +148,7 @@ pub struct Hud {
     fps: u32,
     frames: u32,
     fps_timer: f64,
+    touch: touch::Touch,
 }
 
 /// Images the HUD needs.
@@ -289,6 +291,7 @@ impl Hud {
             fps: 0,
             frames: 0,
             fps_timer: get_time(),
+            touch: Default::default(),
         }
     }
 
@@ -319,6 +322,7 @@ impl Hud {
         self.placing = None;
         self.radial = None;
         self.windows.forget_character();
+        self.touch = Default::default();
     }
 
     /// Lines of text under the FPS counter, in white (the `#perf` timings).
@@ -328,10 +332,12 @@ impl Hud {
         }
     }
 
-    /// Network play: the players away, above the status bars (`&` for red).
+    /// Network play: the players away, above the status bars (`&` for red); above the action
+    /// line too where the touch interface puts it there.
     pub fn absent_lines(&self, lines: &[String]) {
+        let bottom = if touch() && !crate::layout::bar_vertical() { 654 } else { 670 };
         for (i, line) in lines.iter().rev().enumerate() {
-            self.text(8, crate::layout::ay(670 - 16 * i as i32), line, WHITE);
+            self.text(8, crate::layout::ay(bottom - 16 * i as i32), line, WHITE);
         }
     }
 
@@ -390,7 +396,10 @@ impl Hud {
 
         self.draw_statistics();
         self.draw_epoch(world, rules, p);
-        self.draw_object_slots(world, rules, textures, player);
+        let touch = touch();
+        if !touch {
+            self.draw_object_slots(world, rules, textures, player);
+        }
         self.draw_temp_effects(world, rules, textures, player);
         // What only changes with the world is made again once per tick.
         if self.cache_tick != Some(world.tick) {
@@ -398,11 +407,17 @@ impl Hud {
             self.refresh_build_buttons(world, rules, player);
             self.statistics = self.statistics_text(world, rules, player);
         }
-        self.slide_buttons(world, rules, player, input.mouse);
-        self.draw_move_buttons(textures, world, player);
-        self.draw_build_buttons(textures);
-        self.text(152, ay(745), &self.action_message(rules, p), WHITE_);
-        self.draw_info_buttons(textures);
+        if !touch {
+            self.slide_buttons(world, rules, player, input.mouse);
+            self.draw_move_buttons(textures, world, player);
+            self.draw_build_buttons(textures);
+        }
+        // On a narrow screen, the touch interface has no room right of the bars: above them.
+        let (x, y) = if touch && !crate::layout::bar_vertical() { (8, ay(673)) } else { (152, ay(745)) };
+        self.text(x, y, &self.action_message(rules, p), WHITE_);
+        if !touch {
+            self.draw_info_buttons(textures);
+        }
         let mut tip = String::new();
         if self.swallow_release && input.left_released {
             self.swallow_release = false;
@@ -413,6 +428,18 @@ impl Hud {
             self.radial_buttons(world, rules, textures, player, input);
             return true;
         }
+        if touch {
+            self.update_front(world, player);
+            // Under an open panel, the window takes no taps.
+            let blocked = Input { left_pressed: false, left_released: false, right_pressed: false, ..*input };
+            let window_input = if self.touch.panel.is_some() { &blocked } else { input };
+            let on_window = self.windows(world, rules, textures, player, window_input, orders, &mut tip);
+            let (on_touch, panel_tip) = self.touch_controls(world, rules, textures, player, input, orders);
+            if let Some(t) = panel_tip {
+                tip = t;
+            }
+            return self.interact(world, rules, player, if on_touch { &blocked } else { input }, orders, on_window || on_touch, tip);
+        }
         let on_window = self.windows(world, rules, textures, player, input, orders, &mut tip);
         self.interact(world, rules, player, input, orders, on_window, tip)
     }
@@ -422,20 +449,14 @@ impl Hud {
     pub fn overlay(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, placement: Option<i32>, hover: Option<(i32, usize)>) {
         // `Afficher_Objet_Curseur`: the money and resources selected, in a bubble under the
         // cursor (at most what is owned, `Ressources_Verifications`), then the held object.
+        // (with the touch interface, on the bar's button that puts them back)
         let p = &world.persos[player];
-        let mut lines = Vec::new();
-        if p.selected_money.min(p.money()) > 0.0 {
-            lines.push(format!("Argent : {}", p.selected_money.min(p.money()) as i64));
+        let touch = touch();
+        if !touch {
+            self.tooltip((input.mouse.0 - 12, input.mouse.1 - 12), &self.selection_lines(world, rules, player).join("#"));
         }
-        for (r, resource) in rules.resources.iter().enumerate() {
-            let n = p.selected_resources.get(r).map_or(0.0, |&n| n.min(p.resource(r)));
-            if n >= 1.0 {
-                lines.push(format!("{} : {}", resource.name, n as i64));
-            }
-        }
-        self.tooltip((input.mouse.0 - 12, input.mouse.1 - 12), &lines.join("#"));
         let held = p.selected_object;
-        if held >= 0 {
+        if held >= 0 && !touch {
             let path = format!("{}.bmp", rules.objects[held as usize].image);
             if let Some(tex) = textures.get(&path) {
                 let src = Rect::new(0.0, 0.0, 32.0, 32.0);
@@ -447,20 +468,34 @@ impl Hud {
             Some((c, _)) if c <= 17 => c,
             _ => 0,
         });
-        if let Some(tex) = textures.get(CURSOR) {
-            tex.draw_ex(
-                input.mouse.0 as f32,
-                input.mouse.1 as f32,
-                WHITE,
-                DrawTextureParams { source: Some(Rect::new(24.0 * cursor as f32, 0.0, 24.0, 24.0)), ..Default::default() },
-            );
+        // A finger hides what is under it: the touch interface shows what a tap would do above
+        // it, while it is down, and no arrow.
+        let (m, shown) = if touch { ((input.mouse.0 - 12, input.mouse.1 - 64), input.hover && cursor != 0 && placement.is_none()) } else { (input.mouse, true) };
+        if let Some(tex) = textures.get(CURSOR).filter(|_| shown) {
+            tex.draw_ex(m.0 as f32, m.1 as f32, WHITE, DrawTextureParams { source: Some(Rect::new(24.0 * cursor as f32, 0.0, 24.0, 24.0)), ..Default::default() });
         }
-        if let (None, Some((code, hit))) = (placement, hover) {
-            self.terrain_bubble(world, rules, player, code, hit, input.mouse);
+        if let (None, Some((code, hit)), true) = (placement, hover, input.hover) {
+            self.terrain_bubble(world, rules, player, code, hit, if touch { (input.mouse.0, input.mouse.1 - 104) } else { input.mouse });
         }
         if !crate::options::test_mode() {
             self.text(ax(940), 0, &format!("{} {:02}", self.strings.fps, self.fps), WHITE_);
         }
+    }
+
+    /// The money and resources selected (at most what is owned, `Ressources_Verifications`).
+    fn selection_lines(&self, world: &World, rules: &Rules, player: usize) -> Vec<String> {
+        let p = &world.persos[player];
+        let mut lines = Vec::new();
+        if p.selected_money.min(p.money()) > 0.0 {
+            lines.push(format!("Argent : {}", p.selected_money.min(p.money()) as i64));
+        }
+        for (r, resource) in rules.resources.iter().enumerate() {
+            let n = p.selected_resources.get(r).map_or(0.0, |&n| n.min(p.resource(r)));
+            if n >= 1.0 {
+                lines.push(format!("{} : {}", resource.name, n as i64));
+            }
+        }
+        lines
     }
 
     /// `Afficher_Stastistiques`: one line per active fief, bottom-aligned at y=745.

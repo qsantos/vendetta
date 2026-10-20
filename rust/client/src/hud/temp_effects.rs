@@ -14,7 +14,9 @@ const FADE: i64 = 5;
 /// `Actualiser_Effets_Temporaires`: icon `i` sits after the 9 shortcut slots
 /// (`EffetTemporatirePositionX + EffetTemporatireIntervalX * (i + NombreRaccourciObjets)`).
 fn effect_pos(i: usize) -> (i32, i32) {
-    (56 + 32 * (i as i32 + 9), 0)
+    // the touch interface has no shortcut slots before them
+    let first = if crate::layout::touch() { 0 } else { 9 };
+    (56 + 32 * (i as i32 + first), 0)
 }
 
 impl Hud {

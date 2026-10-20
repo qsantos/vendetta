@@ -85,6 +85,14 @@ impl TextRenderer {
         }
     }
 
+    /// A line's width in interface pixels.
+    pub fn width(&self, s: &str) -> i32 {
+        let scale = self.scale.get();
+        let mut glyphs = self.glyphs.borrow_mut();
+        let w: f32 = s.chars().map(|c| glyphs.entry(c).or_insert_with(|| self.rasterise(c)).advance / scale).sum();
+        w.ceil() as i32
+    }
+
     /// Draws one line with its baseline at `baseline` (interface pixels).
     pub fn draw(&self, s: &str, x: i32, baseline: i32, colour: Color) {
         let scale = self.scale.get();

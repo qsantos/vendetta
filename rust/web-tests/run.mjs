@@ -24,7 +24,9 @@ const CHROME_PORT = 9399;
 const [W, H] = [1024, 768];
 
 // Steps: ["move", x, y], ["left", x, y], ["right", x, y], ["key", code], ["wheel", x, y, dy],
-// ["wait", seconds].
+// ["wait", seconds]; with a finger: ["tap", x, y], ["press", x, y] (kept down for the
+// screenshot), ["swipe", x0, y0, x1, y1].
+// A scene with `phone: [w, h]` plays on a touch screen of that size (the touch interface).
 const SCENES = {
   // The game as it starts: the player in the castle, its trade window open.
   start: { hash: "seed=1", steps: [["move", 512, 600]] },
@@ -61,6 +63,24 @@ const SCENES = {
   // …and Page Up comes back to the first player and its filled bag.
   switch_back: { hash: "seed=1&players=1+3&inventory=Hache+Marteau:2+40:3", steps: [["key", "KeyI"], ["key", "PageDown"], ["key", "PageUp"], ["move", 512, 600]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
+  // The touch interface on a phone held sideways: the bar on the right, the castle's window.
+  touch_start: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [] },
+  // …held upright: the bar at the bottom.
+  touch_portrait: { hash: "seed=1&layout=touch", phone: [360, 740], steps: [] },
+  // The bar's panels, each entry with what its tooltip tells first.
+  touch_build: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 30]] },
+  touch_move: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 88]] },
+  touch_windows: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 146]] },
+  // The build panel scrolled, a building out of reach tapped: its tooltip says why.
+  touch_build_scroll: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 30], ["swipe", 400, 300, 400, 100], ["tap", 300, 200]] },
+  // A building being placed: dragged on the map, its tooltip at the top, confirmed on the bar.
+  touch_placing: { hash: "seed=1&layout=touch&god", phone: [800, 360], steps: [["tap", 770, 30], ["tap", 290, 30], ["swipe", 300, 250, 250, 200]] },
+  // A finger held on the map: what a tap would do, above it.
+  touch_press: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 490, 40], ["press", 370, 190]] },
+  // Upright, the panels open above the bar.
+  touch_portrait_move: { hash: "seed=1&layout=touch", phone: [360, 740], steps: [["tap", 92, 700]] },
+  // Lists scroll under a dragging finger.
+  touch_scroll: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["swipe", 300, 300, 300, 150]] },
 };
 
 /// Errors the page reported, shown when a scene cannot load.
@@ -203,6 +223,7 @@ async function play(send, scene) {
   }
   await sleep(1);
   const mouse = (type, x, y, extra = {}) => send("Input.dispatchMouseEvent", { type, x, y, ...extra });
+  const finger = (type, points) => send("Input.dispatchTouchEvent", { type, touchPoints: points.map(([x, y]) => ({ x, y })) });
   for (const [kind, ...a] of scene.steps) {
     if (kind === "move") await mouse("mouseMoved", a[0], a[1]);
     else if (kind === "left" || kind === "right") {
@@ -217,11 +238,29 @@ async function play(send, scene) {
       await send("Input.dispatchKeyEvent", { type: "keyUp", code: a[0], key: a[0].replace(/^Key/, "").toLowerCase() });
     } else if (kind === "wheel") await mouse("mouseWheel", a[0], a[1], { deltaX: 0, deltaY: a[2] });
     else if (kind === "wait") await sleep(a[0]);
+    else if (kind === "tap") {
+      await finger("touchStart", [[a[0], a[1]]]);
+      await sleep(0.1);
+      await finger("touchEnd", []);
+    } else if (kind === "press") {
+      await finger("touchStart", [[a[0], a[1]]]);
+      await sleep(0.3);
+    } else if (kind === "swipe") {
+      await finger("touchStart", [[a[0], a[1]]]);
+      for (let k = 1; k <= 10; k++) {
+        await sleep(0.03);
+        await finger("touchMove", [[a[0] + ((a[2] - a[0]) * k) / 10, a[1] + ((a[3] - a[1]) * k) / 10]]);
+      }
+      await sleep(0.1);
+      await finger("touchEnd", []);
+    }
     await sleep(0.2);
   }
   // let the interface's slides and tooltips settle
   await sleep(0.5);
   const shot = await send("Page.captureScreenshot", { format: "png" });
+  // a finger left down would still be down on the next scene's page
+  if (scene.phone) await finger("touchEnd", []);
   return Buffer.from(shot.result.data, "base64");
 }
 
@@ -257,9 +296,12 @@ let failed = 0;
 try {
   const { ws, send } = await connect();
   await send("Runtime.enable");
-  await send("Emulation.setDeviceMetricsOverride", { width: W, height: H, deviceScaleFactor: 1, mobile: false });
   mkdirSync(join(here, "golden"), { recursive: true });
   for (const name of scenes) {
+    const phone = SCENES[name].phone;
+    const [width, height] = phone ?? [W, H];
+    await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: !!phone });
+    await send("Emulation.setTouchEmulationEnabled", { enabled: !!phone, maxTouchPoints: 5 });
     const png = await play(send, SCENES[name]);
     const golden = join(here, "golden", `${name}.png`);
     if (update || !existsSync(golden)) {
@@ -268,7 +310,7 @@ try {
       continue;
     }
     const { differing, diff } = compare(decodePng(png), decodePng(readFileSync(golden)));
-    const share = differing / (W * H);
+    const share = differing / (width * height);
     if (share <= 0.001) {
       console.log(`${name}: ok (${differing} pixels differ)`);
     } else {

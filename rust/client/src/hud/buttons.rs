@@ -17,12 +17,34 @@ pub struct Input {
     pub right_pressed: bool,
     pub ctrl: bool,
     pub shift: bool,
+    /// The pointer is over the screen: always with a mouse, only while a finger is down with
+    /// the touch interface (where the cursor is not shown otherwise).
+    pub hover: bool,
+    /// How far a finger dragged this frame, in interface pixels.
+    pub drag: (f32, f32),
 }
 
 impl Input {
+    /// With the touch interface: a tap clicks where the finger came off; nothing else does.
+    /// `ui`: frame pixels per interface pixel.
+    pub fn from_fingers(mouse: (i32, i32), fingers: &crate::touch::Frame, ui: f32) -> Input {
+        Input {
+            mouse,
+            left_pressed: fingers.tap,
+            left_released: fingers.tap,
+            right_pressed: false,
+            ctrl: false,
+            shift: false,
+            hover: fingers.down,
+            drag: fingers.drag.map_or((0.0, 0.0), |(x, y)| (x / ui, y / ui)),
+        }
+    }
+
     pub fn poll(mouse: (i32, i32)) -> Input {
         Input {
             mouse,
+            hover: true,
+            drag: (0.0, 0.0),
             left_pressed: is_mouse_button_pressed(MouseButton::Left),
             left_released: is_mouse_button_released(MouseButton::Left),
             right_pressed: is_mouse_button_pressed(MouseButton::Right),
@@ -32,13 +54,13 @@ impl Input {
     }
 }
 
-fn button_image(rules: &Rules, kind: Option<usize>) -> String {
+pub(super) fn button_image(rules: &Rules, kind: Option<usize>) -> String {
     let name = kind.map_or("_Demolir", |k| &rules.buildings[k].button_image);
     format!("Images/Boutons/Construire/{name}.bmp")
 }
 
 /// The build buttons: index 0 demolishes, then the playable buildings in `BatimentsTri` order.
-fn build_buttons(rules: &Rules) -> Vec<Option<usize>> {
+pub(super) fn build_buttons(rules: &Rules) -> Vec<Option<usize>> {
     std::iter::once(None)
         .chain(rules.building_order.iter().copied().filter(|&k| rules.buildings[k].playable).map(Some))
         .collect()
@@ -48,8 +70,21 @@ pub fn images(rules: &Rules) -> Vec<String> {
     build_buttons(rules).into_iter().map(|k| button_image(rules, k)).collect()
 }
 
+/// A tooltip's text size (without its border), 7 pixels a character.
+pub(super) fn tooltip_size(s: &str) -> (i32, i32) {
+    let lines: Vec<&str> = s.split('#').collect();
+    // Each line's length includes its separator, except the last one.
+    let max_len = lines
+        .iter()
+        .enumerate()
+        .map(|(i, l)| l.chars().count() + (i + 1 < lines.len()) as usize)
+        .max()
+        .unwrap_or(0) as i32;
+    (max_len * 7, lines.len() as i32 * 16)
+}
+
 /// `Interieur_Bouton`: inclusive on both ends.
-fn inside(m: (i32, i32), x: i32, y: i32, w: i32, h: i32) -> bool {
+pub(super) fn inside(m: (i32, i32), x: i32, y: i32, w: i32, h: i32) -> bool {
     m.0 >= x && m.0 <= x + w && m.1 >= y && m.1 <= y + h
 }
 
@@ -96,7 +131,7 @@ fn info_button_pos(i: usize) -> (i32, i32) {
 
 impl Hud {
     /// Which move buttons are shown (`Afficher_BoutonsDeplacement`).
-    fn move_visible(&self, world: &World, player: usize, i: usize) -> bool {
+    pub(super) fn move_visible(&self, world: &World, player: usize, i: usize) -> bool {
         let p = &world.persos[player];
         match i {
             0 => world.castles[p.fief].visible(),
@@ -191,7 +226,7 @@ impl Hud {
 
     /// `Definir_InfoBulle_Batiment`
     /// `details` counts the workshop's objects to list (`(seconds hovered - 2) / 0.3`).
-    fn build_tooltip(&self, world: &World, rules: &Rules, player: usize, kind: Option<usize>, state: i32, details: f64) -> String {
+    pub(super) fn build_tooltip(&self, world: &World, rules: &Rules, player: usize, kind: Option<usize>, state: i32, details: f64) -> String {
         let Some(k) = kind else {
             return format!("{}{}", if state == 1 { "" } else { "&" }, self.strings.demolish);
         };
@@ -261,15 +296,7 @@ impl Hud {
         if s.is_empty() {
             return;
         }
-        let lines: Vec<&str> = s.split('#').collect();
-        // Each line's length includes its separator, except the last one.
-        let max_len = lines
-            .iter()
-            .enumerate()
-            .map(|(i, l)| l.chars().count() + (i + 1 < lines.len()) as usize)
-            .max()
-            .unwrap_or(0) as i32;
-        let (w, h) = (max_len * 7, lines.len() as i32 * 16);
+        let (w, h) = tooltip_size(s);
         let (mut x, mut y) = (m.0 + 24, m.1 + 20);
         if x < 0 {
             x = 0;
@@ -302,8 +329,10 @@ impl Hud {
         let perso = player;
         let mut on_ui = on_window;
 
-        // Build buttons (the hover timer restarts when none is hovered)
-        let kinds = build_buttons(rules);
+        // Build buttons (the hover timer restarts when none is hovered); the touch interface
+        // has its own buttons instead of these, the move, info and shortcut ones.
+        let touch = crate::layout::touch();
+        let kinds = if touch { Vec::new() } else { build_buttons(rules) };
         if !kinds.iter().enumerate().any(|(i, _)| {
             let (x, y) = build_button_pos(i, self.build_slide);
             inside(m, x, y, 28, 28)
@@ -335,7 +364,7 @@ impl Hud {
         }
 
         // Move buttons
-        if !on_ui {
+        if !on_ui && !touch {
             for i in (0..18).filter(|&i| self.move_visible(world, player, i)) {
                 let (x, y) = move_button_pos(i, self.move_slide);
                 if !inside(m, x, y, 28, 28) {
@@ -364,7 +393,7 @@ impl Hud {
         }
 
         // Info buttons
-        if !on_ui {
+        if !on_ui && !touch {
             for i in 0..8 {
                 let (x, y) = info_button_pos(i);
                 if inside(m, x, y, 24, 24) {
@@ -379,7 +408,7 @@ impl Hud {
         }
 
         // Object shortcut slots
-        if !on_ui {
+        if !on_ui && !touch {
             if let Some(t) = self.object_slot_buttons(world, rules, player, input, orders) {
                 on_ui = true;
                 tip = t;
@@ -411,7 +440,7 @@ impl Hud {
     /// The command of move button `i` or its key (`ClsInterface.cls:3955-4050`,
     /// `ClsIntTouches.cls:540-610`). With `right` (a right click) or a modifier, the attack
     /// buttons also send the soldiers; Ctrl (or Shift) on the home button enters without repairing.
-    fn move_order(&mut self, world: &World, player: usize, i: usize, right: bool) -> Option<Order> {
+    pub(super) fn move_order(&mut self, world: &World, player: usize, i: usize, right: bool) -> Option<Order> {
         let perso = player;
         let p = &world.persos[player];
         let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
@@ -626,6 +655,11 @@ impl Hud {
     /// `centre` is the cursor's centre in world pixels.
     pub fn map_input(&mut self, world: &World, rules: &Rules, player: usize, input: &Input, centre: (i32, i32), orders: &mut Vec<Order>) -> bool {
         let Some(kind) = self.placing else { return false };
+        // With the touch interface the building goes where the finger drags it, and the bar
+        // confirms it: taps on the map are only for that.
+        if crate::layout::touch() {
+            return input.left_released;
+        }
         if input.right_pressed {
             self.placing = None;
             return true;
@@ -645,7 +679,7 @@ impl Hud {
 
     /// The building's world rectangle under the cursor and whether it can be placed there.
     /// Centred on the cursor's centre (`mouse + 12`: the cursor is 24×24, hot spot top-left).
-    fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, centre: (i32, i32)) -> (i32, i32, bool) {
+    pub(super) fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, centre: (i32, i32)) -> (i32, i32, bool) {
         let (w, h) = rules.buildings[kind].size;
         let x = centre.0 - w / 2;
         let y = centre.1 - h / 2;

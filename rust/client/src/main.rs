@@ -11,6 +11,7 @@ mod perf;
 mod render;
 mod storage;
 mod text;
+mod touch;
 
 use macroquad::prelude::*;
 use layout::{MIN_H, MIN_W};
@@ -359,6 +360,14 @@ async fn main() {
     // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
     let mut pressed_on_map = false;
     let mut perf = perf::Perf::default();
+    let touch = layout::touch();
+    // With the touch interface the fingers are read as such, not as a mouse.
+    if touch {
+        simulate_mouse_with_touch(false);
+    }
+    let mut gestures = touch::Gestures::default();
+    // How far the fingers have pinched since the zoom last changed.
+    let mut pinched = 1.0f32;
     loop {
         let frame_start = perf::now();
         perf.frame();
@@ -380,6 +389,8 @@ async fn main() {
         let dpi = screen_dpi_scale();
         let (w, h) = ((screen_width() * dpi) as i32, (screen_height() * dpi) as i32);
         let (zoom, ui) = scales.effective();
+        // The touch interface fits a window in the screen's shorter side, whatever the setting.
+        let ui = if touch { w.min(h) as f32 / layout::TOUCH_SIDE } else { ui };
         let view_f = (w as f32 / zoom, h as f32 / zoom);
         let new_view = (view_f.0.ceil() as i32, view_f.1.ceil() as i32);
         if new_view != view {
@@ -395,17 +406,32 @@ async fn main() {
             cam = c;
         }
         hud.set_view(cam, view);
-        let (mx, my) = mouse_position();
-        let (mx, my) = (mx * dpi, my * dpi);
+        let fingers = if touch { gestures.poll(dpi) } else { touch::Frame::default() };
+        let (mx, my) = if touch {
+            fingers.pos
+        } else {
+            let (mx, my) = mouse_position();
+            (mx * dpi, my * dpi)
+        };
         // The interface's mouse (`SourisX/Y`), clamped to the screen like the original.
         let (hx, hy) = (((mx / ui) as i32).clamp(0, hud_size.0), ((my / ui) as i32).clamp(0, hud_size.1));
-        let input = hud::Input::poll((hx, hy));
+        let input = if touch { hud::Input::from_fingers((hx, hy), &fingers, ui) } else { hud::Input::poll((hx, hy)) };
         // What is under the cursor on the map (`Obstacle` on the cursor's top-left).
         let to_world = |p: f32, c: i32| c + (p / zoom).floor() as i32;
         let (wx, wy) = (to_world(mx, cam.0), to_world(my, cam.1));
         let (hover, hit) = cursor_type(&world, &rules, player, wx, wy);
-        // The cursor image is drawn at the interface's scale: its centre on the map.
-        let centre = (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1));
+        // The cursor image is drawn at the interface's scale: its centre on the map. With the
+        // touch interface, the building being placed starts in the middle of the screen, then
+        // goes where the fingers drag or tap it.
+        let centre = if touch {
+            let on_map = !hud.over_touch_ui(&world, &rules, player, (hx, hy));
+            let drag = fingers.drag.filter(|_| on_map).map_or((0.0, 0.0), |(dx, dy)| (dx / zoom, dy / zoom));
+            let tap = (on_map && fingers.tap).then_some((wx, wy));
+            let (fw, fh) = (layout::screen_w() as f32 * ui, layout::screen_h() as f32 * ui);
+            hud.touch_ghost(drag, tap, (to_world(fw / 2.0, cam.0), to_world(fh / 2.0, cam.1)))
+        } else {
+            (to_world(mx + 12.0 * ui, cam.0), to_world(my + 12.0 * ui, cam.1))
+        };
 
         set_camera(&camera(view_f));
         clear_background(BLACK);
@@ -557,6 +583,20 @@ async fn main() {
                 None => {}
             }
             scales.store();
+        }
+
+        // Two fingers zoom the map, a step each time they have pinched by a quarter.
+        if !fingers.down {
+            pinched = 1.0;
+        }
+        pinched *= fingers.pinch;
+        if touch && (pinched > 1.25 || pinched < 0.8) {
+            let up = pinched > 1.0;
+            pinched = 1.0;
+            if up || view.0 < world.terrain.width as i32 * sim::terrain::CELL || view.1 < world.terrain.height as i32 * sim::terrain::CELL {
+                scales.zoom = step(&ZOOMS, scales.zoom, up);
+                scales.store();
+            }
         }
 
         // Every tick due by now, so that the world keeps its pace when frames are slower than
