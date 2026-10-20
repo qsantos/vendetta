@@ -111,3 +111,49 @@ fn language_mods_change_only_text() {
     }
     assert!(errors.is_empty(), "{} numbers in language mods:\n{}", errors.len(), errors.join("\n"));
 }
+
+/// Each language's names and descriptions land on the records of the French ones: in every
+/// language, a record has a text wherever the French has one, and nowhere else (the official
+/// mods' language overlays carry them; a wrong header there names other records).
+#[test]
+fn language_texts_fill_the_same_records() {
+    use sim::params::{Kind, Params};
+    let Some(root) = data() else { return };
+    let files = sim::files::Files::from_dir(root.parent().unwrap()).unwrap();
+    let french = Params::load(&files, "Francais").unwrap();
+    const KINDS: [Kind; 11] = [
+        Kind::Ressources,
+        Kind::TerrainRessources,
+        Kind::Batiments,
+        Kind::CompetencesObjets,
+        Kind::Objets,
+        Kind::Peuples,
+        Kind::Effets,
+        Kind::Races,
+        Kind::Decors,
+        Kind::Resistances,
+        Kind::Statuts,
+    ];
+    const TEXTS: [&str; 9] = ["Nom", "NomPluriel", "NomM", "NomF", "Description", "MetierM", "MetierF", "Metier", "NomEffet"];
+    let mut errors = Vec::new();
+    // (the original's English has a few gaps, where its French shows)
+    for language in sim::rules::languages(&files).iter().filter(|l| !["Francais", "English"].contains(&l.folder.as_str())) {
+        let other = Params::load(&files, &language.folder).unwrap();
+        for kind in KINDS {
+            let (a, b) = (french.list(kind), other.list(kind));
+            if a.len() != b.len() {
+                errors.push(format!("{}: {kind:?}: {} records, in French {}", language.folder, b.len(), a.len()));
+                continue;
+            }
+            for (i, (ra, rb)) in a.iter().zip(b).enumerate() {
+                for key in TEXTS {
+                    let has = |r: &sim::params::Record, suffix: &str| r.get_l(key, suffix).is_some_and(|t| !t.trim().is_empty());
+                    if has(ra, "FR") != has(rb, &language.suffix) {
+                        errors.push(format!("{}: {kind:?} {i} {key}: {:?}, in French {:?}", language.folder, rb.get_l(key, &language.suffix), ra.get_l(key, "FR")));
+                    }
+                }
+            }
+        }
+    }
+    assert!(errors.is_empty(), "{} differences:\n{}", errors.len(), errors.join("\n"));
+}

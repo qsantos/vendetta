@@ -91,44 +91,102 @@ def base(key):
     return k[:-2] if k.upper().endswith("EN") and len(k) > 2 else k
 
 
-def params_texts(donnees):
-    """{place: (French, English)} of the parameter files' texts: the keys the English translates,
-    in place (`NomEN`) or in its mod folder."""
+def text_keys(donnees):
+    """The parameter keys that are text (lowercase, without language suffix or index): those the
+    English translates, in place (`NomEN`) or in its mod folder."""
+    keys = set()
     english_mods = os.path.join(donnees, "ModsOfficiels", "English")
-    overlay = {}
-    text_keys = set()
     for name in os.listdir(english_mods):
         if name.lower().endswith(".ini"):
-            for _, section, key, _, inner in entries(read(os.path.join(english_mods, name))):
-                overlay[f"{name}|{section}|{key}"] = inner
-                text_keys.add(base(key).lower())
-    files = sorted(n for n in os.listdir(donnees) if n.startswith("Parametres_") and n.endswith(".ini"))
-    for name in files:
+            for _, _, key, _, _ in entries(read(os.path.join(english_mods, name))):
+                keys.add(base(key).lower())
+    for name in parameter_files(donnees):
         for _, _, key, _, _ in entries(read(os.path.join(donnees, name))):
             k = key.split("(")[0].split("#")[0].strip()
             if k.upper().endswith("EN") and len(k) > 2:
-                text_keys.add(k[:-2].lower())
-    text_keys -= IDENTIFIERS
+                keys.add(k[:-2].lower())
+    return keys - IDENTIFIERS
+
+
+def parameter_files(donnees):
+    return sorted(n for n in os.listdir(donnees) if n.startswith("Parametres_") and n.endswith(".ini"))
+
+
+def plain(key, keys):
+    """The key a text is set with for any language: `NomFR(2)` → `Nom(2)` (a text key whose French
+    is suffixed); None for a key that is not text (`NomEN`, `FemininFR`, numbers)."""
+    k = key.split("#")[0]
+    head = k.split("(")[0].strip()
+    if head.lower() in keys:
+        return k
+    if head.upper().endswith("FR") and head[:-2].lower() in keys:
+        return head[:-2] + k[len(head) :]
+    return None
+
+
+def params_texts(donnees):
+    """{place: (French, English)} of the parameter files' texts."""
+    keys = text_keys(donnees)
+    english_mods = os.path.join(donnees, "ModsOfficiels", "English")
+    overlay = {}
+    for name in os.listdir(english_mods):
+        if name.lower().endswith(".ini"):
+            for _, section, key, _, inner in entries(read(os.path.join(english_mods, name))):
+                overlay[f"{name}|{section}|{plain(key, keys) or key}"] = inner
     out = {}
-    for name in files:
+    for name in parameter_files(donnees):
         records = {}
         for _, section, key, _, inner in entries(read(os.path.join(donnees, name))):
             records.setdefault(section, []).append((key, inner))
-        for section, keys in records.items():
+        for section, fields in records.items():
             en_inplace = {}
-            for key, inner in keys:
+            for key, inner in fields:
                 k = key.split("#")[0]
                 head = k.split("(")[0].strip()
-                if head.upper().endswith("EN") and head[:-2].lower() in text_keys:
-                    en_inplace[head[:-2] + k[len(head):]] = inner
-            for key, inner in keys:
-                k = key.split("#")[0]
-                if base(k).lower() not in text_keys or base(k) != k.split("(")[0].strip() or not is_text(inner):
+                if head.upper().endswith("EN") and head[:-2].lower() in keys:
+                    en_inplace[head[:-2] + k[len(head) :]] = inner
+            for key, inner in fields:
+                to = plain(key, keys)
+                if to is None or not is_text(inner):
                     continue
-                place = f"{name}|{section}|{key}"
-                english = en_inplace.get(k, overlay.get(place))
-                out[place] = (inner, english)
+                english = en_inplace.get(to, overlay.get(f"{name}|{section}|{to}"))
+                out[f"{name}|{section}|{key}"] = (inner, english)
     return out
+
+
+TIPS = "Info_Conseils.txt"
+
+
+def tips(text):
+    """`Info_Conseils.txt` (see `MessageLog::load` in client/src/hud/messages.rs): its first line,
+    shown before each tip, then the tips, each starting with `-` and going on over the next lines
+    (one log line each); `#` lines are comments."""
+    lines = text.replace("\r", "").split("\n")
+    out = []
+    for line in lines[1:]:
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("-") or not out:
+            out.append(line)
+        else:
+            out[-1] += "\n" + line
+    return lines[0], out
+
+
+def tips_texts(donnees, folder):
+    path = os.path.join(donnees, folder, TIPS)
+    if not os.path.exists(path):
+        return {}
+    first, items = tips(read(path))
+    return {f"{TIPS}|first|": first, **{f"{TIPS}|tip|{n}": t for n, t in enumerate(items)}}
+
+
+def tips_file(text, texts):
+    """The tips file with its texts in `texts`, the French ones elsewhere."""
+    first, items = tips(text)
+    first = texts.get(f"{TIPS}|first|", first)
+    items = [texts.get(f"{TIPS}|tip|{n}", t) for n, t in enumerate(items)]
+    return first + "\n\n" + "\n".join(items) + "\n"
 
 
 def extract(assets, out):
@@ -136,6 +194,8 @@ def extract(assets, out):
     french, english = folder_texts(donnees, "Francais"), folder_texts(donnees, "English")
     items = [{"place": p, "fr": t, "en": english.get(p)} for p, t in french.items()]
     items += [{"place": p, "fr": fr, "en": en} for p, (fr, en) in params_texts(donnees).items()]
+    # the English tips are other ones: no match by number
+    items += [{"place": p, "fr": t, "en": None} for p, t in tips_texts(donnees, "Francais").items()]
     with open(out, "w", encoding="utf-8") as f:
         json.dump(items, f, ensure_ascii=False, indent=0)
     print(f"{len(items)} texts, {len({i['fr'] for i in items})} different")
@@ -154,24 +214,40 @@ def replaced(text, file, texts):
     return "\n".join(lines)
 
 
-def params_overlay(donnees, file, texts):
-    """The mod file setting the translated texts of parameter file `file`."""
+# The headers that set what kind of record the next ones are (see `Params::header` in
+# sim/src/params.rs): `[Ressource_n]` and `[TerrainRessource_n]` do not, so an overlay repeats
+# `[Ressources]` and `[Terrain_Ressources]` before them.
+KIND_HEADER = re.compile(r"^\[(Ressources|Terrain_Ressources|Batiments|CompetencesObjets|Objets|Peuples|Effets|Races|Decors|Resistances|Statuts)\]", re.I)
+
+
+def params_overlay(donnees, file, texts, keys):
+    """The mod file setting the translated texts of parameter file `file`, each under its record's
+    header, after the kind header above it in `file`; its French-suffixed texts (`NomFR`) are set
+    without suffix, for every language."""
+    text = read(os.path.join(donnees, file))
+    kinds = {}  # line → the kind header above it
+    kind = None
+    for n, line in enumerate(text.split("\n")):
+        m = KIND_HEADER.match(line.strip())
+        if m:
+            kind = m.group(0)
+        kinds[n] = kind
     out = []
-    section = None
-    for _, sec, key, _, _ in entries(read(os.path.join(donnees, file))):
+    section = written_kind = None
+    for n, sec, key, _, _ in entries(text):
         t = texts.get(f"{file}|{sec}|{key}")
-        if t is None:
+        to = plain(key, keys)
+        if t is None or to is None:
             continue
-        if sec != section:
+        if kinds[n] != written_kind:
+            written_kind = kinds[n]
+            out.append(f"\n{written_kind}")
+            section = None
+        if sec != section and sec != written_kind:
             out.append(f"\n{sec}")
             section = sec
-        out.append(f"\t{key.split('#')[0]} = {t}")
-    if not out:
-        return None
-    # the section header first, as the original's mods have (`[Objets]`)
-    kind = {"Parametres_" + k + ".ini": k for k in ["Objets", "Batiments", "Races", "Peuples", "Ressources", "Decors", "Effets", "Resistances", "CompetencesObjets"]}.get(file)
-    head = f"[{kind}]\n" if kind else ""
-    return head + "\n".join(out).lstrip("\n") + "\n"
+        out.append(f"\t{to} = {t}")
+    return "\n".join(out).lstrip("\n") + "\n" if out else None
 
 
 def languages_ini(text, langs):
@@ -229,6 +305,7 @@ def read_bytes(path):
 def apply(assets, translations=TRANSLATIONS):
     donnees = os.path.join(assets, "Donnees")
     langs, written = [], ["Donnees/Langues.ini"]
+    keys = text_keys(donnees)
     for name in sorted(os.listdir(translations)):
         if not name.endswith(".json"):
             continue
@@ -239,15 +316,18 @@ def apply(assets, translations=TRANSLATIONS):
         src = os.path.join(donnees, "Francais")
         for file in sorted(os.listdir(src)):
             text = read(os.path.join(src, file))
-            write(os.path.join(donnees, lang["folder"], file), replaced(text, file, texts) if file.lower().endswith(".ini") else text)
+            if file.lower().endswith(".ini"):
+                text = replaced(text, file, texts)
+            elif file == TIPS:
+                text = tips_file(text, texts)
+            write(os.path.join(donnees, lang["folder"], file), text)
             written.append(f"Donnees/{lang['folder']}/{file}")
         mods = os.path.join(donnees, "ModsOfficiels", lang["folder"])
-        for file in sorted(os.listdir(donnees)):
-            if file.startswith("Parametres_") and file.endswith(".ini"):
-                overlay = params_overlay(donnees, file, texts)
-                if overlay:
-                    write(os.path.join(mods, file), overlay)
-                    written.append(f"Donnees/ModsOfficiels/{lang['folder']}/{file}")
+        for file in parameter_files(donnees):
+            overlay = params_overlay(donnees, file, texts, keys)
+            if overlay:
+                write(os.path.join(mods, file), overlay)
+                written.append(f"Donnees/ModsOfficiels/{lang['folder']}/{file}")
         if "font" in lang:
             chars = {c for t in texts.values() for c in t if ord(c) > 0x2E7F}
             font = lang["font"]
