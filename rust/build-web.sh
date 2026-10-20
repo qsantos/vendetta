@@ -8,14 +8,19 @@ mkdir -p dist
 cp -f target/wasm32-unknown-unknown/release/client.wasm web/favicon.ico dist/
 # The bundle's quad_net plugin assigns an undeclared `register_plugin`, which strict mode
 # rejects: declare it.
+# A sound the browser cannot decode never counts as loaded, and `load_sound_from_bytes` waits
+# for it forever: make it a silent one instead, and say its size, to tell which file it was
+# (once: the promise decodeAudioData also returns fails too).
 # Its WebGL context is created with the defaults: antialiasing (a multisampled screen to
 # resolve every frame, useless for pixel art), transparency (blended with the page) and a depth
 # buffer (unused in 2D). Ask for none of them.
 attributes='{antialias:false,alpha:false,depth:false,stencil:false,premultipliedAlpha:false}'
 sed -e 's/function i(){}register_plugin=function(e){e.env.ws_connect/var register_plugin;function i(){}register_plugin=function(e){e.env.ws_connect/' \
+    -e 's/function(e){console.error("Failed to decode audio buffer",e)})/function(x){console.error("Failed to decode audio buffer ("+s+" octets)",x),n.set(i,e.createBuffer(1,1,e.sampleRate))}).catch(function(){})/' \
     -e "s/getContext(\"webgl\")/getContext(\"webgl\",$attributes)/; s/getContext(\"webgl2\")/getContext(\"webgl2\",$attributes)/" \
     "$(find ~/.cargo/registry/src -path '*macroquad-0.4.*/js/mq_js_bundle.js' | sort | tail -1)" >dist/mq_js_bundle.js
 grep -q 'var register_plugin;' dist/mq_js_bundle.js
+grep -q 'n.set(i,e.createBuffer(1,1,e.sampleRate))' dist/mq_js_bundle.js
 grep -q 'getContext("webgl",{antialias' dist/mq_js_bundle.js
 # Version the game and the loader by content, so a new build gets new URLs.
 wasm=$(sha256sum dist/client.wasm | cut -c1-16)
