@@ -32,7 +32,16 @@ python3 bundle.py assets dist
 index=$(sha256sum dist/bundles.json | cut -c1-16)
 sed -i "s|\"bundles.json\"|\"bundles.json?v=$index\"|" dist/index.html
 grep -q "bundles.json?v=$index" dist/index.html
-# The loading screen's artworks, for the page to pick one at once.
-arts=$(awk -F'\t' '$1 ~ /^Images\/Chargement\// { printf "%s\"assets/%s?v=%s\"", (n++ ? "," : ""), $1, $3 }' assets/manifest.txt)
+# The loading screen's artworks, as lossy WebP (about a tenth of the PNGs, the first thing
+# shown; the transparency of their black, which shows the bar through their bottom band, kept
+# exact), for the page to pick one at once.
+mkdir -p dist/art
+arts=
+for png in assets/Images/Chargement/*.png; do
+    webp="dist/art/$(basename "$png" .png).webp"
+    [ "$webp" -nt "$png" ] || magick "$png" -quality 82 -define webp:method=6 -define webp:alpha-quality=100 "$webp"
+    url="art/$(basename "$webp")?v=$(sha256sum "$webp" | cut -c1-16)"
+    arts="$arts${arts:+,}\"$(echo "$url" | sed 's/ /%20/g')\""
+done
 sed -i "s|const arts = \[/\* build-web.sh \*/\];|const arts = [$arts];|" dist/index.html
-grep -q 'const arts = \["assets/Images/Chargement/' dist/index.html
+grep -q 'const arts = \["art/' dist/index.html
