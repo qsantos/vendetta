@@ -351,68 +351,126 @@ fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32,
     }
 }
 
+/// How far what is drawn for a box of the map can stick out of it (bars, mounts, worn objects).
+const MARGIN: i32 = 64;
+
 /// `view` is the size of the visible area in world pixels.
 /// Whether a box of the map, give or take what sticks out of it (bars, mounts, worn objects),
 /// is in the view at `cam` of size `view`: what is not is skipped before any drawing work.
 fn in_view(x: i32, y: i32, w: i32, h: i32, cam: (i32, i32), view: (i32, i32)) -> bool {
-    const MARGIN: i32 = 64;
     x + w + MARGIN > cam.0 && y + h + MARGIN > cam.1 && x - MARGIN < cam.0 + view.0 && y - MARGIN < cam.1 + view.1
 }
 
 /// `overview`: draw the map from it ([`Overview`]), with only the castles and a marker on the
 /// player as sprites.
 pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32), overview: Option<&Overview>) {
+    // Each layer is drawn for every copy of the map in view (on a torus), so that what sticks
+    // out of one copy is covered as it would be on a single map.
+    let cams = copies(world, cam, view);
     if let Some(o) = overview {
         let size = vec2((world.terrain.width as i32 * CELL) as f32, (world.terrain.height as i32 * CELL) as f32);
-        draw_texture_ex(&o.texture, -cam.0 as f32, -cam.1 as f32, WHITE, DrawTextureParams { dest_size: Some(size), ..Default::default() });
-        draw_castles(world, rules, textures, cam, view);
+        for &cam in &cams {
+            draw_texture_ex(&o.texture, -cam.0 as f32, -cam.1 as f32, WHITE, DrawTextureParams { dest_size: Some(size), ..Default::default() });
+        }
+        for &cam in &cams {
+            draw_castles(world, rules, textures, cam, view);
+        }
         if let Some(p) = world.persos.get(player) {
             // a ring around the player, a hundredth of the view wide
             let r = view.0.max(view.1) as f32 / 100.0;
-            let (x, y) = ((p.x as i32 - cam.0) as f32 + p.w as f32 / 2.0, (p.y as i32 - cam.1) as f32 + p.h as f32 / 2.0);
-            draw_circle_lines(x, y, r, r / 4.0, WHITE);
+            for &cam in &cams {
+                let (x, y) = ((p.x as i32 - cam.0) as f32 + p.w as f32 / 2.0, (p.y as i32 - cam.1) as f32 + p.h as f32 / 2.0);
+                draw_circle_lines(x, y, r, r / 4.0, WHITE);
+            }
         }
         return;
     }
-    draw_terrain(world, textures, cam, view);
+    for &cam in &cams {
+        draw_terrain(world, textures, cam, view);
+    }
     if let Some(tex) = textures.get(RESOURCES) {
         let s = RESOURCE_SIZE as f32;
-        for r in world.resources.iter().filter(|r| in_view(r.x, r.y, RESOURCE_SIZE, RESOURCE_SIZE, cam, view)) {
-            blit(tex, r.x - cam.0, r.y - cam.1, Rect::new(r.kind as f32 * s, 0.0, s, s));
+        for &cam in &cams {
+            for r in world.resources.iter().filter(|r| in_view(r.x, r.y, RESOURCE_SIZE, RESOURCE_SIZE, cam, view)) {
+                blit(tex, r.x - cam.0, r.y - cam.1, Rect::new(r.kind as f32 * s, 0.0, s, s));
+            }
         }
     }
     // Afficher_Batiments: houses, then castles.
-    let houses = || world.houses.iter().filter(|m| m.visible() && in_view(m.x, m.y, m.w, m.h, cam, view));
-    for m in houses() {
-        let Some(tex) = textures.get(&format!("{}.bmp", rules.buildings[m.kind].image)) else { continue };
-        let (w, h) = (m.w as f32, m.h as f32);
-        let src = Rect::new(m.animation as f32 * w, m.state(rules) as f32 * h, w, h);
-        blit(tex, m.x - cam.0, m.y - cam.1, src);
-    }
-    // Life bars of damaged houses (drawn after all houses here; they never overlap a house).
-    for m in houses() {
-        let v = m.life_with_repair();
-        if v < m.max_life as f64 {
-            status_bar(v, v, m.max_life as f64, m.x - cam.0, m.y - cam.1 + m.h, m.w, 5, None);
+    let houses = |cam| world.houses.iter().filter(move |m| m.visible() && in_view(m.x, m.y, m.w, m.h, cam, view));
+    for &cam in &cams {
+        for m in houses(cam) {
+            let Some(tex) = textures.get(&format!("{}.bmp", rules.buildings[m.kind].image)) else { continue };
+            let (w, h) = (m.w as f32, m.h as f32);
+            let src = Rect::new(m.animation as f32 * w, m.state(rules) as f32 * h, w, h);
+            blit(tex, m.x - cam.0, m.y - cam.1, src);
         }
     }
-    draw_castles(world, rules, textures, cam, view);
-    for d in world.decors.iter().filter(|d| in_view(d.x, d.y, d.w, d.h, cam, view)) {
-        let Some(tex) = textures.get(&decor_image(&rules.decors[d.kind].image)) else { continue };
-        let src = Rect::new(d.frame as f32 * d.w as f32, 0.0, d.w as f32, d.h as f32);
-        blit(tex, d.x - cam.0, d.y - cam.1, src);
+    // Life bars of damaged houses (drawn after all houses here; they never overlap a house).
+    for &cam in &cams {
+        for m in houses(cam) {
+            let v = m.life_with_repair();
+            if v < m.max_life as f64 {
+                status_bar(v, v, m.max_life as f64, m.x - cam.0, m.y - cam.1 + m.h, m.w, 5, None);
+            }
+        }
+    }
+    for &cam in &cams {
+        draw_castles(world, rules, textures, cam, view);
+    }
+    for &cam in &cams {
+        for d in world.decors.iter().filter(|d| in_view(d.x, d.y, d.w, d.h, cam, view)) {
+            let Some(tex) = textures.get(&decor_image(&rules.decors[d.kind].image)) else { continue };
+            let src = Rect::new(d.frame as f32 * d.w as f32, 0.0, d.w as f32, d.h as f32);
+            blit(tex, d.x - cam.0, d.y - cam.1, src);
+        }
     }
     if let Some(tex) = textures.get(TREASURES) {
         let s = TREASURE_SIZE as f32;
-        for t in world.treasures.iter().filter(|t| in_view(t.x, t.y, TREASURE_SIZE, TREASURE_SIZE, cam, view)) {
-            blit(tex, t.x - cam.0, t.y - cam.1, Rect::new(t.tier as f32 * s, 0.0, s, s));
+        for &cam in &cams {
+            for t in world.treasures.iter().filter(|t| in_view(t.x, t.y, TREASURE_SIZE, TREASURE_SIZE, cam, view)) {
+                blit(tex, t.x - cam.0, t.y - cam.1, Rect::new(t.tier as f32 * s, 0.0, s, s));
+            }
         }
     }
-    if let Some(p) = world.persos.get(player) {
-        draw_selection(world, p, rules, cam);
+    for &cam in &cams {
+        if let Some(p) = world.persos.get(player) {
+            draw_selection(world, p, rules, cam);
+        }
+        draw_work_state(world, rules, player, cam);
     }
-    draw_work_state(world, rules, player, cam);
-    draw_persos(world, rules, textures, cam, view);
+    for &cam in &cams {
+        draw_persos(world, rules, textures, cam, view);
+    }
+}
+
+/// The cameras that show each copy of the map in the view at `cam`, give or take what sticks
+/// out of the map's boxes: on a flat map, only `cam`; on a torus, `cam` moved by whole map
+/// sizes, top to bottom then left to right.
+pub fn copies(world: &World, cam: (i32, i32), view: (i32, i32)) -> Vec<(i32, i32)> {
+    if !world.terrain.torus {
+        return vec![cam];
+    }
+    let (w, h) = world.terrain.size_px();
+    let (w, h) = (w as i32, h as i32);
+    let range = |c: i32, v: i32, size: i32| (c - MARGIN).div_euclid(size)..=(c + v + MARGIN - 1).div_euclid(size);
+    let mut cams = Vec::new();
+    for ky in range(cam.1, view.1, h) {
+        for kx in range(cam.0, view.0, w) {
+            cams.push((cam.0 - kx * w, cam.1 - ky * h));
+        }
+    }
+    cams
+}
+
+/// Where the map's `x` is relative to `cam` on an axis of `size` pixels with `view` of it
+/// visible: `x - cam`, or on a torus that of the copy of `x` nearest to the middle of the view.
+pub fn rel(torus: bool, x: i32, cam: i32, view: i32, size: i32) -> i32 {
+    if !torus {
+        return x - cam;
+    }
+    let d = (x - cam - view / 2).rem_euclid(size);
+    if d * 2 >= size { d - size + view / 2 } else { d + view / 2 }
 }
 
 /// Castles, with their life and their next age's progress.

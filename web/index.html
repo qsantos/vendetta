@@ -142,6 +142,11 @@
             <option value="">vers les châteaux proches</option>
             <option value="ring">en anneau (l'original)</option>
           </select></label>
+        <label>Bords de la carte
+          <select name="edges">
+            <option value="">reliés (un tore)</option>
+            <option value="closed">fermés (l'original)</option>
+          </select></label>
         <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
         <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
         <label>Attendre les plus lents
@@ -174,6 +179,11 @@
       <select name="roads">
         <option value="">vers les châteaux proches</option>
         <option value="ring">en anneau (l'original)</option>
+      </select></label>
+    <label>Bords de la carte
+      <select name="edges">
+        <option value="">reliés (un tore)</option>
+        <option value="closed">fermés (l'original)</option>
       </select></label>
     <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
     <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
@@ -844,7 +854,7 @@
   // The pre-game menu: the form mirrors the hash; flags are checkboxes, other keys values.
   {
     const form = document.querySelector("#menu form");
-    const fields = ["size", "fiefs", "villagers", "roads", "speed", "seed"];
+    const fields = ["size", "fiefs", "villagers", "roads", "edges", "speed", "seed"];
     const flags = ["god", "perf"];
     const fill = () => {
       const items = hashItems();

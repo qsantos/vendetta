@@ -74,7 +74,7 @@ pub struct Touch {
     /// In a building in the previous frame: entering one shows its window.
     in_building: bool,
     /// The centre of the building being placed, in map pixels.
-    ghost: Option<(f32, f32)>,
+    pub(super) ghost: Option<(f32, f32)>,
     /// Demolishing the house waits for a confirmation.
     demolishing: bool,
     /// Where the buttons that confirm or cancel the building or demolishing are, top-left.

@@ -67,6 +67,12 @@ const SCENES = {
   pan: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["move", 512, 400]] },
   // Space follows the character again.
   pan_back: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["key", "Space"], ["move", 512, 600]] },
+  // On a torus (`edges=torus`): the view and the minimap's rectangle across the left edge, then
+  // the view put across the bottom-right corner from the minimap, and zoomed out as far as it
+  // goes (the view no larger than the map).
+  torus: { hash: "seed=3&size=256&fiefs=6&villagers=20&edges=torus", steps: [["key", "Tab"], ["move", 600, 740]] },
+  torus_corner: { hash: "seed=3&size=256&fiefs=6&villagers=20&edges=torus", steps: [["key", "Tab"], ["right", 362, 335], ["move", 600, 740]] },
+  torus_zoom: { hash: "seed=1&edges=torus", steps: [["move", 500, 500], ...Array(6).fill(["wheel", 500, 500, 120]), ["wait", 0.5]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
   // The touch interface on a phone held sideways: the bar on the right, the castle's window.
   touch_start: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [] },
@@ -233,7 +239,9 @@ async function connect() {
 
 async function play(send, scene) {
   await send("Page.navigate", { url: "about:blank" });
-  await send("Page.navigate", { url: `http://127.0.0.1:${SERVER_PORT}/#test&${scene.hash}&play` });
+  // (the original's map with edges, unless the scene says otherwise)
+  const edges = /(^|&)edges=/.test(scene.hash) ? "" : "&edges=closed";
+  await send("Page.navigate", { url: `http://127.0.0.1:${SERVER_PORT}/#test&${scene.hash}${edges}&play` });
   const evaluate = async (expression) => (await send("Runtime.evaluate", { expression, returnByValue: true })).result?.result?.value;
   for (let i = 0; ; i++) {
     if (i > 600) throw new Error(`the game did not load: ${await evaluate("document.body.innerText.slice(0, 300)")} ${errors.join("; ")}`);

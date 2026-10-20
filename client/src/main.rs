@@ -126,9 +126,22 @@ fn follow(world: &World, player: usize, view: (i32, i32)) -> (i32, i32) {
     let axis = |pos: i64, view: i32, size: usize| {
         let centred = pos as i32 - view / 2;
         let max = size as i32 * 16 - view;
-        if max < 0 { centred } else { centred.min(max).max(0) }
+        if max < 0 || world.terrain.torus { centred } else { centred.min(max).max(0) }
     };
-    (axis(p.x, view.0, world.terrain.width), axis(p.y, view.1, world.terrain.height))
+    wrap_cam(world, (axis(p.x, view.0, world.terrain.width), axis(p.y, view.1, world.terrain.height)))
+}
+
+/// On a torus, the camera brought back onto the map (the view continues across the edges).
+fn wrap_cam(world: &World, cam: (i32, i32)) -> (i32, i32) {
+    world.terrain.wrap32(cam)
+}
+
+/// Whether the map can zoom out from showing `view`: while some of the map is out of view, and
+/// on a torus, only until the view spans the map on either axis (it would show things twice).
+fn can_zoom_out(world: &World, view: (i32, i32)) -> bool {
+    let (w, h) = world.terrain.size_px();
+    let (w, h) = (w as i32, h as i32);
+    if world.terrain.torus { view.0 < w && view.1 < h } else { view.0 < w || view.1 < h }
 }
 
 /// `TypeCurseur`: what the cursor's top-left (x, y) on the map is over, and its index
@@ -220,6 +233,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     layout::set_touch(storage::layout().or(options.touch).unwrap_or(touch_screen));
     let mut setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
     setup.roads = if options.ring_roads { sim::world::Roads::Ring } else { sim::world::Roads::Nearest };
+    setup.torus = !options.closed_edges;
     if let Some(speed) = options.speed {
         setup.speed = speed;
     }
@@ -487,9 +501,12 @@ async fn main() {
         };
         if let Some((dx, dy)) = pan {
             let (fx, fy) = free_cam.unwrap_or((cam.0 as f32, cam.1 as f32));
+            let torus = world.terrain.torus;
             let clamp = |v: f32, view: i32, size: usize| {
-                let max = (size as i32 * sim::terrain::CELL - view) as f32;
-                if max < 0.0 { v } else { v.clamp(0.0, max) }
+                let size = size as i32 * sim::terrain::CELL;
+                let max = (size - view) as f32;
+                // (on a torus, it goes round)
+                if torus { v.rem_euclid(size as f32) } else if max < 0.0 { v } else { v.clamp(0.0, max) }
             };
             free_cam = Some((clamp(fx - dx / zoom, view.0, world.terrain.width), clamp(fy - dy / zoom, view.1, world.terrain.height)));
         }
@@ -509,11 +526,16 @@ async fn main() {
         if let Some(c) = hud.camera() {
             cam = c;
         }
-        hud.set_view(cam, view);
+        cam = wrap_cam(&world, cam);
+        let (mw, mh) = world.terrain.size_px();
+        hud.set_view(cam, view, world.terrain.torus.then_some((mw as i32, mh as i32)));
         hud.set_free_camera(free_cam.map(|_| {
             let p = &world.persos[player];
-            let at = |v: i64, size: i64, c: i32| (((v + size / 2) as i32 - c) as f32 * zoom / ui) as i32;
-            (at(p.x, p.w as i64, cam.0), at(p.y, p.h as i64, cam.1))
+            let (mw, mh) = world.terrain.size_px();
+            let at = |v: i64, size: i64, c: i32, view: i32, map: i64| {
+                (render::rel(world.terrain.torus, (v + size / 2) as i32, c, view, map as i32) as f32 * zoom / ui) as i32
+            };
+            (at(p.x, p.w as i64, cam.0, view.0, mw), at(p.y, p.h as i64, cam.1, view.1, mh))
         }));
         // What is under the cursor on the map (`Obstacle` on the cursor's top-left).
         let to_world = |p: f32, c: i32| c + (p / zoom).floor() as i32;
@@ -551,7 +573,9 @@ async fn main() {
         let far = overview.is_some();
         render::draw_world(&world, &rules, &textures, cam, player, view, overview);
         if !far {
-            effects.draw(&textures, cam, view, zoom);
+            for c in render::copies(&world, cam, view) {
+                effects.draw(&textures, c, view, zoom);
+            }
         }
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         // (changing the camera submits the map's drawings)
@@ -559,7 +583,9 @@ async fn main() {
         let hud_start = perf::now();
         perf.add(perf::Part::Map, hud_start - map_start);
         if !far {
-            hud.draw_comments(&world, |x, y| ((((x as i32 - cam.0) as f32) * zoom / ui) as i32, (((y as i32 - cam.1) as f32) * zoom / ui) as i32));
+            let (torus, (mw, mh)) = (world.terrain.torus, world.terrain.size_px());
+            let at = |v: i64, c: i32, view: i32, map: i64| ((render::rel(torus, v as i32, c, view, map as i32) as f32) * zoom / ui) as i32;
+            hud.draw_comments(&world, |x, y| (at(x, cam.0, view.0, mw), at(y, cam.1, view.1, mh)));
         }
         let radial_was_open = hud.radial_open();
         let given = orders.len();
@@ -684,7 +710,7 @@ async fn main() {
                 Some(false) => scales.ui = step(&UI_SCALES, scales.ui, up),
                 None if on_ui => scales.ui = step(&UI_SCALES, scales.ui, up),
                 // out only while some of the map is out of view
-                None if up || view.0 < world.terrain.width as i32 * sim::terrain::CELL || view.1 < world.terrain.height as i32 * sim::terrain::CELL => {
+                None if up || can_zoom_out(&world, view) => {
                     scales.zoom = step(&ZOOMS, scales.zoom, up)
                 }
                 None => {}
@@ -700,7 +726,7 @@ async fn main() {
         if touch && (pinched > 1.25 || pinched < 0.8) {
             let up = pinched > 1.0;
             pinched = 1.0;
-            if up || view.0 < world.terrain.width as i32 * sim::terrain::CELL || view.1 < world.terrain.height as i32 * sim::terrain::CELL {
+            if up || can_zoom_out(&world, view) {
                 scales.zoom = step(&ZOOMS, scales.zoom, up);
                 scales.store();
             }
@@ -770,7 +796,7 @@ async fn main() {
         }
         let mut quit = false;
         loop {
-            let out = view.0 < world.terrain.width as i32 * sim::terrain::CELL || view.1 < world.terrain.height as i32 * sim::terrain::CELL;
+            let out = can_zoom_out(&world, view);
             match storage::menu_command() {
                 storage::MenuCommand::None => break,
                 storage::MenuCommand::Quit => quit = true,

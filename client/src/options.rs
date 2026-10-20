@@ -27,6 +27,9 @@ pub struct Options {
     /// `roads=ring`: the original's ring of roads in fief order, instead of joining each
     /// castle to its nearest ones.
     pub ring_roads: bool,
+    /// `edges=closed`: the original's map, with edges, instead of one whose opposite edges
+    /// join (a torus: going off one side comes back on the other).
+    pub closed_edges: bool,
     /// `perf`: show where the time goes (see `perf.rs`).
     pub perf: bool,
     /// `new`: a new world, not the saved one (the page then takes `new` out of the address).
@@ -95,6 +98,7 @@ impl Options {
                 "seed" => o.seed = value.parse().ok(),
                 "speed" => o.speed = value.parse::<i64>().ok().map(|v| v.clamp(SPEEDS.0, SPEEDS.1)),
                 "roads" => o.ring_roads = value.eq_ignore_ascii_case("ring"),
+                "edges" => o.closed_edges = value.eq_ignore_ascii_case("closed"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
                 "villagers" => o.villagers = value.parse::<usize>().ok().map(|n| n.clamp(1, 2000)),
                 "effects" => {
@@ -138,7 +142,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
@@ -146,7 +150,8 @@ impl Options {
 
     /// The options that shape a new world: a saved game made with others is not resumed.
     pub fn setup_key(&self) -> String {
-        format!("{:?} {:?} {:?} {:?}{} {:?}", self.size, self.seed, self.fiefs, self.villagers, if self.ring_roads { " ring" } else { "" }, self.players)
+        let (ring, closed) = (if self.ring_roads { " ring" } else { "" }, if self.closed_edges { " closed" } else { "" });
+        format!("{:?} {:?} {:?} {:?}{ring}{closed} {:?}", self.size, self.seed, self.fiefs, self.villagers, self.players)
     }
 }
 

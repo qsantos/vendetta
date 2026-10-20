@@ -704,7 +704,9 @@ impl Hud {
         let (w, h) = rules.buildings[kind].size;
         let x = centre.0 - w / 2;
         let y = centre.1 - h / 2;
-        let inside_map = x >= 0
+        // (a torus has no edge)
+        let inside_map = world.terrain.torus
+            || x >= 0
             && y >= 0
             && x + w <= world.terrain.width as i32 * 16
             && y + h <= world.terrain.height as i32 * 16;

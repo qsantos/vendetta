@@ -1412,7 +1412,31 @@ impl Hud {
         draw_rectangle(x as f32, (sy(p.y as f64) + 2) as f32, cl as f32, 1.0, green);
         draw_rectangle((sx(p.x as f64) + 2) as f32, y as f32, 1.0, ch as f32, green);
         let ((cx, cy), (vw, vh)) = self.windows.view;
-        outline(sx(cx as f64), sy(cy as f64), sx((cx + vw) as f64), sy((cy + vh) as f64), green);
+        if !world.terrain.torus {
+            outline(sx(cx as f64), sy(cy as f64), sx((cx + vw) as f64), sy((cy + vh) as f64), green);
+            return;
+        }
+        // On a torus, the view continues across the edges: each side is drawn in the one or
+        // two pieces it spans on the map.
+        let (mw, mh) = (world_px.0 as i32, world_px.1 as i32);
+        let pieces = |from: i32, len: i32, size: i32| -> Vec<(i32, i32)> {
+            let len = len.min(size);
+            if from + len <= size { vec![(from, from + len)] } else { vec![(from, size), (0, from + len - size)] }
+        };
+        // (the far side lands on the map's far edge rather than on 0)
+        let end = |from: i32, len: i32, size: i32| (from + len.min(size) - 1) % size + 1;
+        let (l, r) = (cx, end(cx, vw, mw));
+        let (t, b) = (cy, end(cy, vh, mh));
+        for (x0, x1) in pieces(cx, vw, mw) {
+            let (x0, x1) = (sx(x0 as f64), sx(x1 as f64));
+            draw_rectangle(x0 as f32, sy(t as f64) as f32, (x1 - x0) as f32, 1.0, green);
+            draw_rectangle(x0 as f32, (sy(b as f64) - 1) as f32, (x1 - x0) as f32, 1.0, green);
+        }
+        for (y0, y1) in pieces(cy, vh, mh) {
+            let (y0, y1) = (sy(y0 as f64), sy(y1 as f64));
+            draw_rectangle(sx(l as f64) as f32, y0 as f32, 1.0, (y1 - y0) as f32, green);
+            draw_rectangle((sx(r as f64) - 1) as f32, y0 as f32, 1.0, (y1 - y0) as f32, green);
+        }
     }
 
     /// The minimap's clicks: the right button held moves the view there; a left click attacks

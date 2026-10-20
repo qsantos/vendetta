@@ -322,7 +322,15 @@ impl Hud {
     /// `ClsIntMessage.Afficher`: `#` breaks lines (16 px apart); a line starting with `&` is red,
     /// with `$` blue. `(x, y)` is the top of the text cell, like GDI `DrawText`.
     /// The map's view (top-left and size in map pixels), for the minimap's rectangle.
-    pub fn set_view(&mut self, cam: (i32, i32), view: (i32, i32)) {
+    /// On a torus of `map` pixels, when the camera goes round, what is being placed goes round
+    /// with it.
+    pub fn set_view(&mut self, cam: (i32, i32), view: (i32, i32), map: Option<(i32, i32)>) {
+        if let (Some((w, h)), Some(ghost)) = (map, &mut self.touch.ghost) {
+            let old = self.windows.view.0;
+            let round = |d: i32, size: i32| if d * 2 > size { size } else if d * 2 < -size { -size } else { 0 };
+            ghost.0 += round(cam.0 - old.0, w) as f32;
+            ghost.1 += round(cam.1 - old.1, h) as f32;
+        }
         self.windows.view = (cam, view);
     }
 
