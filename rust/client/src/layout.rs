@@ -40,6 +40,8 @@ pub const BAR: i32 = 64;
 /// The interface's shorter side with the touch interface, in interface pixels: a window
 /// (368 high) and its margins.
 pub const TOUCH_SIDE: f32 = 400.0;
+/// …but no bigger than this, in CSS pixels per interface pixel (on tablets).
+pub const TOUCH_MAX_SCALE: f32 = 1.3;
 
 /// The whole interface's size, the touch interface's bar included.
 pub fn full_size() -> (i32, i32) {

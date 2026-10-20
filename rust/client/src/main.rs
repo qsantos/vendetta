@@ -389,8 +389,9 @@ async fn main() {
         let dpi = screen_dpi_scale();
         let (w, h) = ((screen_width() * dpi) as i32, (screen_height() * dpi) as i32);
         let (zoom, ui) = scales.effective();
-        // The touch interface fits a window in the screen's shorter side, whatever the setting.
-        let ui = if touch { w.min(h) as f32 / layout::TOUCH_SIDE } else { ui };
+        // The touch interface fits a window in a phone's shorter side, whatever the setting;
+        // a tablet's has room to spare.
+        let ui = if touch { (w.min(h) as f32 / layout::TOUCH_SIDE).min(layout::TOUCH_MAX_SCALE * dpi) } else { ui };
         let view_f = (w as f32 / zoom, h as f32 / zoom);
         let new_view = (view_f.0.ceil() as i32, view_f.1.ceil() as i32);
         if new_view != view {
