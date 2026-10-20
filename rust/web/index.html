@@ -196,6 +196,31 @@
   }
   window.addEventListener("error", (e) => showError(e.message + (e.filename ? ` (${e.filename.split("/").pop()}:${e.lineno})` : "")));
   window.addEventListener("unhandledrejection", (e) => showError("Promise: " + (e.reason?.stack || e.reason)));
+  // The game's downloads (miniquad's XMLHttpRequests) have no time limit: one stalled on a
+  // phone's network left the loading screen waiting forever. One that receives nothing for
+  // 20 s is aborted, which the game takes for a failure and tries again.
+  {
+    const inFlight = new Set();
+    const open = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+      open.call(this, method, url, ...rest);
+      this.vendettaUrl = url;
+      this.vendettaSeen = performance.now();
+      const seen = () => (this.vendettaSeen = performance.now());
+      this.addEventListener("loadstart", () => (seen(), inFlight.add(this)));
+      this.addEventListener("progress", seen);
+      this.addEventListener("loadend", () => inFlight.delete(this));
+    };
+    setInterval(() => {
+      for (const xhr of inFlight) {
+        if (performance.now() - xhr.vendettaSeen > 20000) {
+          inFlight.delete(xhr);
+          showError(`Téléchargement bloqué, nouvel essai : ${String(xhr.vendettaUrl).split("?")[0]}`);
+          xhr.abort();
+        }
+      }
+    }, 1000);
+  }
   // the game's panics and errors go to console.error
   {
     const error = console.error.bind(console);
