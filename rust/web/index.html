@@ -190,6 +190,14 @@
 <div id="loading" hidden>
   <div id="frame"><div id="bar"></div><img id="art" alt=""></div>
 </div>
+<script>
+  // A random artwork for the loading screen, asked for before anything else (build-web.sh
+  // lists them here, with their versioned URLs).
+  {
+    const arts = [/* build-web.sh */];
+    if (arts.length) document.getElementById("art").src = arts[Math.floor(Math.random() * arts.length)];
+  }
+</script>
 <div id="bubble" hidden>Chargement…</div>
 <div id="ingame" hidden>
   <div class="panel">
@@ -412,8 +420,8 @@
     });
   }
 
-  // The manifest gives a random artwork (the bar works without it) and the estimate:
-  // data files plus the image folders the game always loads (see Manifest in assets.rs).
+  // The manifest gives the estimate: data files plus the image folders the game always
+  // loads (see Manifest in assets.rs).
   fetch("assets/manifest.txt")
     .then((r) => r.text())
     .then((text) => {
@@ -421,11 +429,6 @@
         const [path, size, hash] = l.split("\t");
         return { path, size: Number(size) || 0, url: "assets/" + path + (hash ? "?v=" + hash : "") };
       });
-      const arts = entries.filter((e) => e.path.startsWith("Images/Chargement/"));
-      if (arts.length > 0) {
-        const pick = arts[Math.floor(Math.random() * arts.length)];
-        document.getElementById("art").src = pick.url;
-      }
       if (bytes.gameTotal === 0) {
         const lower = (p) => p.toLowerCase();
         const isData = (p) =>

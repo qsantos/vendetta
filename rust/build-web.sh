@@ -32,3 +32,7 @@ python3 bundle.py assets dist
 index=$(sha256sum dist/bundles.json | cut -c1-16)
 sed -i "s|\"bundles.json\"|\"bundles.json?v=$index\"|" dist/index.html
 grep -q "bundles.json?v=$index" dist/index.html
+# The loading screen's artworks, for the page to pick one at once.
+arts=$(awk -F'\t' '$1 ~ /^Images\/Chargement\// { printf "%s\"assets/%s?v=%s\"", (n++ ? "," : ""), $1, $3 }' assets/manifest.txt)
+sed -i "s|const arts = \[/\* build-web.sh \*/\];|const arts = [$arts];|" dist/index.html
+grep -q 'const arts = \["assets/Images/Chargement/' dist/index.html
