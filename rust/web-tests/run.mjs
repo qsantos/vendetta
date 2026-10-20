@@ -85,6 +85,8 @@ const SCENES = {
   // Eating automatically: its button right of the bars, its panel, Vie turned on and Energie's
   // threshold raised.
   touch_auto: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 490, 40], ["tap", 147, 338], ["tap", 140, 160], ["tap", 270, 192]] },
+  // The bar's Menu button, at its far end: the in-game menu, the solo game paused behind it.
+  touch_menu: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 315]] },
   // Lists scroll under a dragging finger.
   touch_scroll: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["swipe", 300, 300, 300, 150]] },
 };

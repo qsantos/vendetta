@@ -400,7 +400,7 @@ impl Hud {
                     on_ui = true;
                     tip = self.strings.info_tips[i].clone();
                     if input.left_pressed {
-                        self.info_enabled[i] = !self.info_enabled[i];
+                        self.toggle_info(i);
                     }
                     break;
                 }
@@ -504,8 +504,11 @@ impl Hud {
         ];
         for (key, i) in INFO_KEYS {
             if is_key_pressed(key) {
-                self.info_enabled[i] = !self.info_enabled[i];
+                self.toggle_info(i);
             }
+        }
+        if is_key_pressed(KeyCode::Escape) {
+            self.menu_requested = true;
         }
         if is_key_pressed(KeyCode::Delete) {
             orders.push(Order::Demolish { perso: player });
@@ -616,7 +619,7 @@ impl Hud {
             self.open_radial(m, 0);
         } else if input.left_pressed {
             match hovered {
-                Some(i) if self.radial_category == 0 => self.info_enabled[i] = !self.info_enabled[i],
+                Some(i) if self.radial_category == 0 => self.toggle_info(i),
                 Some(i) => {
                     if self.build_cache.get(i).map_or(0, |c| c.0) == 1 {
                         if let Some(k) = kinds[i] {
@@ -646,7 +649,26 @@ impl Hud {
         (now - start - 2.0) / 0.3
     }
 
-    /// Paused with the menu/pause button (F10).
+    /// Info button `i`: shows or hides its window; the menu/pause one (F10) asks for the menu.
+    pub(super) fn toggle_info(&mut self, i: usize) {
+        if i == 7 {
+            self.menu_requested = true;
+        } else {
+            self.info_enabled[i] = !self.info_enabled[i];
+        }
+    }
+
+    /// The menu/pause button (F10) or Escape was pressed since the last call: the page's menu
+    /// should open.
+    pub fn take_menu_request(&mut self) -> bool {
+        std::mem::take(&mut self.menu_requested)
+    }
+
+    /// The menu is open (and, in solo, the game paused): the menu/pause button is lit.
+    pub fn set_menu_open(&mut self, open: bool) {
+        self.info_enabled[7] = open;
+    }
+
     pub fn paused(&self) -> bool {
         self.info_enabled[7]
     }

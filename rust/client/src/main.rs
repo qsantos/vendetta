@@ -652,6 +652,13 @@ async fn main() {
                 hud.add_notice(&format!("&Désynchronisation au tick {tick} : les mondes des joueurs diffèrent."));
             }
         }
+        // The in-game menu (the page's): it pauses a solo game, not a network one, where the
+        // character stands still meanwhile. Quitting saves first.
+        if hud.take_menu_request() {
+            storage::open_menu();
+        }
+        hud.set_menu_open(storage::menu_open());
+        let quit = storage::menu_command() == storage::MenuCommand::Quit;
         let still = hud.paused() || options::test_mode() || net.is_some();
         if still {
             next_tick = get_time() + 1.0 / TICKS_PER_SECOND;
@@ -674,7 +681,7 @@ async fn main() {
             cam = follow(&world, player, view);
         }
         // `ToucheSauvegarderMonde` (F12) saves now and says so (`Enregistrer_Sauvegarde_Monde`).
-        let save_now = is_key_pressed(KeyCode::F12) && !options::test_mode() && net.is_none();
+        let save_now = !options::test_mode() && (quit || is_key_pressed(KeyCode::F12) && net.is_none());
         // Big worlds are saved less often: a second per megabyte (51 MB at 15000 characters).
         if save_now || get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6) {
             last_save = get_time();
@@ -683,9 +690,12 @@ async fn main() {
                 save_size = bytes.len();
                 storage::store(if net.is_some() { NET_SAVE } else { "save" }, &bytes);
             });
-            if save_now {
+            if save_now && !quit {
                 hud.add_saved_message();
             }
+        }
+        if quit {
+            storage::quit();
         }
         // The mood's music, every frame (`FrmMoteur2D.frm:426-438`).
         let p = &world.persos[player];

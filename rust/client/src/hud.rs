@@ -149,6 +149,8 @@ pub struct Hud {
     frames: u32,
     fps_timer: f64,
     touch: touch::Touch,
+    /// The menu was asked for (see `take_menu_request`).
+    menu_requested: bool,
 }
 
 /// Images the HUD needs.
@@ -292,6 +294,7 @@ impl Hud {
             frames: 0,
             fps_timer: get_time(),
             touch: Default::default(),
+            menu_requested: false,
         }
     }
 

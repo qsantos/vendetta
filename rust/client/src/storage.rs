@@ -14,6 +14,12 @@ unsafe extern "C" {
     fn vendetta_started() -> bool;
     /// Whether the main pointer is a finger (`pointer: coarse`).
     fn vendetta_touch_screen() -> bool;
+    /// The page's in-game menu: opens it; whether it is open; what it asks of the game (0:
+    /// nothing, 1: quit); the game has saved and can be left.
+    fn vendetta_open_menu();
+    fn vendetta_menu_open() -> bool;
+    fn vendetta_menu_command() -> u32;
+    fn vendetta_quit();
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -71,6 +77,55 @@ pub fn touch_screen() -> bool {
     return unsafe { vendetta_touch_screen() };
     #[cfg(not(target_arch = "wasm32"))]
     false
+}
+
+/// What the page's in-game menu asks of the game.
+#[derive(PartialEq)]
+pub enum MenuCommand {
+    None,
+    /// Back to the pre-game menus, once the game is saved.
+    Quit,
+}
+
+/// Opens the page's in-game menu (natively, there is none).
+pub fn open_menu() {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    unsafe {
+        vendetta_open_menu()
+    };
+}
+
+/// Whether the page's in-game menu is open.
+pub fn menu_open() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    return unsafe { vendetta_menu_open() };
+    #[cfg(not(target_arch = "wasm32"))]
+    false
+}
+
+/// The next thing the page's in-game menu asks of the game.
+pub fn menu_command() -> MenuCommand {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    return match unsafe { vendetta_menu_command() } {
+        1 => MenuCommand::Quit,
+        _ => MenuCommand::None,
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    MenuCommand::None
+}
+
+/// The game is saved: the page goes back to its menus (natively, the game ends).
+pub fn quit() {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    unsafe {
+        vendetta_quit()
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    std::process::exit(0);
 }
 
 /// The options given to the game: the URL's hash in the browser, the arguments natively.

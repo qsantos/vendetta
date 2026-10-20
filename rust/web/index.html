@@ -68,6 +68,18 @@
   #lobby td { padding: 3px 4px; }
   #lobby tr.offline { color: #999; }
   #lobby .link { font-size: 12px; word-break: break-all; }
+  /* The in-game menu, over the game (which a solo game pauses behind it). */
+  #ingame { position: fixed; inset: 0; z-index: 4; display: flex; align-items: center;
+            justify-content: center; background: rgba(0, 0, 0, 0.5);
+            font: 15px Arial, "Liberation Sans", sans-serif; color: #e8e8d0; }
+  #ingame[hidden] { display: none; }
+  #ingame .panel { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70); border-radius: 12px;
+                   padding: 20px 28px; display: flex; flex-direction: column; gap: 12px;
+                   width: min(calc(100vw - 24px), 320px); box-sizing: border-box; max-height: calc(100vh - 24px);
+                   overflow-y: auto; }
+  #ingame h1 { margin: 0; font-size: 22px; text-align: center; }
+  #ingame .note { margin: 0; text-align: center; font-size: 13px; color: #c8c8b0; }
+  #ingame button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 10px 14px; }
   /* Small screens (phones): the menus keep off the edges, and scroll when taller than it. */
   @media (max-width: 480px), (max-height: 480px) {
     #menu { overflow-y: auto; align-items: safe center; }
@@ -162,6 +174,14 @@
   <div id="frame"><div id="bar"></div><img id="art" alt=""></div>
 </div>
 <div id="bubble" hidden>Chargement…</div>
+<div id="ingame" hidden>
+  <div class="panel">
+    <h1>Menu</h1>
+    <p class="note" id="ingame-note"></p>
+    <button type="button" id="ingame-resume">Reprendre</button>
+    <button type="button" id="ingame-quit">Quitter vers le menu</button>
+  </div>
+</div>
 <div id="errors" hidden></div>
 <div id="netstatus" hidden></div>
 <canvas id="glcanvas" class="waiting" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
@@ -180,12 +200,12 @@
   // in the menus, the browser keeps it (stopped in the capture phase, before they run).
   for (const type of ["copy", "cut", "paste"]) {
     window.addEventListener(type, (e) => {
-      if (e.target.closest && e.target.closest("#menu")) e.stopImmediatePropagation();
+      if (e.target.closest && e.target.closest("#menu, #ingame")) e.stopImmediatePropagation();
     }, true);
   }
   // Right click is a game action, not the browser menu (which the pre-game menus keep).
   document.addEventListener("contextmenu", (e) => {
-    if (!e.target.closest("#menu")) e.preventDefault();
+    if (!e.target.closest("#menu, #ingame")) e.preventDefault();
   });
 
   const loadingScreen = document.getElementById("loading");
@@ -423,6 +443,17 @@
       };
       // The game loads behind the menus, then waits for one to start it (`begin`).
       importObject.env.vendetta_started = () => startHash !== null;
+      // The in-game menu (see above and client/src/storage.rs).
+      importObject.env.vendetta_open_menu = openIngameMenu;
+      importObject.env.vendetta_menu_open = () => !ingame.hidden;
+      importObject.env.vendetta_menu_command = () => menuCommands.shift() || 0;
+      importObject.env.vendetta_quit = () => {
+        writesDone().then(() => {
+          if (socket) socket.close();
+          setHash(hashItems().filter((o) => o !== "play" && !o.startsWith("room=")));
+          location.reload();
+        });
+      };
       // The touch interface on phones and tablets (see client/src/layout.rs).
       importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
       // after the pending writes, so that none is lost
@@ -459,6 +490,38 @@
     canvas.classList.remove("waiting");
     canvas.focus();
   }
+  // The in-game menu, which the game opens (F10, Escape, its Menu buttons): a solo game is
+  // paused behind it, a network one goes on (the character stands still). Leaving goes back
+  // to the pre-game menus once the game is saved; a network game can be joined again with
+  // its room's link.
+  const ingame = document.getElementById("ingame");
+  const menuCommands = [];
+  const networkGame = () => (startHash || "").split("&").some((o) => o.startsWith("me="));
+  function openIngameMenu() {
+    if (!ingame.hidden) return;
+    document.getElementById("ingame-note").textContent = networkGame()
+      ? "La partie continue : votre personnage attend."
+      : "Partie en pause";
+    ingame.hidden = false;
+    document.getElementById("ingame-resume").focus();
+  }
+  function closeIngameMenu() {
+    ingame.hidden = true;
+    showGame();
+  }
+  document.getElementById("ingame-resume").addEventListener("click", closeIngameMenu);
+  ingame.addEventListener("click", (e) => e.target === ingame && closeIngameMenu());
+  ingame.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeIngameMenu();
+    }
+  });
+  document.getElementById("ingame-quit").addEventListener("click", (e) => {
+    for (const b of ingame.querySelectorAll("button")) b.disabled = true;
+    e.target.textContent = "Enregistrement…";
+    menuCommands.push(1);
+  });
   // On a touch screen, the game takes the whole screen (no address bar) from the first
   // button pressed in the menus (it needs a press).
   document.getElementById("menu").addEventListener("click", (e) => {

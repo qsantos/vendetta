@@ -36,6 +36,8 @@ pub enum Panel {
 enum BarAction {
     Open(Panel),
     Drop,
+    /// The page's in-game menu, at the bar's far end.
+    Menu,
 }
 
 /// A cell of a sprite sheet, or a drawn tick.
@@ -175,6 +177,7 @@ impl Hud {
             };
             v.push((icon, "Lâcher", BarAction::Drop));
         }
+        v.push((Icon::Sheet { path: INFOS.to_owned(), col: 7, row: self.paused() as i32, size: 24 }, "Menu", BarAction::Menu));
         v
     }
 
@@ -421,8 +424,9 @@ impl Hud {
         let (fw, fh) = full_size();
         let (bx, by) = if bar_vertical() { (screen_w(), 0) } else { (0, screen_h()) };
         draw_rectangle(bx as f32, by as f32, (fw - bx) as f32, (fh - by) as f32, Color::new(0.0, 0.0, 0.0, 0.6));
+        let last = (if bar_vertical() { fh } else { fw } / BAR - 1).max(0) as usize;
         for (i, (icon, caption, action)) in self.bar_buttons(world, rules, player).into_iter().enumerate() {
-            let (x, y) = bar_slot(i);
+            let (x, y) = bar_slot(if action == BarAction::Menu { last } else { i });
             let open = matches!(action, BarAction::Open(p) if self.touch.panel == Some(p));
             draw_rectangle(x as f32, y as f32, BUTTON as f32, BUTTON as f32, Color::new(0.15, 0.15, 0.15, 1.0));
             outline(x, y, x + BUTTON, y + BUTTON, if open { YELLOW } else { LIGHT_GREY });
@@ -453,6 +457,7 @@ impl Hud {
                     self.touch.scroll = 0;
                 }
                 BarAction::Drop => orders.push(Order::Unselect { perso }),
+                BarAction::Menu => self.toggle_info(7),
             }
         }
         (on_ui, tip)
@@ -481,7 +486,7 @@ impl Hud {
             Panel::Windows if !enabled => {}
             Panel::Windows => {
                 if k == 7 {
-                    self.info_enabled[7] = !self.info_enabled[7];
+                    self.toggle_info(7);
                 } else {
                     self.touch.front = if self.touch.front == Some(k) { None } else { Some(k) };
                 }
