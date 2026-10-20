@@ -1188,7 +1188,7 @@ impl Hud {
         let line = |row: usize, x: i32, text: &str, colour: Color| self.text(o.0 + x, o.1 + CHARACTER_ROWS[row], text, colour);
         let label = |row: usize| line(row, 32, &format!("{} :", s.character[row]), BLACK);
         let value = |row: usize, text: &str| line(row, CHARACTER_VALUE_X, text, BLACK);
-        self.text(o.0 + 128, o.1 + 32, &p.name, BLACK);
+        self.text(o.0 + 128, o.1 + 32, p.shown_name(rules), BLACK);
         // Job: an emperor's title without a label, else the house's job once built.
         let female = p.female as usize;
         if p.emperor {
@@ -1466,7 +1466,7 @@ impl Hud {
                     Order::Move { perso, x: clng(wx), y: clng(wy) }
                 });
             } else {
-                *tip = format!("&{} ", world.persos[enemy].name);
+                *tip = format!("&{} ", world.persos[enemy].shown_name(rules));
             }
         } else if input.left_pressed {
             orders.push(Order::Move { perso, x: clng(wx), y: clng(wy) });

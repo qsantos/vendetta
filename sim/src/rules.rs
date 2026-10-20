@@ -290,11 +290,36 @@ fn val(s: Option<&str>) -> f64 {
     s.map(crate::ini::vb_val).unwrap_or(0.0)
 }
 
+/// A language of `Langues.ini`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Language {
+    /// `Nom`, in that language (`Français`).
+    pub name: String,
+    /// `Dossier`: its files' folder in `Donnees/` (`Francais`).
+    pub folder: String,
+    /// `Suffixe`, of the keys translated in place and of some files (`FR`).
+    pub suffix: String,
+}
+
+/// The languages of `Langues.ini`, the original's French first.
+pub fn languages(files: &Files) -> Vec<Language> {
+    let Ok(f) = ini(files, "Donnees/Langues.ini") else { return Vec::new() };
+    (1..=f.int_or("Langues", "NombreLangues", 0))
+        .map(|k| {
+            let s = format!("Langue_{k}");
+            Language {
+                name: f.str_or(&s, "Nom", "").to_owned(),
+                folder: f.str_or(&s, "Dossier", "").trim_end_matches(['\\', '/']).to_owned(),
+                suffix: f.str_or(&s, "Suffixe", "").to_uppercase(),
+            }
+        })
+        .collect()
+}
+
 impl Rules {
+    /// The rules, with their text in the language of folder `lang` (`Donnees/<lang>/`).
     pub fn load(files: &Files, lang: &str) -> Result<Rules, String> {
-        let langs = ini(files, "Donnees/Langues.ini").ok();
-        let suffix = if lang == "English" { "EN" } else { "FR" }.to_owned();
-        let _ = langs;
+        let suffix = languages(files).into_iter().find(|l| l.folder == lang).map_or_else(|| "FR".to_owned(), |l| l.suffix);
         let params = Params::load(files, lang)?;
 
         let terrain = ini(files, &format!("Donnees/{lang}/Terrain.ini"))?;

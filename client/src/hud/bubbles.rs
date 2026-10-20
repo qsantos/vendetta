@@ -105,7 +105,7 @@ impl Hud {
             9 => {
                 // the name, then each temporary effect
                 let q = &world.persos[hit];
-                let mut t = format!("&{}  ", q.name);
+                let mut t = format!("&{}  ", q.shown_name(rules));
                 for e in &q.effects {
                     t += &format!("#&({})", rules.objects[e.object].effect_name[q.female as usize]);
                 }
@@ -113,18 +113,14 @@ impl Hud {
             }
             13 => format!("{}  ", rules.treasures[world.treasures[hit].tier].name),
             16 => {
-                let name = &world.decors[hit].name;
-                if name.is_empty() {
-                    return;
-                }
-                format!("{name}  ")
+                let Some(epitaph) = &world.decors[hit].epitaph else { return };
+                format!("{}  ", epitaph.text(rules))
             }
             12 => format!("{} ", rules.buildings[world.houses[hit].kind].name),
             // 17 (soldiers guarding an ally) would show the same, but armies are not ported.
             14 | 17 => {
                 let q = &world.persos[hit];
-                let name = if q.name.is_empty() { &rules.races[q.race].name[q.female as usize] } else { &q.name };
-                format!("{name}  ")
+                format!("{}  ", q.shown_name(rules))
             }
             _ => return,
         };

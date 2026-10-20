@@ -68,12 +68,48 @@ impl Treasure {
     }
 }
 
+/// A character as a tomb remembers it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Named {
+    pub name: String,
+    pub race: usize,
+    pub female: bool,
+}
+
+impl Named {
+    pub fn of(p: &crate::perso::Perso) -> Named {
+        Named { name: p.name.clone(), race: p.race, female: p.female }
+    }
+
+    /// See `Perso::shown_name`.
+    pub fn shown<'a>(&'a self, rules: &'a Rules) -> &'a str {
+        if self.name.is_empty() { &rules.races[self.race].name[self.female as usize] } else { &self.name }
+    }
+}
+
+/// A tomb's inscription: who lies there, at what level, killed by whom. Kept as data, and
+/// written in the player's language when shown.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Epitaph {
+    pub dead: Named,
+    pub level: f64,
+    pub killer: Named,
+}
+
+impl Epitaph {
+    /// The original's `"&" & Nom & " (" & EtiquetteNiveau & " " & Niveau & ")" & EtiquetteTombe & NomTueur`.
+    pub fn text(&self, rules: &Rules) -> String {
+        let killed_by = &rules.label_tomb[self.dead.female as usize];
+        format!("&{} ({} {}){killed_by}{}", self.dead.shown(rules), rules.label_level, self.level, self.killer.shown(rules))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Decor {
     /// Decor type (`Categorie`).
     pub kind: usize,
-    /// Tooltip (tombs carry the victim's name).
-    pub name: String,
+    /// What a tomb says, shown in its tooltip; decorations without one have no tooltip.
+    pub epitaph: Option<Epitaph>,
     pub x: i32,
     pub y: i32,
     pub w: i32,
@@ -87,11 +123,11 @@ pub struct Decor {
 
 impl Decor {
     /// `Decor_Creer` (without appending); `speed` is `Jeu.Vitesse`.
-    pub fn new(rules: &Rules, kind: usize, x: i32, y: i32, name: String, speed: i64) -> Decor {
+    pub fn new(rules: &Rules, kind: usize, x: i32, y: i32, epitaph: Option<Epitaph>, speed: i64) -> Decor {
         let t = &rules.decors[kind];
         Decor {
             kind,
-            name,
+            epitaph,
             x,
             y,
             w: t.size.0,

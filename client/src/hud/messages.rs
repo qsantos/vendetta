@@ -293,10 +293,10 @@ impl MessageLog {
             let title = |e: &Perso| &rules.epochs[fief.epoch].emperor_title[e.female as usize];
             if let Ok(e) = usize::try_from(fief.emperor) {
                 let e = &world.persos[e];
-                let m = format!("{}{}{}", e.name, t.emperor[e.female as usize], title(e));
+                let m = format!("{}{}{}", e.shown_name(rules), t.emperor[e.female as usize], title(e));
                 out.push(format!("{}{}", t.prefix, m.to_uppercase()));
             } else if let Some(e) = usize::try_from(seen.emperor).ok().and_then(|e| world.persos.get(e)) {
-                let m = format!("{} {}{}", title(e), e.name, t.emperor_dead[e.female as usize]);
+                let m = format!("{} {}{}", title(e), e.shown_name(rules), t.emperor_dead[e.female as usize]);
                 out.push(format!("{}{}", t.prefix, m.to_uppercase()));
             }
             seen.emperor = fief.emperor;

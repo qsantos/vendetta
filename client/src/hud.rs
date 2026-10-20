@@ -626,7 +626,7 @@ impl Hud {
             let y = H + DY - 1;
             let total = e.bar_total(0);
             status_bar_framed(e.bars[0].clamp(0.0, total.max(0.0)), total, e.bonus_max[0] as f64, left, y, W, H - 4, None, GREY);
-            let title = format!("{} {}", rules.epochs[f.epoch].emperor_title[e.female as usize], e.name);
+            let title = format!("{} {}", rules.epochs[f.epoch].emperor_title[e.female as usize], e.shown_name(rules));
             self.text(centred(&title), y, &title, GREY);
         }
     }

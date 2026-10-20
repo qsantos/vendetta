@@ -587,11 +587,10 @@ impl World {
         }
         let q = &self.persos[d];
         if let Ok(tomb) = usize::try_from(rules.races[q.race].tomb) {
-            let level = q.level().floor();
-            let killed_by = &rules.label_tomb[q.female as usize];
-            let name = format!("&{} ({} {level}){killed_by}{}", q.name, rules.label_level, self.persos[a].name);
+            use crate::treasure::{Epitaph, Named};
+            let epitaph = Epitaph { dead: Named::of(q), level: q.level().floor(), killer: Named::of(&self.persos[a]) };
             let (x, y) = (q.x as i32, q.y as i32);
-            self.decor_create(rules, tomb, x, y, name);
+            self.decor_create(rules, tomb, x, y, Some(epitaph));
         }
     }
 

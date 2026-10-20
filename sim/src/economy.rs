@@ -1445,9 +1445,9 @@ impl World {
     }
 
     /// `Decor_Creer`
-    pub fn decor_create(&mut self, rules: &Rules, kind: usize, x: i32, y: i32, name: String) {
+    pub fn decor_create(&mut self, rules: &Rules, kind: usize, x: i32, y: i32, epitaph: Option<crate::treasure::Epitaph>) {
         let (x, y) = self.terrain.wrap32((x, y));
-        self.decors.push(Decor::new(rules, kind, x, y, name, self.speed));
+        self.decors.push(Decor::new(rules, kind, x, y, epitaph, self.speed));
     }
 
     /// `Actualiser_Affichage_Decors`: animation, then at most one temporary decor expires.
@@ -1649,7 +1649,7 @@ impl World {
                 return (12, j);
             }
         }
-        match self.decors.iter().position(|d| self.terrain.overlaps(r, (d.x, d.y, d.w, d.h)) && !d.name.is_empty()) {
+        match self.decors.iter().position(|d| self.terrain.overlaps(r, (d.x, d.y, d.w, d.h)) && d.epitaph.is_some()) {
             Some(k) => (16, k),
             None => (0, 0),
         }

@@ -166,8 +166,9 @@ fn a_kill_is_looted() {
         }
         let tomb = w.decors.last().unwrap();
         assert_eq!(w.decors.len(), decors + 1);
-        assert!(tomb.name.starts_with(&format!("&{} (", w.persos[d].name)), "{}", tomb.name);
-        assert!(tomb.name.ends_with(&w.persos[a].name));
+        let text = tomb.epitaph.as_ref().unwrap().text(&rules);
+        assert!(text.starts_with(&format!("&{} (", w.persos[d].shown_name(&rules))), "{text}");
+        assert!(text.ends_with(w.persos[a].shown_name(&rules)));
     }
 }
 

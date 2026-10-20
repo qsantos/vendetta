@@ -85,6 +85,8 @@ pub struct Item {
 pub struct Perso {
     /// `Numero`: this character's index in `World::persos`.
     pub numero: usize,
+    /// Its own name, or empty for a race whose characters all bear its name (`Nom`, shown in
+    /// the player's language: see `shown_name`).
     pub name: String,
     pub female: bool,
     pub race: usize,
@@ -309,6 +311,12 @@ fn skills(n: usize, carac: i64, k: f64) -> Vec<Skill> {
 }
 
 impl Perso {
+    /// Its name as shown: its own, else its race's (the world stores no translated text, so
+    /// that it is the same in every language).
+    pub fn shown_name<'a>(&'a self, rules: &'a Rules) -> &'a str {
+        if self.name.is_empty() { &rules.races[self.race].name[self.female as usize] } else { &self.name }
+    }
+
     /// `Init` (with `Init_Carac`) followed by `Changer_Race_Personnage(0)`.
     pub fn new(rules: &Rules, rng: &mut Rnd, fief: usize, team: i64, player: bool) -> Perso {
         let frame = rng.below(3) as u8;
@@ -485,7 +493,7 @@ impl Perso {
                 let i = clng(rng.next() * last as f64) as usize;
                 names.get(i).cloned().unwrap_or_default()
             } else {
-                r.name[self.female as usize].clone()
+                String::new()
             };
         }
         self.w = r.size.0;
