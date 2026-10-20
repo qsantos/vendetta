@@ -552,8 +552,7 @@ impl Hud {
 
     /// `Activer_BoutonsRadiaux`: a right click on the map opens the ring at the mouse; while
     /// open, another right click switches between the info and build rings.
-    // TODO: the original also warps the cursor onto the info button `_button`
-    pub fn open_radial(&mut self, m: (i32, i32), _button: usize) {
+    pub fn open_radial(&mut self, m: (i32, i32)) {
         if self.radial.is_some() {
             self.radial_category = (self.radial_category + 1) % 2;
         }
@@ -616,7 +615,7 @@ impl Hud {
         self.tooltip(m, &tip);
 
         if input.right_pressed {
-            self.open_radial(m, 0);
+            self.open_radial(m);
         } else if input.left_pressed {
             match hovered {
                 Some(i) if self.radial_category == 0 => self.toggle_info(i),

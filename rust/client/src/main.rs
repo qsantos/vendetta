@@ -475,11 +475,10 @@ async fn main() {
             // Right click while holding an object puts it back.
             orders.push(Order::Unselect { perso: player });
         } else if !on_ui && !placed && input.right_pressed {
-            // Right click on the map: the radial buttons (`FrmMoteur2D.frm:943-961`).
+            // Right click on the map: the radial buttons (`FrmMoteur2D.frm:943-961`; the original
+            // also moved the cursor onto one, which browsers do not allow).
             match hover {
-                0 | 16 | 999 => hud.open_radial((hx, hy), 4),
-                1 => hud.open_radial((hx, hy), 1),
-                4..=8 | 12 => hud.open_radial((hx, hy), 0),
+                0 | 1 | 4..=8 | 12 | 16 | 999 => hud.open_radial((hx, hy)),
                 // "Chargez!": the soldiers attack the enemy, house or castle.
                 9..=11 => orders.push(Order::Charge {
                     perso: player,
