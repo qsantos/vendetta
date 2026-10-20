@@ -36,6 +36,9 @@ const SCENES = {
   // in English (`Donnees/English/`)
   english: { hash: "seed=1&lang=EN", steps: [["move", 512, 600]] },
   english_character: { hash: "seed=1&lang=EN", steps: [["key", "KeyP"], ["move", 250, 270], ["wait", 0.3]] },
+  spanish: { hash: "seed=1&lang=ES", steps: [["key", "KeyP"], ["move", 250, 270], ["wait", 0.3]] },
+  japanese: { hash: "seed=1&lang=JA", steps: [["key", "KeyP"], ["move", 250, 270], ["wait", 0.3]] },
+  chinese: { hash: "seed=1&lang=ZH", steps: [["key", "KeyP"], ["move", 250, 270], ["wait", 0.3]] },
   minimap: { hash: "seed=3&size=256&fiefs=6&villagers=20", steps: [["key", "Tab"], ["move", 600, 740]] },
   // The skills window, every skill shown (its 4th sort button).
   skills: { hash: "seed=1", steps: [["key", "KeyT"], ["left", 222, 437], ["move", 512, 740]] },

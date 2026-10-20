@@ -121,10 +121,10 @@ impl TooltipLabels {
     pub fn load(files: &Files, lang: &str) -> TooltipLabels {
         let globals = Ini::parse(files.text(&format!("Donnees/{lang}/Parametres_Globales.ini")).unwrap_or(""));
         let mut labels = TooltipLabels::from_ini(&globals);
-        // Approximation: the original follows the Windows locale; assume a French system for
-        // the French game.
-        labels.decimal = if lang == "Francais" { ',' } else { '.' };
         let suffix = sim::rules::languages(files).into_iter().find(|l| l.folder == lang).map_or_else(|| "FR".to_owned(), |l| l.suffix);
+        // Approximation: the original follows the Windows locale; assume the language's usual
+        // one (a decimal comma in French and Spanish).
+        labels.decimal = if matches!(suffix.as_str(), "FR" | "ES") { ',' } else { '.' };
         if let Ok(params) = Params::load(files, lang) {
             // `NomPluriel` sets both sexes, `NomMPluriel` the masculine one: the last wins.
             let keys = ["NomPluriel".to_owned(), format!("NomPluriel{suffix}"), "NomMPluriel".to_owned(), format!("NomMPluriel{suffix}")];

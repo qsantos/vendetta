@@ -315,7 +315,7 @@ impl MessageLog {
             self.last = now;
         }
         if let Some(first) = self.lines.first()
-            && (now - self.last).abs() > first.chars().count() as f64 * DURATION
+            && (now - self.last).abs() > crate::text::columns(first) as f64 * DURATION
         {
             self.lines.remove(0);
             self.last = now;

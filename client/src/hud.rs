@@ -540,7 +540,7 @@ impl Hud {
         let p = &world.persos[player];
         let mut lines = Vec::new();
         if p.selected_money.min(p.money()) > 0.0 {
-            lines.push(format!("{} : {}", crate::lang::tr("Argent", "Money"), p.selected_money.min(p.money()) as i64));
+            lines.push(format!("{} : {}", crate::lang::tr(["Argent", "Money", "Dinero", "お金", "银币"]), p.selected_money.min(p.money()) as i64));
         }
         for (r, resource) in rules.resources.iter().enumerate() {
             let n = p.selected_resources.get(r).map_or(0.0, |&n| n.min(p.resource(r)));
@@ -607,7 +607,7 @@ impl Hud {
         const DY: i32 = -4;
         let left = cx(438);
         let f = &world.fiefs[p.fief];
-        let centred = |s: &str| cx(528) - clng(s.chars().count() as f64 * 3.25) as i32;
+        let centred = |s: &str| cx(528) - clng(crate::text::columns(s) as f64 * 3.25) as i32;
         match rules.epochs.get(f.epoch + 1).filter(|_| f.changing_epoch) {
             Some(next) => {
                 // Drawn from y=-4, the bar is clipped to the screen: 18 high from y=0.

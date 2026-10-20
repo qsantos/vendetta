@@ -581,7 +581,7 @@ impl Hud {
                     .filter(|(_, g)| *g > 0.0)
                     .map(|(n, g)| format!("#+{g:.1} {n}"))
                     .collect();
-                let tip = format!("{} : {}  {gains}", tr("Manger", "Eat"), res.name.to_lowercase());
+                let tip = format!("{} : {}  {gains}", tr(["Manger", "Eat", "Comer", "食べる", "进食"]), res.name.to_lowercase());
                 let eat = Order::Eat { perso, resource: k };
                 hits.push((rect(184, y - 6, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip, left: Some(eat), right: None }));
             }
@@ -602,13 +602,13 @@ impl Hud {
                 let hit = if in_castle {
                     let order = Order::SellResource { perso, resource: k, quantity: q };
                     Hit { toggle: false, object: None, frame: false, queue: None,
-                        tip: format!("{} {q} {}  #{} : {}", tr("Vendre", "Sell"), res.name, s.price, q * res.price),
+                        tip: format!("{} {q} {}  #{} : {}", tr(["Vendre", "Sell", "Vender", "売却", "出售"]), res.name, s.price, q * res.price),
                         left: Some(order.clone()),
                         right: Some(order),
                     }
                 } else {
                     Hit { toggle: false, object: None, frame: false, queue: None,
-                        tip: format!("{} {q} {}  #{} : {}", tr("Prendre", "Take"), res.name, s.price, q * res.price),
+                        tip: format!("{} {q} {}  #{} : {}", tr(["Prendre", "Take", "Tomar", "受け取る", "拿取"]), res.name, s.price, q * res.price),
                         left: Some(Order::SelectResource { perso, resource: k, quantity: q }),
                         right: Some(Order::UnselectResource { perso, resource: k, quantity: q }),
                     }
@@ -923,7 +923,7 @@ impl Hud {
                             let price = q * res.price * rules.buy_coef;
                             let red = if price > p.money() { "&" } else { "" };
                             Hit { toggle: false, object: None, frame: false, queue: None,
-                                tip: format!("{} {q} {}  #{red}{} : {price}", tr("Acheter", "Buy"), res.name, s.price),
+                                tip: format!("{} {q} {}  #{red}{} : {price}", tr(["Acheter", "Buy", "Comprar", "購入", "购买"]), res.name, s.price),
                                 left: Some(Order::BuyFromHouse { perso, house: h, quantity: q }),
                                 right: None,
                             }
@@ -940,7 +940,7 @@ impl Hud {
                 };
                 self.text(o.0 + 32, o.1 + 138, &line, BLACK);
                 cell(textures, ACTION, o.0 + 216, o.1 + 136, 5, (stock < 1.0) as i32, (24, 24), true);
-                hits.push((rect(216, 136, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip: tr(" (Entrée)", " (Enter)").to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
+                hits.push((rect(216, 136, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip: tr([" (Entrée)", " (Enter)", " (Intro)", " (Enter)", " (回车)"]).to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
                 if house.max_stock > 0.0 || own {
                     self.text(o.0 + 32, o.1 + 160, &svc.description, BLACK);
                 }
@@ -985,7 +985,7 @@ impl Hud {
                 let red = if q * price > p.money() { "&" } else { "" };
                 let order = Order::BuyResource { perso, resource: k, quantity: [1.0, 5.0, p.max_resource(k)][j as usize] };
                 hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None,
-                    tip: format!("{} {q} {}  #{red}{} : {}", tr("Acheter", "Buy"), res.name, s.price, q * price),
+                    tip: format!("{} {q} {}  #{red}{} : {}", tr(["Acheter", "Buy", "Comprar", "購入", "购买"]), res.name, s.price, q * price),
                     left: Some(order),
                     right: None,
                 }));

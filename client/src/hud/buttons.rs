@@ -77,7 +77,7 @@ pub(super) fn tooltip_size(s: &str) -> (i32, i32) {
     let max_len = lines
         .iter()
         .enumerate()
-        .map(|(i, l)| l.chars().count() + (i + 1 < lines.len()) as usize)
+        .map(|(i, l)| crate::text::columns(l) + (i + 1 < lines.len()) as usize)
         .max()
         .unwrap_or(0) as i32;
     (max_len * 7, lines.len() as i32 * 16)

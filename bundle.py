@@ -8,7 +8,9 @@ usage: python3 bundle.py ASSETS_DIR OUT_DIR
 
 Writes OUT_DIR/bundles/<name>.bin, the files of each bundle end to end, and
 OUT_DIR/bundles.json: {"bundles": [{"url", "size", "files": [[path, offset, size], ...]}]},
-each url versioned by its content (`?v=<hash>`, cached for good).
+each url versioned by its content (`?v=<hash>`, cached for good). Each language's files (its
+folders in Donnees/ and Donnees/ModsOfficiels/, its font) are a bundle of their own, with its
+`Langues.ini` suffix as "language": the page downloads only the player's.
 """
 import hashlib
 import json
@@ -38,6 +40,22 @@ def is_data(path):
     )
 
 
+# The languages of Langues.ini: (folder, suffix).
+with open(os.path.join(assets, "Donnees", "Langues.ini"), encoding="utf-8") as f:
+    langues = f.read()
+LANGUAGES = [
+    (folder, suffix.upper())
+    for folder, suffix in re.findall(r"(?ims)^\s*Dossier\s*=\s*([^\r\n\\/]+)[\\/]?\s*$\s*^\s*Suffixe\s*=\s*(\S+)", langues)
+]
+
+
+def of_language(folder):
+    prefixes = (f"donnees/{folder}/".lower(), f"donnees/modsofficiels/{folder}/".lower(), f"polices/{folder}.".lower())
+    return lambda p: p.lower().startswith(prefixes)
+
+
+BUNDLES = [(f"language-{suffix}", of_language(folder), suffix) for folder, suffix in LANGUAGES] + [(name, wanted, None) for name, wanted in BUNDLES]
+
 paths = []
 with open(os.path.join(assets, "manifest.txt"), encoding="utf-8") as f:
     for line in f:
@@ -47,7 +65,7 @@ with open(os.path.join(assets, "manifest.txt"), encoding="utf-8") as f:
 os.makedirs(os.path.join(out, "bundles"), exist_ok=True)
 index = []
 taken = set()
-for name, wanted in BUNDLES:
+for name, wanted, language in BUNDLES:
     files, content, offset = [], bytearray(), 0
     for path in paths:
         if path in taken or not wanted(path):
@@ -61,7 +79,10 @@ for name, wanted in BUNDLES:
     with open(os.path.join(out, "bundles", name + ".bin"), "wb") as f:
         f.write(content)
     digest = hashlib.sha256(content).hexdigest()[:16]
-    index.append({"url": f"bundles/{name}.bin?v={digest}", "size": len(content), "files": files})
+    bundle = {"url": f"bundles/{name}.bin?v={digest}", "size": len(content), "files": files}
+    if language:
+        bundle["language"] = language
+    index.append(bundle)
     print(f"{name}: {len(files)} files, {len(content) / 1e6:.2f} MB", file=sys.stderr)
 with open(os.path.join(out, "bundles.json"), "w", encoding="utf-8") as f:
     json.dump({"bundles": index}, f, ensure_ascii=False, separators=(",", ":"))

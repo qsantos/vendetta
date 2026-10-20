@@ -177,7 +177,7 @@ impl LoadingScreen {
         if !s.message.is_empty() {
             // Same box as the HUD tooltips; a line starting with '&' is red.
             let lines: Vec<&str> = s.message.split('#').collect();
-            let width = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0) as f32 * 7.0;
+            let width = lines.iter().map(|l| crate::text::columns(l)).max().unwrap_or(0) as f32 * 7.0;
             let height = lines.len() as f32 * 16.0;
             let x = (mx + 24.0).min(w - width - 2.0).max(0.0);
             let y = (my + 20.0).min(h - height - 2.0).max(0.0);

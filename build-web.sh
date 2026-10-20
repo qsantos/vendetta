@@ -1,7 +1,8 @@
 #!/bin/sh
 # Build the browser version into dist/. Serve dist/ with any static file server; see
 # serve.py for the caching headers to use. Needs ImageMagick, and Python with Pillow, NumPy,
-# SciPy and the Noto Sans fonts (Noto Sans CJK for Chinese or Japanese) for the loading screens.
+# SciPy, fontTools and the Noto Sans and Noto Sans CJK fonts (for the translations and their
+# loading screens).
 set -e
 cd "$(dirname "$0")"
 cargo build --release -p client --target wasm32-unknown-unknown
@@ -32,6 +33,8 @@ sed -e "s|\"client.wasm\"|\"client.wasm?v=$wasm\"|" \
     web/index.html > dist/index.html
 grep -q "const build = \"$wasm\";" dist/index.html
 ln -sfn ../assets dist/assets
+# The translations beyond the original's French and English (see tools/translate.py).
+python3 -I tools/translate.py apply assets
 # The files the game loads as it starts, in a few bundles (see bundle.py), and their index,
 # versioned like the game.
 python3 bundle.py assets dist

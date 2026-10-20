@@ -40,7 +40,7 @@ impl Speech {
         // A line stays `Duree` seconds per character.
         let duration = rules.comment_duration * world.speed as f64;
         for (text, said) in &mut self.lines {
-            if !text.is_empty() && (world.tick - *said) as f64 > text.chars().count() as f64 * duration {
+            if !text.is_empty() && (world.tick - *said) as f64 > crate::text::columns(text) as f64 * duration {
                 text.clear();
             }
         }
@@ -84,7 +84,7 @@ mod tests {
         say(&mut w, Line::Comment { kind: 0, index: 0 });
         speech.tick(&w, &rules);
         assert_eq!(speech.line(i), line, "a new line does not replace the current one");
-        let ticks = (line.chars().count() as f64 * rules.comment_duration * w.speed as f64) as usize + 2;
+        let ticks = (crate::text::columns(&line) as f64 * rules.comment_duration * w.speed as f64) as usize + 2;
         for _ in 0..ticks {
             w.step(&rules, &[]);
             w.events.retain(|e| !matches!(e, Event::Say { .. } | Event::Silence { .. }));

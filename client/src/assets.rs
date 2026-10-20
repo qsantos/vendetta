@@ -96,6 +96,22 @@ impl Manifest {
         Ok(Manifest { entries, by_key })
     }
 
+    /// Leaves out the files of the languages other than `lang` (their folders in `Donnees/` and
+    /// `Donnees/ModsOfficiels/`, their font): the game never reads them, and the page does not
+    /// download them (see bundle.py).
+    pub fn only_language(&mut self, languages: &[sim::rules::Language], lang: &str) {
+        let others: Vec<String> = languages
+            .iter()
+            .filter(|l| l.folder != lang)
+            .flat_map(|l| [format!("Donnees/{}/", l.folder), format!("Donnees/ModsOfficiels/{}/", l.folder), format!("Polices/{}.", l.folder)])
+            .map(|p| p.to_lowercase())
+            .collect();
+        self.entries.retain(|(p, _)| {
+            let p = p.to_lowercase();
+            !others.iter().any(|o| p.starts_with(o))
+        });
+    }
+
     pub fn size(&self, path: &str) -> u64 {
         self.by_key.get(&key(path)).map_or(0, |e| e.0)
     }

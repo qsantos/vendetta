@@ -105,8 +105,8 @@
 </style>
 <script>
   // The language (`Langues.ini` suffix): the menu's choice, else the address's `lang=`, else
-  // the original's French. The page's French texts are translated with `english`, by their
-  // French; the game reads the language as it starts (`vendetta_language`).
+  // the original's French. The page's French texts are translated with `translations`, by
+  // their French; the game reads the language as it starts (`vendetta_language`).
   const languageKey = "vendetta-language";
   const language = (() => {
     let chosen = null;
@@ -116,79 +116,296 @@
     const item = decodeURIComponent(location.hash).split(/[#&]/).find((o) => o.startsWith("lang="));
     return (chosen || (item ? item.slice(5) : "FR")).toUpperCase();
   })();
-  const english = {
-    "Continuer": "Continue",
-    "Nouveau": "New",
-    "Multijoueur": "Multiplayer",
-    "Langue": "Language",
-    "Votre nom": "Your name",
-    "Créer une partie": "Create a game",
-    "Code de la partie": "Game code",
-    "Retour": "Back",
-    "Rejoindre": "Join",
-    "Partie": "Game",
-    "Lien à partager :": "Link to share:",
-    "Monde (choisi par l'hôte)": "World (chosen by the host)",
-    "Taille de la carte": "Map size",
-    "Peuples": "Nations",
-    "Villageois par peuple": "Villagers per nation",
-    "Routes": "Roads",
-    "vers les châteaux proches": "to the nearest castles",
-    "en anneau (l'original)": "in a ring (the original)",
-    "Bords de la carte": "Map edges",
-    "reliés (un tore)": "joined (a torus)",
-    "fermés (l'original)": "closed (the original)",
-    "Vitesse": "Speed",
-    "Graine": "Seed",
-    "au hasard": "random",
-    "Attendre les plus lents": "Wait for the slowest",
-    "sans limite": "without limit",
-    "1,5 × le plus rapide": "1.5 × the fastest",
-    "2 × le plus rapide": "2 × the fastest",
-    "3 × le plus rapide": "3 × the fastest",
-    "Quitter": "Leave",
-    "Jouer": "Play",
-    "Invincible": "Invincible",
-    "Performances": "Performance",
-    "Chargement…": "Loading…",
-    "Reprendre": "Resume",
-    "Quitter vers le menu": "Quit to the menu",
-    "Sons": "Sounds",
-    "Musiques": "Music",
-    "Bruitages": "Sound effects",
-    "Affichage": "Display",
-    "Zoom de la carte": "Map zoom",
-    "Taille de l'interface": "Interface size",
-    "Automatique": "Automatic",
-    "Tactile": "Touch",
-    "Bureau": "Desktop",
-    "Plein écran": "Full screen",
-    "Jeu": "Game",
-    "La partie continue : votre personnage attend.": "The game goes on: your character waits.",
-    "Partie en pause": "Game paused",
-    " (celle de la partie)": " (the game's)",
-    "Enregistrement…": "Saving…",
-    " (hôte)": " (host)",
-    " (vous)": " (you)",
-    "Peuple ": "Nation ",
-    "Le serveur ne répond pas.": "The server does not answer.",
-    "Choisissez un nom.": "Choose a name.",
-    "Entrez le code de la partie.": "Enter the game's code.",
-    "Rien reçu depuis": "Nothing received for",
-    "Connexion instable :": "Unstable connection:",
-    "reprise": "retry",
-    "reprises": "retries",
-    // the server's errors
-    "version du jeu différente de celle de la partie : rechargez la page": "the game's version differs from the room's: reload the page",
-    "déjà dans une partie": "already in a game",
-    "partie introuvable": "no such game",
-    "la partie a déjà commencé": "the game has already started",
-    "plus dans cette partie": "no longer in this game",
-    "pas dans une partie": "not in a game",
-    "partie reprise depuis une autre connexion": "game resumed from another connection",
-    "pas maintenant": "not now",
+  // The page's texts by language, from their French.
+  const translations = {
+    EN: {
+      "Continuer": "Continue",
+      "Nouveau": "New",
+      "Multijoueur": "Multiplayer",
+      "Langue": "Language",
+      "Votre nom": "Your name",
+      "Créer une partie": "Create a game",
+      "Code de la partie": "Game code",
+      "Retour": "Back",
+      "Rejoindre": "Join",
+      "Partie": "Game",
+      "Lien à partager :": "Link to share:",
+      "Monde (choisi par l'hôte)": "World (chosen by the host)",
+      "Taille de la carte": "Map size",
+      "Peuples": "Nations",
+      "Villageois par peuple": "Villagers per nation",
+      "Routes": "Roads",
+      "vers les châteaux proches": "to the nearest castles",
+      "en anneau (l'original)": "in a ring (the original)",
+      "Bords de la carte": "Map edges",
+      "reliés (un tore)": "joined (a torus)",
+      "fermés (l'original)": "closed (the original)",
+      "Vitesse": "Speed",
+      "Graine": "Seed",
+      "au hasard": "random",
+      "Attendre les plus lents": "Wait for the slowest",
+      "sans limite": "without limit",
+      "1,5 × le plus rapide": "1.5 × the fastest",
+      "2 × le plus rapide": "2 × the fastest",
+      "3 × le plus rapide": "3 × the fastest",
+      "Quitter": "Leave",
+      "Jouer": "Play",
+      "Invincible": "Invincible",
+      "Performances": "Performance",
+      "Chargement…": "Loading…",
+      "Reprendre": "Resume",
+      "Quitter vers le menu": "Quit to the menu",
+      "Sons": "Sounds",
+      "Musiques": "Music",
+      "Bruitages": "Sound effects",
+      "Affichage": "Display",
+      "Zoom de la carte": "Map zoom",
+      "Taille de l'interface": "Interface size",
+      "Automatique": "Automatic",
+      "Tactile": "Touch",
+      "Bureau": "Desktop",
+      "Plein écran": "Full screen",
+      "Jeu": "Game",
+      "La partie continue : votre personnage attend.": "The game goes on: your character waits.",
+      "Partie en pause": "Game paused",
+      " (celle de la partie)": " (the game's)",
+      "Enregistrement…": "Saving…",
+      " (hôte)": " (host)",
+      " (vous)": " (you)",
+      "Peuple ": "Nation ",
+      "Le serveur ne répond pas.": "The server does not answer.",
+      "Choisissez un nom.": "Choose a name.",
+      "Entrez le code de la partie.": "Enter the game's code.",
+      "Rien reçu depuis": "Nothing received for",
+      "Connexion instable :": "Unstable connection:",
+      "reprise": "retry",
+      "reprises": "retries",
+      "version du jeu différente de celle de la partie : rechargez la page": "the game's version differs from the room's: reload the page",
+      "déjà dans une partie": "already in a game",
+      "partie introuvable": "no such game",
+      "la partie a déjà commencé": "the game has already started",
+      "plus dans cette partie": "no longer in this game",
+      "pas dans une partie": "not in a game",
+      "partie reprise depuis une autre connexion": "game resumed from another connection",
+      "pas maintenant": "not now",
+    },
+    ES: {
+      "Continuer": "Continuar",
+      "Nouveau": "Nueva partida",
+      "Multijoueur": "Multijugador",
+      "Langue": "Idioma",
+      "Votre nom": "Tu nombre",
+      "Créer une partie": "Crear una partida",
+      "Code de la partie": "Código de la partida",
+      "Retour": "Volver",
+      "Rejoindre": "Unirse",
+      "Partie": "Partida",
+      "Lien à partager :": "Enlace para compartir:",
+      "Monde (choisi par l'hôte)": "Mundo (elegido por el anfitrión)",
+      "Taille de la carte": "Tamaño del mapa",
+      "Peuples": "Pueblos",
+      "Villageois par peuple": "Aldeanos por pueblo",
+      "Routes": "Caminos",
+      "vers les châteaux proches": "hacia los castillos cercanos",
+      "en anneau (l'original)": "en anillo (el original)",
+      "Bords de la carte": "Bordes del mapa",
+      "reliés (un tore)": "unidos (un toro)",
+      "fermés (l'original)": "cerrados (el original)",
+      "Vitesse": "Velocidad",
+      "Graine": "Semilla",
+      "au hasard": "al azar",
+      "Attendre les plus lents": "Esperar a los más lentos",
+      "sans limite": "sin límite",
+      "1,5 × le plus rapide": "1,5 × el más rápido",
+      "2 × le plus rapide": "2 × el más rápido",
+      "3 × le plus rapide": "3 × el más rápido",
+      "Quitter": "Salir",
+      "Jouer": "Jugar",
+      "Invincible": "Invencible",
+      "Performances": "Rendimiento",
+      "Chargement…": "Cargando…",
+      "Reprendre": "Reanudar",
+      "Quitter vers le menu": "Salir al menú",
+      "Sons": "Sonido",
+      "Musiques": "Música",
+      "Bruitages": "Efectos de sonido",
+      "Affichage": "Pantalla",
+      "Zoom de la carte": "Zoom del mapa",
+      "Taille de l'interface": "Tamaño de la interfaz",
+      "Automatique": "Automática",
+      "Tactile": "Táctil",
+      "Bureau": "Escritorio",
+      "Plein écran": "Pantalla completa",
+      "Jeu": "Juego",
+      "La partie continue : votre personnage attend.": "La partida continúa: tu personaje espera.",
+      "Partie en pause": "Partida en pausa",
+      " (celle de la partie)": " (la de la partida)",
+      "Enregistrement…": "Guardando…",
+      " (hôte)": " (anfitrión)",
+      " (vous)": " (tú)",
+      "Peuple ": "Pueblo ",
+      "Le serveur ne répond pas.": "El servidor no responde.",
+      "Choisissez un nom.": "Elige un nombre.",
+      "Entrez le code de la partie.": "Introduce el código de la partida.",
+      "Rien reçu depuis": "Nada recibido desde hace",
+      "Connexion instable :": "Conexión inestable:",
+      "reprise": "reintento",
+      "reprises": "reintentos",
+      "version du jeu différente de celle de la partie : rechargez la page": "la versión del juego difiere de la de la partida: recarga la página",
+      "déjà dans une partie": "ya estás en una partida",
+      "partie introuvable": "partida no encontrada",
+      "la partie a déjà commencé": "la partida ya ha empezado",
+      "plus dans cette partie": "ya no estás en esta partida",
+      "pas dans une partie": "no estás en una partida",
+      "partie reprise depuis une autre connexion": "partida reanudada desde otra conexión",
+      "pas maintenant": "ahora no",
+    },
+    JA: {
+      "Continuer": "続ける",
+      "Nouveau": "新規",
+      "Multijoueur": "マルチプレイ",
+      "Langue": "言語",
+      "Votre nom": "名前",
+      "Créer une partie": "ゲームを作成",
+      "Code de la partie": "ゲームコード",
+      "Retour": "戻る",
+      "Rejoindre": "参加",
+      "Partie": "ゲーム",
+      "Lien à partager :": "共有リンク：",
+      "Monde (choisi par l'hôte)": "ワールド（ホストが選択）",
+      "Taille de la carte": "マップの大きさ",
+      "Peuples": "勢力",
+      "Villageois par peuple": "勢力ごとの村人",
+      "Routes": "道",
+      "vers les châteaux proches": "近くの城へ",
+      "en anneau (l'original)": "環状（オリジナル）",
+      "Bords de la carte": "マップの端",
+      "reliés (un tore)": "つながる（トーラス）",
+      "fermés (l'original)": "閉じる（オリジナル）",
+      "Vitesse": "速度",
+      "Graine": "シード",
+      "au hasard": "ランダム",
+      "Attendre les plus lents": "遅いプレイヤーを待つ",
+      "sans limite": "無制限",
+      "1,5 × le plus rapide": "最速の1.5倍",
+      "2 × le plus rapide": "最速の2倍",
+      "3 × le plus rapide": "最速の3倍",
+      "Quitter": "退出",
+      "Jouer": "プレイ",
+      "Invincible": "無敵",
+      "Performances": "パフォーマンス",
+      "Chargement…": "読み込み中…",
+      "Reprendre": "再開",
+      "Quitter vers le menu": "メニューに戻る",
+      "Sons": "サウンド",
+      "Musiques": "音楽",
+      "Bruitages": "効果音",
+      "Affichage": "表示",
+      "Zoom de la carte": "マップの拡大",
+      "Taille de l'interface": "UIの大きさ",
+      "Automatique": "自動",
+      "Tactile": "タッチ",
+      "Bureau": "デスクトップ",
+      "Plein écran": "全画面",
+      "Jeu": "ゲーム",
+      "La partie continue : votre personnage attend.": "ゲームは続いています：キャラクターは待機中です。",
+      "Partie en pause": "一時停止中",
+      " (celle de la partie)": "（ゲームの設定）",
+      "Enregistrement…": "保存中…",
+      " (hôte)": "（ホスト）",
+      " (vous)": "（あなた）",
+      "Peuple ": "勢力 ",
+      "Le serveur ne répond pas.": "サーバーが応答しません。",
+      "Choisissez un nom.": "名前を入力してください。",
+      "Entrez le code de la partie.": "ゲームコードを入力してください。",
+      "Rien reçu depuis": "受信なし：",
+      "Connexion instable :": "接続が不安定：",
+      "reprise": "回の再試行",
+      "reprises": "回の再試行",
+      "version du jeu différente de celle de la partie : rechargez la page": "ゲームのバージョンが部屋と異なります：ページを再読み込みしてください",
+      "déjà dans une partie": "すでにゲームに参加しています",
+      "partie introuvable": "ゲームが見つかりません",
+      "la partie a déjà commencé": "ゲームはすでに始まっています",
+      "plus dans cette partie": "このゲームから外れています",
+      "pas dans une partie": "ゲームに参加していません",
+      "partie reprise depuis une autre connexion": "別の接続からゲームが再開されました",
+      "pas maintenant": "今はできません",
+    },
+    ZH: {
+      "Continuer": "继续",
+      "Nouveau": "新游戏",
+      "Multijoueur": "多人游戏",
+      "Langue": "语言",
+      "Votre nom": "你的名字",
+      "Créer une partie": "创建游戏",
+      "Code de la partie": "游戏代码",
+      "Retour": "返回",
+      "Rejoindre": "加入",
+      "Partie": "游戏",
+      "Lien à partager :": "分享链接：",
+      "Monde (choisi par l'hôte)": "世界（由房主选择）",
+      "Taille de la carte": "地图大小",
+      "Peuples": "阵营",
+      "Villageois par peuple": "每个阵营的村民",
+      "Routes": "道路",
+      "vers les châteaux proches": "通往附近的城堡",
+      "en anneau (l'original)": "环形（原版）",
+      "Bords de la carte": "地图边缘",
+      "reliés (un tore)": "相连（环面）",
+      "fermés (l'original)": "封闭（原版）",
+      "Vitesse": "速度",
+      "Graine": "种子",
+      "au hasard": "随机",
+      "Attendre les plus lents": "等待最慢的玩家",
+      "sans limite": "无限制",
+      "1,5 × le plus rapide": "最快者的1.5倍",
+      "2 × le plus rapide": "最快者的2倍",
+      "3 × le plus rapide": "最快者的3倍",
+      "Quitter": "退出",
+      "Jouer": "开始",
+      "Invincible": "无敌",
+      "Performances": "性能",
+      "Chargement…": "加载中…",
+      "Reprendre": "继续",
+      "Quitter vers le menu": "返回菜单",
+      "Sons": "声音",
+      "Musiques": "音乐",
+      "Bruitages": "音效",
+      "Affichage": "显示",
+      "Zoom de la carte": "地图缩放",
+      "Taille de l'interface": "界面大小",
+      "Automatique": "自动",
+      "Tactile": "触屏",
+      "Bureau": "桌面",
+      "Plein écran": "全屏",
+      "Jeu": "游戏",
+      "La partie continue : votre personnage attend.": "游戏仍在进行：你的角色在等待。",
+      "Partie en pause": "游戏已暂停",
+      " (celle de la partie)": "（游戏的设置）",
+      "Enregistrement…": "保存中…",
+      " (hôte)": "（房主）",
+      " (vous)": "（你）",
+      "Peuple ": "阵营 ",
+      "Le serveur ne répond pas.": "服务器没有响应。",
+      "Choisissez un nom.": "请输入名字。",
+      "Entrez le code de la partie.": "请输入游戏代码。",
+      "Rien reçu depuis": "未收到数据已有",
+      "Connexion instable :": "连接不稳定：",
+      "reprise": "次重试",
+      "reprises": "次重试",
+      "version du jeu différente de celle de la partie : rechargez la page": "游戏版本与房间不同：请刷新页面",
+      "déjà dans une partie": "已在游戏中",
+      "partie introuvable": "找不到该游戏",
+      "la partie a déjà commencé": "游戏已经开始",
+      "plus dans cette partie": "已不在此游戏中",
+      "pas dans une partie": "不在游戏中",
+      "partie reprise depuis une autre connexion": "已从另一个连接恢复游戏",
+      "pas maintenant": "现在不行",
+    },
   };
-  const t = (fr) => (language === "FR" ? fr : english[fr] ?? fr);
+  // a language without the page's texts gets them in English
+  const pageTexts = translations[language] ?? translations.EN;
+  const t = (fr) => (language === "FR" ? fr : pageTexts[fr] ?? fr);
   // the page's own texts, once it is all there
   document.addEventListener("DOMContentLoaded", () => {
     document.documentElement.lang = language.toLowerCase();
@@ -196,7 +413,7 @@
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       const text = n.nodeValue.trim();
-      if (text && english[text] && n.parentElement.tagName !== "SCRIPT") n.nodeValue = n.nodeValue.replace(text, english[text]);
+      if (text && pageTexts[text] && n.parentElement.tagName !== "SCRIPT") n.nodeValue = n.nodeValue.replace(text, pageTexts[text]);
     }
     for (const e of document.querySelectorAll("[placeholder]")) e.placeholder = t(e.placeholder);
   });
@@ -213,6 +430,9 @@
       <select id="language">
         <option value="FR">Français</option>
         <option value="EN">English</option>
+        <option value="ES">Español</option>
+        <option value="JA">日本語</option>
+        <option value="ZH">中文（简体）</option>
       </select></label>
   </div>
   <div id="lobby" hidden>
@@ -533,11 +753,17 @@
   // downloaded at once as the page opens, alongside the game itself; such a file is then a
   // slice of its bundle. Without the bundles' index, every file comes alone.
   const bundled = new Map();
+  // the files of the other languages, which the game does not load
+  const otherLanguages = new Set();
   let bundleBytes = 0;
   let bundleTotal = 0;
   const bundlesReady = download("bundles.json")
     .then((bytes) => {
-      const { bundles } = JSON.parse(new TextDecoder().decode(bytes));
+      // of the languages', only the player's (the game reads no other), else the French
+      let { bundles } = JSON.parse(new TextDecoder().decode(bytes));
+      const lang = bundles.some((b) => b.language === language) ? language : "FR";
+      for (const b of bundles) if (b.language && b.language !== lang) for (const [path] of b.files) otherLanguages.add(path);
+      bundles = bundles.filter((b) => !b.language || b.language === lang);
       bundleTotal = bundles.reduce((sum, b) => sum + b.size, 0);
       for (const b of bundles) {
         const data = download(b.url, (n) => {
@@ -566,9 +792,8 @@
 
   // The manifest gives the estimate: data files plus the image folders the game always
   // loads (see Manifest in assets.rs).
-  fetch("assets/manifest.txt")
-    .then((r) => r.text())
-    .then((text) => {
+  Promise.all([fetch("assets/manifest.txt").then((r) => r.text()), bundlesReady])
+    .then(([text]) => {
       const entries = text.split("\n").filter((l) => l).map((l) => {
         const [path, size, hash] = l.split("\t");
         return { path, size: Number(size) || 0, url: "assets/" + path + (hash ? "?v=" + hash : "") };
@@ -582,7 +807,7 @@
                          "Images/Boutons/", "Images/Decors/", "Images/Terrains/",
                          "Images/Fenetres/Fenetre-", "Images/Ressources/", "Images/Curseurs/"];
         bytes.gameTotal = entries
-          .filter((e) => isData(e.path) || folders.some((f) => e.path.startsWith(f)))
+          .filter((e) => !otherLanguages.has(e.path) && (isData(e.path) || folders.some((f) => e.path.startsWith(f))))
           .reduce((sum, e) => sum + e.size, 0);
         showProgress();
       }

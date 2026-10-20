@@ -185,24 +185,28 @@ fn several_players() {
     check("several_players", &rules, world, &orders, &[(0, 0xa2b681c8c1ceea22), (500, 0x8560ea512d1e17ec), (1500, 0x2324bcd781f74e44)]);
 }
 
-/// The language changes only text, not the game: a world plays the same in English as in
-/// French, to the byte (so players in different languages can play together).
+/// The language changes only text, not the game: a world plays the same in every language as
+/// in French, to the byte (so players in different languages can play together).
 #[test]
-fn english_world() {
+fn languages_play_alike() {
     let Some((files, french)) = load() else { return };
-    let english = Rules::load(&files, "English").unwrap();
-    for setup in [WorldSetup { seed: 1, ..Default::default() }, crowded(&french)] {
-        let mut worlds = [&french, &english].map(|r| World::create(r, &files, &setup).unwrap());
-        for _ in 0..1500 {
-            for (w, r) in worlds.iter_mut().zip([&french, &english]) {
-                w.step(r, &[]);
+    let languages = sim::rules::languages(&files);
+    assert!(languages.len() >= 2, "{languages:?}");
+    for language in languages.iter().filter(|l| l.folder != "Francais") {
+        let other = Rules::load(&files, &language.folder).unwrap();
+        for setup in [WorldSetup { seed: 1, ..Default::default() }, crowded(&french)] {
+            let mut worlds = [&french, &other].map(|r| World::create(r, &files, &setup).unwrap());
+            for _ in 0..1500 {
+                for (w, r) in worlds.iter_mut().zip([&french, &other]) {
+                    w.step(r, &[]);
+                }
+                assert_eq!(worlds[0].digest(), worlds[1].digest(), "{}, seed {}: tick {}", language.folder, setup.seed, worlds[0].tick);
             }
-            assert_eq!(worlds[0].digest(), worlds[1].digest(), "seed {}: tick {}", setup.seed, worlds[0].tick);
-        }
-        // the cases that once differed: a race's name, a tomb's inscription
-        assert!(worlds[0].persos.iter().any(|p| p.name.is_empty()));
-        if setup.seed == 3 {
-            assert!(worlds[0].decors.iter().any(|d| d.epitaph.is_some()));
+            // the cases that once differed: a race's name, a tomb's inscription
+            assert!(worlds[0].persos.iter().any(|p| p.name.is_empty()));
+            if setup.seed == 3 {
+                assert!(worlds[0].decors.iter().any(|d| d.epitaph.is_some()));
+            }
         }
     }
 }

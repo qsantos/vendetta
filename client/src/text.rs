@@ -6,6 +6,23 @@ use crate::atlas::Shelf;
 use macroquad::prelude::*;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
+use std::sync::OnceLock;
+
+/// The font for the characters the interface's font lacks (Chinese, Japanese: see `set_fallback`).
+static FALLBACK: OnceLock<fontdue::Font> = OnceLock::new();
+
+/// Sets the font for the characters the others lack (the language's `Polices/<folder>.otf`),
+/// before any of them is drawn; a font that does not load is left out.
+pub fn set_fallback(bytes: &[u8]) {
+    match fontdue::Font::from_bytes(bytes, fontdue::FontSettings::default()) {
+        Ok(font) => {
+            let _ = FALLBACK.set(font);
+        }
+        Err(e) => {
+            warn!("fallback font: {e}");
+        }
+    }
+}
 
 /// Side of an atlas texture, in pixels.
 const ATLAS: u16 = 1024;
@@ -32,6 +49,18 @@ struct Glyph {
     width: f32,
     height: f32,
     advance: f32,
+}
+
+/// A text's length in character cells, where the original sizes or times text by its number of
+/// characters: a full-width character (Chinese, Japanese, Korean) is about two Latin letters
+/// wide, and says about as much.
+pub fn columns(s: &str) -> usize {
+    s.chars()
+        .map(|c| match c as u32 {
+            0x1100..=0x115F | 0x2E80..=0xA4CF | 0xAC00..=0xD7A3 | 0xF900..=0xFAFF | 0xFE30..=0xFE4F | 0xFF00..=0xFF60 | 0xFFE0..=0xFFE6 => 2,
+            _ => 1,
+        })
+        .sum()
 }
 
 pub struct TextRenderer {
@@ -62,7 +91,11 @@ impl TextRenderer {
     }
 
     fn rasterise(&self, c: char) -> Glyph {
-        let (m, alpha) = self.font.rasterize(c, self.px * self.scale.get());
+        let font = match FALLBACK.get() {
+            Some(fallback) if self.font.lookup_glyph_index(c) == 0 => fallback,
+            _ => &self.font,
+        };
+        let (m, alpha) = font.rasterize(c, self.px * self.scale.get());
         let texture = (m.width > 0 && m.height > 0).then(|| {
             let (w, h) = (m.width as u16, m.height as u16);
             let mut atlas = self.atlas.borrow_mut();

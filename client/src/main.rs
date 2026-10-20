@@ -219,14 +219,25 @@ struct Loaded {
 
 /// Downloads the data and images and creates the world, reporting progress.
 async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
-    let manifest = assets::Manifest::load().await?;
+    let mut manifest = assets::Manifest::load().await?;
     // the language first, for the loading screen's labels
     let languages = load_string(manifest.url("Donnees/Langues.ini").unwrap_or_default()).await.unwrap_or_default();
-    let lang = lang::choose(&sim::rules::Language::list(&sim::ini::Ini::parse(&languages))).folder;
+    let languages = sim::rules::Language::list(&sim::ini::Ini::parse(&languages));
+    let lang = lang::choose(&languages).folder;
+    manifest.only_language(&languages, &lang);
     progress.load_decoration(&manifest, &lang).await;
     progress.set_total(manifest.data_bytes() + assets::image_work(manifest.image_estimate()));
     let files = assets::load_files(&manifest, &progress).await?;
     let rules = Rules::load(&files, &lang)?;
+    // the characters the interface's font lacks (Chinese, Japanese)
+    if let Some(url) = manifest.url(&format!("Polices/{lang}.otf")) {
+        match load_file(url).await {
+            Ok(bytes) => text::set_fallback(&bytes),
+            Err(e) => {
+                warn!("Polices/{lang}.otf: {e}");
+            }
+        }
+    }
     let mut textures = assets::Textures::new(&manifest);
     let (terrain, persos) = render::images(&rules, &manifest);
     let hud = hud::images(&rules);
@@ -329,7 +340,7 @@ async fn main() {
     let Loaded { options, lang, created, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => l,
         Err(e) => loop {
-            screen.progress.message(&format!("&{}#{e}", lang::tr("Erreur", "Error")));
+            screen.progress.message(&format!("&{}#{e}", lang::tr(["Erreur", "Error", "Error", "エラー", "错误"])));
             screen.draw();
             next_frame().await;
         },
@@ -349,9 +360,9 @@ async fn main() {
             net.poll();
             let (ready, players) = net.waiting;
             screen.progress.message(&if options.resume {
-                lang::tr("Reprise de la partie…", "Resuming the game…").to_owned()
+                lang::tr(["Reprise de la partie…", "Resuming the game…", "Reanudando la partida…", "ゲームを再開中…", "正在恢复游戏…"]).to_owned()
             } else {
-                format!("{} ({ready} / {players} {})…", lang::tr("En attente des autres joueurs", "Waiting for the other players"), lang::tr("prêts", "ready"))
+                format!("{} ({ready} / {players} {})…", lang::tr(["En attente des autres joueurs", "Waiting for the other players", "Esperando a los demás jugadores", "他のプレイヤーを待っています", "正在等待其他玩家"]), lang::tr(["prêts", "ready", "listos", "準備完了", "已就绪"]))
             });
             screen.draw();
             next_frame().await;
@@ -364,7 +375,7 @@ async fn main() {
             }
             net.poll();
             let left = net.backlog() as f64 / world.speed as f64;
-            screen.progress.message(&format!("{} {left} {}", lang::tr("Rattrapage de la partie : encore", "Catching up with the game:"), lang::tr("s de jeu…", "s of play left…")));
+            screen.progress.message(&format!("{} {left} {}", lang::tr(["Rattrapage de la partie : encore", "Catching up with the game:", "Alcanzando la partida: quedan", "ゲームに追いついています：残り", "正在追赶游戏进度：还剩"]), lang::tr(["s de jeu…", "s of play left…", "s de juego…", "秒…", "秒…"])));
             screen.draw();
             next_frame().await;
         }
@@ -812,19 +823,23 @@ async fn main() {
                 hud.add_notice(&notice);
             }
             if std::mem::take(&mut net.closed) {
-                hud.add_notice(lang::tr("&Connexion au serveur perdue : reconnexion…", "&Connection to the server lost: reconnecting…"));
+                hud.add_notice(lang::tr(["&Connexion au serveur perdue : reconnexion…", "&Connection to the server lost: reconnecting…", "&Conexión con el servidor perdida: reconectando…", "&サーバーとの接続が切れました：再接続中…", "&与服务器的连接已断开：正在重新连接…"]));
             }
             if std::mem::take(&mut net.reconnected) {
                 info!("reconnected at tick {}", world.tick);
-                hud.add_notice(lang::tr("Reconnecté au serveur.", "Reconnected to the server."));
+                hud.add_notice(lang::tr(["Reconnecté au serveur.", "Reconnected to the server.", "Reconectado al servidor.", "サーバーに再接続しました。", "已重新连接到服务器。"]));
             }
             if let Some(tick) = net.desync.take() {
                 warn!("desync at tick {}", tick);
-                hud.add_notice(&if lang::tr("fr", "en") == "fr" {
-                    format!("&Désynchronisation au tick {tick} : les mondes des joueurs diffèrent.")
-                } else {
-                    format!("&Desync at tick {tick}: the players' worlds differ.")
-                });
+                let desync = lang::tr(["&Désynchronisation au tick", "&Desync at tick", "&Desincronización en el tick", "&非同期：tick", "&不同步：tick"]);
+                let differ = lang::tr([
+                    " : les mondes des joueurs diffèrent.",
+                    ": the players' worlds differ.",
+                    ": los mundos de los jugadores difieren.",
+                    "：プレイヤー間でワールドが異なります。",
+                    "：玩家的世界不一致。",
+                ]);
+                hud.add_notice(&format!("{desync} {tick}{differ}"));
             }
         }
         // The in-game menu (the page's): it pauses a solo game, not a network one, where the

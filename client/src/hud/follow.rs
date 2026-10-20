@@ -70,7 +70,7 @@ impl Hud {
         let over = self.over_follow(input.mouse);
         draw_rectangle(x as f32, y as f32, w as f32, h as f32, Color::new(0.1, 0.1, 0.1, 0.85));
         outline(x, y, x + w, y + h, if over { YELLOW } else { LIGHT_GREY });
-        let label = if touch() { crate::lang::tr("Suivre", "Follow") } else { crate::lang::tr("Suivre (Espace)", "Follow (Space)") };
+        let label = if touch() { crate::lang::tr(["Suivre", "Follow", "Seguir", "追従", "跟随"]) } else { crate::lang::tr(["Suivre (Espace)", "Follow (Space)", "Seguir (Espacio)", "追従 (Space)", "跟随 (空格)"]) };
         let tw = self.font.width(label);
         self.text(x + (w - tw) / 2, y + (h - 16) / 2, label, WHITE);
         if let Some(((ax, ay), (dx, dy))) = self.follow_arrow() {

@@ -76,7 +76,7 @@ pub struct Net {
 impl Net {
     /// `have`: how many ticks the world played (from a save, or none).
     pub fn new(world: &World, players: &[usize], names: &[String], me: usize, have: u64) -> Net {
-        let names = (0..players.len()).map(|k| names.get(k).cloned().unwrap_or_else(|| format!("{} {}", crate::lang::tr("Joueur", "Player"), k + 1))).collect();
+        let names = (0..players.len()).map(|k| names.get(k).cloned().unwrap_or_else(|| format!("{} {}", crate::lang::tr(["Joueur", "Player", "Jugador", "プレイヤー", "玩家"]), k + 1))).collect();
         Net { humans: world.humans(players), names, online: vec![true; players.len()], notices: Vec::new(), me, ticks: VecDeque::new(), received: have, asked: None, in_flight: 0, desync: None, closed: false, reconnected: false, waiting: (0, 0) }
     }
 
@@ -160,7 +160,7 @@ impl Net {
                         && self.online[k] != online
                     {
                         self.online[k] = online;
-                        self.notices.push(if online { format!("{name} {}", tr("est revenu.", "is back.")) } else { format!("&{name} {}", tr("s'est déconnecté.", "has disconnected.")) });
+                        self.notices.push(if online { format!("{name} {}", tr(["est revenu.", "is back.", "ha vuelto.", "が戻りました。", "回来了。"])) } else { format!("&{name} {}", tr(["s'est déconnecté.", "has disconnected.", "se ha desconectado.", "が切断されました。", "已断开连接。"])) });
                     }
                 }
                 Some("wait") => self.waiting = (msg["ready"].as_u64().unwrap_or(0), msg["players"].as_u64().unwrap_or(0)),
@@ -176,7 +176,7 @@ impl Net {
 
     /// The players not connected, as lines for the screen (`&` for red).
     pub fn absent(&self) -> Vec<String> {
-        (0..self.names.len()).filter(|&k| !self.online[k]).map(|k| format!("&{} : {}", self.names[k], tr("déconnecté", "disconnected"))).collect()
+        (0..self.names.len()).filter(|&k| !self.online[k]).map(|k| format!("&{} : {}", self.names[k], tr(["déconnecté", "disconnected", "desconectado", "切断", "已断开"]))).collect()
     }
 
     /// The next tick's orders, if it came.
