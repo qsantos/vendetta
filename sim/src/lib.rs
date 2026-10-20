@@ -12,6 +12,7 @@ pub mod ia_file;
 pub mod ini;
 pub mod orders;
 pub mod params;
+pub mod path;
 pub mod perso;
 pub mod rules;
 pub mod save;

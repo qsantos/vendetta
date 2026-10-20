@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use crate::items::{Recharge, TempEffect};
+use crate::path::Paths;
 use crate::rules::Rules;
 use crate::stats::{XP_COEFS, XP_OBJECT, XP_RESOURCE, XP_SERVICE, XP_SPECIAL};
 use crate::terrain::{CELL, Terrain};
@@ -756,13 +757,13 @@ impl Perso {
     /// The character's own part of `Deplacement3`: one step and the action transitions.
     /// Returns whether it is still walking, or None while stunned (`World::move_step` handles
     /// the projectiles).
-    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, chase: bool) -> Option<bool> {
+    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) -> Option<bool> {
         if self.stun > 0 {
             self.stun -= 1;
             return None;
         }
         self.update_step(rules, terrain);
-        if self.walk(rules, terrain, chase) {
+        if self.walk(rules, terrain, paths, chase) {
             if self.action > 99 && self.action % 2 == 0 && self.action < 200 {
                 self.action += 1;
             }
@@ -786,12 +787,12 @@ impl Perso {
     }
 
     /// `Marcher3`: one step along the path; returns whether still moving.
-    fn walk(&mut self, rules: &Rules, terrain: &Terrain, chase: bool) -> bool {
+    fn walk(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) -> bool {
         if !self.moving {
             return false;
         }
         if self.dest != self.path_dest || !self.path_complete {
-            self.compute_path(rules, terrain, chase);
+            self.compute_path(rules, terrain, paths, chase);
             self.path_dest = self.dest;
         }
         let step = self.step as f64;
@@ -825,13 +826,20 @@ impl Perso {
     }
 
     /// `Calculer_Chemin`: greedy 8-neighbour search toward the destination; when chasing a
-    /// moving target, only two steps, and the path is recomputed on the next tick.
-    fn compute_path(&mut self, rules: &Rules, terrain: &Terrain, chase: bool) {
+    /// moving target, only two steps, and the path is recomputed on the next tick. With
+    /// [`Paths::Fastest`] (not in the original), the fastest path instead.
+    fn compute_path(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) {
         self.path.clear();
         let i = CELL as i64;
         let d = (16.0 * 0.7f64).round_ties_even() as i64;
         const PATHFINDING: i64 = 1; // Jeu.ini Regle3
-        if !self.bonus_flying && self.alive() && PATHFINDING > 0 {
+        if paths == Paths::Fastest && !self.bonus_flying && self.alive() {
+            // (the terrain under the feet, as for the speed)
+            let feet = self.h as i64 - 16;
+            let (from, to) = ((self.x, self.y + feet), (self.dest.0, self.dest.1 + feet));
+            self.path = crate::path::fastest(rules, terrain, from, to, chase).into_iter().map(|(x, y)| (x, y - feet)).collect();
+            self.path_complete = !chase;
+        } else if !self.bonus_flying && self.alive() && PATHFINDING > 0 {
             let max_steps = if chase { 2 } else { 1024 };
             self.path_complete = !chase;
             let (dir_x, dir_y) = self.dest;

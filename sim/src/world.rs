@@ -1,5 +1,6 @@
 //! World state, world creation (random generation or map files) and the tick.
 
+use crate::path::Paths;
 use serde::{Deserialize, Serialize};
 use crate::ai::Ai;
 use crate::building::Building;
@@ -47,6 +48,8 @@ pub struct World {
     pub epoch_speed: f64,
     /// `Jeu.Confrontation`: random treasures and respawns.
     pub confrontation: bool,
+    /// How characters find their way.
+    pub paths: Paths,
     /// `NoPerso`: the local player's character, which always says its comments.
     pub player: Option<usize>,
     /// `ModIA` state: the round robin and the per-character search state.
@@ -102,6 +105,8 @@ pub struct WorldSetup {
     pub roads: Roads,
     /// Not in the original: opposite edges join (see `Terrain::torus`).
     pub torus: bool,
+    /// How characters find their way.
+    pub paths: Paths,
     /// The fief of each human player (several may share one): each takes over a citizen of it.
     pub players: Vec<usize>,
     /// The human players' names, in the order of `players`; a missing or empty one keeps the
@@ -141,6 +146,7 @@ impl Default for WorldSetup {
             confrontation: false,
             roads: Roads::Ring,
             torus: false,
+            paths: Paths::Greedy,
             players: vec![0],
             names: Vec::new(),
         }
@@ -180,6 +186,7 @@ impl World {
             speed: setup.speed,
             epoch_speed: rules.epoch_speeds.get(setup.epoch_speed).map(|e| e.coef).unwrap_or(1.0),
             confrontation: setup.confrontation,
+            paths: setup.paths,
             player: None,
             ai: Ai::default(),
             victory: false,
@@ -513,7 +520,7 @@ impl World {
         let before = p.action;
         // Chasing a moving target only plans two steps ahead, again every tick.
         let chase = before == crate::combat::ATTACK_PERSO && self.persos[p.perso_target].moving;
-        let step = self.persos[i].step_move(rules, &self.terrain, chase);
+        let step = self.persos[i].step_move(rules, &self.terrain, self.paths, chase);
         self.wrap_perso(i);
         let p = &self.persos[i];
         self.spatial.persos.moved_to(i, p.x, p.y, crate::spatial::DRIFT);
