@@ -5,7 +5,7 @@
 
 use super::buttons::{build_buttons, button_image, inside};
 use super::bars::{BAR_H, BAR_W, BAR_X, BAR_Y, ORANGE};
-use super::{DEPLACEMENT, Hud, INFOS, Input, LIGHT_GREY, RED, outline};
+use super::{DEPLACEMENT, GREY, Hud, INFOS, Input, LIGHT_GREY, RED, outline};
 use crate::assets::Textures;
 use crate::layout::{BAR, ay, bar_vertical, full_size, screen_h, screen_w};
 use macroquad::prelude::*;
@@ -40,10 +40,10 @@ enum BarAction {
     Menu,
 }
 
-/// A cell of a sprite sheet, or a drawn tick.
+/// A cell of a sprite sheet, or a drawn tick (dimmed when what it confirms cannot be done).
 enum Icon {
     Sheet { path: String, col: i32, row: i32, size: i32 },
-    Tick,
+    Tick { dim: bool },
 }
 
 /// A panel's entry: its button, what it is, and a second line (red after `&`).
@@ -138,10 +138,11 @@ impl Hud {
                     tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), dest_size: dest, ..Default::default() });
                 }
             }
-            Icon::Tick => {
+            Icon::Tick { dim } => {
                 let (x, y, s) = (x as f32, y as f32, 24.0 * scale);
-                draw_line(x + 0.15 * s, y + 0.55 * s, x + 0.4 * s, y + 0.8 * s, 0.14 * s, GREEN);
-                draw_line(x + 0.4 * s, y + 0.8 * s, x + 0.88 * s, y + 0.2 * s, 0.14 * s, GREEN);
+                let c = if *dim { Color::new(0.35, 0.35, 0.35, 1.0) } else { GREEN };
+                draw_line(x + 0.15 * s, y + 0.55 * s, x + 0.4 * s, y + 0.8 * s, 0.14 * s, c);
+                draw_line(x + 0.4 * s, y + 0.8 * s, x + 0.88 * s, y + 0.2 * s, 0.14 * s, c);
             }
         }
     }
@@ -149,7 +150,7 @@ impl Hud {
     fn icon_size(icon: &Icon) -> i32 {
         match icon {
             Icon::Sheet { size, .. } => *size,
-            Icon::Tick => 24,
+            Icon::Tick { .. } => 24,
         }
     }
 
@@ -303,11 +304,16 @@ impl Hud {
             let (l, t, r, b) = self.banner(&text);
             self.touch.confirm = Some(confirm_beside((l, t, r, b), true));
         }
+        // (the building cannot go where it is: the tick is dimmed, and does nothing)
+        let blocked = match (self.placing, self.touch.ghost) {
+            (Some(kind), Some((gx, gy))) => !self.footprint(world, rules, player, kind, (gx.round() as i32, gy.round() as i32)).2,
+            _ => false,
+        };
         if let Some(buttons) = self.touch.confirm {
             for (k, &(x, y)) in buttons.iter().enumerate() {
                 draw_rectangle(x as f32, y as f32, CONFIRM as f32, CONFIRM as f32, Color::new(0.15, 0.15, 0.15, 0.9));
-                outline(x, y, x + CONFIRM, y + CONFIRM, LIGHT_GREY);
-                let icon = if k == 0 { Icon::Tick } else { Icon::Sheet { path: ACTION.to_owned(), col: 6, row: 0, size: 24 } };
+                outline(x, y, x + CONFIRM, y + CONFIRM, if k == 0 && blocked { GREY } else { LIGHT_GREY });
+                let icon = if k == 0 { Icon::Tick { dim: blocked } } else { Icon::Sheet { path: ACTION.to_owned(), col: 6, row: 0, size: 24 } };
                 self.draw_icon(textures, &icon, x + (CONFIRM - 32) / 2, y + (CONFIRM - 32) / 2, 32.0 / 24.0);
                 if !inside(m, x, y, CONFIRM, CONFIRM) {
                     continue;
