@@ -182,7 +182,8 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     }
     progress.message(&progress.label(2));
     let options = options::Options::load();
-    layout::set_touch(options.touch.unwrap_or_else(storage::touch_screen));
+    let touch_screen = storage::touch_screen();
+    layout::set_touch(storage::layout().or(options.touch).unwrap_or(touch_screen));
     let mut setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
     setup.roads = if options.ring_roads { sim::world::Roads::Ring } else { sim::world::Roads::Nearest };
     if let Some(seed) = options.seed {
@@ -360,16 +361,17 @@ async fn main() {
     // `CliqueSurTerrain`: the left button went down on the map, so its release acts there.
     let mut pressed_on_map = false;
     let mut perf = perf::Perf::default();
-    let touch = layout::touch();
-    // With the touch interface the fingers are read as such, not as a mouse.
-    if touch {
-        simulate_mouse_with_touch(false);
-    }
+    let touch_screen = storage::touch_screen();
     let mut gestures = touch::Gestures::default();
     // How far the fingers have pinched since the zoom last changed.
     let mut pinched = 1.0f32;
     loop {
         let frame_start = perf::now();
+        // The interface the menu chose, else the address's, else the screen's; with the touch
+        // one the fingers are read as such, not as a mouse.
+        let touch = storage::layout().or(options.touch).unwrap_or(touch_screen);
+        layout::set_touch(touch);
+        simulate_mouse_with_touch(!touch);
         perf.frame();
         // `ToucheChangerPersonnage`: control the next human character, or the previous one (the
         // original's key code 41, with Shift for the previous one, is not on today's keyboards;
@@ -658,7 +660,18 @@ async fn main() {
             storage::open_menu();
         }
         hud.set_menu_open(storage::menu_open());
-        let quit = storage::menu_command() == storage::MenuCommand::Quit;
+        let mut quit = false;
+        loop {
+            let out = view.0 < world.terrain.width as i32 * sim::terrain::CELL || view.1 < world.terrain.height as i32 * sim::terrain::CELL;
+            match storage::menu_command() {
+                storage::MenuCommand::None => break,
+                storage::MenuCommand::Quit => quit = true,
+                storage::MenuCommand::Zoom(up) if up || out => scales.zoom = step(&ZOOMS, scales.zoom, up),
+                storage::MenuCommand::Zoom(_) => {}
+                storage::MenuCommand::Interface(up) => scales.ui = step(&UI_SCALES, scales.ui, up),
+            }
+            scales.store();
+        }
         let still = hud.paused() || options::test_mode() || net.is_some();
         if still {
             next_tick = get_time() + 1.0 / TICKS_PER_SECOND;

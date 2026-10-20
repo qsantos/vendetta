@@ -72,12 +72,19 @@
   #ingame { position: fixed; inset: 0; z-index: 4; display: flex; align-items: center;
             justify-content: center; background: rgba(0, 0, 0, 0.5);
             font: 15px Arial, "Liberation Sans", sans-serif; color: #e8e8d0; }
-  #ingame[hidden] { display: none; }
+  #ingame[hidden], #ingame [hidden] { display: none !important; }
   #ingame .panel { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70); border-radius: 12px;
                    padding: 20px 28px; display: flex; flex-direction: column; gap: 12px;
                    width: min(calc(100vw - 24px), 320px); box-sizing: border-box; max-height: calc(100vh - 24px);
                    overflow-y: auto; }
+  #ingame .actions { display: flex; flex-direction: column; gap: 12px; }
   #ingame h1 { margin: 0; font-size: 22px; text-align: center; }
+  /* a phone held sideways: the actions left of the settings */
+  @media (orientation: landscape) and (max-height: 480px) {
+    #ingame .panel { flex-direction: row; gap: 24px; width: min(calc(100vw - 24px), 640px); padding: 12px 20px; }
+    #ingame .actions, #ingame .settings { flex: 1; }
+    #ingame .actions { justify-content: center; }
+  }
   #ingame .note { margin: 0; text-align: center; font-size: 13px; color: #c8c8b0; }
   #ingame button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 10px 14px; }
   #ingame fieldset { border: none; border-top: 1px solid rgb(120, 150, 70); margin: 4px 0 0; padding: 6px 0 0; }
@@ -85,6 +92,9 @@
   #ingame label { display: grid; grid-template-columns: auto 1fr 45%; align-items: center; gap: 8px; margin: 8px 0; }
   #ingame input[type=checkbox] { width: 20px; height: 20px; margin: 0; }
   #ingame input[type=range] { width: 100%; margin: 0; }
+  #ingame .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; }
+  #ingame .row button { padding: 4px 0; width: 40px; margin-left: 6px; }
+  #ingame select { font: inherit; }
   /* Small screens (phones): the menus keep off the edges, and scroll when taller than it. */
   @media (max-width: 480px), (max-height: 480px) {
     #menu { overflow-y: auto; align-items: safe center; }
@@ -181,15 +191,32 @@
 <div id="bubble" hidden>Chargement…</div>
 <div id="ingame" hidden>
   <div class="panel">
-    <h1>Menu</h1>
-    <p class="note" id="ingame-note"></p>
-    <button type="button" id="ingame-resume">Reprendre</button>
-    <button type="button" id="ingame-quit">Quitter vers le menu</button>
+    <div class="actions">
+      <h1>Menu</h1>
+      <p class="note" id="ingame-note"></p>
+      <button type="button" id="ingame-resume">Reprendre</button>
+      <button type="button" id="ingame-quit">Quitter vers le menu</button>
+    </div>
+    <div class="settings">
     <fieldset>
       <legend>Sons</legend>
       <label><input type="checkbox" id="music-on"> Musiques <input type="range" id="music-volume" min="0" max="100"></label>
       <label><input type="checkbox" id="effects-on"> Bruitages <input type="range" id="effects-volume" min="0" max="100"></label>
     </fieldset>
+    <fieldset>
+      <legend>Affichage</legend>
+      <div class="row">Zoom de la carte <span><button type="button" data-command="2">−</button><button type="button" data-command="3">+</button></span></div>
+      <div class="row" id="ui-size">Taille de l'interface <span><button type="button" data-command="4">−</button><button type="button" data-command="5">+</button></span></div>
+      <div class="row">Interface
+        <select id="layout">
+          <option value="auto">Automatique</option>
+          <option value="touch">Tactile</option>
+          <option value="desktop">Bureau</option>
+        </select>
+      </div>
+      <div class="row" id="fullscreen-row">Plein écran <input type="checkbox" id="fullscreen"></div>
+    </fieldset>
+    </div>
   </div>
 </div>
 <div id="errors" hidden></div>
@@ -464,6 +491,7 @@
           location.reload();
         });
       };
+      importObject.env.vendetta_layout = () => ({ touch: 1, desktop: 2 })[layoutChoice] || 0;
       importObject.env.vendetta_volume = (kind) => {
         const k = kind === 0 ? "music" : "effects";
         return sound[k] ? sound[k + "Volume"] / 100 : 0;
@@ -516,6 +544,8 @@
     document.getElementById("ingame-note").textContent = networkGame()
       ? "La partie continue : votre personnage attend."
       : "Partie en pause";
+    showUiSize();
+    fullscreen.checked = !!document.fullscreenElement;
     ingame.hidden = false;
     document.getElementById("ingame-resume").focus();
   }
@@ -560,6 +590,38 @@
     volume.addEventListener("input", changed);
     volume.disabled = !on.checked;
   }
+  // Display settings: the map's zoom and the interface's size are the game's (the menu asks it
+  // for a step); the interface (touch or desktop) is the page's, read by the game every frame,
+  // which also takes it over the address's `layout=`; full screen is the browser's.
+  const layoutKey = "vendetta-layout";
+  let layoutChoice = "auto";
+  try {
+    layoutChoice = localStorage.getItem(layoutKey) || "auto";
+  } catch (e) {}
+  const layoutSelect = document.getElementById("layout");
+  layoutSelect.value = layoutChoice;
+  const touchLayout = () =>
+    layoutChoice === "touch" ||
+    (layoutChoice === "auto" && ((startHash || "").includes("layout=touch") || (!(startHash || "").includes("layout=desktop") && matchMedia("(pointer: coarse)").matches)));
+  // the touch interface sizes itself
+  const showUiSize = () => (document.getElementById("ui-size").hidden = touchLayout());
+  layoutSelect.addEventListener("change", () => {
+    layoutChoice = layoutSelect.value;
+    try {
+      localStorage.setItem(layoutKey, layoutChoice);
+    } catch (e) {}
+    showUiSize();
+  });
+  for (const b of ingame.querySelectorAll("[data-command]")) {
+    b.addEventListener("click", () => menuCommands.push(Number(b.dataset.command)));
+  }
+  const fullscreen = document.getElementById("fullscreen");
+  document.getElementById("fullscreen-row").hidden = !document.documentElement.requestFullscreen;
+  fullscreen.addEventListener("change", () => {
+    if (fullscreen.checked) document.documentElement.requestFullscreen().catch(() => (fullscreen.checked = false));
+    else if (document.fullscreenElement) document.exitFullscreen();
+  });
+  document.addEventListener("fullscreenchange", () => (fullscreen.checked = !!document.fullscreenElement));
   // On a touch screen, the game takes the whole screen (no address bar) from the first
   // button pressed in the menus (it needs a press).
   document.getElementById("menu").addEventListener("click", (e) => {

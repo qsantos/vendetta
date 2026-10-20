@@ -15,7 +15,8 @@ unsafe extern "C" {
     /// Whether the main pointer is a finger (`pointer: coarse`).
     fn vendetta_touch_screen() -> bool;
     /// The page's in-game menu: opens it; whether it is open; what it asks of the game (0:
-    /// nothing, 1: quit); the game has saved and can be left.
+    /// nothing, 1: quit, 2/3: zoom the map out/in, 4/5: the interface smaller/bigger); the
+    /// game has saved and can be left.
     fn vendetta_open_menu();
     fn vendetta_menu_open() -> bool;
     fn vendetta_menu_command() -> u32;
@@ -23,6 +24,8 @@ unsafe extern "C" {
     /// The volume the menu's sound settings give the music (0) or the sound effects (1),
     /// 0 to 1, 0 when turned off.
     fn vendetta_volume(kind: u32) -> f32;
+    /// The interface the menu chose: 0 the screen's, 1 touch, 2 desktop.
+    fn vendetta_layout() -> u32;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -82,12 +85,17 @@ pub fn touch_screen() -> bool {
     false
 }
 
-/// What the page's in-game menu asks of the game.
+/// What the page's in-game menu asks of the game (natively, nothing).
 #[derive(PartialEq)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub enum MenuCommand {
     None,
     /// Back to the pre-game menus, once the game is saved.
     Quit,
+    /// The map's zoom a step in (true) or out.
+    Zoom(bool),
+    /// The interface's size a step bigger (true) or smaller.
+    Interface(bool),
 }
 
 /// Opens the page's in-game menu (natively, there is none).
@@ -114,6 +122,10 @@ pub fn menu_command() -> MenuCommand {
     // SAFETY: no arguments.
     return match unsafe { vendetta_menu_command() } {
         1 => MenuCommand::Quit,
+        2 => MenuCommand::Zoom(false),
+        3 => MenuCommand::Zoom(true),
+        4 => MenuCommand::Interface(false),
+        5 => MenuCommand::Interface(true),
         _ => MenuCommand::None,
     };
     #[cfg(not(target_arch = "wasm32"))]
@@ -129,6 +141,19 @@ pub fn quit() {
     };
     #[cfg(not(target_arch = "wasm32"))]
     std::process::exit(0);
+}
+
+/// The interface the menu chose: touch (true), desktop (false), or none.
+pub fn layout() -> Option<bool> {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    return match unsafe { vendetta_layout() } {
+        1 => Some(true),
+        2 => Some(false),
+        _ => None,
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    None
 }
 
 /// What a volume setting is for.
