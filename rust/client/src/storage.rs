@@ -20,6 +20,9 @@ unsafe extern "C" {
     fn vendetta_menu_open() -> bool;
     fn vendetta_menu_command() -> u32;
     fn vendetta_quit();
+    /// The volume the menu's sound settings give the music (0) or the sound effects (1),
+    /// 0 to 1, 0 when turned off.
+    fn vendetta_volume(kind: u32) -> f32;
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -126,6 +129,24 @@ pub fn quit() {
     };
     #[cfg(not(target_arch = "wasm32"))]
     std::process::exit(0);
+}
+
+/// What a volume setting is for.
+pub enum Sounds {
+    Music = 0,
+    Effects = 1,
+}
+
+/// The volume the player chose for `kind`, 0 to 1 (0 when turned off); natively, full.
+pub fn volume(kind: Sounds) -> f32 {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: a plain number.
+    return unsafe { vendetta_volume(kind as u32) }.clamp(0.0, 1.0);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = kind;
+        1.0
+    }
 }
 
 /// The options given to the game: the URL's hash in the browser, the arguments natively.

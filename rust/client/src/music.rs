@@ -2,7 +2,8 @@
 //! Tracks are the original MIDI rendered to Ogg (see `assetconv`), fetched only when needed.
 
 use crate::assets::Manifest;
-use macroquad::audio::{PlaySoundParams, Sound, load_sound, play_sound, stop_sound};
+use crate::storage::{self, Sounds};
+use macroquad::audio::{PlaySoundParams, Sound, load_sound, play_sound, set_sound_volume, stop_sound};
 use macroquad::experimental::coroutines::{Coroutine, start_coroutine};
 use macroquad::prelude::*;
 
@@ -26,6 +27,8 @@ pub struct Music {
     started: f64,
     playing: Option<Sound>,
     loading: Option<Coroutine<Option<Sound>>>,
+    /// The player's volume the track plays at (see `storage::volume`).
+    volume: f32,
 }
 
 impl Music {
@@ -42,7 +45,7 @@ impl Music {
                     .collect()
             })
             .collect();
-        Music { tracks, category: None, started: 0.0, playing: None, loading: None }
+        Music { tracks, category: None, started: 0.0, playing: None, loading: None, volume: 1.0 }
     }
 
     /// `Jouer_Musique`: a new random track of `category` if the current one has played its
@@ -73,12 +76,19 @@ impl Music {
         self.loading = None;
     }
 
-    /// Call every frame: starts a track once downloaded.
+    /// Call every frame: starts a track once downloaded, follows the player's volume.
     pub fn update(&mut self) {
+        let volume = storage::volume(Sounds::Music);
+        if volume != self.volume {
+            self.volume = volume;
+            if let Some(s) = &self.playing {
+                set_sound_volume(s, VOLUME * volume);
+            }
+        }
         if let Some(task) = &self.loading {
             if task.is_done() {
                 if let Some(Some(sound)) = self.loading.take().and_then(|t| t.retrieve()) {
-                    play_sound(&sound, PlaySoundParams { looped: false, volume: VOLUME });
+                    play_sound(&sound, PlaySoundParams { looped: false, volume: VOLUME * self.volume });
                     self.playing = Some(sound);
                 }
             }

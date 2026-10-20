@@ -80,6 +80,11 @@
   #ingame h1 { margin: 0; font-size: 22px; text-align: center; }
   #ingame .note { margin: 0; text-align: center; font-size: 13px; color: #c8c8b0; }
   #ingame button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 10px 14px; }
+  #ingame fieldset { border: none; border-top: 1px solid rgb(120, 150, 70); margin: 4px 0 0; padding: 6px 0 0; }
+  #ingame legend { padding: 0 6px 0 0; }
+  #ingame label { display: grid; grid-template-columns: auto 1fr 45%; align-items: center; gap: 8px; margin: 8px 0; }
+  #ingame input[type=checkbox] { width: 20px; height: 20px; margin: 0; }
+  #ingame input[type=range] { width: 100%; margin: 0; }
   /* Small screens (phones): the menus keep off the edges, and scroll when taller than it. */
   @media (max-width: 480px), (max-height: 480px) {
     #menu { overflow-y: auto; align-items: safe center; }
@@ -180,6 +185,11 @@
     <p class="note" id="ingame-note"></p>
     <button type="button" id="ingame-resume">Reprendre</button>
     <button type="button" id="ingame-quit">Quitter vers le menu</button>
+    <fieldset>
+      <legend>Sons</legend>
+      <label><input type="checkbox" id="music-on"> Musiques <input type="range" id="music-volume" min="0" max="100"></label>
+      <label><input type="checkbox" id="effects-on"> Bruitages <input type="range" id="effects-volume" min="0" max="100"></label>
+    </fieldset>
   </div>
 </div>
 <div id="errors" hidden></div>
@@ -454,6 +464,10 @@
           location.reload();
         });
       };
+      importObject.env.vendetta_volume = (kind) => {
+        const k = kind === 0 ? "music" : "effects";
+        return sound[k] ? sound[k + "Volume"] / 100 : 0;
+      };
       // The touch interface on phones and tablets (see client/src/layout.rs).
       importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
       // after the pending writes, so that none is lost
@@ -522,6 +536,30 @@
     e.target.textContent = "Enregistrement…";
     menuCommands.push(1);
   });
+  // Sound settings, kept apart from any game (a new one keeps them): music and sound
+  // effects, each on or off with its volume, which the game reads every frame.
+  const soundKey = "vendetta-sound";
+  const sound = { music: true, musicVolume: 100, effects: true, effectsVolume: 100 };
+  try {
+    Object.assign(sound, JSON.parse(localStorage.getItem(soundKey)) || {});
+  } catch (e) {}
+  for (const kind of ["music", "effects"]) {
+    const on = document.getElementById(kind + "-on");
+    const volume = document.getElementById(kind + "-volume");
+    on.checked = sound[kind];
+    volume.value = sound[kind + "Volume"];
+    const changed = () => {
+      sound[kind] = on.checked;
+      sound[kind + "Volume"] = Number(volume.value);
+      volume.disabled = !on.checked;
+      try {
+        localStorage.setItem(soundKey, JSON.stringify(sound));
+      } catch (e) {}
+    };
+    on.addEventListener("change", changed);
+    volume.addEventListener("input", changed);
+    volume.disabled = !on.checked;
+  }
   // On a touch screen, the game takes the whole screen (no address bar) from the first
   // button pressed in the menus (it needs a press).
   document.getElementById("menu").addEventListener("click", (e) => {

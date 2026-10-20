@@ -158,8 +158,9 @@ impl Effects {
                 a.sounded = true;
                 let now = get_time();
                 let recent = self.last_sound.get(&a.kind).is_some_and(|&s| now - s < 0.5);
-                if let (Some(s), false) = (&t.sound, recent) {
-                    play_sound(s, PlaySoundParams { looped: false, volume: SOUND_VOLUME });
+                let volume = crate::storage::volume(crate::storage::Sounds::Effects);
+                if let (Some(s), false, true) = (&t.sound, recent, volume > 0.0) {
+                    play_sound(s, PlaySoundParams { looped: false, volume: SOUND_VOLUME * volume });
                     self.last_sound.insert(a.kind, now);
                 }
             }
