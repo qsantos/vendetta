@@ -136,12 +136,11 @@ fn wrap_cam(world: &World, cam: (i32, i32)) -> (i32, i32) {
     world.terrain.wrap32(cam)
 }
 
-/// Whether the map can zoom out from showing `view`: while some of the map is out of view, and
-/// on a torus, only until the view spans the map on either axis (it would show things twice).
+/// Whether the map can zoom out from showing `view`: while some of the map is out of view (on a
+/// torus, the whole map then shows, with some of it twice on the longer axis).
 fn can_zoom_out(world: &World, view: (i32, i32)) -> bool {
     let (w, h) = world.terrain.size_px();
-    let (w, h) = (w as i32, h as i32);
-    if world.terrain.torus { view.0 < w && view.1 < h } else { view.0 < w || view.1 < h }
+    view.0 < w as i32 || view.1 < h as i32
 }
 
 /// `TypeCurseur`: what the cursor's top-left (x, y) on the map is over, and its index

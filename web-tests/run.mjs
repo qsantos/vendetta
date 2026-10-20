@@ -69,7 +69,7 @@ const SCENES = {
   pan_back: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["key", "Space"], ["move", 512, 600]] },
   // On a torus (`edges=torus`): the view and the minimap's rectangle across the left edge, then
   // the view put across the bottom-right corner from the minimap, and zoomed out as far as it
-  // goes (the view no larger than the map).
+  // goes (the whole map in view, some of it twice across the screen).
   torus: { hash: "seed=3&size=256&fiefs=6&villagers=20&edges=torus", steps: [["key", "Tab"], ["move", 600, 740]] },
   torus_corner: { hash: "seed=3&size=256&fiefs=6&villagers=20&edges=torus", steps: [["key", "Tab"], ["right", 362, 335], ["move", 600, 740]] },
   torus_zoom: { hash: "seed=1&edges=torus", steps: [["move", 500, 500], ...Array(6).fill(["wheel", 500, 500, 120]), ["wait", 0.5]] },
