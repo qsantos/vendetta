@@ -274,7 +274,9 @@
   window.addEventListener("unhandledrejection", (e) => showError("Promise: " + (e.reason?.stack || e.reason)));
   // Downloads that last on a poor connection (a phone's, a tunnel's): one that receives
   // nothing for much longer than the server usually takes to answer (5 times as long, from
-  // 1 s to 8 s) is cut and taken up again where it stopped (a Range request, the files never
+  // 1 s to 8 s), while none of the others receives anything either (a busy line may serve
+  // them one after the other: one waiting its turn is not stalled), is cut and taken up again
+  // where it stopped (a Range request, the files never
   // change under their URLs), at once, then after a pause growing to 2 s.
   // Only an answer like "not found" fails. At most 6 at a time, the browsers' connections to
   // a server: queued, the others would seem stalled. While the connection struggles, the
@@ -282,6 +284,8 @@
   // How long the server takes to answer, on average (ms).
   let answerMs = 700;
   const stallMs = () => Math.min(Math.max(5 * answerMs, 1000), 8000);
+  // When any download last received something.
+  let lastData = performance.now();
   const MAX_DOWNLOADS = 6;
   const downloadQueue = [];
   let downloading = 0;
@@ -314,12 +318,12 @@
     for (let attempt = 0; ; attempt++) {
       const abort = new AbortController();
       let seen = performance.now();
-      const watch = setInterval(() => performance.now() - seen > stallMs() && abort.abort(), 250);
+      const watch = setInterval(() => performance.now() - Math.max(seen, lastData) > stallMs() && abort.abort(), 250);
       try {
         const headers = have > 0 ? { Range: `bytes=${have}-` } : {};
         const response = await fetch(url, { signal: abort.signal, headers });
         answerMs = 0.9 * answerMs + 0.1 * (performance.now() - seen);
-        seen = performance.now();
+        seen = lastData = performance.now();
         if (response.status === 404 || response.status === 403 || response.status === 410) {
           throw Object.assign(new Error(`${url.split("?")[0]}: ${response.status}`), { final: true });
         }
@@ -335,7 +339,7 @@
         for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
-          seen = performance.now();
+          seen = lastData = performance.now();
           chunks.push(value);
           have += value.length;
           onBytes(value.length);
