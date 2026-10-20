@@ -175,11 +175,7 @@ pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<File
 }
 
 /// Side of an atlas page. WebGL guarantees at least 4096; the images the game loads fit in two.
-const PAGE: u16 = 4096;
-
-/// How far inside an image's edges it is sampled, in pixels (see `Sprite::draw_ex`): far more
-/// than the rounding, far less than a pixel.
-const INSET: f32 = 1.0 / 64.0;
+const PAGE: u16 = crate::sharp::PAGE as u16;
 
 /// An image, wherever it was packed: a part of an atlas page.
 #[derive(Clone)]
@@ -189,19 +185,36 @@ pub struct Sprite {
 }
 
 impl Sprite {
-    /// `draw_texture_ex` for this image: `params.source` is a part of the image.
+    /// `draw_texture_ex` for this image: `params.source` is a part of the image (in whole
+    /// pixels); `params.dest_size` is honoured, not rotations or flips. Sampled sharp
+    /// bilinear (see `sharp`), never outside `source`.
     pub fn draw_ex(&self, x: f32, y: f32, colour: Color, params: DrawTextureParams) {
         let source = match params.source {
             Some(s) => Rect::new(self.rect.x + s.x, self.rect.y + s.y, s.w, s.h),
             None => self.rect,
         };
-        // Sampled a hair inside its edges: drawn at a scale that is not whole (the zoom, the
-        // screen's pixel ratio), a screen pixel whose centre falls just inside the edge could
-        // round onto the atlas's next row or column, another image's (or the sheet's next
-        // frame), as a line of stray pixels along the edge.
+        if source.w <= 0.0 || source.h <= 0.0 {
+            return;
+        }
         let dest = params.dest_size.unwrap_or(vec2(source.w, source.h));
-        let inner = Rect::new(source.x + INSET, source.y + INSET, source.w - 2.0 * INSET, source.h - 2.0 * INSET);
-        draw_texture_ex(&self.page, x, y, colour, DrawTextureParams { source: Some(inner), dest_size: Some(dest), ..params });
+        let normal = crate::sharp::normal(source, dest);
+        let page = PAGE as f32;
+        let corner = |dx: f32, dy: f32, u: f32, v: f32| Vertex {
+            position: vec3(x + dx, y + dy, 0.0),
+            uv: vec2(u / page, v / page),
+            color: colour.into(),
+            normal,
+        };
+        let vertices = [
+            corner(0.0, 0.0, source.x, source.y),
+            corner(dest.x, 0.0, source.right(), source.y),
+            corner(dest.x, dest.y, source.right(), source.bottom()),
+            corner(0.0, dest.y, source.x, source.bottom()),
+        ];
+        let gl = unsafe { get_internal_gl() }.quad_gl;
+        gl.texture(Some(&self.page));
+        gl.draw_mode(DrawMode::Triangles);
+        gl.geometry(&vertices, &[0, 1, 2, 0, 2, 3]);
     }
 
     /// `draw_texture` for this image.
@@ -299,7 +312,8 @@ impl Textures {
             Some(at) => at,
             None => {
                 let page = Texture2D::from_rgba8(PAGE, PAGE, &vec![0; PAGE as usize * PAGE as usize * 4]);
-                page.set_filter(FilterMode::Nearest);
+                // sampled sharp bilinear (see `sharp`)
+                page.set_filter(FilterMode::Linear);
                 let mut shelf = Shelf::new(PAGE);
                 let Some(at) = shelf.place(w, h) else {
                     warn!("{k}: {w}×{h} is bigger than an atlas page");

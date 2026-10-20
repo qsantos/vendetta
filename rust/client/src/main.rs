@@ -9,6 +9,7 @@ mod net;
 mod options;
 mod perf;
 mod render;
+mod sharp;
 mod storage;
 mod text;
 mod touch;
@@ -533,6 +534,7 @@ async fn main() {
 
         set_camera(&camera(view_f));
         clear_background(BLACK);
+        sharp::begin_frame((w as f32, h as f32));
         let map_start = perf::now();
         let overview = if zoom < render::OVERVIEW_ZOOM {
             if overview.is_none() {
