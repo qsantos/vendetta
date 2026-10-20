@@ -81,6 +81,9 @@ const SCENES = {
   touch_portrait_move: { hash: "seed=1&layout=touch", phone: [360, 740], steps: [["tap", 92, 700]] },
   // The message log and temporary effects at the left edge (no trays there).
   touch_messages: { hash: "seed=1&layout=touch&effects=148+149:3", phone: [800, 360], steps: [["tap", 490, 40], ["key", "F9"]] },
+  // Eating automatically: its button right of the bars, its panel, Vie turned on and Energie's
+  // threshold raised.
+  touch_auto: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 490, 40], ["tap", 160, 320], ["tap", 140, 160], ["tap", 270, 192]] },
   // Lists scroll under a dragging finger.
   touch_scroll: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["swipe", 300, 300, 300, 150]] },
 };

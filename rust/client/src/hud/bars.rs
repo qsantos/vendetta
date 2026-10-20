@@ -10,10 +10,10 @@ use sim::world::{Order, World};
 
 /// Top of each bar (Vie, Energie, Magie, Moral) at 1024×768, and their box.
 pub const BAR_Y: [i32; 4] = [691, 709, 727, 745];
-const BAR_X: i32 = 7;
-const BAR_W: i32 = 136;
-const BAR_H: i32 = 16;
-const ORANGE: Color = Color::new(1.0, 128.0 / 255.0, 0.0, 1.0);
+pub(super) const BAR_X: i32 = 7;
+pub(super) const BAR_W: i32 = 136;
+pub(super) const BAR_H: i32 = 16;
+pub(super) const ORANGE: Color = Color::new(1.0, 128.0 / 255.0, 0.0, 1.0);
 
 /// Per bar: automatic restoring on, and its threshold (fraction of the maximum). Kept in
 /// local storage, like the original kept them in the character file.
@@ -38,7 +38,7 @@ impl AutoRestore {
         a
     }
 
-    fn store(&self) {
+    pub(super) fn store(&self) {
         let v: Vec<String> = self.on.iter().map(|&b| (b as u8).to_string()).chain(self.threshold.iter().map(f32::to_string)).collect();
         storage::store("autorestore", v.join(" ").as_bytes());
     }

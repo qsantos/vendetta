@@ -4,9 +4,10 @@
 //! buildings dragged into place, then confirmed. Not in the original.
 
 use super::buttons::{build_buttons, button_image, inside};
+use super::bars::{BAR_H, BAR_W, BAR_X, BAR_Y, ORANGE};
 use super::{DEPLACEMENT, Hud, INFOS, Input, LIGHT_GREY, RED, outline};
 use crate::assets::Textures;
-use crate::layout::{BAR, bar_vertical, full_size, screen_h, screen_w};
+use crate::layout::{BAR, ay, bar_vertical, full_size, screen_h, screen_w};
 use macroquad::prelude::*;
 use sim::rules::Rules;
 use sim::world::{Order, World};
@@ -27,6 +28,8 @@ pub enum Panel {
     Build,
     Move,
     Windows,
+    /// Eating automatically, per bar: on or off, and below what.
+    Auto,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -72,6 +75,16 @@ pub struct Touch {
     ghost: Option<(f32, f32)>,
     /// Demolishing the house waits for a confirmation.
     demolishing: bool,
+}
+
+/// The automatic eating's button, right of the status bars, as high as the four, and the
+/// rows of its panel.
+const AUTO_W: i32 = 44;
+const AUTO_H: i32 = BAR_Y[3] + BAR_H - BAR_Y[0] + 2;
+const AUTO_ROW: i32 = 36;
+
+fn auto_button() -> (i32, i32) {
+    (BAR_X + BAR_W + 4, ay(BAR_Y[0]) - 1)
 }
 
 /// The top-left corner of the bar's `i`-th button.
@@ -192,6 +205,7 @@ impl Hud {
                     Entry { icon, caption: without_key(&self.strings.move_tips[i]).to_owned(), detail, enabled: true, on: false, tip }
                 })
                 .collect(),
+            Panel::Auto => Vec::new(),
             Panel::Windows => (0..8)
                 .map(|i| {
                     let on = if i == 7 { self.paused() } else { self.touch.front == Some(i) };
@@ -261,8 +275,29 @@ impl Hud {
             self.banner(&format!("&{} ?", self.strings.demolish));
         }
 
+        // The automatic eating's button, right of the status bars (a tap on a bar eats).
+        let (ax_, ay_) = auto_button();
+        let open = self.touch.panel == Some(Panel::Auto);
+        draw_rectangle(ax_ as f32, ay_ as f32, AUTO_W as f32, AUTO_H as f32, Color::new(0.15, 0.15, 0.15, 1.0));
+        let any = self.auto.on.iter().any(|&on| on);
+        outline(ax_, ay_, ax_ + AUTO_W, ay_ + AUTO_H, if open { YELLOW } else if any { ORANGE } else { LIGHT_GREY });
+        self.draw_icon(textures, &Icon::Sheet { path: ACTION.to_owned(), col: 0, row: 0, size: 24 }, ax_ + (AUTO_W - 32) / 2, ay_ + 10, 32.0 / 24.0);
+        let w = self.small_font.width("Auto");
+        self.small_text(ax_ + (AUTO_W - w) / 2, ay_ + AUTO_H - 18, "Auto", WHITE);
+        if inside(m, ax_, ay_, AUTO_W, AUTO_H) {
+            on_ui = true;
+            if input.left_pressed {
+                self.touch.panel = if open { None } else { Some(Panel::Auto) };
+                self.touch.scroll = 0;
+                return (true, None);
+            }
+        }
+
         // The panel, over the map and the window.
-        if let Some(panel) = self.touch.panel {
+        if self.touch.panel == Some(Panel::Auto) {
+            self.auto_panel(input);
+            on_ui = true;
+        } else if let Some(panel) = self.touch.panel {
             let entries = self.panel_entries(world, rules, player, panel);
             let (px, py, pw, ph, cols, shown) = panel_rect(entries.len());
             let rows = entries.len().div_ceil(cols);
@@ -404,6 +439,7 @@ impl Hud {
                 orders.extend(self.move_order(world, player, i, false));
                 self.touch.panel = None;
             }
+            Panel::Auto => {}
             Panel::Windows if !enabled => {}
             Panel::Windows => {
                 if k == 7 {
@@ -413,6 +449,59 @@ impl Hud {
                 }
                 self.touch.panel = None;
             }
+        }
+    }
+
+    /// The automatic eating's panel, above the bars: per bar, on or off, and its threshold
+    /// 5 % lower or higher (which also turns it on, as the wheel does on a bar).
+    fn auto_panel(&mut self, input: &Input) {
+        let m = input.mouse;
+        let (w, h) = (2 * PAD + 300, 2 * PAD + 4 * AUTO_ROW);
+        let (px, py) = (4, ay(BAR_Y[0]) - 8 - h);
+        draw_rectangle(px as f32, py as f32, w as f32, h as f32, BACKDROP);
+        outline(px, py, px + w, py + h, LIGHT_GREY);
+        let mut hit = false;
+        for i in 0..4 {
+            let (x, y) = (px + PAD, py + PAD + AUTO_ROW * i as i32);
+            let on = self.auto.on[i];
+            self.text(x, y + 10, &self.strings.bars[i], WHITE);
+            // [Auto : oui] [-] 50 % [+]
+            let buttons = [(x + 84, 104), (x + 196, 34), (x + 266, 34)];
+            for (k, &(bx, bw)) in buttons.iter().enumerate() {
+                let active = k == 0 && on;
+                draw_rectangle(bx as f32, (y + 2) as f32, bw as f32, (AUTO_ROW - 6) as f32, if active { Color::new(0.4, 0.2, 0.0, 1.0) } else { Color::new(0.15, 0.15, 0.15, 1.0) });
+                outline(bx, y + 2, bx + bw, y + AUTO_ROW - 4, if active { ORANGE } else { LIGHT_GREY });
+                let label = match k {
+                    0 if on => "Auto : oui",
+                    0 => "Auto : non",
+                    1 => "-",
+                    _ => "+",
+                };
+                let lw = self.font.width(label);
+                self.text(bx + (bw - lw) / 2, y + 10, label, WHITE);
+                if inside(m, bx, y + 2, bw, AUTO_ROW - 6) {
+                    hit = true;
+                    if input.left_pressed {
+                        let t = &mut self.auto.threshold[i];
+                        match k {
+                            0 => self.auto.on[i] = !on,
+                            1 => *t = ((*t - 0.05) * 100.0).round().max(0.0) / 100.0,
+                            _ => *t = ((*t + 0.05) * 100.0).round().min(100.0) / 100.0,
+                        }
+                        if k > 0 {
+                            self.auto.on[i] = true;
+                        }
+                        self.auto.store();
+                    }
+                }
+            }
+            let pct = format!("{} %", (self.auto.threshold[i] * 100.0).round());
+            let pw = self.font.width(&pct);
+            self.text(x + 248 - pw / 2, y + 10, &pct, if on { ORANGE } else { LIGHT_GREY });
+        }
+        // a tap elsewhere closes it
+        if input.left_pressed && !hit && !inside(m, px, py, w, h) && m.0 < screen_w() && m.1 < screen_h() {
+            self.touch.panel = None;
         }
     }
 

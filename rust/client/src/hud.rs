@@ -413,7 +413,12 @@ impl Hud {
             self.draw_build_buttons(textures);
         }
         // On a narrow screen, the touch interface has no room right of the bars: above them.
-        let (x, y) = if touch && !crate::layout::bar_vertical() { (8, ay(673)) } else { (152, ay(745)) };
+        // (sideways, right of the automatic eating's button)
+        let (x, y) = match (touch, crate::layout::bar_vertical()) {
+            (true, false) => (8, ay(673)),
+            (true, true) => (196, ay(745)),
+            _ => (152, ay(745)),
+        };
         self.text(x, y, &self.action_message(rules, p), WHITE_);
         if !touch {
             self.draw_info_buttons(textures);
