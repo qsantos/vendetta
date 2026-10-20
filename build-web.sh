@@ -1,6 +1,7 @@
 #!/bin/sh
 # Build the browser version into dist/. Serve dist/ with any static file server; see
-# serve.py for the caching headers to use.
+# serve.py for the caching headers to use. Needs ImageMagick, and Python with Pillow, NumPy,
+# SciPy and the Noto Sans fonts (Noto Sans CJK for Chinese or Japanese) for the loading screens.
 set -e
 cd "$(dirname "$0")"
 cargo build --release -p client --target wasm32-unknown-unknown
@@ -39,14 +40,18 @@ sed -i "s|\"bundles.json\"|\"bundles.json?v=$index\"|" dist/index.html
 grep -q "bundles.json?v=$index" dist/index.html
 # The loading screen's artworks, as lossy WebP (about a tenth of the PNGs, the first thing
 # shown; the transparency of their black, which shows the bar through their bottom band, kept
-# exact), for the page to pick one at once.
+# exact), for the page to pick one at once. In the other languages of `Langues.ini`, their
+# "Chargement en cours" is redrawn (`<artwork>-<suffix>.png`, see tools/loading_text.py).
+python3 -I tools/loading_text.py build assets/Donnees/Langues.ini assets/Images/Chargement target/chargement
 mkdir -p dist/art
 arts=
-for png in assets/Images/Chargement/*.png; do
-    webp="dist/art/$(basename "$png" .png).webp"
+for png in assets/Images/Chargement/*.png target/chargement/*.png; do
+    name=$(basename "$png" .png)
+    case $name in *-??) lang=${name##*-} ;; *) lang=FR ;; esac
+    webp="dist/art/$name.webp"
     [ "$webp" -nt "$png" ] || magick "$png" -quality 82 -define webp:method=6 -define webp:alpha-quality=100 "$webp"
-    url="art/$(basename "$webp")?v=$(sha256sum "$webp" | cut -c1-16)"
-    arts="$arts${arts:+,}\"$(echo "$url" | sed 's/ /%20/g')\""
+    url="art/$name.webp?v=$(sha256sum "$webp" | cut -c1-16)"
+    arts="$arts${arts:+,}[\"$lang\",\"$(echo "$url" | sed 's/ /%20/g')\"]"
 done
 sed -i "s|const arts = \[/\* build-web.sh \*/\];|const arts = [$arts];|" dist/index.html
-grep -q 'const arts = \["art/' dist/index.html
+grep -q 'const arts = \[\["FR","art/' dist/index.html

@@ -202,10 +202,15 @@
 </div>
 <script>
   // A random artwork for the loading screen, asked for before anything else (build-web.sh
-  // lists them here, with their versioned URLs).
+  // lists them here, by language, with their versioned URLs), in the language of `#lang=`
+  // (`Langues.ini` suffix), else in the original's French.
   {
     const arts = [/* build-web.sh */];
-    if (arts.length) document.getElementById("art").src = arts[Math.floor(Math.random() * arts.length)];
+    const item = decodeURIComponent(location.hash).split(/[#&]/).find((o) => o.startsWith("lang="));
+    const lang = item ? item.slice(5).toUpperCase() : "FR";
+    let mine = arts.filter(([l]) => l === lang);
+    if (!mine.length) mine = arts.filter(([l]) => l === "FR");
+    if (mine.length) document.getElementById("art").src = mine[Math.floor(Math.random() * mine.length)][1];
   }
 </script>
 <div id="bubble" hidden>Chargement…</div>
