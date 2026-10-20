@@ -182,8 +182,8 @@ pub struct Perso {
     pub flying: bool,
     pub bonus_flying: bool,
     pub stun: i64,
-    path: Vec<(i64, i64)>,
-    path_dest: (i64, i64),
+    pub(crate) path: Vec<(i64, i64)>,
+    pub(crate) path_dest: (i64, i64),
     path_complete: bool,
 
     pub action: i32,
@@ -588,10 +588,10 @@ impl Perso {
         self.in_house = !v;
     }
 
-    /// `Aller_A`
-    pub fn go_to(&mut self, x: i64, y: i64) {
-        self.dest = (x, y);
-        self.orient(x, y);
+    /// `Aller_A` (to the copy of (x, y) nearest to the character on a torus)
+    pub fn go_to(&mut self, t: &Terrain, x: i64, y: i64) {
+        self.dest = t.near((self.x, self.y), (x, y));
+        self.orient(t, x, y);
         self.action = action::WALK;
         self.set_visible(true);
     }
@@ -663,14 +663,16 @@ impl Perso {
         self.action == action::IDLE || self.action == action::AT_HOME
     }
 
-    /// Sets the destination and faces it (`DirectionX/Y = ...: Orienter_Direction`).
-    pub(crate) fn head_to(&mut self, x: i64, y: i64) {
-        self.dest = (x, y);
-        self.orient(x, y);
+    /// Sets the destination and faces it (`DirectionX/Y = ...: Orienter_Direction`), to the
+    /// copy of (x, y) nearest to the character on a torus.
+    pub(crate) fn head_to(&mut self, t: &Terrain, x: i64, y: i64) {
+        self.dest = t.near((self.x, self.y), (x, y));
+        self.orient(t, x, y);
     }
 
-    /// `Orienter_Direction`
-    pub(crate) fn orient(&mut self, tx: i64, ty: i64) {
+    /// `Orienter_Direction`, toward the copy of (tx, ty) nearest to the character on a torus.
+    pub(crate) fn orient(&mut self, t: &Terrain, tx: i64, ty: i64) {
+        let (tx, ty) = t.near((self.x, self.y), (tx, ty));
         let h = self.step as f64 / 2.0;
         let (x, y) = (self.x as f64, self.y as f64);
         let (tx, ty) = (tx as f64, ty as f64);
@@ -816,7 +818,7 @@ impl Perso {
         } else if self.path.len() > 1 {
             self.path.remove(0);
             let next = self.path[0];
-            self.orient(next.0, next.1);
+            self.orient(terrain, next.0, next.1);
             if next == (self.x, self.y) {
                 (self.x, self.y) = self.dest;
                 self.moving = false;

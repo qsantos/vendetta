@@ -82,10 +82,6 @@ pub struct Ai {
     depth: u32,
 }
 
-fn dist(a: (i64, i64), b: (i64, i64)) -> f64 {
-    (((a.0 - b.0) as f64).powi(2) + ((a.1 - b.1) as f64).powi(2)).sqrt()
-}
-
 impl World {
     // ---------------------------------------------------------------- scheduling
 
@@ -337,14 +333,14 @@ impl World {
             let mut d = self.diagonal();
             let mut l = 0;
             for &k in &self.fiefs[nf].markets {
-                let dk = dist(p, (self.houses[k].x as i64, self.houses[k].y as i64));
+                let dk = self.terrain.dist(p, (self.houses[k].x as i64, self.houses[k].y as i64));
                 if dk < d as f64 {
                     d = clng(dk);
                     l = k;
                 }
             }
             let c = &self.castles[nf];
-            if (d as f64) < dist(p, (c.x as i64, c.y as i64)) || !c.visible() {
+            if (d as f64) < self.terrain.dist(p, (c.x as i64, c.y as i64)) || !c.visible() {
                 let repair = self.rng.next() < REPAIR_CHANCE;
                 self.go_to_house(rules, i, l, repair);
             } else {
@@ -364,8 +360,12 @@ impl World {
         let nx = self.terrain.width as i64 * CELL as i64 - p.w as i64;
         let ny = self.terrain.height as i64 * CELL as i64 - p.h as i64;
         let (px, py, flying, h) = (p.x as f64, p.y as f64, p.flying, (p.h - CELL) as i64);
+        // On a torus, there is no edge to stop at.
+        let torus = self.terrain.torus;
         let clamp = |v: i64, max: i64| {
-            if v < 0 {
+            if torus {
+                v
+            } else if v < 0 {
                 0
             } else if v > max {
                 max
@@ -438,7 +438,7 @@ impl World {
             let first = cursor;
             found = self.spatial.persos.first(last + 1, near, |c| {
                 let q = &self.persos[c];
-                c >= first && distance as f64 > dist((px, py), (q.x, q.y)) && q.team != team && q.attackable()
+                c >= first && distance as f64 > self.terrain.dist((px, py), (q.x, q.y)) && q.team != team && q.attackable()
             });
             if let Some(c) = found {
                 cursor = c;
@@ -467,7 +467,7 @@ impl World {
                 }
             }
             let (p, q) = (&self.persos[i], &self.persos[cursor]);
-            if distance as f64 > dist((p.x, p.y), (q.x, q.y)) && q.team != p.team && q.attackable() {
+            if distance as f64 > self.terrain.dist((p.x, p.y), (q.x, q.y)) && q.team != p.team && q.attackable() {
                 return (Some(cursor), cursor, distance);
             }
             cursor += 1;
@@ -512,7 +512,7 @@ impl World {
             }
             let c = s.enemy_house_cursor;
             let m = &self.houses[c];
-            if s.enemy_house_distance as f64 > dist(p, (m.x as i64, m.y as i64))
+            if s.enemy_house_distance as f64 > self.terrain.dist(p, (m.x as i64, m.y as i64))
                 && self.persos[c].team != self.persos[i].team
                 && m.visible()
             {
@@ -541,7 +541,7 @@ impl World {
             }
             let c = s.enemy_castle_cursor;
             let castle = &self.castles[c];
-            let hit = s.enemy_castle_distance as f64 > dist(p, (castle.x as i64, castle.y as i64))
+            let hit = s.enemy_castle_distance as f64 > self.terrain.dist(p, (castle.x as i64, castle.y as i64))
                 && self.fiefs[c].team != self.persos[i].team
                 && castle.visible();
             s.enemy_castle_cursor += 1;
@@ -562,7 +562,7 @@ impl World {
         let mut best = None;
         for (j, q) in self.persos.iter().enumerate() {
             if q.team != team && q.attackable() {
-                let t = clng(dist((x, y), (q.x, q.y)));
+                let t = clng(self.terrain.dist((x, y), (q.x, q.y)));
                 if d > t {
                     d = t;
                     best = Some(j);
@@ -578,7 +578,7 @@ impl World {
         let mut d = self.half_perimeter();
         let mut best = None;
         for (j, m) in self.houses.iter().enumerate() {
-            let dj = dist(p, (m.x as i64, m.y as i64));
+            let dj = self.terrain.dist(p, (m.x as i64, m.y as i64));
             if self.persos[j].team != self.persos[i].team && m.visible() && d as f64 > dj {
                 d = clng(dj);
                 best = Some(j);
@@ -593,7 +593,7 @@ impl World {
         let mut d = self.half_perimeter();
         let mut best = None;
         for (j, c) in self.castles.iter().enumerate() {
-            let dj = dist(p, (c.x as i64, c.y as i64));
+            let dj = self.terrain.dist(p, (c.x as i64, c.y as i64));
             if self.persos[i].team != self.fiefs[j].team && c.visible() && d as f64 > dj {
                 d = clng(dj);
                 best = Some(j);
@@ -610,7 +610,7 @@ impl World {
         let mut best = None;
         for (j, q) in self.persos.iter().enumerate() {
             if q.team == p.team && !q.invocation() && (!alive || q.alive()) && !(dead && q.alive()) {
-                let t = clng(dist((p.x, p.y), (q.x, q.y)));
+                let t = clng(self.terrain.dist((p.x, p.y), (q.x, q.y)));
                 if d > t {
                     d = t;
                     best = Some(j);
@@ -659,7 +659,8 @@ impl World {
         let Some(k) = self.nearest_ally(i, alive, dead) else { return false };
         let (p, q) = (&self.persos[i], &self.persos[k]);
         let (qx, qy) = (q.x, q.y);
-        if (p.x - qx).abs() < p.w as i64 && (p.y - qy).abs() < p.h as i64 {
+        let t = &self.terrain;
+        if t.dx(qx, p.x).abs() < p.w as i64 && t.dy(qy, p.y).abs() < p.h as i64 {
             self.persos[i].moving = false;
         } else {
             self.walk_to(rules, i, qx, qy);
@@ -684,7 +685,7 @@ impl World {
         let mut d = self.half_perimeter();
         let mut best = 0;
         for (j, n) in self.resources.iter().enumerate() {
-            let dj = dist(p, (n.x as i64, n.y as i64));
+            let dj = self.terrain.dist(p, (n.x as i64, n.y as i64));
             if n.kind as i64 == t && d as f64 > dj {
                 d = clng(dj);
                 best = j;
@@ -713,7 +714,8 @@ impl World {
             let d = s.house_distance;
             let (m, p) = (&self.houses[c], &self.persos[n]);
             let same = self.persos[c].fief == p.fief;
-            let near = (p.x - m.x as i64).abs() < d && (p.y - m.y as i64).abs() < d;
+            let t = &self.terrain;
+            let near = t.dx(m.x as i64, p.x).abs() < d && t.dy(m.y as i64, p.y).abs() < d;
             let ready = m.built && m.stock() >= 1.0 && same && near;
             let product = rules.buildings[m.kind].product;
             if service > 0 {
@@ -725,7 +727,7 @@ impl World {
                     if product >= 0 && need < 5 && ready && (1..=4).contains(&need) {
                         found |= rules.resources[product as usize].gain[need as usize - 1] > 0.0;
                     }
-                } else if product == resource && ready && d as f64 >= dist((p.x, p.y), (m.x as i64, m.y as i64)) {
+                } else if product == resource && ready && d as f64 >= self.terrain.dist((p.x, p.y), (m.x as i64, m.y as i64)) {
                     found = true;
                 }
             }
@@ -749,7 +751,7 @@ impl World {
             s.treasure_distance = 0;
             return None;
         }
-        let k = self.treasures.iter().position(|t| s.treasure_distance as f64 >= dist(p, (t.x as i64, t.y as i64)))?;
+        let k = self.treasures.iter().position(|t| s.treasure_distance as f64 >= self.terrain.dist(p, (t.x as i64, t.y as i64)))?;
         s.treasure_distance = 0;
         Some(k)
     }
@@ -848,13 +850,13 @@ impl World {
                 }
             }
             2 => match self.nearest_enemy(i, post.0, post.1) {
-                Some(j) if dist(post, self.pos(j)) <= 384.0 => self.attack_perso(rules, i, j),
+                Some(j) if self.terrain.dist(post, self.pos(j)) <= 384.0 => self.attack_perso(rules, i, j),
                 _ => self.walk_to(rules, i, post.0, post.1),
             },
             3 => {
                 if !fighting
                     && let Some(j) = self.nearest_enemy(i, -1, -1)
-                    && dist(self.pos(i), self.pos(j)) <= ENEMY_MAX as f64
+                    && self.terrain.dist(self.pos(i), self.pos(j)) <= ENEMY_MAX as f64
                 {
                     self.attack_perso(rules, i, j);
                 }
@@ -921,7 +923,7 @@ impl World {
                 if !fighting && chef >= 0 {
                     let chef = chef as usize;
                     match self.nearest_enemy(i, -1, -1) {
-                        Some(j) if dist(self.pos(chef), self.pos(j)) < 384.0 => self.attack_perso(rules, i, j),
+                        Some(j) if self.terrain.dist(self.pos(chef), self.pos(j)) < 384.0 => self.attack_perso(rules, i, j),
                         _ => self.patrol_circle(rules, i, chef),
                     }
                 }
@@ -1033,7 +1035,7 @@ impl World {
     /// `IA_Lancer_projectile`: shoot at the nearest enemy within twice the range.
     fn shoot_nearest_enemy(&mut self, n: usize) {
         if let Some(k) = self.nearest_enemy(n, -1, -1)
-            && dist(self.pos(k), self.pos(n)) <= self.persos[n].bonus_range * 2.0
+            && self.terrain.dist(self.pos(k), self.pos(n)) <= self.persos[n].bonus_range * 2.0
         {
             let q = &self.persos[k];
             let (x, y) = (clng(q.x as f64 + q.w as f64 / 2.0), clng(q.y as f64 + q.h as f64 / 2.0));
@@ -1070,7 +1072,7 @@ impl World {
             }
         } else if p.in_own_castle || p.in_house {
             let m = &self.houses[i];
-            let j = (dist((m.x as i64, m.y as i64), (p.x, p.y)) / 12.0).floor();
+            let j = (self.terrain.dist((m.x as i64, m.y as i64), (p.x, p.y)) / 12.0).floor();
             p.set_money(p.money() + j);
             let (x, y, chef) = (p.x as f64 + p.w as f64 / 2.0, p.y as f64, p.chef);
             self.number(x, y, j, NumberKind::Money, false);

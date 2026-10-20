@@ -8,7 +8,8 @@ use crate::perso::action;
 use crate::rules::Rules;
 use crate::treasure::TREASURE_SIZE;
 use crate::vb::clng;
-use crate::world::{World, overlaps};
+use crate::terrain::Terrain;
+use crate::world::World;
 
 /// `Attaquer_Perso` etc.: `Action` codes 300-303.
 pub const ATTACK_PERSO: i32 = 300;
@@ -23,8 +24,10 @@ pub enum Target {
     Castle(usize),
 }
 
-/// Whether the box (x, y, w, h) is within `r` of the box of `(px, py, pw, ph)`.
-fn within(r: f64, (px, py, pw, ph): (i64, i64, i32, i32), (x, y, w, h): (i64, i64, i32, i32)) -> bool {
+/// Whether the box (x, y, w, h) is within `r` of the box of `(px, py, pw, ph)` (its copy nearest
+/// to it on a torus).
+fn within(t: &Terrain, r: f64, (px, py, pw, ph): (i64, i64, i32, i32), (x, y, w, h): (i64, i64, i32, i32)) -> bool {
+    let (x, y) = t.near((px, py), (x, y));
     let (px, py, pw, ph) = (px as f64, py as f64, pw as f64, ph as f64);
     let (x, y, w, h) = (x as f64, y as f64, w as f64, h as f64);
     x + w >= px - r && y + h >= py - r && x <= px + pw + r && y <= py + ph + r
@@ -60,7 +63,7 @@ impl World {
         let p = &self.persos[i];
         let r = p.bonus_range;
         let inside = p.in_house && self.houses[p.house_target].shoot && r > 0.0;
-        let in_range = within(r, self.perso_box(i), self.perso_box(k));
+        let in_range = within(&self.terrain, r, self.perso_box(i), self.perso_box(k));
         let p = &mut self.persos[i];
         p.action = ATTACK_PERSO;
         p.perso_target = k;
@@ -105,7 +108,7 @@ impl World {
         p.reload_max = p.reload_object;
         p.force_attack = true;
         p.ground_target = (x, y);
-        p.orient(x, y);
+        p.orient(&self.terrain, x, y);
     }
 
     /// `Aller_Donner`: walk to perso `k` to give it the selection.
@@ -135,7 +138,7 @@ impl World {
                 let t = &self.persos[p.perso_target];
                 if (t.visible() || t.in_own_house) && t.alive() {
                     let (x, y) = self.centre_for(i, t.x, t.y, t.w, t.h);
-                    self.persos[i].dest = (x, y);
+                    self.persos[i].dest = self.terrain.near((self.persos[i].x, self.persos[i].y), (x, y));
                 } else {
                     self.stop(rules, i);
                 }
@@ -145,7 +148,7 @@ impl World {
                 let t = &self.persos[k];
                 if t.visible() && t.alive() {
                     let (x, y) = self.centre_for(i, t.x, t.y, t.w, t.h);
-                    self.persos[i].dest = (x, y);
+                    self.persos[i].dest = self.terrain.near((self.persos[i].x, self.persos[i].y), (x, y));
                 } else if t.alive() {
                     // The AIs go after a target hiding in a building.
                     if p.ai {
@@ -175,7 +178,7 @@ impl World {
                 let m = &self.houses[p.house_target];
                 if m.visible() {
                     let (x, y) = self.centre_for(i, m.x as i64, m.y as i64, m.w, m.h);
-                    self.persos[i].dest = (x, y);
+                    self.persos[i].dest = self.terrain.near((self.persos[i].x, self.persos[i].y), (x, y));
                 } else {
                     self.stop(rules, i);
                     if self.persos[i].projectile {
@@ -187,7 +190,7 @@ impl World {
                 let c = &self.castles[p.castle_target];
                 if c.visible() {
                     let (x, y) = self.centre_for(i, c.x as i64, c.y as i64, c.w, c.h);
-                    self.persos[i].dest = (x, y);
+                    self.persos[i].dest = self.terrain.near((self.persos[i].x, self.persos[i].y), (x, y));
                 } else {
                     self.stop(rules, i);
                     if self.persos[i].projectile {
@@ -199,7 +202,7 @@ impl World {
         }
         let p = &mut self.persos[i];
         let (x, y) = p.dest;
-        p.orient(x, y);
+        p.orient(&self.terrain, x, y);
     }
 
     /// `Deplacement2`: give to or attack the target when it is in range, else walk
@@ -209,15 +212,15 @@ impl World {
         let r = p.bonus_range;
         let me = self.perso_box(i);
         let in_range = match p.action {
-            action::GO_GIVE => within(0.0, me, self.perso_box(p.perso_target)),
-            ATTACK_PERSO => within(r, me, self.perso_box(p.perso_target)),
+            action::GO_GIVE => within(&self.terrain, 0.0, me, self.perso_box(p.perso_target)),
+            ATTACK_PERSO => within(&self.terrain, r, me, self.perso_box(p.perso_target)),
             ATTACK_HOUSE => {
                 let m = &self.houses[p.house_target];
-                within(r, me, (m.x as i64, m.y as i64, m.w, m.h))
+                within(&self.terrain, r, me, (m.x as i64, m.y as i64, m.w, m.h))
             }
             ATTACK_CASTLE => {
                 let c = &self.castles[p.castle_target];
-                within(r, me, (c.x as i64, c.y as i64, c.w, c.h))
+                within(&self.terrain, r, me, (c.x as i64, c.y as i64, c.w, c.h))
             }
             ATTACK_GROUND => true,
             _ => false,
@@ -512,7 +515,8 @@ impl World {
             self.say_now(rules, t, 14);
         }
         let (p, q) = (&self.persos[a], &self.persos[d]);
-        let looted = q.x + q.w as i64 >= p.x && q.y + q.h as i64 >= p.y && q.x <= p.x + p.w as i64 && q.y <= p.y + p.h as i64;
+        let (qx, qy) = self.terrain.near((p.x, p.y), (q.x, q.y));
+        let looted = qx + q.w as i64 >= p.x && qy + q.h as i64 >= p.y && qx <= p.x + p.w as i64 && qy <= p.y + p.h as i64;
         let tr = if looted {
             None
         } else {
@@ -795,7 +799,7 @@ impl World {
         let radius = radius as f64;
         let init = self.persos[a].attack;
         let mut min = 0.0;
-        let dist = |p: (i64, i64), q: (f64, f64)| ((q.0 - p.0 as f64).powi(2) + (q.1 - p.1 as f64).powi(2)).sqrt();
+        let dist = |t: &Terrain, p: (i64, i64), q: (f64, f64)| (t.dxf(p.0 as f64, q.0).powi(2) + t.dyf(p.1 as f64, q.1).powi(2)).sqrt();
         let after = |w: &mut World, min: &mut f64| {
             if *min > w.persos[a].attack {
                 *min = w.persos[a].attack;
@@ -804,7 +808,7 @@ impl World {
         };
         for i in 0..self.persos.len() {
             let (p, q) = (&self.persos[a], &self.persos[i]);
-            if q.team != p.team && q.attackable() && (radius > dist((p.x, p.y), (q.x as f64, q.y as f64)) || i == p.perso_target) {
+            if q.team != p.team && q.attackable() && (radius > dist(&self.terrain, (p.x, p.y), (q.x as f64, q.y as f64)) || i == p.perso_target) {
                 self.hit_perso(rules, a, i, false);
                 after(self, &mut min);
             }
@@ -813,14 +817,14 @@ impl World {
             let (p, m) = (&self.persos[a], &self.houses[i]);
             // The original uses the width for Y too.
             let centre = (m.x as f64 + m.w as f64 / 2.0, m.y as f64 + m.w as f64 / 2.0);
-            if self.persos[i].team != p.team && m.visible() && (radius > dist((p.x, p.y), centre) || i == p.house_target) {
+            if self.persos[i].team != p.team && m.visible() && (radius > dist(&self.terrain, (p.x, p.y), centre) || i == p.house_target) {
                 self.hit_building(rules, a, Target::House(i), i, -1);
                 after(self, &mut min);
             }
         }
         for i in 0..self.castles.len() {
             let (p, c) = (&self.persos[a], &self.castles[i]);
-            if self.fiefs[i].team != p.team && c.visible() && (radius > dist((p.x, p.y), (c.x as f64, c.y as f64)) || i == p.castle_target) {
+            if self.fiefs[i].team != p.team && c.visible() && (radius > dist(&self.terrain, (p.x, p.y), (c.x as f64, c.y as f64)) || i == p.castle_target) {
                 let d = p.perso_target;
                 self.hit_building(rules, a, Target::Castle(i), d, castle);
                 after(self, &mut min);
@@ -843,20 +847,20 @@ impl World {
         for i in 0..self.persos.len() {
             rearm(self);
             let (p, q) = (&self.persos[a], &self.persos[i]);
-            if q.team != team && q.attackable() && overlaps(me, (q.x as i32, q.y as i32, q.w, q.h)) && p.trample > q.trample {
+            if q.team != team && q.attackable() && self.terrain.overlaps(me, (q.x as i32, q.y as i32, q.w, q.h)) && p.trample > q.trample {
                 self.hit_perso(rules, a, i, false);
             }
         }
         for i in 0..self.houses.len() {
             rearm(self);
             let m = &self.houses[i];
-            if self.persos[i].team != team && m.visible() && overlaps(me, (m.x, m.y, m.w, m.h)) {
+            if self.persos[i].team != team && m.visible() && self.terrain.overlaps(me, (m.x, m.y, m.w, m.h)) {
                 self.hit_building(rules, a, Target::House(i), i, -1);
             }
         }
         for i in 0..self.castles.len() {
             let c = &self.castles[i];
-            if overlaps(me, (c.x, c.y, c.w, c.h)) && c.visible() && self.fiefs[i].team != team {
+            if self.terrain.overlaps(me, (c.x, c.y, c.w, c.h)) && c.visible() && self.fiefs[i].team != team {
                 let d = self.persos[a].perso_target;
                 self.hit_building(rules, a, Target::Castle(i), d, i as i64);
             }
@@ -901,7 +905,8 @@ impl World {
         if q.ai {
             if q.action == ATTACK_PERSO {
                 let (c, t) = (&self.persos[culprit], &self.persos[q.perso_target]);
-                if (c.x - q.x).abs() + (c.y - q.y).abs() < (t.x - q.x).abs() + (t.y - q.y).abs() {
+                let g = &self.terrain;
+                if g.dx(q.x, c.x).abs() + g.dy(q.y, c.y).abs() < g.dx(q.x, t.x).abs() + g.dy(q.y, t.y).abs() {
                     self.attack_perso(rules, d, culprit);
                 }
             } else {

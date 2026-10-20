@@ -100,6 +100,8 @@ pub struct WorldSetup {
     pub confrontation: bool,
     /// Which castles roads join.
     pub roads: Roads,
+    /// Not in the original: opposite edges join (see `Terrain::torus`).
+    pub torus: bool,
     /// The fief of each human player (several may share one): each takes over a citizen of it.
     pub players: Vec<usize>,
     /// The human players' names, in the order of `players`; a missing or empty one keeps the
@@ -138,6 +140,7 @@ impl Default for WorldSetup {
             speed: 10,
             confrontation: false,
             roads: Roads::Ring,
+            torus: false,
             players: vec![0],
             names: Vec::new(),
         }
@@ -164,7 +167,7 @@ impl World {
     pub fn create(rules: &Rules, files: &Files, setup: &WorldSetup) -> Result<World, String> {
         let mut world = World {
             rng: Rnd::new(setup.seed),
-            terrain: Terrain::new(setup.width, setup.height),
+            terrain: Terrain { torus: setup.torus, ..Terrain::new(setup.width, setup.height) },
             fiefs: setup.fiefs.iter().map(|f| Fief::new(rules, f.people, f.team, f.epoch, f.citizens)).collect(),
             castles: Vec::new(),
             resources: Vec::new(),
@@ -375,7 +378,7 @@ impl World {
     fn place_persos(&mut self) {
         for p in &mut self.persos {
             let c = &self.castles[p.fief];
-            (p.x, p.y) = c.entrance_for(p.w, p.h);
+            (p.x, p.y) = self.terrain.wrap(c.entrance_for(p.w, p.h));
             p.in_own_castle = true;
             p.dest = (p.x, p.y);
         }
@@ -494,6 +497,22 @@ impl World {
         }
     }
 
+    /// On a torus, brings perso `i` back onto the map after it walked off an edge, with its
+    /// destination and path, which stay where they were relative to it.
+    pub(crate) fn wrap_perso(&mut self, i: usize) {
+        let p = &mut self.persos[i];
+        let (x, y) = self.terrain.wrap((p.x, p.y));
+        let (sx, sy) = (x - p.x, y - p.y);
+        if (sx, sy) == (0, 0) {
+            return;
+        }
+        let shift = |q: &mut (i64, i64)| *q = (q.0 + sx, q.1 + sy);
+        (p.x, p.y) = (x, y);
+        shift(&mut p.dest);
+        shift(&mut p.path_dest);
+        p.path.iter_mut().for_each(shift);
+    }
+
     /// `Deplacement3`, with its effects on the target house.
     pub(crate) fn move_step(&mut self, rules: &Rules, i: usize) {
         let p = &self.persos[i];
@@ -502,6 +521,7 @@ impl World {
         // Chasing a moving target only plans two steps ahead, again every tick.
         let chase = before == crate::combat::ATTACK_PERSO && self.persos[p.perso_target].moving;
         let step = self.persos[i].step_move(rules, &self.terrain, chase);
+        self.wrap_perso(i);
         let p = &self.persos[i];
         self.spatial.persos.moved_to(i, p.x, p.y, crate::spatial::DRIFT);
         match step {
@@ -564,22 +584,22 @@ impl World {
     /// `ClsJeuMonde.Faire_Pousser`: one in-place growth pass of terrain type `ty`.
     fn grow(&mut self, ty: u8) {
         let t = &mut self.terrain;
-        let w = t.width as isize;
         let n = t.category.len() as isize;
         for j in 0..n {
             if t.shape[j as usize] != 0 {
                 continue;
             }
-            let is = |cat: &[u8], i: isize| i >= 0 && i < n && cat[i as usize] == ty;
+            // (across the edges on a torus, see `Terrain::neighbour`)
+            let is = |d: (isize, isize)| t.neighbour(j, d).is_some_and(|i| t.category[i] == ty);
             let mut ch = 0;
-            for d in [-w, w, -1, 1] {
-                if is(&t.category, j + d) {
+            for d in [(0, -1), (0, 1), (-1, 0), (1, 0)] {
+                if is(d) {
                     ch += 15;
                 }
             }
             if ch > 0 {
-                for d in [-w - 1, -w + 1, w - 1, w + 1] {
-                    if is(&t.category, j + d) {
+                for d in [(-1, -1), (1, -1), (-1, 1), (1, 1)] {
+                    if is(d) {
                         ch += 10;
                     }
                 }
@@ -604,6 +624,7 @@ impl World {
             castle.x = (jx + col * 16) as i32;
             let jy = (8.0 - self.rng.next() * 16.0).floor() as i64;
             castle.y = (jy + line * 16) as i32;
+            (castle.x, castle.y) = self.terrain.wrap32((castle.x, castle.y));
         }
     }
 
@@ -619,8 +640,11 @@ impl World {
         self.rng.next(); // name
         // That character's step is computed once, right after `Init`: acceleration from 0.
         let step = 1.0;
-        let max_x = (self.terrain.width as i32 * CELL) as i64;
-        let max_y = (self.terrain.height as i32 * CELL) as i64;
+        // The jitter stays on the map, which has no edge on a torus.
+        let (min, max_x, max_y) = match self.terrain.torus {
+            true => (i64::MIN, i64::MAX, i64::MAX),
+            false => (0, (self.terrain.width as i32 * CELL) as i64, (self.terrain.height as i32 * CELL) as i64),
+        };
         let nf = self.castles.len();
         let links = match roads {
             Roads::Ring => (0..nf).map(|i| (i, (i + 1) % nf)).collect(),
@@ -632,6 +656,8 @@ impl World {
             let mut y = clng(a.y as f64 + a.h as f64 / 2.0);
             let tx = clng(b.x as f64 + b.w as f64 / 2.0);
             let ty = clng(b.y as f64 + b.h as f64 / 2.0);
+            // On a torus, the short way round (`set_cell_at` wraps).
+            let (tx, ty) = self.terrain.near((x, y), (tx, ty));
             // Orienter_Direction: not moving if already within half a step.
             let half = step / 2.0;
             let mut moving = (tx - x).abs() as f64 > half || (ty - y).abs() as f64 > half;
@@ -641,9 +667,9 @@ impl World {
                 }
                 if self.rng.next() > 0.8 {
                     if self.rng.next() > 0.5 {
-                        x = if self.rng.next() > 0.5 { (x + 8).min(max_x) } else { (x - 8).max(0) };
+                        x = if self.rng.next() > 0.5 { (x + 8).min(max_x) } else { (x - 8).max(min) };
                     } else {
-                        y = if self.rng.next() > 0.5 { (y + 8).min(max_y) } else { (y - 8).max(0) };
+                        y = if self.rng.next() > 0.5 { (y + 8).min(max_y) } else { (y - 8).max(min) };
                     }
                 }
                 // Marcher2
@@ -687,7 +713,8 @@ impl World {
     fn nearest_links(&self) -> Vec<(usize, usize)> {
         let centre = |c: &crate::building::Building| (c.x as f64 + c.w as f64 / 2.0, c.y as f64 + c.h as f64 / 2.0);
         let centres: Vec<(f64, f64)> = self.castles.iter().map(centre).collect();
-        let dist = |a: usize, b: usize| (centres[a].0 - centres[b].0).hypot(centres[a].1 - centres[b].1);
+        let t = &self.terrain;
+        let dist = |a: usize, b: usize| t.dxf(centres[b].0, centres[a].0).hypot(t.dyf(centres[b].1, centres[a].1));
         let n = centres.len();
         let mut links = std::collections::BTreeSet::new();
         let pair = |a: usize, b: usize| (a.min(b), a.max(b));
@@ -786,7 +813,7 @@ impl World {
     fn load_terrain(&mut self, rules: &Rules, files: &Files, dir: &str) -> Result<(), String> {
         let img = decode_png(files, &format!("{dir}/Terrain.png"))?
             .ok_or_else(|| format!("missing {dir}/Terrain.png"))?;
-        self.terrain = Terrain::new(img.width, img.height);
+        self.terrain = Terrain { torus: self.terrain.torus, ..Terrain::new(img.width, img.height) };
         for r in 0..img.height {
             for x in 0..img.width {
                 let rgb = img.rgb(x, r);

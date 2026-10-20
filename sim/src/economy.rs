@@ -12,7 +12,7 @@ use crate::stats::{BUILD_SPEED, CRAFT_SPEED, Trained, XP_CRAFT, XP_OBJECT, XP_SP
 use crate::terrain::CELL;
 use crate::treasure::{Decor, TREASURE_SIZE, Treasure};
 use crate::vb::clng;
-use crate::world::{RESOURCE_SIZE, World, overlaps};
+use crate::world::{RESOURCE_SIZE, World};
 
 /// `VitesseAction`: work speeds are divided by it.
 const ACTION_SPEED: f64 = 400.0;
@@ -35,7 +35,7 @@ impl World {
 
     /// `Aller_A`: walk so that the top-left corner reaches (x, y).
     pub fn walk_to(&mut self, rules: &Rules, i: usize, x: i64, y: i64) {
-        self.persos[i].go_to(x, y);
+        self.persos[i].go_to(&self.terrain, x, y);
         self.soldiers_follow(rules, i, true);
     }
 
@@ -44,7 +44,7 @@ impl World {
         let (p, m) = (&mut self.persos[i], &self.houses[h]);
         if m.visible() {
             let (x, y) = m.entrance_for(p.w, p.h);
-            p.head_to(x, y);
+            p.head_to(&self.terrain, x, y);
             p.action = if m.complete() || !p.alive() || enter { action::GO_HOME } else { action::GO_BUILD };
             p.house_target = m.owner;
             p.set_visible(true);
@@ -57,7 +57,7 @@ impl World {
         let (p, m) = (&mut self.persos[i], &self.houses[h]);
         if m.visible() {
             let (x, y) = m.entrance_for(p.w, p.h);
-            p.head_to(x, y);
+            p.head_to(&self.terrain, x, y);
             p.action = if m.complete() || !p.alive() || !repair { action::ENTER_HOUSE } else { action::GO_BUILD };
             p.house_target = m.owner;
             p.set_visible(true);
@@ -74,7 +74,7 @@ impl World {
         let c = &self.castles[p.fief];
         if c.visible() {
             let (x, y) = c.entrance_for(p.w, p.h);
-            p.head_to(x, y);
+            p.head_to(&self.terrain, x, y);
             p.action = action::GO_OWN_CASTLE;
             p.set_visible(true);
         }
@@ -86,7 +86,7 @@ impl World {
         let (p, castle) = (&mut self.persos[i], &self.castles[c]);
         if castle.visible() {
             let (x, y) = castle.entrance_for(p.w, p.h);
-            p.head_to(x, y);
+            p.head_to(&self.terrain, x, y);
             p.action = action::GO_CASTLE;
             p.castle_target = c;
             p.set_visible(true);
@@ -99,7 +99,7 @@ impl World {
         let (p, n) = (&mut self.persos[i], &self.resources[k]);
         // The original uses the node width for both axes.
         let half = RESOURCE_SIZE as f64 / 2.0;
-        p.head_to(clng(n.x as f64 + half - p.w as f64 / 2.0), clng(n.y as f64 + half - p.h as f64 / 2.0));
+        p.head_to(&self.terrain, clng(n.x as f64 + half - p.w as f64 / 2.0), clng(n.y as f64 + half - p.h as f64 / 2.0));
         p.resource_target = k;
         p.action = action::GO_HARVEST;
         p.set_visible(true);
@@ -110,7 +110,7 @@ impl World {
     pub fn go_to_treasure(&mut self, rules: &Rules, i: usize, k: usize) {
         let (p, t) = (&mut self.persos[i], &self.treasures[k]);
         let half = TREASURE_SIZE as f64 / 2.0;
-        p.head_to(clng(t.x as f64 + half - p.w as f64 / 2.0), clng(t.y as f64 + half - p.h as f64 / 2.0));
+        p.head_to(&self.terrain, clng(t.x as f64 + half - p.w as f64 / 2.0), clng(t.y as f64 + half - p.h as f64 / 2.0));
         p.treasure_target = k;
         p.action = action::GO_TREASURE;
         p.set_visible(true);
@@ -155,7 +155,8 @@ impl World {
         let mut dist = (self.terrain.width as i64 + self.terrain.height as i64) * CELL as i64;
         let mut best = 0;
         for (j, n) in self.resources.iter().enumerate() {
-            let d = ((p.x - n.x as i64) as f64).hypot((p.y - n.y as i64) as f64);
+            let t = &self.terrain;
+            let d = (t.dx(n.x as i64, p.x) as f64).hypot(t.dy(n.y as i64, p.y) as f64);
             if n.kind == kind && dist as f64 > d {
                 dist = clng(d);
                 best = j;
@@ -175,7 +176,8 @@ impl World {
         let mut dist = (self.terrain.width as i64 + self.terrain.height as i64) * CELL as i64;
         let mut best = None;
         for (j, t) in self.treasures.iter().enumerate() {
-            let d = ((p.x - t.x as i64) as f64).hypot((p.y - t.y as i64) as f64);
+            let g = &self.terrain;
+            let d = (g.dx(t.x as i64, p.x) as f64).hypot(g.dy(t.y as i64, p.y) as f64);
             if dist as f64 > d {
                 dist = clng(d);
                 best = Some(j);
@@ -242,6 +244,7 @@ impl World {
             if self.houses[h].built {
                 self.demolish(rules, h, owner, true);
             }
+            let (x, y) = self.terrain.wrap32((x, y));
             let p = &self.persos[owner];
             let m = &mut self.houses[h];
             m.x = x;
@@ -362,10 +365,11 @@ impl World {
     /// it stands on it, else into a new treasure. The house keeps its own copy.
     fn empty_house(&mut self, rules: &Rules, i: usize, h: usize) {
         let (p, m) = (&self.persos[i], &self.houses[h]);
-        let on_it = m.x + m.w >= p.x as i32
-            && m.y + m.h >= p.y as i32
-            && m.x <= p.x as i32 + p.w
-            && m.y <= p.y as i32 + p.h;
+        let (mx, my) = self.terrain.near32((p.x as i32, p.y as i32), (m.x, m.y));
+        let on_it = mx + m.w >= p.x as i32
+            && my + m.h >= p.y as i32
+            && mx <= p.x as i32 + p.w
+            && my <= p.y as i32 + p.h;
         let t = if on_it {
             None
         } else {
@@ -1323,6 +1327,7 @@ impl World {
 
     /// `Tresor_Creer`: appends an empty treasure, returns its index.
     pub fn treasure_create(&mut self, rules: &Rules, x: i32, y: i32) -> usize {
+        let (x, y) = self.terrain.wrap32((x, y));
         self.treasures.push(Treasure::new(rules, x, y));
         self.treasures.len() - 1
     }
@@ -1337,7 +1342,7 @@ impl World {
         let s = TREASURE_SIZE;
         let (kx, ky) = (self.treasures[k].x, self.treasures[k].y);
         let Some(i) = (0..self.treasures.len())
-            .find(|&i| i != k && overlaps((self.treasures[i].x, self.treasures[i].y, s, s), (kx, ky, s, s)))
+            .find(|&i| i != k && self.terrain.overlaps((self.treasures[i].x, self.treasures[i].y, s, s), (kx, ky, s, s)))
         else {
             return;
         };
@@ -1441,6 +1446,7 @@ impl World {
 
     /// `Decor_Creer`
     pub fn decor_create(&mut self, rules: &Rules, kind: usize, x: i32, y: i32, name: String) {
+        let (x, y) = self.terrain.wrap32((x, y));
         self.decors.push(Decor::new(rules, kind, x, y, name, self.speed));
     }
 
@@ -1475,9 +1481,9 @@ impl World {
     pub(crate) fn index_positions(&mut self, rules: &Rules) {
         let (w, h) = (self.terrain.width as i32 * CELL, self.terrain.height as i32 * CELL);
         let s = &mut self.spatial;
-        s.persos.build(self.persos.iter().map(|p| (p.x as i32, p.y as i32)), w, h);
-        s.houses.build(self.houses.iter().map(|m| (m.x, m.y)), w, h);
-        s.resources.build(self.resources.iter().map(|n| (n.x, n.y)), w, h);
+        s.persos.build(self.persos.iter().map(|p| (p.x as i32, p.y as i32)), w, h, self.terrain.torus);
+        s.houses.build(self.houses.iter().map(|m| (m.x, m.y)), w, h, self.terrain.torus);
+        s.resources.build(self.resources.iter().map(|n| (n.x, n.y)), w, h, self.terrain.torus);
         let side = |(w, h): (i32, i32)| w.max(h);
         s.perso_reach = (rules.races.iter().map(|r| side(r.size)))
             .chain(self.persos.iter().map(|p| side((p.w, p.h))))
@@ -1514,17 +1520,17 @@ impl World {
         let near = Self::reach(r, s.perso_reach, crate::spatial::DRIFT as i32 + 1);
         let enemy = s.persos.first(self.persos.len(), near, |j| {
             let p = &self.persos[j];
-            overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team != team && p.attackable() && j != i
+            self.terrain.overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team != team && p.attackable() && j != i
         });
         if let Some(j) = enemy {
             return (9, j);
         }
         let s = TREASURE_SIZE;
-        if let Some(k) = self.treasures.iter().position(|t| overlaps(r, (t.x, t.y, s, s))) {
+        if let Some(k) = self.treasures.iter().position(|t| self.terrain.overlaps(r, (t.x, t.y, s, s))) {
             return (13, k);
         }
         for (j, c) in self.castles.iter().enumerate() {
-            if overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible() {
+            if self.terrain.overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible() {
                 let code = if self.fiefs[j].team != team {
                     11
                 } else if j == fief {
@@ -1538,7 +1544,7 @@ impl World {
         let sp = &self.spatial;
         let house = sp.houses.first(self.houses.len(), Self::reach(r, sp.house_reach, 1), |j| {
             let m = &self.houses[j];
-            m.visible() && overlaps(r, (m.x, m.y, m.w, m.h))
+            m.visible() && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h))
         });
         if let Some(j) = house {
             let m = &self.houses[j];
@@ -1553,12 +1559,12 @@ impl World {
         }
         let resource = sp.resources.first(self.resources.len(), Self::reach(r, RESOURCE_SIZE, 1), |k| {
             let n = &self.resources[k];
-            overlaps(r, (n.x, n.y, RESOURCE_SIZE, RESOURCE_SIZE))
+            self.terrain.overlaps(r, (n.x, n.y, RESOURCE_SIZE, RESOURCE_SIZE))
         });
         if let Some(k) = resource {
             return (1, k);
         }
-        if let Some(k) = self.decors.iter().position(|d| overlaps(r, (d.x, d.y, d.w, d.h))) {
+        if let Some(k) = self.decors.iter().position(|d| self.terrain.overlaps(r, (d.x, d.y, d.w, d.h))) {
             return (16, k);
         }
         if !self.buildable(rules, x, y, w, h) {
@@ -1574,16 +1580,16 @@ impl World {
         let team = self.persos.get(i).map(|p| p.team).unwrap_or(0);
         let fief = self.persos.get(i).map(|p| p.fief).unwrap_or(0);
         for (j, p) in self.persos.iter().enumerate() {
-            if overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team != team && p.attackable() && j != i {
+            if self.terrain.overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team != team && p.attackable() && j != i {
                 return (9, j);
             }
         }
         let s = TREASURE_SIZE;
-        if let Some(k) = self.treasures.iter().position(|t| overlaps(r, (t.x, t.y, s, s))) {
+        if let Some(k) = self.treasures.iter().position(|t| self.terrain.overlaps(r, (t.x, t.y, s, s))) {
             return (13, k);
         }
         for (j, c) in self.castles.iter().enumerate() {
-            if overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible() {
+            if self.terrain.overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible() {
                 let code = if self.fiefs[j].team != team {
                     11
                 } else if j == fief {
@@ -1595,7 +1601,7 @@ impl World {
             }
         }
         for (j, m) in self.houses.iter().enumerate() {
-            if m.visible() && overlaps(r, (m.x, m.y, m.w, m.h)) {
+            if m.visible() && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h)) {
                 let code = if j == i {
                     if m.complete() { 5 } else { 4 }
                 } else if self.persos[j].team == team {
@@ -1606,10 +1612,10 @@ impl World {
                 return (code, j);
             }
         }
-        if let Some(k) = self.resources.iter().position(|n| overlaps(r, (n.x, n.y, RESOURCE_SIZE, RESOURCE_SIZE))) {
+        if let Some(k) = self.resources.iter().position(|n| self.terrain.overlaps(r, (n.x, n.y, RESOURCE_SIZE, RESOURCE_SIZE))) {
             return (1, k);
         }
-        if let Some(k) = self.decors.iter().position(|d| overlaps(r, (d.x, d.y, d.w, d.h))) {
+        if let Some(k) = self.decors.iter().position(|d| self.terrain.overlaps(r, (d.x, d.y, d.w, d.h))) {
             return (16, k);
         }
         if !self.buildable(rules, x, y, w, h) {
@@ -1624,7 +1630,7 @@ impl World {
     pub fn obstacle_dead(&self, i: usize, x: i32, y: i32) -> (i32, usize) {
         let r = (x, y, 0, 0);
         let p = &self.persos[i];
-        if let Some(j) = self.castles.iter().position(|c| overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible())
+        if let Some(j) = self.castles.iter().position(|c| self.terrain.overlaps(r, (c.x, c.y, c.w, c.h)) && c.visible())
             && j == p.fief
         {
             return (6, j);
@@ -1632,7 +1638,7 @@ impl World {
         let sp = &self.spatial;
         let house = sp.houses.first(self.houses.len(), Self::reach(r, sp.house_reach, 1), |j| {
             let m = &self.houses[j];
-            m.visible() && overlaps(r, (m.x, m.y, m.w, m.h))
+            m.visible() && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h))
         });
         if let Some(j) = house {
             let m = &self.houses[j];
@@ -1643,7 +1649,7 @@ impl World {
                 return (12, j);
             }
         }
-        match self.decors.iter().position(|d| overlaps(r, (d.x, d.y, d.w, d.h)) && !d.name.is_empty()) {
+        match self.decors.iter().position(|d| self.terrain.overlaps(r, (d.x, d.y, d.w, d.h)) && !d.name.is_empty()) {
             Some(k) => (16, k),
             None => (0, 0),
         }
@@ -1659,19 +1665,19 @@ impl World {
         let near = Self::reach(r, s.perso_reach, crate::spatial::DRIFT as i32 + 1);
         let ally = s.persos.first(self.persos.len(), near, |j| {
             let p = &self.persos[j];
-            overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team == team && p.attackable() && j != i
+            self.terrain.overlaps(r, (p.x as i32, p.y as i32, p.w, p.h)) && p.team == team && p.attackable() && j != i
         });
         if let Some(j) = ally {
             return (1, j);
         }
         let house = s.houses.first(self.houses.len(), Self::reach(r, s.house_reach, 1), |j| {
             let m = &self.houses[j];
-            m.visible() && self.persos[j].team == team && j != i && overlaps(r, (m.x, m.y, m.w, m.h))
+            m.visible() && self.persos[j].team == team && j != i && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h))
         });
         if let Some(j) = house {
             return (2, j);
         }
-        match self.castles.iter().position(|c| c.visible() && overlaps(r, (c.x, c.y, c.w, c.h))) {
+        match self.castles.iter().position(|c| c.visible() && self.terrain.overlaps(r, (c.x, c.y, c.w, c.h))) {
             Some(j) if j == self.persos[i].fief => (3, j),
             Some(j) if self.fiefs[j].team == team => (4, j),
             _ => (0, 0),

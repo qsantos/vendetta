@@ -51,12 +51,50 @@ fn player(world: &World) -> usize {
     world.persos.iter().position(|p| p.player).unwrap()
 }
 
+/// The default random world on a torus, left to its villagers.
+#[test]
+fn torus_world() {
+    let Some((files, rules)) = load() else { return };
+    let world = World::create(&rules, &files, &WorldSetup { seed: 1, torus: true, ..Default::default() }).unwrap();
+    check("torus_world", &rules, world, &[], &[(0, 0xb192c399aee96b90), (500, 0xb533a7e035fb2959), (1500, 0xdb8290a745af20cc), (3000, 0x19731332541e23dd)]);
+}
+
+/// On a torus, a character sent to a point just past the left edge walks there across the edge,
+/// not the long way through the map.
+#[test]
+fn torus_crossing() {
+    let Some((files, rules)) = load() else { return };
+    let mut world = World::create(&rules, &files, &WorldSetup { seed: 1, torus: true, ..Default::default() }).unwrap();
+    let perso = player(&world);
+    let (w, _) = world.terrain.size_px();
+    let (x, y) = (world.persos[perso].x, world.persos[perso].y);
+    // past the edge on the side the character is nearest to
+    let (tx, left) = if x < w / 2 { (w - 100, true) } else { (100, false) };
+    world.step(&rules, &[Order::Move { perso, x: tx, y }]);
+    let mut crossed = false;
+    for _ in 0..3000 {
+        let before = world.persos[perso].x;
+        world.step(&rules, &[]);
+        let now = world.persos[perso].x;
+        assert!((0..w).contains(&now), "off the map at {now}");
+        crossed |= (now - before).abs() > w / 2;
+        if left {
+            assert!(now <= before || crossed, "walking the long way: {before} → {now}");
+        }
+        if !world.persos[perso].moving {
+            break;
+        }
+    }
+    assert!(crossed, "never crossed the edge");
+    assert_eq!(world.persos[perso].x, tx);
+}
+
 /// The default random world, left to its villagers.
 #[test]
 fn default_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &WorldSetup { seed: 1, ..Default::default() }).unwrap();
-    check("default_world", &rules, world, &[], &[(0, 0xd730294707a0932c), (500, 0xd6625fe8ec3dec30), (1500, 0x04b35823b86e828a), (3000, 0xa3e9f60617c2d883)]);
+    check("default_world", &rules, world, &[], &[(0, 0xc93e4859d568b5aa), (500, 0xd88e9b161b53b028), (1500, 0x75d016c933636124), (3000, 0xeafcc98379bbc1a9)]);
 }
 
 /// A shipped map.
@@ -65,7 +103,7 @@ fn shipped_map() {
     let Some((files, rules)) = load() else { return };
     let setup = WorldSetup { seed: 2, map: Some("(04) Delta".into()), ..Default::default() };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("shipped_map", &rules, world, &[], &[(0, 0x9c7554d7145c4c88), (1000, 0x49e52458583246f9), (2500, 0xdbf8bfaf61b73747)]);
+    check("shipped_map", &rules, world, &[], &[(0, 0xb78ac712f108deda), (1000, 0xae5db2ccf2201c5b), (2500, 0xa8f3aa1b4054570b)]);
 }
 
 /// A crowded world with many fiefs and the nearest-castle roads.
@@ -83,7 +121,7 @@ fn crowded_world() {
         ..d
     };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("crowded_world", &rules, world, &[], &[(0, 0x7e31f4e6d21372d8), (500, 0x93c536068e369a30), (1500, 0xa4a6204674fcd368)]);
+    check("crowded_world", &rules, world, &[], &[(0, 0xdc03f24b19c560fa), (500, 0x36685eec598bcf70), (1500, 0xd8d75c749191e2dc)]);
 }
 
 /// The player at work and at war: harvesting, going home, attacking the nearest enemy.
@@ -98,7 +136,7 @@ fn player_orders() {
         (600, Order::AttackNearest { perso, kind: 0, send: false, ctrl: false, shift: false }),
         (1200, Order::FindTreasure { perso }),
     ];
-    check("player_orders", &rules, world, &orders, &[(0, 0xeaf239bcac412726), (300, 0x0de65c2be1d64f48), (800, 0xf5e71ea5039d520b), (2000, 0xa3f75fc7dedac398)]);
+    check("player_orders", &rules, world, &orders, &[(0, 0xae7b9542d433941c), (300, 0xd49ecf66d8d682ae), (800, 0x90215b19cf365fc3), (2000, 0x9f76f82f77c0d7e0)]);
 }
 
 /// A large world, the scale optimisations target: 2400 characters on a 512×512 map.
@@ -116,7 +154,7 @@ fn large_world() {
         ..d
     };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("large_world", &rules, world, &[], &[(0, 0x739e3eff6a37f16e), (1000, 0x31ed80675c8b0ff6), (2000, 0xf2d82360e771f049)]);
+    check("large_world", &rules, world, &[], &[(0, 0xece194528a66a53c), (1000, 0xf9191c3e2f3e34d4), (2000, 0xaa6ec8ce41b3cddb)]);
 }
 
 /// Three human players, two of them in the same fief, giving orders.
@@ -140,5 +178,5 @@ fn several_players() {
         (5, Order::FindResource { perso: humans[1], kind: 3 }),
         (300, Order::AttackNearest { perso: humans[2], kind: 0, send: false, ctrl: false, shift: false }),
     ];
-    check("several_players", &rules, world, &orders, &[(0, 0x345c19df0e9949e5), (500, 0xea9076d571bc31a4), (1500, 0xd1c588511e9db209)]);
+    check("several_players", &rules, world, &orders, &[(0, 0x8fd02aaf31632597), (500, 0x352d3d86a47d023a), (1500, 0x761477225110a0d7)]);
 }

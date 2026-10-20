@@ -123,7 +123,7 @@ impl World {
                 if i == l || !wanted || !q.attackable() {
                     continue;
                 }
-                let d = (((p.x - q.x) as f64).powi(2) + ((p.y - q.y) as f64).powi(2)).sqrt();
+                let d = self.terrain.dist((p.x, p.y), (q.x, q.y));
                 let res = q.resistance(near.resistance);
                 if distance > d && res > rules.resistance_min && self.rng.next() < res && !affected.contains(&i) {
                     (best, distance, friend) = (Some(i), d, same);
@@ -188,8 +188,9 @@ impl World {
             if self.persos[i].fief != f || i == l {
                 continue;
             }
+            let within = |t: &crate::terrain::Terrain, x: f64, y: f64| range >= (t.dxf(lx, x).powi(2) + t.dyf(ly, y).powi(2)).sqrt();
             let q = &mut self.persos[i];
-            if q.alive() && range >= ((q.x as f64 - lx).powi(2) + (q.y as f64 - ly).powi(2)).sqrt() {
+            if q.alive() && within(&self.terrain, q.x as f64, q.y as f64) {
                 let tax = clng(q.money() * rate);
                 q.set_money(q.money() - tax as f64);
                 total += tax;
@@ -198,7 +199,7 @@ impl World {
             }
             let m = &mut self.houses[i];
             let min = (1.0 / rate as f32) as f64;
-            if m.visible() && m.money >= min && range >= ((m.x as f64 - lx).powi(2) + (m.y as f64 - ly).powi(2)).sqrt() {
+            if m.visible() && m.money >= min && within(&self.terrain, m.x as f64, m.y as f64) {
                 let tax = clng(m.money * rate);
                 m.money -= tax as f64;
                 total += tax;
@@ -377,6 +378,7 @@ impl World {
                 let p = &mut self.persos[k];
                 p.x = clng(cx as f64 + cw as f64 / 2.0 - p.w as f64 / 2.0);
                 p.y = clng(cy as f64 + ch as f64 / 2.0 - p.h as f64 / 2.0);
+                (p.x, p.y) = self.terrain.wrap((p.x, p.y));
                 p.ground_target_kind = kind;
                 self.spatial.persos.moved_to(k, p.x, p.y, 0);
                 let (px, py) = (p.x, p.y);
@@ -400,6 +402,8 @@ impl World {
                             (ground.0, ground.1, 0, 0)
                         }
                     };
+                    // (the target's copy nearest to the projectile on a torus)
+                    let (x, y) = self.terrain.near((px, py), (x, y));
                     aim_x = x as f64 + w as f64 / 2.0;
                     aim_y = clng(y as f64 + h as f64 / 2.0);
                     l = clng(((aim_x - px as f64).powi(2) + ((aim_y - py) as f64).powi(2)).sqrt());
@@ -412,6 +416,8 @@ impl World {
                 let to = |a: f64, p: i64| clng(range * 2.0 / l as f64 * (a - p as f64) + p as f64 + spread as f64);
                 let (x, y) = (to(aim_x, px), to(aim_y as f64, py));
                 self.walk_to(rules, k, x, y);
+                // As far as it was sent, even past half the map on a torus.
+                self.persos[k].dest = (x, y);
             } else {
                 // A star of 8 branches around the chef.
                 let m = i / 8 + 1;
@@ -419,8 +425,7 @@ impl World {
                 let offset = [(w, 0), (-w, 0), (0, h), (0, -h), (-w, -h), (w, -h), (-w, h), (w, h)][(i % 8) as usize];
                 let p = &mut self.persos[k];
                 p.chef_offset = offset;
-                p.x = cx + offset.0;
-                p.y = cy + offset.1;
+                (p.x, p.y) = self.terrain.wrap((cx + offset.0, cy + offset.1));
                 self.spatial.persos.moved_to(k, p.x, p.y, 0);
                 match caction {
                     ATTACK_PERSO => self.attack_perso(rules, k, targets.0),

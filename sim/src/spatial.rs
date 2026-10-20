@@ -26,11 +26,14 @@ pub(crate) struct Grid {
     len: usize,
     /// Items that moved since, checked one by one.
     pub(crate) moved: Vec<usize>,
+    /// On a torus, the map's size in pixels: a box crossing an edge continues on the other side.
+    wrap: Option<(i32, i32)>,
 }
 
 impl Grid {
-    /// Indexes items at `positions` on a map of `width`×`height` pixels.
-    pub(crate) fn build(&mut self, positions: impl Iterator<Item = (i32, i32)>, width: i32, height: i32) {
+    /// Indexes items at `positions` on a map of `width`×`height` pixels (a torus if `torus`).
+    pub(crate) fn build(&mut self, positions: impl Iterator<Item = (i32, i32)>, width: i32, height: i32, torus: bool) {
+        self.wrap = torus.then_some((width, height));
         self.at.clear();
         self.at.extend(positions);
         self.cols = width / CELL + 1;
@@ -59,8 +62,12 @@ impl Grid {
 
     /// Item `i` moved to (x, y): checked one by one from now on if out of `drift` of its cell.
     pub(crate) fn moved_to(&mut self, i: usize, x: i64, y: i64, drift: i64) {
+        let delta = |from: i64, to: i64, size: Option<i32>| match size {
+            Some(s) => (to - from).rem_euclid(s as i64).min((from - to).rem_euclid(s as i64)),
+            None => (to - from).abs(),
+        };
         if let Some(&(ax, ay)) = self.at.get(i).filter(|_| i < self.len)
-            && ((x - ax as i64).abs() > drift || (y - ay as i64).abs() > drift)
+            && (delta(ax as i64, x, self.wrap.map(|w| w.0)) > drift || delta(ay as i64, y, self.wrap.map(|w| w.1)) > drift)
         {
             self.moved.push(i);
         }
@@ -73,6 +80,7 @@ impl Grid {
 
     /// The lowest index below `n` satisfying `matches` among the items indexed with their
     /// top-left corner in `x0..=x1`×`y0..=y1`, the items that moved and those not indexed yet.
+    /// On a torus, the parts of the box past an edge are looked for on the other side.
     pub(crate) fn first(&self, n: usize, (x0, y0, x1, y1): (i32, i32, i32, i32), matches: impl Fn(usize) -> bool) -> Option<usize> {
         let mut best: Option<usize> = None;
         let mut consider = |j: usize| {
@@ -81,15 +89,27 @@ impl Grid {
             }
         };
         if self.len > 0 {
-            let (cx0, cy0) = ((x0 / CELL).clamp(0, self.cols - 1), (y0 / CELL).clamp(0, self.rows - 1));
-            let (cx1, cy1) = ((x1 / CELL).clamp(0, self.cols - 1), (y1 / CELL).clamp(0, self.rows - 1));
-            for cy in cy0..=cy1 {
-                let row = (cy * self.cols) as usize;
-                let (from, to) = (self.start[row + cx0 as usize] as usize, self.start[row + cx1 as usize + 1] as usize);
-                for &j in &self.items[from..to] {
-                    let (x, y) = self.at[j as usize];
-                    if x >= x0 && x <= x1 && y >= y0 && y <= y1 {
-                        consider(j as usize);
+            // the box, and its copies one map away when it sticks out of the map on a torus
+            let shifts = |lo: i32, hi: i32, size: Option<i32>| -> Vec<i32> {
+                match size {
+                    Some(s) => [0, -s, s].into_iter().filter(|&d| d == 0 || (d < 0 && hi >= s) || (d > 0 && lo < 0)).collect(),
+                    None => vec![0],
+                }
+            };
+            for dy in shifts(y0, y1, self.wrap.map(|w| w.1)) {
+                for dx in shifts(x0, x1, self.wrap.map(|w| w.0)) {
+                    let (x0, y0, x1, y1) = (x0 + dx, y0 + dy, x1 + dx, y1 + dy);
+                    let (cx0, cy0) = ((x0 / CELL).clamp(0, self.cols - 1), (y0 / CELL).clamp(0, self.rows - 1));
+                    let (cx1, cy1) = ((x1 / CELL).clamp(0, self.cols - 1), (y1 / CELL).clamp(0, self.rows - 1));
+                    for cy in cy0..=cy1 {
+                        let row = (cy * self.cols) as usize;
+                        let (from, to) = (self.start[row + cx0 as usize] as usize, self.start[row + cx1 as usize + 1] as usize);
+                        for &j in &self.items[from..to] {
+                            let (x, y) = self.at[j as usize];
+                            if x >= x0 && x <= x1 && y >= y0 && y <= y1 {
+                                consider(j as usize);
+                            }
+                        }
                     }
                 }
             }

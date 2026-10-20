@@ -1,7 +1,6 @@
 //! The scripted `.ia` AI (`ModIA2.Comportement_IA2` and its helpers), and how it chooses and
 //! places its buildings (`Choisir_Batiment`, `Trouver_Emplacement_Maison`).
 
-use super::dist;
 use crate::ia_file::Step;
 use crate::perso::action;
 use crate::rules::Rules;
@@ -547,7 +546,7 @@ impl World {
             let c = p.chef as usize;
             let chef = &self.persos[c];
             let (pp, cp) = ((p.x, p.y), (chef.x, chef.y));
-            if chef.alive() && dist(cp, pp) <= 1024.0 && (chef.visible() || chef.in_own_house) {
+            if chef.alive() && self.terrain.dist(cp, pp) <= 1024.0 && (chef.visible() || chef.in_own_house) {
                 target = c != 0;
             }
         } else {
@@ -709,16 +708,20 @@ impl World {
             let (ax, ay, aw, ah) = anchor;
             x = clng(ax as f64 + self.rng.next() * (d * 2.0 + aw as f64) - d);
             y = clng(ay as f64 + self.rng.next() * (d * 2.0 + ah as f64) - d);
-            if x < 0 {
-                x = clng(self.rng.next() * CELL as f64);
-            } else if x > mw - w as i64 {
-                x = clng((mw - w as i64) as f64 - self.rng.next() * CELL as f64);
-            }
-            if y < 0 {
-                // The original uses the cell width here.
-                y = clng(self.rng.next() * CELL as f64);
-            } else if y > mh - h as i64 {
-                y = clng((mh - h as i64) as f64 - self.rng.next() * CELL as f64);
+            if self.terrain.torus {
+                (x, y) = self.terrain.wrap((x, y));
+            } else {
+                if x < 0 {
+                    x = clng(self.rng.next() * CELL as f64);
+                } else if x > mw - w as i64 {
+                    x = clng((mw - w as i64) as f64 - self.rng.next() * CELL as f64);
+                }
+                if y < 0 {
+                    // The original uses the cell width here.
+                    y = clng(self.rng.next() * CELL as f64);
+                } else if y > mh - h as i64 {
+                    y = clng((mh - h as i64) as f64 - self.rng.next() * CELL as f64);
+                }
             }
             if self.obstacle(rules, n, x as i32, y as i32, w, h) == 0 {
                 self.ai.obstacle_distance[nf] = castle_w;

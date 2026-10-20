@@ -13,6 +13,11 @@ pub struct Terrain {
     pub category: Vec<u8>,
     /// Tileset column per cell, chosen from the neighbours by [`Terrain::reshape`].
     pub shape: Vec<u8>,
+    /// Not in the original: opposite edges join (a torus), going off one side comes back on
+    /// the other. Positions then stay on the map, and two positions are compared by their
+    /// shortest difference ([`Terrain::near`]); on a flat map, every helper here does just what
+    /// the original does.
+    pub torus: bool,
 }
 
 impl Terrain {
@@ -25,13 +30,121 @@ impl Terrain {
             height,
             category: vec![0; n],
             shape: vec![0; n],
+            torus: false,
         }
+    }
+
+    /// The map's size, in pixels.
+    pub fn size_px(&self) -> (i64, i64) {
+        (self.width as i64 * CELL as i64, self.height as i64 * CELL as i64)
+    }
+
+    /// `to - from` on an axis of `size` pixels: on a torus, the short way round.
+    fn delta(&self, from: i64, to: i64, size: i64) -> i64 {
+        let d = to - from;
+        if !self.torus || size <= 0 {
+            return d;
+        }
+        let d = d.rem_euclid(size);
+        if d * 2 >= size { d - size } else { d }
+    }
+
+    /// `to - from`, the short way round on a torus.
+    pub fn dx(&self, from: i64, to: i64) -> i64 {
+        self.delta(from, to, self.size_px().0)
+    }
+
+    pub fn dy(&self, from: i64, to: i64) -> i64 {
+        self.delta(from, to, self.size_px().1)
+    }
+
+    /// `to - from` on an axis of `size` pixels, in fractional pixels: on a torus, the short way
+    /// round.
+    fn delta_f(&self, from: f64, to: f64, size: i64) -> f64 {
+        let d = to - from;
+        if !self.torus || size <= 0 {
+            return d;
+        }
+        let s = size as f64;
+        let d = d.rem_euclid(s);
+        if d * 2.0 >= s { d - s } else { d }
+    }
+
+    /// [`Terrain::dx`] in fractional pixels.
+    pub fn dxf(&self, from: f64, to: f64) -> f64 {
+        self.delta_f(from, to, self.size_px().0)
+    }
+
+    pub fn dyf(&self, from: f64, to: f64) -> f64 {
+        self.delta_f(from, to, self.size_px().1)
+    }
+
+    /// The copy of `b` nearest to `a`: `b` itself on a flat map. Comparing `a` with it, with
+    /// the original's formulas, measures across the edges on a torus.
+    pub fn near(&self, a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
+        (a.0 + self.dx(a.0, b.0), a.1 + self.dy(a.1, b.1))
+    }
+
+    /// [`Terrain::near`] for `i32` positions.
+    pub fn near32(&self, a: (i32, i32), b: (i32, i32)) -> (i32, i32) {
+        let (x, y) = self.near((a.0 as i64, a.1 as i64), (b.0 as i64, b.1 as i64));
+        (x as i32, y as i32)
+    }
+
+    /// A position brought back onto the map on a torus (unchanged on a flat map).
+    pub fn wrap(&self, (x, y): (i64, i64)) -> (i64, i64) {
+        if !self.torus {
+            return (x, y);
+        }
+        let (w, h) = self.size_px();
+        (x.rem_euclid(w), y.rem_euclid(h))
+    }
+
+    /// [`Terrain::wrap`] for `i32` positions.
+    pub fn wrap32(&self, (x, y): (i32, i32)) -> (i32, i32) {
+        let (x, y) = self.wrap((x as i64, y as i64));
+        (x as i32, y as i32)
+    }
+
+    /// The distance between two positions, across the edges on a torus.
+    pub fn dist(&self, a: (i64, i64), b: (i64, i64)) -> f64 {
+        let (dx, dy) = (self.dx(a.0, b.0) as f64, self.dy(a.1, b.1) as f64);
+        (dx * dx + dy * dy).sqrt()
+    }
+
+    /// [`crate::world::overlaps`] (`Est_Superpose`, quirks included) with `b`'s copy nearest
+    /// to `a`.
+    pub fn overlaps(&self, a: (i32, i32, i32, i32), b: (i32, i32, i32, i32)) -> bool {
+        let (x, y) = self.near32((a.0, a.1), (b.0, b.1));
+        crate::world::overlaps(a, (x, y, b.2, b.3))
     }
 
     /// `ClsJeuMonde.TerrainIndice`: pixel position to cell index, with banker's rounding (so
     /// logical cells are offset by half a cell from the drawn ones). May be out of range.
+    /// On a torus, the cell is taken modulo the map's size.
     pub fn index_at(&self, x: f64, y: f64) -> i64 {
-        clng(x / CELL as f64) + clng(y / CELL as f64) * self.width as i64
+        let (c, r) = (clng(x / CELL as f64), clng(y / CELL as f64));
+        if self.torus {
+            return c.rem_euclid(self.width as i64) + r.rem_euclid(self.height as i64) * self.width as i64;
+        }
+        c + r * self.width as i64
+    }
+
+    /// The flat index of the cell `d` = (columns, rows) away from cell `i`: on a torus, across
+    /// the edges; otherwise on the flat array like the original (left and right wrap to the
+    /// adjacent row), `None` past its ends.
+    pub fn neighbour(&self, i: isize, d: (isize, isize)) -> Option<usize> {
+        let w = self.width as isize;
+        if self.torus {
+            let h = self.height as isize;
+            if i >= w * h {
+                return None;
+            }
+            let (c, r) = ((i % w + d.0).rem_euclid(w), (i / w + d.1).rem_euclid(h));
+            return Some((r * w + c) as usize);
+        }
+        let j = i + d.1 * w + d.0;
+        (j >= 0 && j < self.category.len() as isize).then_some(j as usize)
     }
 
     /// `ClsJeuMonde.Reformer_Terrain`: picks each non-plain cell's shape from which of its
@@ -39,16 +152,16 @@ impl Terrain {
     ///
     /// Quirks kept from the original: a single sequential sweep (a cell turned plain
     /// affects later cells), and left/right neighbours computed on the flat array, so they
-    /// wrap to the adjacent row at the map edges.
+    /// wrap to the adjacent row at the map edges. On a torus, the neighbours are across the
+    /// edges, so that patches continue seamlessly.
     pub fn reshape(&mut self) {
         let n = self.category.len() as isize;
-        let w = self.width as isize;
         for i in 0..n {
             if self.category[i as usize] == 0 {
                 continue;
             }
-            let set = |j: isize| j >= 0 && j < n && self.category[j as usize] > 0;
-            let (u, d, l, r) = (set(i - w), set(i + w), set(i - 1), set(i + 1));
+            let set = |d: (isize, isize)| self.neighbour(i, d).is_some_and(|j| self.category[j] > 0);
+            let (u, d, l, r) = (set((0, -1)), set((0, 1)), set((-1, 0)), set((1, 0)));
             let shape = match (u, d, l, r) {
                 (true, true, true, true) => 1,
                 (false, true, false, false) => 2,
