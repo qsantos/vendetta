@@ -70,6 +70,12 @@ pub struct Manifest {
     by_key: HashMap<String, (u64, String)>,
 }
 
+/// What loading an image counts for on the loading bar, by its file's size: decoding it and
+/// packing it into the atlas takes about 2.5 times as long as taking as many bytes of data.
+pub fn image_work(bytes: u64) -> u64 {
+    bytes * 5 / 2
+}
+
 impl Manifest {
     pub async fn load() -> Result<Manifest, String> {
         let text = load_string(&format!("{ROOT}/manifest.txt")).await.map_err(|e| format!("manifest: {e}"))?;
@@ -264,7 +270,7 @@ impl Textures {
             .collect();
         let mut images = Vec::new();
         run_parallel(jobs, |(p, bytes)| {
-            progress.add(manifest.size(&p), message);
+            progress.add(image_work(manifest.size(&p)), message);
             match bytes.map_err(|e| e.to_string()).and_then(|b| {
                 Image::from_file_with_format(&b, Some(ImageFormat::Png)).map_err(|e| e.to_string())
             }) {

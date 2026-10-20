@@ -13,9 +13,9 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::task::Poll;
 
-/// What decoding the effects' sounds counts for on the loading bar, in bytes loaded (it takes
-/// about as long as loading 2 MB of images).
-pub const SOUND_WORK: u64 = 2_000_000;
+/// What decoding the effects' sounds counts for on the loading bar, in bytes of data loaded
+/// (it takes about as long as loading 800 KB of data).
+pub const SOUND_WORK: u64 = 800_000;
 /// How many sounds are decoded at the same time.
 const MAX_DECODING: usize = 8;
 

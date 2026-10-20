@@ -88,7 +88,7 @@ fn camera(size: (f32, f32)) -> Camera2D {
 /// the visible area in world pixels. Zoomed out beyond the map's size, the player simply stays
 /// centred on that axis instead of the map sticking to the top-left corner.
 /// See `load_game`.
-const WORLD_WORK_PER_CELL: u64 = 20;
+const WORLD_WORK_PER_CELL: u64 = 4;
 
 /// How far the mouse moves with its left button down (in CSS pixels) before it drags the map.
 const PAN_SLOP: f32 = 6.0;
@@ -193,14 +193,14 @@ struct Loaded {
 async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let manifest = assets::Manifest::load().await?;
     progress.load_decoration(&manifest, "Francais").await;
-    progress.set_total(manifest.data_bytes() + manifest.image_estimate());
+    progress.set_total(manifest.data_bytes() + assets::image_work(manifest.image_estimate()));
     let files = assets::load_files(&manifest, &progress).await?;
     let rules = Rules::load(&files, "Francais")?;
     let mut textures = assets::Textures::new(&manifest);
     let (terrain, persos) = render::images(&rules, &manifest);
     let hud = hud::images(&rules);
     let all: Vec<String> = terrain.iter().chain(&persos).chain(&hud).cloned().collect();
-    let images: u64 = textures.missing(&all).iter().map(|p| manifest.size(p)).sum();
+    let images: u64 = textures.missing(&all).iter().map(|p| assets::image_work(manifest.size(p))).sum();
     progress.set_total(manifest.data_bytes() + images + effects::SOUND_WORK);
     textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
@@ -247,8 +247,8 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             })
             .collect();
     }
-    // Making the world counts as so many bytes per cell (a 128×128 one takes as long as a
-    // few hundred kilobytes of images, a 1024×1024 one as about 20 MB).
+    // Making the world counts as so many bytes of data per cell (a 128×128 one takes about as
+    // long as 65 KB of data, a 256×256 one as 260 KB).
     let world_work = (setup.width * setup.height) as u64 * WORLD_WORK_PER_CELL;
     progress.expect(world_work);
     // A saved game is resumed only with the setup options it was made with.
