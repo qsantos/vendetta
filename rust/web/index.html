@@ -286,6 +286,21 @@
   const stallMs = () => Math.min(Math.max(5 * answerMs, 1000), 8000);
   // When any download last received something.
   let lastData = performance.now();
+  // `#watchdog=off`: never cut a download (to see whether downloads still hang without it);
+  // after 5 s with nothing received, the loading screen says which ones are waiting instead.
+  const watchdog = !decodeURIComponent(location.hash).split(/[#&]/).includes("watchdog=off");
+  // The downloads under way: url → [bytes received, bytes expected or 0].
+  const pending = new Map();
+  if (!watchdog) {
+    setInterval(() => {
+      const quiet = (performance.now() - lastData) / 1000;
+      if (quiet < 5 || !pending.size) return;
+      const kb = (n) => Math.round(n / 1024);
+      const list = [...pending].map(([url, [have, size]]) => `${url.split("?")[0]} ${kb(have)}/${size ? kb(size) : "?"} Ko`);
+      netStatus.textContent = `Rien reçu depuis ${Math.round(quiet)} s : ${list.join(", ")}`;
+      netStatus.hidden = false;
+    }, 1000);
+  }
   const MAX_DOWNLOADS = 6;
   const downloadQueue = [];
   let downloading = 0;
@@ -318,7 +333,8 @@
     for (let attempt = 0; ; attempt++) {
       const abort = new AbortController();
       let seen = performance.now();
-      const watch = setInterval(() => performance.now() - Math.max(seen, lastData) > stallMs() && abort.abort(), 250);
+      const watch = setInterval(() => watchdog && performance.now() - Math.max(seen, lastData) > stallMs() && abort.abort(), 250);
+      if (!pending.has(url)) pending.set(url, [0, 0]);
       try {
         const headers = have > 0 ? { Range: `bytes=${have}-` } : {};
         const response = await fetch(url, { signal: abort.signal, headers });
@@ -328,7 +344,10 @@
           throw Object.assign(new Error(`${url.split("?")[0]}: ${response.status}`), { final: true });
         }
         if (!response.ok) throw new Error(`${response.status}`);
-        if (have === 0 && response.headers.get("Content-Length")) onSize(Number(response.headers.get("Content-Length")));
+        if (have === 0 && response.headers.get("Content-Length")) {
+          onSize(Number(response.headers.get("Content-Length")));
+          pending.set(url, [0, Number(response.headers.get("Content-Length"))]);
+        }
         // a server without ranges sends it all again
         if (have > 0 && response.status !== 206) {
           onBytes(-have);
@@ -342,6 +361,7 @@
           seen = lastData = performance.now();
           chunks.push(value);
           have += value.length;
+          pending.get(url)[0] = have;
           onBytes(value.length);
         }
         const bytes = new Uint8Array(have);
@@ -350,9 +370,13 @@
           bytes.set(c, at);
           at += c.length;
         }
+        pending.delete(url);
         return bytes;
       } catch (e) {
-        if (e.final) throw e;
+        if (e.final) {
+          pending.delete(url);
+          throw e;
+        }
         noteRetry();
         await new Promise((r) => setTimeout(r, Math.min(250 * attempt, 2000)));
       } finally {
