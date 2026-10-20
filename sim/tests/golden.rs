@@ -3,7 +3,7 @@
 //! is meant to alter behaviour, run with `GOLDEN_PRINT=1` and update the hashes below in the
 //! same commit.
 //!
-//! Needs the converted assets in `rust/assets` (see `assetconv`); skipped otherwise.
+//! Needs the converted assets in `assets` (see `assetconv`); skipped otherwise.
 
 use sim::files::Files;
 use sim::orders::Order;

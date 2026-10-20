@@ -1,4 +1,4 @@
-//! Needs the converted assets in `rust/assets` (see `assetconv`); skipped otherwise.
+//! Needs the converted assets in `assets` (see `assetconv`); skipped otherwise.
 
 use sim::files::Files;
 use sim::items::{Equip, bonus_sup};

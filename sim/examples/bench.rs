@@ -25,7 +25,7 @@ fn setup(rules: &Rules, size: usize, fiefs: usize, citizens: usize) -> WorldSetu
 
 fn main() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets");
-    let files = Files::from_dir(&root).expect("converted assets in rust/assets");
+    let files = Files::from_dir(&root).expect("converted assets in assets/");
     let rules = Rules::load(&files, "Francais").unwrap();
     let mut ticks = 1000;
     let mut presets = Vec::new();

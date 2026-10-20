@@ -1,7 +1,7 @@
 // Rendering tests: plays scenes of the browser build in headless Chrome and compares their
 // screenshots with references in `golden/`.
 //
-//   node web-tests/run.mjs [--update] [scene...]     (after ./build-web.sh, from rust/)
+//   node web-tests/run.mjs [--update] [scene...]     (after ./build-web.sh, from the top directory)
 //
 // Each scene loads the game with `#test&…&play` (a still world, no storage, no FPS counter; see
 // client/src/options.rs) and a fixed seed, then moves, clicks, presses keys. A scene passes when
