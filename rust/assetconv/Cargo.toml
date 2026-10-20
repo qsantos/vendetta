@@ -8,3 +8,4 @@ publish = false
 image = { version = "0.25", default-features = false, features = ["bmp", "png", "gif"] }
 encoding_rs = "0.8"
 rustysynth = "1"
+oxipng = { version = "10.2.1", default-features = false, features = ["parallel"] }

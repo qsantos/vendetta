@@ -72,7 +72,7 @@ fn main() {
                 } else {
                     img
                 };
-                img.save(&dst).unwrap();
+                save_png(&img, &dst);
             }
             "ini" | "txt" | "ia" => {
                 let bytes = fs::read(path).unwrap();
@@ -96,6 +96,14 @@ fn main() {
     manifest.sort();
     fs::write(out.join("manifest.txt"), manifest.join("\n") + "\n").unwrap();
     eprintln!("wrote {} files", manifest.len());
+}
+
+/// Writes an image as a PNG made as small as it losslessly can be (palettes, fewer channels,
+/// best filters: about a fifth of the size of a plain encoding, for the browser to download).
+fn save_png(img: &RgbaImage, dst: &Path) {
+    let raw = oxipng::RawImage::new(img.width(), img.height(), oxipng::ColorType::RGBA, oxipng::BitDepth::Eight, img.as_raw().clone()).unwrap();
+    let options = oxipng::Options { optimize_alpha: false, ..oxipng::Options::from_preset(4) };
+    fs::write(dst, raw.create_optimized_png(&options).unwrap()).unwrap();
 }
 
 /// The manifest line of an output file: `path<TAB>size<TAB>hash`.
