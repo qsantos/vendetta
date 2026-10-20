@@ -13,6 +13,8 @@
   canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   /* the game loads behind the menus: nothing to show (or composite) until one is started */
   canvas.waiting { visibility: hidden; }
+  /* it has the keyboard while shown: no focus ring around the game */
+  canvas:focus { outline: none; }
   /* The loading screen (`Afficher_Image_Chargement`): a random artwork letterboxed to 4:3,
      a progress bar behind its bottom band, and a bubble saying what is loading. It is
      shown before the game has even downloaded, and removed when the game is ready. */
