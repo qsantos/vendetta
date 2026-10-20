@@ -5,7 +5,7 @@
 //! `Lire_Commandes` that drops the rest of the command queue.
 
 use crate::building::{LifeChange, RECYCLING, START_LIFE};
-use crate::event::NumberKind;
+use crate::event::{Event, NumberKind};
 use crate::perso::action;
 use crate::rules::Rules;
 use crate::stats::{BUILD_SPEED, CRAFT_SPEED, Trained, XP_CRAFT, XP_OBJECT, XP_SPECIAL};
@@ -1164,7 +1164,7 @@ impl World {
         }
         let p = &mut self.persos[i];
         p.deaths += 1;
-        p.comment.clear();
+        self.events.push(Event::Silence { perso: i });
         // Still alive while it stops: an AI decides once more.
         self.stop(rules, i);
         let p = &mut self.persos[i];

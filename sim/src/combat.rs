@@ -267,8 +267,7 @@ impl World {
         self.persos[i].clear_selection(rules);
         if self.persos[i].speaks {
             let line = self.comment_line(rules, i, 46);
-            let tick = self.tick;
-            self.persos[t].set_comment(line, tick);
+            self.speak(t, line);
         }
         self.stop(rules, i);
     }

@@ -9,7 +9,7 @@ mod scripted;
 mod work;
 
 use serde::{Deserialize, Serialize};
-use crate::event::NumberKind;
+use crate::event::{Line, NumberKind};
 use crate::perso::action;
 use crate::rules::Rules;
 use crate::terrain::CELL;
@@ -1122,9 +1122,9 @@ impl World {
     fn ai_script(&mut self, rules: &Rules, i: usize) {
         if self.persos[i].script_file.eq_ignore_ascii_case("Test.txt") && self.persos[i].idle() {
             self.random_walk(rules, i);
-            let p = &mut self.persos[i];
+            let p = &self.persos[i];
             let text = format!("Je vais à X={}, Y= {}", p.dest.0, p.dest.1);
-            p.set_comment(text, self.tick);
+            self.speak(i, Line::Text(text));
         }
     }
 }

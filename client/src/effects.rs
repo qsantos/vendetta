@@ -166,6 +166,8 @@ impl Effects {
                     let ey = y + clng((*h - t.h as i64) as f64 / 2.0);
                     self.active.push(Active { kind: *effect, x: ex as i32, y: ey as i32, time: 0.0, sounded: false });
                 }
+                // (speech is `speech.rs`'s)
+                Event::Say { .. } | Event::Silence { .. } => {}
             }
         }
     }

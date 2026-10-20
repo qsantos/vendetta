@@ -208,9 +208,6 @@ pub struct Perso {
     pub resurrection_speed: f64,
     /// `Morts`
     pub deaths: i64,
-    /// `Commentaires`: the speech bubble ("" for none) and the tick it was said.
-    pub comment: String,
-    pub comment_tick: u64,
     /// `Parole`: may speak; `CommentairesSpecifiqueIndice`: comment type of every line, or -1.
     pub speaks: bool,
     pub special_comments: i64,
@@ -399,8 +396,6 @@ impl Perso {
             resurrections: -1,
             resurrection_speed: RESURRECTION_SPEED as f32 as f64,
             deaths: 0,
-            comment: String::new(),
-            comment_tick: 0,
             speaks: true,
             special_comments: -1,
             choose_ai: false,
@@ -627,17 +622,6 @@ impl Perso {
     /// `Definir_MaxRessources` getter, 0 for a negative index.
     pub fn max_res(&self, r: i64) -> f64 {
         usize::try_from(r).map_or(0.0, |r| self.max_resource(r))
-    }
-
-    /// `Definir_Commentaires` setter: a new line only replaces an empty one, and mute races
-    /// never speak.
-    pub fn set_comment(&mut self, text: String, tick: u64) {
-        if (self.comment.is_empty() || text.is_empty()) && self.speaks {
-            if !text.is_empty() {
-                self.comment_tick = tick;
-            }
-            self.comment = text;
-        }
     }
 
     /// `Effet_Attaque`: the visual effect of its hits, the main weapon's or the race's.

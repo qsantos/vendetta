@@ -3,6 +3,7 @@ mod atlas;
 mod hud;
 mod layout;
 mod effects;
+mod speech;
 mod loading;
 mod music;
 mod net;
@@ -439,6 +440,7 @@ async fn main() {
     let mut pinched = 1.0f32;
     // The camera dragged away from the character (top-left, map pixels), and the mouse's drag.
     let mut free_cam: Option<(f32, f32)> = None;
+    let mut speech = speech::Speech::default();
     // The last frame's zoom, and the point of the screen (physical pixels) whose spot on the map
     // stays put when the zoom changes with the camera free (the middle of the screen if `None`).
     let mut last_zoom = 0.0f32;
@@ -608,7 +610,7 @@ async fn main() {
         if !far {
             let (torus, (mw, mh)) = (world.terrain.torus, world.terrain.size_px());
             let at = |v: i64, c: i32, view: i32, map: i64| ((render::rel(torus, v as i32, c, view, map as i32) as f32) * zoom / ui) as i32;
-            hud.draw_comments(&world, |x, y| (at(x, cam.0, view.0, mw), at(y, cam.1, view.1, mh)));
+            hud.draw_comments(&world, &speech, |x, y| (at(x, cam.0, view.0, mw), at(y, cam.1, view.1, mh)));
         }
         let radial_was_open = hud.radial_open();
         let given = orders.len();
@@ -782,6 +784,7 @@ async fn main() {
                 perf.time(perf::Part::Tick, || world.step(&rules, &tick));
                 net.after_tick(&world);
                 effects.tick(&world.events);
+                speech.tick(&world, &rules);
                 hud.update_messages(&world, &rules, player);
                 if net.settled() {
                     hud.automatic_actions(&world, player, &mut orders);
@@ -845,6 +848,7 @@ async fn main() {
             perf.time(perf::Part::Tick, || world.step(&rules, &orders));
             orders.clear();
             effects.tick(&world.events);
+            speech.tick(&world, &rules);
             hud.update_messages(&world, &rules, player);
             hud.automatic_actions(&world, player, &mut orders);
             hud.craft_from_queue(&world, &rules, player, &mut orders);

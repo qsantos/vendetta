@@ -1,6 +1,7 @@
-//! What a tick produced that only the client shows: floating numbers (`AffDegat`) and visual
-//! effects with their sounds (`Activer_Effet`). They have no effect on the game and are not
-//! saved.
+//! What a tick produced that only the client shows: floating numbers (`AffDegat`), visual
+//! effects with their sounds (`Activer_Effet`) and what characters say (`Commentaires`). They
+//! have no effect on the game and are not saved; what is said is in no language, so that the
+//! game is the same whatever each player reads.
 
 use crate::vb::clng;
 use crate::world::World;
@@ -30,6 +31,24 @@ pub enum Event {
     /// box (x, y, w, h). The original plays sound `sound` (the same index, `Effet_Son`) when
     /// the animation shows on screen.
     Effect { effect: usize, sound: usize, x: i64, y: i64, w: i64, h: i64 },
+    /// `Definir_Commentaires`: perso `perso` says `line` (only characters that speak). Like the
+    /// original, the client shows it unless the perso is already saying something, which an
+    /// empty line ([`Line::None`]) stops instead; a line stays `Commentaires.ini [Commentaires]
+    /// Duree` per character.
+    Say { perso: usize, line: Line },
+    /// Dying: whatever perso `perso` was saying stops.
+    Silence { perso: usize },
+}
+
+/// What a character says.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Line {
+    /// Nothing: stops the current line.
+    None,
+    /// Line `index` of comment type `kind` (`Commentaires.ini [Commentaires_kind] Message(index+1)`).
+    Comment { kind: usize, index: usize },
+    /// A text of its own.
+    Text(String),
 }
 
 impl World {
@@ -51,6 +70,13 @@ impl World {
         if let Ok(effect) = usize::try_from(effect) {
             let (x, y, w, h) = (clng(x), clng(y), clng(w), clng(h));
             self.events.push(Event::Effect { effect, sound: effect, x, y, w, h });
+        }
+    }
+
+    /// Perso `i` says `line`, if it speaks.
+    pub(crate) fn speak(&mut self, i: usize, line: Line) {
+        if self.persos[i].speaks {
+            self.events.push(Event::Say { perso: i, line });
         }
     }
 

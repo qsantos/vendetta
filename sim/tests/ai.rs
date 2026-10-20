@@ -1,5 +1,6 @@
 //! Needs the converted assets in `assets` (see `assetconv`); skipped otherwise.
 
+use sim::event::{Event, Line};
 use sim::files::Files;
 use sim::ia_file::{Step, find};
 use sim::perso::action;
@@ -115,7 +116,6 @@ fn round_robin_visits_in_turn() {
             p.berserk = 0;
             p.bonus_berserk = 0;
             p.speaks = true;
-            p.comment.clear();
             p.set_visible(true);
             p.stop();
         }
@@ -127,7 +127,8 @@ fn round_robin_visits_in_turn() {
         let mut expected = [(2 * t + 1) % n, (2 * t + 2) % n];
         expected.sort();
         assert_eq!(walking, expected);
-        assert!(w.persos[walking[0]].comment.starts_with("Je vais à X="));
+        let said = |i: usize| w.events.iter().any(|e| matches!(e, Event::Say { perso, line: Line::Text(t) } if *perso == i && t.starts_with("Je vais à X=")));
+        assert!(said(walking[0]));
     }
 }
 
@@ -255,7 +256,7 @@ fn long_run_shipped_map() {
 fn ai_is_deterministic() {
     let Some((files, rules)) = load() else { return };
     let state = |w: &World| {
-        let p: Vec<_> = w.persos.iter().map(|p| (p.x, p.y, p.action, p.money().to_bits(), p.comment.clone())).collect();
+        let p: Vec<_> = w.persos.iter().map(|p| (p.x, p.y, p.action, p.money().to_bits())).collect();
         let a: Vec<_> =
             w.ai.persos
                 .iter()
@@ -268,13 +269,16 @@ fn ai_is_deterministic() {
     for _ in 0..5000 {
         a.step(&rules, &[]);
         b.step(&rules, &[]);
+        assert_eq!(a.events, b.events);
     }
     assert_eq!(state(&a), state(&b));
     assert_eq!(a.rng.next(), b.rng.next());
 }
 
+/// A line is drawn with one `Rnd` among those of its type, and only said (as an event: how long
+/// it shows is the client's) by characters that speak.
 #[test]
-fn comments_draw_and_expire() {
+fn comments_draw_once() {
     let Some((files, rules)) = load() else { return };
     let mut w = world(&files, &rules, 1, None);
     let i = (0..w.persos.len()).find(|&i| w.persos[i].speaks && w.persos[i].special_comments <= 0).unwrap();
@@ -282,17 +286,15 @@ fn comments_draw_and_expire() {
     w.say(&rules, i, 16);
     rng.next();
     assert_eq!(rng.next(), w.rng.clone().next(), "one draw per line");
-    let line = w.persos[i].comment.clone();
-    assert!(rules.comments[16].contains(&line));
-    // A new line does not replace the current one.
-    w.say(&rules, i, 0);
-    assert_eq!(w.persos[i].comment, line);
-    for p in &mut w.persos {
-        p.ai = false;
+    match w.events.last() {
+        Some(Event::Say { perso, line: Line::Comment { kind: 16, index } }) => {
+            assert_eq!(*perso, i);
+            assert!(*index < rules.comments[16].len());
+        }
+        e => panic!("said {e:?}"),
     }
-    let ticks = (line.chars().count() as f64 * rules.comment_duration * w.speed as f64) as usize + 2;
-    for _ in 0..ticks {
-        w.step(&rules, &[]);
-    }
-    assert!(w.persos[i].comment.is_empty());
+    let n = w.events.len();
+    w.persos[i].speaks = false;
+    w.say(&rules, i, 16);
+    assert_eq!(w.events.len(), n, "a mute character says nothing");
 }

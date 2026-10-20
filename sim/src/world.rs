@@ -457,13 +457,6 @@ impl World {
         let team = self.persos.get(self.player.unwrap_or(0)).map_or(0, |p| p.team);
         self.victory = self.victorious(team);
         // TODO: defeat, scenario victories; the player's automatic actions (`Actions_Automatiques`)
-        // Afficher_Commentaires: a line stays `Duree` seconds per character.
-        let duration = rules.comment_duration * self.speed as f64;
-        for p in &mut self.persos {
-            if !p.comment.is_empty() && (self.tick - p.comment_tick) as f64 > p.comment.chars().count() as f64 * duration {
-                p.comment.clear();
-            }
-        }
     }
 
     /// `Comportement_IA_Fiefs`: castle market, repairs and the age timer.

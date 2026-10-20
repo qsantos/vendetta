@@ -1,5 +1,6 @@
 //! Speech lines, orders to soldiers and calls for help (`ClsJeuCommentaires`, `ModDialogue`).
 
+use crate::event::Line;
 use crate::rules::Rules;
 use crate::vb::clng;
 use crate::world::World;
@@ -15,28 +16,29 @@ const FORMATIONS: i64 = 5;
 impl World {
     /// `Commentaires.Message(n, perso)`: a random line of type `n` (the race's own type if it
     /// has one); one `Rnd` unless `n < 0`.
-    pub fn comment_line(&mut self, rules: &Rules, i: usize, n: i64) -> String {
+    pub fn comment_line(&mut self, rules: &Rules, i: usize, n: i64) -> Line {
         if n < 0 {
-            return String::new();
+            return Line::None;
         }
         let s = self.persos[i].special_comments;
         let t = if s > 0 { s } else { n };
-        let lines = usize::try_from(t).ok().and_then(|t| rules.comments.get(t));
-        let k = self.rng.below(lines.map_or(0, |l| l.len()) as i64);
-        lines.and_then(|l| l.get(k as usize)).cloned().unwrap_or_default()
+        let lines = usize::try_from(t).ok().and_then(|t| rules.comments.get(t).map(|l| (t, l.len())));
+        let k = self.rng.below(lines.map_or(0, |l| l.1) as i64);
+        match lines {
+            Some((kind, n)) if (0..n as i64).contains(&k) => Line::Comment { kind, index: k as usize },
+            _ => Line::None,
+        }
     }
 
     /// `Definir_Commentaires = Commentaires.Message(n, perso)`
     pub fn say(&mut self, rules: &Rules, i: usize, n: i64) {
-        let text = self.comment_line(rules, i, n);
-        let tick = self.tick;
-        self.persos[i].set_comment(text, tick);
+        let line = self.comment_line(rules, i, n);
+        self.speak(i, line);
     }
 
     /// `Definir_Commentaires = ""` then the line: says it even over a current line.
     pub(crate) fn say_now(&mut self, rules: &Rules, i: usize, n: i64) {
-        let tick = self.tick;
-        self.persos[i].set_comment(String::new(), tick);
+        self.speak(i, Line::None);
         self.say(rules, i, n);
     }
 
