@@ -85,8 +85,10 @@ impl Effects {
         let mut decoding: Vec<Option<std::pin::Pin<Box<dyn Future<Output = Option<Sound>> + Send + '_>>>> = records
             .iter()
             .map(|r| {
-                let file = r.get("Son").map(str::trim).filter(|s| !s.is_empty());
-                let bytes = file.and_then(|f| files.get(&format!("Sons/{f}")))?;
+                let file = r.get("Son").map(str::trim).filter(|s| !s.is_empty())?;
+                // as `assetconv` encoded it
+                let ogg = std::path::Path::new(file).with_extension("ogg");
+                let bytes = files.get(&format!("Sons/{}", ogg.to_string_lossy()))?;
                 Some(Box::pin(async move { load_sound_from_bytes(bytes).await.ok() }) as std::pin::Pin<Box<dyn Future<Output = _> + Send>>)
             })
             .collect();

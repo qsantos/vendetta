@@ -7,6 +7,7 @@
 //!   are replaced with real alpha.
 //! - Other BMPs (map data) become opaque PNGs, pixel for pixel.
 //! - Text files (ini, txt, ia) are re-encoded from Latin-1 to UTF-8.
+//! - The sounds (`Sons/*.wav`) become Ogg Vorbis, a sixth of their size, with `ffmpeg`.
 //! - Everything else useful (wav, mid, gif) is copied as is. MIDI music is also rendered to
 //!   Ogg Vorbis (browsers cannot play MIDI) with a General MIDI soundfont and `ffmpeg`.
 //! - `manifest.txt` lists every output file with its size and a content hash
@@ -49,6 +50,7 @@ fn main() {
             .unwrap_or_default();
         let dst_rel = match ext.as_str() {
             "bmp" => rel.with_extension("png"),
+            "wav" if rel_str.starts_with("Sons/") => rel.with_extension("ogg"),
             "ini" | "txt" | "ia" | "wav" | "mid" | "gif" => rel.to_path_buf(),
             _ => continue,
         };
@@ -74,6 +76,7 @@ fn main() {
                 };
                 save_png(&img, &dst);
             }
+            "wav" if dst_rel.extension().is_some_and(|e| e == "ogg") => encode_sound(path, &dst),
             "ini" | "txt" | "ia" => {
                 let bytes = fs::read(path).unwrap();
                 let (text, _) = encoding_rs::WINDOWS_1252.decode_without_bom_handling(&bytes);
@@ -148,6 +151,19 @@ fn render_midi(soundfont: &std::sync::Arc<rustysynth::SoundFont>, mid: &Path, og
         Ok(status) if status.success() => Ok(()),
         _ => Err("ffmpeg failed".into()),
     }
+}
+
+/// Encodes a sound as Ogg Vorbis with `ffmpeg`, at a quality that keeps it indistinguishable
+/// from the original (22 kHz mono, 16 bits).
+fn encode_sound(wav: &Path, ogg: &Path) {
+    let status = std::process::Command::new("ffmpeg")
+        .args(["-loglevel", "error", "-y", "-i"])
+        .arg(wav)
+        .args(["-c:a", "libvorbis", "-q:a", "4"])
+        .arg(ogg)
+        .status()
+        .expect("ffmpeg");
+    assert!(status.success(), "ffmpeg could not encode {}", wav.display());
 }
 
 /// 64-bit FNV-1a: a stable content hash, only used to version URLs.
