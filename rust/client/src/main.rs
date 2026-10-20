@@ -292,6 +292,8 @@ async fn main() {
     screen.finish();
     if options.god {
         world.god = Some(player);
+        // at once, for the still scenes of the rendering tests
+        world.refill_god(&rules);
     }
     let fief = world.persos[player].fief;
     if let Some(object) = options.hold.filter(|&o| o < rules.objects.len()) {

@@ -146,7 +146,7 @@ impl Default for WorldSetup {
 
 impl World {
     /// God mode ([`World::god`]): full bars, plenty of money, full resources.
-    fn refill_god(&mut self, rules: &Rules) {
+    pub fn refill_god(&mut self, rules: &Rules) {
         let Some(p) = self.god.and_then(|i| self.persos.get_mut(i)) else { return };
         if !p.alive() {
             return;
