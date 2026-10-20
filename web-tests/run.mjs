@@ -73,6 +73,9 @@ const SCENES = {
   torus: { hash: "seed=3&size=256&fiefs=6&villagers=20&edges=torus", steps: [["key", "Tab"], ["move", 600, 740]] },
   torus_corner: { hash: "seed=3&size=256&fiefs=6&villagers=20&edges=torus", steps: [["key", "Tab"], ["right", 362, 335], ["move", 600, 740]] },
   torus_zoom: { hash: "seed=1&edges=torus", steps: [["move", 500, 500], ...Array(6).fill(["wheel", 500, 500, 120]), ["wait", 0.5]] },
+  // (a map smaller than the screen: the map exactly as high as the screen, never shown twice
+  // vertically)
+  torus_small: { hash: "seed=1&size=64&edges=torus", steps: [["move", 500, 500], ...Array(6).fill(["wheel", 500, 500, 120]), ["wait", 0.5]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
   // The touch interface on a phone held sideways: the bar on the right, the castle's window.
   touch_start: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [] },

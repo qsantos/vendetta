@@ -455,6 +455,13 @@ async fn main() {
         // `screen_width()` and the mouse are in CSS pixels; the frame is in physical pixels.
         let dpi = screen_dpi_scale();
         let (w, h) = ((screen_width() * dpi) as i32, (screen_height() * dpi) as i32);
+        // On a torus, zoomed out no further than the map filling the screen on one axis (some
+        // of it twice on the other), even from a zoom kept from a larger map or window.
+        if world.terrain.torus {
+            let (mw, mh) = world.terrain.size_px();
+            let fit = (w as f32 / mw as f32).min(h as f32 / mh as f32) / dpi;
+            scales.zoom = scales.zoom.max(fit);
+        }
         let (zoom, ui) = scales.effective();
         // The touch interface fits a window in a phone's shorter side, whatever the setting;
         // a tablet's has room to spare.
