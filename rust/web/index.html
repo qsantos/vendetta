@@ -27,6 +27,12 @@
             color: #000; font: bold 13px Arial, "Liberation Sans", sans-serif; line-height: 16px;
             white-space: pre; }
   #bubble .red { color: #f00; }
+  /* Errors (a crash of the game, a failing script), shown over everything: on a phone there
+     is no console to read them in. A tap dismisses them. */
+  #errors { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 10; max-height: 50vh;
+            overflow: auto; background: #fff; color: #c00; border: 2px solid #c00; padding: 6px;
+            font: 12px monospace; white-space: pre-wrap; word-break: break-word; }
+  #errors[hidden] { display: none; }
   /* The pre-game menu: the solo game's settings, kept in the address's hash. */
   #menu { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center;
           justify-content: center; background: #000;
@@ -151,6 +157,7 @@
   <div id="frame"><div id="bar"></div><img id="art" alt=""></div>
 </div>
 <div id="bubble" hidden>Chargement…</div>
+<div id="errors" hidden></div>
 <canvas id="glcanvas" class="waiting" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
 <!-- build-web.sh appends ?v=<hash> to these two URLs so they can be cached for good -->
 <script src="mq_js_bundle.js"></script>
@@ -178,6 +185,23 @@
   const loadingScreen = document.getElementById("loading");
   const bar = document.getElementById("bar");
   const bubble = document.getElementById("bubble");
+
+  const errorBox = document.getElementById("errors");
+  errorBox.addEventListener("click", () => (errorBox.hidden = true));
+  function showError(text) {
+    errorBox.textContent += (errorBox.textContent ? "\n" : "") + text;
+    errorBox.hidden = false;
+  }
+  window.addEventListener("error", (e) => showError(e.message + (e.filename ? ` (${e.filename.split("/").pop()}:${e.lineno})` : "")));
+  window.addEventListener("unhandledrejection", (e) => showError("Promise: " + (e.reason?.stack || e.reason)));
+  // the game's panics and errors go to console.error
+  {
+    const error = console.error.bind(console);
+    console.error = (...args) => {
+      error(...args);
+      showError(args.map((a) => (a instanceof Error ? a.stack || a.message : String(a))).join(" "));
+    };
+  }
 
   // Progress in bytes: the game's own download (measured here), then the files the game
   // downloads (reported by it). Until it reports, its share is estimated from the manifest.
