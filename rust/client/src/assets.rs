@@ -171,6 +171,10 @@ pub async fn load_files(manifest: &Manifest, progress: &Progress) -> Result<File
 /// Side of an atlas page. WebGL guarantees at least 4096; the images the game loads fit in two.
 const PAGE: u16 = 4096;
 
+/// How far inside an image's edges it is sampled, in pixels (see `Sprite::draw_ex`): far more
+/// than the rounding, far less than a pixel.
+const INSET: f32 = 1.0 / 64.0;
+
 /// An image, wherever it was packed: a part of an atlas page.
 #[derive(Clone)]
 pub struct Sprite {
@@ -185,7 +189,13 @@ impl Sprite {
             Some(s) => Rect::new(self.rect.x + s.x, self.rect.y + s.y, s.w, s.h),
             None => self.rect,
         };
-        draw_texture_ex(&self.page, x, y, colour, DrawTextureParams { source: Some(source), ..params });
+        // Sampled a hair inside its edges: drawn at a scale that is not whole (the zoom, the
+        // screen's pixel ratio), a screen pixel whose centre falls just inside the edge could
+        // round onto the atlas's next row or column, another image's (or the sheet's next
+        // frame), as a line of stray pixels along the edge.
+        let dest = params.dest_size.unwrap_or(vec2(source.w, source.h));
+        let inner = Rect::new(source.x + INSET, source.y + INSET, source.w - 2.0 * INSET, source.h - 2.0 * INSET);
+        draw_texture_ex(&self.page, x, y, colour, DrawTextureParams { source: Some(inner), dest_size: Some(dest), ..params });
     }
 
     /// `draw_texture` for this image.
