@@ -149,6 +149,8 @@ pub struct Hud {
     fps: u32,
     frames: u32,
     fps_timer: f64,
+    /// The map's zoom level, and the screen pixels per world pixel it makes (see `set_zoom`).
+    zoom: (f32, f32),
     touch: touch::Touch,
     /// The menu was asked for (see `take_menu_request`).
     menu_requested: bool,
@@ -267,6 +269,12 @@ impl Hud {
         self.small_font.set_scale(scale);
     }
 
+    /// The map's zoom level, and the screen pixels per world pixel (they differ on a screen of
+    /// more than one physical pixel per CSS pixel), shown under the FPS counter.
+    pub fn set_zoom(&mut self, level: f32, pixels: f32) {
+        self.zoom = (level, pixels);
+    }
+
     pub fn new(strings: Strings, window_strings: WindowStrings, tooltip_labels: object_tooltip::TooltipLabels, files: &Files, objects: usize) -> Hud {
         let font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), FONT_PX);
         let small_font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 8.0 * 96.0 / 72.0);
@@ -298,6 +306,7 @@ impl Hud {
             fps: 0,
             frames: 0,
             fps_timer: get_time(),
+            zoom: (1.0, 1.0),
             touch: Default::default(),
             menu_requested: false,
             free_camera: None,
@@ -338,7 +347,7 @@ impl Hud {
     /// Lines of text under the FPS counter, in white (the `#perf` timings).
     pub fn debug_lines(&self, lines: &[String]) {
         for (i, line) in lines.iter().enumerate() {
-            self.text(crate::layout::screen_w() - 260, 18 + 16 * i as i32, line, WHITE);
+            self.text(crate::layout::screen_w() - 260, 34 + 16 * i as i32, line, WHITE);
         }
     }
 
@@ -507,6 +516,14 @@ impl Hud {
         }
         if !crate::options::test_mode() {
             self.text(ax(940), 0, &format!("{} {:02}", self.strings.fps, self.fps), WHITE_);
+            // not in the original
+            let (level, pixels) = self.zoom;
+            let mut zoom = format!("Zoom ×{level}");
+            if pixels != level {
+                zoom += &format!(" ({} px)", (pixels * 100.0).round() / 100.0);
+            }
+            let x = ax(940).min(crate::layout::screen_w() - self.font.width(&zoom) - 4);
+            self.text(x, 16, &zoom, WHITE_);
         }
     }
 

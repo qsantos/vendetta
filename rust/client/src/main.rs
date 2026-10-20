@@ -455,6 +455,7 @@ async fn main() {
         let hud_size = (hud_f.0 as i32, hud_f.1 as i32);
         layout::set_screen(hud_size.0, hud_size.1);
         hud.set_scale(ui);
+        hud.set_zoom(scales.zoom, zoom);
 
         let fingers = if touch { gestures.poll(dpi) } else { touch::Frame::default() };
         let (mx, my) = if touch {
