@@ -416,7 +416,7 @@ impl Hud {
         // (sideways, right of the automatic eating's button)
         let (x, y) = match (touch, crate::layout::bar_vertical()) {
             (true, false) => (8, ay(673)),
-            (true, true) => (196, ay(745)),
+            (true, true) => (188, ay(745)),
             _ => (152, ay(745)),
         };
         self.text(x, y, &self.action_message(rules, p), WHITE_);

@@ -77,14 +77,14 @@ pub struct Touch {
     confirm: Option<[(i32, i32); 2]>,
 }
 
-/// The automatic eating's button, right of the status bars, as high as the four, and the
-/// rows of its panel.
-const AUTO_W: i32 = 44;
-const AUTO_H: i32 = BAR_Y[3] + BAR_H - BAR_Y[0] + 2;
+/// The automatic eating's button, right of the status bars, level with the last one, and
+/// the rows of its panel.
+const AUTO_W: i32 = 36;
+const AUTO_H: i32 = 36;
 const AUTO_ROW: i32 = 36;
 
 fn auto_button() -> (i32, i32) {
-    (BAR_X + BAR_W + 4, ay(BAR_Y[0]) - 1)
+    (BAR_X + BAR_W + 4, ay(BAR_Y[3]) + BAR_H + 1 - AUTO_H)
 }
 
 /// The buttons that confirm or cancel a building or demolishing: their side.
@@ -335,9 +335,9 @@ impl Hud {
         draw_rectangle(ax_ as f32, ay_ as f32, AUTO_W as f32, AUTO_H as f32, Color::new(0.15, 0.15, 0.15, 1.0));
         let any = self.auto.on.iter().any(|&on| on);
         outline(ax_, ay_, ax_ + AUTO_W, ay_ + AUTO_H, if open { YELLOW } else if any { ORANGE } else { LIGHT_GREY });
-        self.draw_icon(textures, &Icon::Sheet { path: ACTION.to_owned(), col: 0, row: 0, size: 24 }, ax_ + (AUTO_W - 32) / 2, ay_ + 10, 32.0 / 24.0);
+        self.draw_icon(textures, &Icon::Sheet { path: ACTION.to_owned(), col: 0, row: 0, size: 24 }, ax_ + (AUTO_W - 20) / 2, ay_ + 2, 20.0 / 24.0);
         let w = self.small_font.width("Auto");
-        self.small_text(ax_ + (AUTO_W - w) / 2, ay_ + AUTO_H - 18, "Auto", WHITE);
+        self.small_text(ax_ + (AUTO_W - w) / 2, ay_ + AUTO_H - 14, "Auto", WHITE);
         if inside(m, ax_, ay_, AUTO_W, AUTO_H) {
             on_ui = true;
             if input.left_pressed {
