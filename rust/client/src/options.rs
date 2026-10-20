@@ -58,10 +58,16 @@ pub struct Options {
     /// `inventory=Hache+40:3`: objects in the player's bag, by name (`Parametres_Objets.ini`,
     /// any case) or index, with a count after `:`. Only for a new world, not a resumed one.
     pub inventory: Vec<(String, i64)>,
+    /// `speed=N`: the game's speed in ticks per second (the original's `Vitesse`, 5 to 30, 10 by
+    /// default); also a resumed solo game's.
+    pub speed: Option<i64>,
     /// `layout=touch` or `layout=desktop`: the touch interface or the original one, whatever
     /// the screen (by default, the touch one on touch screens).
     pub touch: Option<bool>,
 }
+
+/// The game speeds the original's slider allowed (`VitesseMin`, `VitesseMax`).
+pub const SPEEDS: (i64, i64) = (5, 30);
 
 /// Map sizes accepted, in cells per side (a 1024² save is about 3 MB in local storage, which
 /// holds about 5).
@@ -87,6 +93,7 @@ impl Options {
                     }
                 }
                 "seed" => o.seed = value.parse().ok(),
+                "speed" => o.speed = value.parse::<i64>().ok().map(|v| v.clamp(SPEEDS.0, SPEEDS.1)),
                 "roads" => o.ring_roads = value.eq_ignore_ascii_case("ring"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
                 "villagers" => o.villagers = value.parse::<usize>().ok().map(|n| n.clamp(1, 2000)),
@@ -131,7 +138,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o

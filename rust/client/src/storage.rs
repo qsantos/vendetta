@@ -15,7 +15,8 @@ unsafe extern "C" {
     /// Whether the main pointer is a finger (`pointer: coarse`).
     fn vendetta_touch_screen() -> bool;
     /// The page's in-game menu: opens it; whether it is open; what it asks of the game (0:
-    /// nothing, 1: quit, 2/3: zoom the map out/in, 4/5: the interface smaller/bigger); the
+    /// nothing, 1: quit, 2/3: zoom the map out/in, 4/5: the interface smaller/bigger, 100 + N:
+    /// the speed N); the
     /// game has saved and can be left.
     fn vendetta_open_menu();
     fn vendetta_menu_open() -> bool;
@@ -26,6 +27,8 @@ unsafe extern "C" {
     fn vendetta_volume(kind: u32) -> f32;
     /// The interface the menu chose: 0 the screen's, 1 touch, 2 desktop.
     fn vendetta_layout() -> u32;
+    /// The game's speed, for the menu to show (and, in network play, that it cannot change).
+    fn vendetta_speed(speed: u32, network: bool);
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -96,6 +99,8 @@ pub enum MenuCommand {
     Zoom(bool),
     /// The interface's size a step bigger (true) or smaller.
     Interface(bool),
+    /// The game's speed, in ticks per second.
+    Speed(i64),
 }
 
 /// Opens the page's in-game menu (natively, there is none).
@@ -126,6 +131,7 @@ pub fn menu_command() -> MenuCommand {
         3 => MenuCommand::Zoom(true),
         4 => MenuCommand::Interface(false),
         5 => MenuCommand::Interface(true),
+        n @ 100.. => MenuCommand::Speed(n as i64 - 100),
         _ => MenuCommand::None,
     };
     #[cfg(not(target_arch = "wasm32"))]
@@ -141,6 +147,17 @@ pub fn quit() {
     };
     #[cfg(not(target_arch = "wasm32"))]
     std::process::exit(0);
+}
+
+/// Tells the page the game's speed, for its menu.
+pub fn show_speed(speed: i64, network: bool) {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: plain numbers.
+    unsafe {
+        vendetta_speed(speed as u32, network)
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = (speed, network);
 }
 
 /// The interface the menu chose: touch (true), desktop (false), or none.

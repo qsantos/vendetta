@@ -59,7 +59,7 @@ pub const TICK: Duration = Duration::from_millis(100);
 const CODE_CHARS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LEN: usize = 4;
 /// The world options the host may set (see the client's `options.rs`), and `wait`.
-const SETTINGS: [&str; 6] = ["size", "fiefs", "villagers", "roads", "seed", "wait"];
+const SETTINGS: [&str; 7] = ["size", "fiefs", "villagers", "roads", "seed", "wait", "speed"];
 /// The default number of fiefs (`WorldSetup`).
 const DEFAULT_FIEFS: usize = 4;
 /// How long a game in progress lasts with nobody connected.
@@ -142,6 +142,12 @@ impl Room {
     /// `wait=F`: how many times the first player's loading time to wait for the others.
     fn wait(&self) -> Option<f64> {
         self.items.iter().find_map(|o| o.strip_prefix("wait=")?.parse().ok()).filter(|f: &f64| *f > 0.0)
+    }
+
+    /// `speed=N`: N ticks per second (the original's `Vitesse`, 5 to 30), else `TICK`.
+    fn tick_period(&self) -> Duration {
+        let speed = self.items.iter().find_map(|o| o.strip_prefix("speed=")?.parse::<u32>().ok());
+        speed.map_or(TICK, |s| Duration::from_secs(1) / s.clamp(5, 30))
     }
 
     /// Whether the ticks may start (see the module's doc).
@@ -425,9 +431,10 @@ fn clean(name: &str) -> String {
     if name.trim().is_empty() { "Joueur".to_owned() } else { name.trim().to_owned() }
 }
 
-/// Once the players are ready, broadcasts a tick every `TICK` while the room lasts.
+/// Once the players are ready, broadcasts a tick every `TICK`, or as the room's speed says,
+/// while the room lasts.
 async fn ticker(rooms: Arc<Rooms>, code: String) {
-    loop {
+    let period = loop {
         {
             let mut all = rooms.rooms.lock().unwrap();
             let Some(room) = all.get(&code) else { return };
@@ -436,12 +443,12 @@ async fn ticker(rooms: Arc<Rooms>, code: String) {
                 return;
             }
             if room.all_ready() {
-                break;
+                break room.tick_period();
             }
         }
         tokio::time::sleep(TICK / 4).await;
-    }
-    let mut interval = tokio::time::interval(TICK);
+    };
+    let mut interval = tokio::time::interval(period);
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     for n in 0u64.. {
         interval.tick().await;

@@ -131,7 +131,6 @@ fn cursor_type(world: &World, rules: &Rules, player: usize, x: i32, y: i32) -> (
     }
 }
 
-const TICKS_PER_SECOND: f64 = 10.0; // Jeu.ini Vitesse
 /// Beyond this many ticks waiting, a network game catches up at once rather than at its pace.
 const CATCH_UP_BACKLOG: usize = 10;
 /// How long a frame may play ticks when catching up with a network game.
@@ -186,6 +185,9 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     layout::set_touch(storage::layout().or(options.touch).unwrap_or(touch_screen));
     let mut setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
     setup.roads = if options.ring_roads { sim::world::Roads::Ring } else { sim::world::Roads::Nearest };
+    if let Some(speed) = options.speed {
+        setup.speed = speed;
+    }
     if let Some(seed) = options.seed {
         setup.seed = seed;
     }
@@ -286,12 +288,16 @@ async fn main() {
                 net.after_tick(&world);
             }
             net.poll();
-            screen.progress.message(&format!("Rattrapage de la partie : encore {} s de jeu…", net.backlog() as f64 / TICKS_PER_SECOND));
+            screen.progress.message(&format!("Rattrapage de la partie : encore {} s de jeu…", net.backlog() as f64 / world.speed as f64));
             screen.draw();
             next_frame().await;
         }
     }
     screen.finish();
+    // A resumed solo game takes the speed it is started with (a network one keeps the room's).
+    if let (Some(speed), None) = (options.speed, options.me) {
+        world.speed = speed;
+    }
     if options.god {
         world.god = Some(player);
         // at once, for the still scenes of the rendering tests
@@ -362,6 +368,8 @@ async fn main() {
     let mut pressed_on_map = false;
     let mut perf = perf::Perf::default();
     let touch_screen = storage::touch_screen();
+    // The speed the page's menu was told of.
+    let mut shown_speed = None;
     let mut gestures = touch::Gestures::default();
     // How far the fingers have pinched since the zoom last changed.
     let mut pinched = 1.0f32;
@@ -615,7 +623,7 @@ async fn main() {
             // delay); with ticks piling up, it runs a little faster. Far behind (a hidden tab, a
             // reconnection), it catches up at once.
             let now = get_time();
-            let period = 1.0 / TICKS_PER_SECOND;
+            let period = 1.0 / world.speed as f64;
             let catch_up = net.backlog() > CATCH_UP_BACKLOG;
             let start = perf::now();
             net_due = net_due.max(now - period);
@@ -659,6 +667,10 @@ async fn main() {
             storage::open_menu();
         }
         hud.set_menu_open(storage::menu_open());
+        if shown_speed != Some(world.speed) {
+            shown_speed = Some(world.speed);
+            storage::show_speed(world.speed, net.is_some());
+        }
         let mut quit = false;
         loop {
             let out = view.0 < world.terrain.width as i32 * sim::terrain::CELL || view.1 < world.terrain.height as i32 * sim::terrain::CELL;
@@ -668,16 +680,19 @@ async fn main() {
                 storage::MenuCommand::Zoom(up) if up || out => scales.zoom = step(&ZOOMS, scales.zoom, up),
                 storage::MenuCommand::Zoom(_) => {}
                 storage::MenuCommand::Interface(up) => scales.ui = step(&UI_SCALES, scales.ui, up),
+                // (in network play, the room's)
+                storage::MenuCommand::Speed(v) if net.is_none() => world.speed = v.clamp(options::SPEEDS.0, options::SPEEDS.1),
+                storage::MenuCommand::Speed(_) => {}
             }
             scales.store();
         }
         let still = hud.paused() || options::test_mode() || net.is_some();
         if still {
-            next_tick = get_time() + 1.0 / TICKS_PER_SECOND;
+            next_tick = get_time() + 1.0 / world.speed as f64;
         }
         let mut ticks = 0;
         while !still && get_time() >= next_tick && ticks < MAX_TICKS_PER_FRAME {
-            next_tick += 1.0 / TICKS_PER_SECOND;
+            next_tick += 1.0 / world.speed as f64;
             ticks += 1;
             perf.time(perf::Part::Tick, || world.step(&rules, &orders));
             orders.clear();

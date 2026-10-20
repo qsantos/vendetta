@@ -142,6 +142,7 @@
             <option value="">vers les châteaux proches</option>
             <option value="ring">en anneau (l'original)</option>
           </select></label>
+        <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
         <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
         <label>Attendre les plus lents
           <select name="wait">
@@ -174,6 +175,7 @@
         <option value="">vers les châteaux proches</option>
         <option value="ring">en anneau (l'original)</option>
       </select></label>
+    <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
     <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
     <fieldset><legend>Tests</legend>
       <label>Invincible <input type="checkbox" name="god"></label>
@@ -215,6 +217,11 @@
         </select>
       </div>
       <div class="row" id="fullscreen-row">Plein écran <input type="checkbox" id="fullscreen"></div>
+    </fieldset>
+    <fieldset>
+      <legend>Jeu</legend>
+      <div class="row">Vitesse <span id="speed-value"></span></div>
+      <input type="range" id="speed" min="5" max="30">
     </fieldset>
     </div>
   </div>
@@ -525,6 +532,7 @@
           location.reload();
         });
       };
+      importObject.env.vendetta_speed = (speed, network) => showSpeed(speed, !!network);
       importObject.env.vendetta_layout = () => ({ touch: 1, desktop: 2 })[layoutChoice] || 0;
       importObject.env.vendetta_volume = (kind) => {
         const k = kind === 0 ? "music" : "effects";
@@ -656,6 +664,19 @@
     else if (document.fullscreenElement) document.exitFullscreen();
   });
   document.addEventListener("fullscreenchange", () => (fullscreen.checked = !!document.fullscreenElement));
+  // The game's speed (the original's Vitesse, ticks per second): the game tells it, a solo
+  // game takes a new one at once; a network game's is the room's.
+  const speedInput = document.getElementById("speed");
+  const speedValue = document.getElementById("speed-value");
+  function showSpeed(speed, network) {
+    speedInput.value = speed;
+    speedInput.hidden = network;
+    speedValue.textContent = speed + (network ? " (celle de la partie)" : "");
+  }
+  speedInput.addEventListener("input", () => {
+    speedValue.textContent = speedInput.value;
+    menuCommands.push(100 + Number(speedInput.value));
+  });
   // On a touch screen, the game takes the whole screen (no address bar) from the first
   // button pressed in the menus (it needs a press).
   document.getElementById("menu").addEventListener("click", (e) => {
@@ -782,7 +803,7 @@
   // The pre-game menu: the form mirrors the hash; flags are checkboxes, other keys values.
   {
     const form = document.querySelector("#menu form");
-    const fields = ["size", "fiefs", "villagers", "roads", "seed"];
+    const fields = ["size", "fiefs", "villagers", "roads", "speed", "seed"];
     const flags = ["god", "perf"];
     const fill = () => {
       const items = hashItems();
