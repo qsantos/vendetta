@@ -67,6 +67,11 @@ impl Ini {
     pub fn section(&self, section: &str) -> Option<&HashMap<String, String>> {
         self.sections.get(&section.to_lowercase())
     }
+
+    /// Every section (lower-cased name) with its keys (lower-cased) and values.
+    pub fn sections(&self) -> impl Iterator<Item = (&String, &HashMap<String, String>)> {
+        self.sections.iter()
+    }
 }
 
 fn unquote(s: &str) -> &str {
