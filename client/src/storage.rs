@@ -27,6 +27,9 @@ unsafe extern "C" {
     fn vendetta_volume(kind: u32) -> f32;
     /// The interface the menu chose: 0 the screen's, 1 touch, 2 desktop.
     fn vendetta_layout() -> u32;
+    /// The language the menu chose: its `Langues.ini` suffix, a letter a byte from the lowest,
+    /// or 0 for none.
+    fn vendetta_language() -> u32;
     /// The game's speed, for the menu to show (and, in network play, that it cannot change).
     fn vendetta_speed(speed: u32, network: bool);
 }
@@ -169,6 +172,19 @@ pub fn layout() -> Option<bool> {
         2 => Some(false),
         _ => None,
     };
+    #[cfg(not(target_arch = "wasm32"))]
+    None
+}
+
+/// The language the menu chose, by its `Langues.ini` suffix.
+pub fn language() -> Option<String> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        // SAFETY: no arguments.
+        let letters = unsafe { vendetta_language() }.to_le_bytes();
+        let suffix: String = letters.iter().take_while(|&&b| b != 0).map(|&b| b as char).collect();
+        return (!suffix.is_empty()).then_some(suffix);
+    }
     #[cfg(not(target_arch = "wasm32"))]
     None
 }

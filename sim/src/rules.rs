@@ -303,17 +303,23 @@ pub struct Language {
 
 /// The languages of `Langues.ini`, the original's French first.
 pub fn languages(files: &Files) -> Vec<Language> {
-    let Ok(f) = ini(files, "Donnees/Langues.ini") else { return Vec::new() };
-    (1..=f.int_or("Langues", "NombreLangues", 0))
-        .map(|k| {
-            let s = format!("Langue_{k}");
-            Language {
-                name: f.str_or(&s, "Nom", "").to_owned(),
-                folder: f.str_or(&s, "Dossier", "").trim_end_matches(['\\', '/']).to_owned(),
-                suffix: f.str_or(&s, "Suffixe", "").to_uppercase(),
-            }
-        })
-        .collect()
+    ini(files, "Donnees/Langues.ini").map(|f| Language::list(&f)).unwrap_or_default()
+}
+
+impl Language {
+    /// The languages of `Langues.ini`, read.
+    pub fn list(f: &Ini) -> Vec<Language> {
+        (1..=f.int_or("Langues", "NombreLangues", 0))
+            .map(|k| {
+                let s = format!("Langue_{k}");
+                Language {
+                    name: f.str_or(&s, "Nom", "").to_owned(),
+                    folder: f.str_or(&s, "Dossier", "").trim_end_matches(['\\', '/']).to_owned(),
+                    suffix: f.str_or(&s, "Suffixe", "").to_uppercase(),
+                }
+            })
+            .collect()
+    }
 }
 
 impl Rules {

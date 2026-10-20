@@ -124,7 +124,7 @@ impl TooltipLabels {
         // Approximation: the original follows the Windows locale; assume a French system for
         // the French game.
         labels.decimal = if lang == "Francais" { ',' } else { '.' };
-        let suffix = if lang == "English" { "EN" } else { "FR" };
+        let suffix = sim::rules::languages(files).into_iter().find(|l| l.folder == lang).map_or_else(|| "FR".to_owned(), |l| l.suffix);
         if let Ok(params) = Params::load(files, lang) {
             // `NomPluriel` sets both sexes, `NomMPluriel` the masculine one: the last wins.
             let keys = ["NomPluriel".to_owned(), format!("NomPluriel{suffix}"), "NomMPluriel".to_owned(), format!("NomMPluriel{suffix}")];

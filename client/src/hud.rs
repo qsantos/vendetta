@@ -275,7 +275,7 @@ impl Hud {
         self.zoom = (level, pixels);
     }
 
-    pub fn new(strings: Strings, window_strings: WindowStrings, tooltip_labels: object_tooltip::TooltipLabels, files: &Files, objects: usize) -> Hud {
+    pub fn new(strings: Strings, window_strings: WindowStrings, tooltip_labels: object_tooltip::TooltipLabels, files: &Files, lang: &str, objects: usize) -> Hud {
         let font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), FONT_PX);
         let small_font = TextRenderer::new(include_bytes!("../fonts/LiberationSans-Bold.ttf"), 8.0 * 96.0 / 72.0);
         Hud {
@@ -299,7 +299,7 @@ impl Hud {
             craft_queue: Vec::new(),
             shortcuts: shortcuts::Shortcuts::load(objects),
             clocks: shortcuts::recharge_clocks(files),
-            messages: messages::MessageLog::load(files, "Francais"),
+            messages: messages::MessageLog::load(files, lang),
             hovered_object: None,
             tooltip_labels,
             build_hover: None,
@@ -540,7 +540,7 @@ impl Hud {
         let p = &world.persos[player];
         let mut lines = Vec::new();
         if p.selected_money.min(p.money()) > 0.0 {
-            lines.push(format!("Argent : {}", p.selected_money.min(p.money()) as i64));
+            lines.push(format!("{} : {}", crate::lang::tr("Argent", "Money"), p.selected_money.min(p.money()) as i64));
         }
         for (r, resource) in rules.resources.iter().enumerate() {
             let n = p.selected_resources.get(r).map_or(0.0, |&n| n.min(p.resource(r)));

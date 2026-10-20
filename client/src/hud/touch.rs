@@ -165,9 +165,9 @@ impl Hud {
     fn bar_buttons(&self, world: &World, rules: &Rules, player: usize) -> Vec<(Icon, &'static str, BarAction)> {
         let sheet = |path: &str, col, size| Icon::Sheet { path: path.to_owned(), col, row: 0, size };
         let mut v = vec![
-            (sheet(ACTION, 1, 24), "Construire", BarAction::Open(Panel::Build)),
-            (sheet(DEPLACEMENT, 4, 28), "Déplacer", BarAction::Open(Panel::Move)),
-            (sheet(INFOS, 4, 24), "Fenêtres", BarAction::Open(Panel::Windows)),
+            (sheet(ACTION, 1, 24), crate::lang::tr("Construire", "Build"), BarAction::Open(Panel::Build)),
+            (sheet(DEPLACEMENT, 4, 28), crate::lang::tr("Déplacer", "Move"), BarAction::Open(Panel::Move)),
+            (sheet(INFOS, 4, 24), crate::lang::tr("Fenêtres", "Windows"), BarAction::Open(Panel::Windows)),
         ];
         if Self::has_selection(world, player) {
             let p = &world.persos[player];
@@ -178,7 +178,7 @@ impl Hud {
             } else {
                 sheet(ACTION, 2, 24)
             };
-            v.push((icon, "Lâcher", BarAction::Drop));
+            v.push((icon, crate::lang::tr("Lâcher", "Drop"), BarAction::Drop));
         }
         v.push((Icon::Sheet { path: INFOS.to_owned(), col: 7, row: self.paused() as i32, size: 24 }, "Menu", BarAction::Menu));
         v

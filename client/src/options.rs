@@ -64,6 +64,9 @@ pub struct Options {
     /// `speed=N`: the game's speed in ticks per second (the original's `Vitesse`, 5 to 30, 10 by
     /// default); also a resumed solo game's.
     pub speed: Option<i64>,
+    /// `lang=EN`: the language, by its `Langues.ini` suffix (the page's menu setting comes
+    /// first; see `lang.rs`).
+    pub lang: Option<String>,
     /// `layout=touch` or `layout=desktop`: the touch interface or the original one, whatever
     /// the screen (by default, the touch one on touch screens).
     pub touch: Option<bool>,
@@ -113,6 +116,7 @@ impl Options {
                 "names" => o.names = value.split('+').map(percent_decode).collect(),
                 "room" => o.room = value.to_uppercase(),
                 "resume" => o.resume = true,
+                "lang" => o.lang = Some(value.to_uppercase()),
                 "layout" => {
                     o.touch = match value.to_ascii_lowercase().as_str() {
                         "touch" => Some(true),

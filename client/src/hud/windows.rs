@@ -1,5 +1,6 @@
 //! The eight 320×368 windows (`ClsIntFenetre`), positions relative to the window origin.
 
+use crate::lang::tr;
 use super::object_tooltip::{InInventory, object_tooltip};
 use super::{Hud, Input, outline};
 use crate::assets::Textures;
@@ -124,7 +125,7 @@ impl WindowStrings {
             objects: s(&f, "EtiquetteObjets"),
             craft: s(&f, "BoutonFabriquerEtiquette"),
             scroll: [s(&f, "BoutonDefilement1Etiquette"), s(&f, "BoutonDefilement2Etiquette")],
-            price: "Prix".to_owned(),
+            price: s(&g, "EtiquettePrix"),
             house_toggle: [
                 "InventaireMaisonMessagePerso",
                 "InventaireMaisonMessageMaison",
@@ -574,13 +575,13 @@ impl Hud {
             cell(textures, &resource_icon(&res.image), o.0 + 104, o.1 + y - 10, 0, 0, (32, 32), false);
             if res.edible {
                 cell(textures, ACTION, o.0 + 184, o.1 + y - 6, 0, dead, (24, 24), true);
-                let gains: String = ["Vie", "Energie", "Magie", "Moral"]
+                let gains: String = s.character[2..6]
                     .iter()
                     .zip(res.gain)
                     .filter(|(_, g)| *g > 0.0)
                     .map(|(n, g)| format!("#+{g:.1} {n}"))
                     .collect();
-                let tip = format!("Manger : {}  {gains}", res.name.to_lowercase());
+                let tip = format!("{} : {}  {gains}", tr("Manger", "Eat"), res.name.to_lowercase());
                 let eat = Order::Eat { perso, resource: k };
                 hits.push((rect(184, y - 6, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip, left: Some(eat), right: None }));
             }
@@ -601,13 +602,13 @@ impl Hud {
                 let hit = if in_castle {
                     let order = Order::SellResource { perso, resource: k, quantity: q };
                     Hit { toggle: false, object: None, frame: false, queue: None,
-                        tip: format!("Vendre {q} {}  #{} : {}", res.name, s.price, q * res.price),
+                        tip: format!("{} {q} {}  #{} : {}", tr("Vendre", "Sell"), res.name, s.price, q * res.price),
                         left: Some(order.clone()),
                         right: Some(order),
                     }
                 } else {
                     Hit { toggle: false, object: None, frame: false, queue: None,
-                        tip: format!("Prendre {q} {}  #{} : {}", res.name, s.price, q * res.price),
+                        tip: format!("{} {q} {}  #{} : {}", tr("Prendre", "Take"), res.name, s.price, q * res.price),
                         left: Some(Order::SelectResource { perso, resource: k, quantity: q }),
                         right: Some(Order::UnselectResource { perso, resource: k, quantity: q }),
                     }
@@ -889,7 +890,7 @@ impl Hud {
         if in_a_house && !btype.market {
             // House view
             self.title(o, &btype.name);
-            self.text(o.0 + 32, o.1 + 54, &format!("Vie : {} / {}", house.life.floor(), house.max_life), BLACK);
+            self.text(o.0 + 32, o.1 + 54, &format!("{} : {} / {}", self.windows.strings.character[2], house.life.floor(), house.max_life), BLACK);
             let own = h == player;
             if own {
                 self.text(o.0 + 32, o.1 + 96, &format!("{} : {}", s.money, house.money.floor()), BLACK);
@@ -922,7 +923,7 @@ impl Hud {
                             let price = q * res.price * rules.buy_coef;
                             let red = if price > p.money() { "&" } else { "" };
                             Hit { toggle: false, object: None, frame: false, queue: None,
-                                tip: format!("Acheter {q} {}  #{red}{} : {price}", res.name, s.price),
+                                tip: format!("{} {q} {}  #{red}{} : {price}", tr("Acheter", "Buy"), res.name, s.price),
                                 left: Some(Order::BuyFromHouse { perso, house: h, quantity: q }),
                                 right: None,
                             }
@@ -939,7 +940,7 @@ impl Hud {
                 };
                 self.text(o.0 + 32, o.1 + 138, &line, BLACK);
                 cell(textures, ACTION, o.0 + 216, o.1 + 136, 5, (stock < 1.0) as i32, (24, 24), true);
-                hits.push((rect(216, 136, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip: " (Entrée)".to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
+                hits.push((rect(216, 136, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip: tr(" (Entrée)", " (Enter)").to_owned(), left: Some(Order::UseService { perso, house: h }), right: None }));
                 if house.max_stock > 0.0 || own {
                     self.text(o.0 + 32, o.1 + 160, &svc.description, BLACK);
                 }
@@ -951,10 +952,10 @@ impl Hud {
         self.title(o, &s.titles[0]);
         let f = &world.fiefs[p.fief];
         if in_a_house {
-            self.text(o.0 + 32, o.1 + 54, &format!("Vie : {} / {}", house.life.floor(), house.max_life), BLACK);
+            self.text(o.0 + 32, o.1 + 54, &format!("{} : {} / {}", self.windows.strings.character[2], house.life.floor(), house.max_life), BLACK);
         } else {
             let c = &world.castles[p.fief];
-            self.text(o.0 + 32, o.1 + 54, &format!("Vie : {} / {}", c.life.floor(), c.max_life), BLACK);
+            self.text(o.0 + 32, o.1 + 54, &format!("{} : {} / {}", self.windows.strings.character[2], c.life.floor(), c.max_life), BLACK);
             cell(textures, ACTION, o.0 + 140, o.1 + 16, 10, 1, (24, 24), false);
             // TODO: emperor button state and order
             for j in 0..3 {
@@ -984,7 +985,7 @@ impl Hud {
                 let red = if q * price > p.money() { "&" } else { "" };
                 let order = Order::BuyResource { perso, resource: k, quantity: [1.0, 5.0, p.max_resource(k)][j as usize] };
                 hits.push((rect(216 + 24 * j, y - 6, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None,
-                    tip: format!("Acheter {q} {}  #{red}{} : {}", res.name, s.price, q * price),
+                    tip: format!("{} {q} {}  #{red}{} : {}", tr("Acheter", "Buy"), res.name, s.price, q * price),
                     left: Some(order),
                     right: None,
                 }));

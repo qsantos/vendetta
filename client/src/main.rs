@@ -1,6 +1,7 @@
 mod assets;
 mod atlas;
 mod hud;
+mod lang;
 mod layout;
 mod effects;
 mod speech;
@@ -204,6 +205,8 @@ const MAX_TICKS_PER_FRAME: u32 = 5;
 
 struct Loaded {
     options: options::Options,
+    /// The text's language: its folder in `Donnees/`.
+    lang: String,
     /// The world was just made, not resumed from the save.
     created: bool,
     music: music::Music,
@@ -217,10 +220,13 @@ struct Loaded {
 /// Downloads the data and images and creates the world, reporting progress.
 async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let manifest = assets::Manifest::load().await?;
-    progress.load_decoration(&manifest, "Francais").await;
+    // the language first, for the loading screen's labels
+    let languages = load_string(manifest.url("Donnees/Langues.ini").unwrap_or_default()).await.unwrap_or_default();
+    let lang = lang::choose(&sim::rules::Language::list(&sim::ini::Ini::parse(&languages))).folder;
+    progress.load_decoration(&manifest, &lang).await;
     progress.set_total(manifest.data_bytes() + assets::image_work(manifest.image_estimate()));
     let files = assets::load_files(&manifest, &progress).await?;
-    let rules = Rules::load(&files, "Francais")?;
+    let rules = Rules::load(&files, &lang)?;
     let mut textures = assets::Textures::new(&manifest);
     let (terrain, persos) = render::images(&rules, &manifest);
     let hud = hud::images(&rules);
@@ -308,7 +314,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
         }
     };
     progress.work(world_work);
-    Ok(Loaded { options, created, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { options, lang, created, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -320,10 +326,10 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { options, created, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { options, lang, created, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => l,
         Err(e) => loop {
-            screen.progress.message(&format!("&Erreur#{e}"));
+            screen.progress.message(&format!("&{}#{e}", lang::tr("Erreur", "Error")));
             screen.draw();
             next_frame().await;
         },
@@ -342,7 +348,11 @@ async fn main() {
         while net.backlog() == 0 {
             net.poll();
             let (ready, players) = net.waiting;
-            screen.progress.message(&if options.resume { "Reprise de la partie…".to_owned() } else { format!("En attente des autres joueurs ({ready} / {players} prêts)…") });
+            screen.progress.message(&if options.resume {
+                lang::tr("Reprise de la partie…", "Resuming the game…").to_owned()
+            } else {
+                format!("{} ({ready} / {players} {})…", lang::tr("En attente des autres joueurs", "Waiting for the other players"), lang::tr("prêts", "ready"))
+            });
             screen.draw();
             next_frame().await;
         }
@@ -353,7 +363,8 @@ async fn main() {
                 net.after_tick(&world);
             }
             net.poll();
-            screen.progress.message(&format!("Rattrapage de la partie : encore {} s de jeu…", net.backlog() as f64 / world.speed as f64));
+            let left = net.backlog() as f64 / world.speed as f64;
+            screen.progress.message(&format!("{} {left} {}", lang::tr("Rattrapage de la partie : encore", "Catching up with the game:"), lang::tr("s de jeu…", "s of play left…")));
             screen.draw();
             next_frame().await;
         }
@@ -406,7 +417,7 @@ async fn main() {
     music.play(music::DEBUT, false);
     let mut last_save = get_time();
     let mut save_size = 0;
-    let mut hud = hud::Hud::new(hud::Strings::load(&files, "Francais"), hud::WindowStrings::load(&files, "Francais"), hud::TooltipLabels::load(&files, "Francais"), &files, rules.objects.len());
+    let mut hud = hud::Hud::new(hud::Strings::load(&files, &lang), hud::WindowStrings::load(&files, &lang), hud::TooltipLabels::load(&files, &lang), &files, &lang, rules.objects.len());
     for (i, &(object, left)) in options.recharges.iter().filter(|&&(o, _)| o < rules.objects.len()).enumerate() {
         let p = &mut world.persos[player];
         p.add_object(&rules, object);
@@ -801,15 +812,19 @@ async fn main() {
                 hud.add_notice(&notice);
             }
             if std::mem::take(&mut net.closed) {
-                hud.add_notice("&Connexion au serveur perdue : reconnexion…");
+                hud.add_notice(lang::tr("&Connexion au serveur perdue : reconnexion…", "&Connection to the server lost: reconnecting…"));
             }
             if std::mem::take(&mut net.reconnected) {
                 info!("reconnected at tick {}", world.tick);
-                hud.add_notice("Reconnecté au serveur.");
+                hud.add_notice(lang::tr("Reconnecté au serveur.", "Reconnected to the server."));
             }
             if let Some(tick) = net.desync.take() {
                 warn!("desync at tick {}", tick);
-                hud.add_notice(&format!("&Désynchronisation au tick {tick} : les mondes des joueurs diffèrent."));
+                hud.add_notice(&if lang::tr("fr", "en") == "fr" {
+                    format!("&Désynchronisation au tick {tick} : les mondes des joueurs diffèrent.")
+                } else {
+                    format!("&Desync at tick {tick}: the players' worlds differ.")
+                });
             }
         }
         // The in-game menu (the page's): it pauses a solo game, not a network one, where the
