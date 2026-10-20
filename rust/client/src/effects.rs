@@ -10,6 +10,12 @@ use sim::files::Files;
 use sim::params::{Kind, Params};
 use sim::vb::clng;
 use std::collections::HashMap;
+use std::future::Future;
+use std::task::Poll;
+
+/// What decoding the effects' sounds counts for on the loading bar, in bytes loaded (it takes
+/// about as long as loading 2 MB of images).
+pub const SOUND_WORK: u64 = 2_000_000;
 
 /// `Parametres_Effets.ini [Effet_n]`.
 struct EffectType {
@@ -72,16 +78,34 @@ pub struct Effects {
 
 impl Effects {
     /// The effect types, with their sounds decoded (the `Sons/` files are loaded with the data).
-    pub async fn new(files: &Files) -> Effects {
+    /// Decodes the effects' sounds, all at once (each takes the browser a frame or more),
+    /// counting [`SOUND_WORK`] into `progress` as they are.
+    pub async fn new(files: &Files, progress: &crate::loading::Progress) -> Effects {
         let records = Params::load(files, "Francais").map(|p| p.list(Kind::Effets).to_vec()).unwrap_or_default();
-        let mut types = Vec::new();
-        for r in &records {
-            let num = |k: &str| r.get(k).and_then(|v| v.trim().parse::<f64>().ok()).unwrap_or(0.0);
-            let file = r.get("Son").map(str::trim).filter(|s| !s.is_empty());
-            let mut sound = None;
-            if let Some(bytes) = file.and_then(|f| files.get(&format!("Sons/{f}"))) {
-                sound = load_sound_from_bytes(bytes).await.ok();
+        let mut decoding: Vec<Option<std::pin::Pin<Box<dyn Future<Output = Option<Sound>> + Send + '_>>>> = records
+            .iter()
+            .map(|r| {
+                let file = r.get("Son").map(str::trim).filter(|s| !s.is_empty());
+                let bytes = file.and_then(|f| files.get(&format!("Sons/{f}")))?;
+                Some(Box::pin(async move { load_sound_from_bytes(bytes).await.ok() }) as std::pin::Pin<Box<dyn Future<Output = _> + Send>>)
+            })
+            .collect();
+        let count = decoding.iter().flatten().count().max(1) as u64;
+        let mut sounds: Vec<Option<Sound>> = vec![None; records.len()];
+        std::future::poll_fn(|cx| {
+            for (i, slot) in decoding.iter_mut().enumerate() {
+                if let Some(Poll::Ready(sound)) = slot.as_mut().map(|f| f.as_mut().poll(cx)) {
+                    sounds[i] = sound;
+                    *slot = None;
+                    progress.work(SOUND_WORK / count);
+                }
             }
+            if decoding.iter().all(Option::is_none) { Poll::Ready(()) } else { Poll::Pending }
+        })
+        .await;
+        let mut types = Vec::new();
+        for (r, sound) in records.iter().zip(sounds) {
+            let num = |k: &str| r.get(k).and_then(|v| v.trim().parse::<f64>().ok()).unwrap_or(0.0);
             types.push(EffectType {
                 image: format!("Images/Effets/{}.bmp", r.get("Fichier").unwrap_or("").trim()),
                 w: num("Largeur") as i32,

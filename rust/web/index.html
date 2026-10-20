@@ -361,11 +361,17 @@
   // downloads (reported by it). Until it reports, its share is estimated from the manifest.
   const bytes = { wasm: 0, wasmTotal: 0, game: 0, gameTotal: 0 };
   let shown = 0;
+  // Whether the game reports its loading yet (`bytes.gameTotal` is an estimate until then).
+  let gameReported = false;
+  // The bar: 40 % for the downloads (the game, and the bundles of its files, or until their
+  // index comes, the manifest's estimate of them), 60 % for the game's own loading, which
+  // the game reports (taking its files, decoding images and sounds, making the world; see
+  // client/src/loading.rs): with the files at hand, that is most of the wait.
   function showProgress() {
-    const total = bytes.wasmTotal + bytes.gameTotal;
-    // (the bundles' bytes count before the game takes its files out of them)
-    const game = Math.max(bytes.game, Math.min(bundleBytes, bytes.gameTotal));
-    const pct = total > 0 ? (100 * (bytes.wasm + game)) / total : 0;
+    const downloads = bytes.wasmTotal + (bundleTotal || bytes.gameTotal);
+    const downloaded = downloads > 0 ? Math.min((bytes.wasm + bundleBytes) / downloads, 1) : 0;
+    const loaded = gameReported && bytes.gameTotal > 0 ? Math.min(bytes.game / bytes.gameTotal, 1) : 0;
+    const pct = 40 * downloaded + 60 * loaded;
     shown = Math.max(shown, Math.min(pct, 100)); // never goes backwards
     bar.style.width = shown + "%";
     bar.style.background = `hsl(${shown * 1.2}, 100%, 45%)`; // smooth red to green
@@ -376,9 +382,12 @@
   // slice of its bundle. Without the bundles' index, every file comes alone.
   const bundled = new Map();
   let bundleBytes = 0;
+  let bundleTotal = 0;
   const bundlesReady = download("bundles.json")
     .then((bytes) => {
-      for (const b of JSON.parse(new TextDecoder().decode(bytes)).bundles) {
+      const { bundles } = JSON.parse(new TextDecoder().decode(bytes));
+      bundleTotal = bundles.reduce((sum, b) => sum + b.size, 0);
+      for (const b of bundles) {
         const data = download(b.url, (n) => {
           bundleBytes += n;
           showProgress();
@@ -476,6 +485,7 @@
           // until the game knows its sizes, keep the estimate
           bytes.game = done;
           bytes.gameTotal = total;
+          gameReported = true;
         }
         showProgress();
         showMessage(UTF8ToString(ptr, len));

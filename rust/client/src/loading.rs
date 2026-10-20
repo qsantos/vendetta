@@ -24,7 +24,8 @@ unsafe extern "C" {
 
 #[derive(Default)]
 struct State {
-    /// Bytes downloaded, and expected in all.
+    /// Bytes downloaded, and expected in all; the loading's other work (decoding sounds,
+    /// making the world) counts as so many bytes of its duration.
     done: u64,
     total: u64,
     message: String,
@@ -56,6 +57,18 @@ impl Progress {
         if s.message != message {
             s.message = message.to_owned();
         }
+    }
+
+    /// Counts `units` more of work done, the message unchanged.
+    pub fn work(&self, units: u64) {
+        let mut s = self.0.lock().unwrap();
+        s.done += units;
+        s.total = s.total.max(s.done);
+    }
+
+    /// Expects `units` more of work.
+    pub fn expect(&self, units: u64) {
+        self.0.lock().unwrap().total += units;
     }
 
     pub fn message(&self, message: &str) {

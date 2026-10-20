@@ -87,6 +87,9 @@ fn camera(size: (f32, f32)) -> Camera2D {
 /// `Scrolling_Immediat`: centre the player's top-left corner, clamped to the map. `view` is
 /// the visible area in world pixels. Zoomed out beyond the map's size, the player simply stays
 /// centred on that axis instead of the map sticking to the top-left corner.
+/// See `load_game`.
+const WORLD_WORK_PER_CELL: u64 = 20;
+
 /// How far the mouse moves with its left button down (in CSS pixels) before it drags the map.
 const PAN_SLOP: f32 = 6.0;
 
@@ -198,11 +201,12 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let hud = hud::images(&rules);
     let all: Vec<String> = terrain.iter().chain(&persos).chain(&hud).cloned().collect();
     let images: u64 = textures.missing(&all).iter().map(|p| manifest.size(p)).sum();
-    progress.set_total(manifest.data_bytes() + images);
+    progress.set_total(manifest.data_bytes() + images + effects::SOUND_WORK);
     textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
-    let effects = effects::Effects::new(&files).await;
+    progress.message(&progress.label(11));
+    let effects = effects::Effects::new(&files, &progress).await;
     // The page loads the game behind its menus: the world waits for a game to be chosen.
     // (a frame at a time: `wait_seconds` takes off the last frame's duration, so it is over at
     // once after a slow frame, and would spin here forever)
@@ -243,6 +247,10 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             })
             .collect();
     }
+    // Making the world counts as so many bytes per cell (a 128×128 one takes as long as a
+    // few hundred kilobytes of images, a 1024×1024 one as about 20 MB).
+    let world_work = (setup.width * setup.height) as u64 * WORLD_WORK_PER_CELL;
+    progress.expect(world_work);
     // A saved game is resumed only with the setup options it was made with.
     let same_setup = !options.new && storage::load("setup").is_some_and(|k| k == options.setup_key().as_bytes());
     // Resume the saved game if there is one that fits these rules; in network play, the room's
@@ -273,6 +281,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
             World::create(&rules, &files, &setup)?
         }
     };
+    progress.work(world_work);
     Ok(Loaded { options, created, music: music::Music::new(&manifest), effects, files, rules, world, textures })
 }
 
