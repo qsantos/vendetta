@@ -16,6 +16,8 @@ use std::task::Poll;
 /// What decoding the effects' sounds counts for on the loading bar, in bytes loaded (it takes
 /// about as long as loading 2 MB of images).
 pub const SOUND_WORK: u64 = 2_000_000;
+/// How many sounds are decoded at the same time.
+const MAX_DECODING: usize = 8;
 
 /// `Parametres_Effets.ini [Effet_n]`.
 struct EffectType {
@@ -78,7 +80,7 @@ pub struct Effects {
 
 impl Effects {
     /// The effect types, with their sounds decoded (the `Sons/` files are loaded with the data).
-    /// Decodes the effects' sounds, all at once (each takes the browser a frame or more),
+    /// Decodes the effects' sounds, several at once (each takes the browser a frame or more),
     /// counting [`SOUND_WORK`] into `progress` as they are.
     pub async fn new(files: &Files, progress: &crate::loading::Progress) -> Effects {
         let records = Params::load(files, "Francais").map(|p| p.list(Kind::Effets).to_vec()).unwrap_or_default();
@@ -94,8 +96,9 @@ impl Effects {
             .collect();
         let count = decoding.iter().flatten().count().max(1) as u64;
         let mut sounds: Vec<Option<Sound>> = vec![None; records.len()];
+        // A few at a time: Firefox on Android fails the decodings beyond its 30th at once.
         std::future::poll_fn(|cx| {
-            for (i, slot) in decoding.iter_mut().enumerate() {
+            for (i, slot) in decoding.iter_mut().enumerate().filter(|(_, s)| s.is_some()).take(MAX_DECODING) {
                 if let Some(Poll::Ready(sound)) = slot.as_mut().map(|f| f.as_mut().poll(cx)) {
                     sounds[i] = sound;
                     *slot = None;
