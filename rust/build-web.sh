@@ -26,3 +26,9 @@ sed -e "s|\"client.wasm\"|\"client.wasm?v=$wasm\"|" \
     web/index.html > dist/index.html
 grep -q "const build = \"$wasm\";" dist/index.html
 ln -sfn ../assets dist/assets
+# The files the game loads as it starts, in a few bundles (see bundle.py), and their index,
+# versioned like the game.
+python3 bundle.py assets dist
+index=$(sha256sum dist/bundles.json | cut -c1-16)
+sed -i "s|\"bundles.json\"|\"bundles.json?v=$index\"|" dist/index.html
+grep -q "bundles.json?v=$index" dist/index.html

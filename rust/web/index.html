@@ -356,10 +356,44 @@
   let shown = 0;
   function showProgress() {
     const total = bytes.wasmTotal + bytes.gameTotal;
-    const pct = total > 0 ? (100 * (bytes.wasm + bytes.game)) / total : 0;
+    // (the bundles' bytes count before the game takes its files out of them)
+    const game = Math.max(bytes.game, Math.min(bundleBytes, bytes.gameTotal));
+    const pct = total > 0 ? (100 * (bytes.wasm + game)) / total : 0;
     shown = Math.max(shown, Math.min(pct, 100)); // never goes backwards
     bar.style.width = shown + "%";
     bar.style.background = `hsl(${shown * 1.2}, 100%, 45%)`; // smooth red to green
+  }
+
+  // The files the game loads as it starts come in a few bundles (see bundle.py), all
+  // downloaded at once as the page opens, alongside the game itself; such a file is then a
+  // slice of its bundle. Without the bundles' index, every file comes alone.
+  const bundled = new Map();
+  let bundleBytes = 0;
+  const bundlesReady = download("bundles.json")
+    .then((bytes) => {
+      for (const b of JSON.parse(new TextDecoder().decode(bytes)).bundles) {
+        const data = download(b.url, (n) => {
+          bundleBytes += n;
+          showProgress();
+        });
+        for (const [path, offset, size] of b.files) bundled.set(path, [data, offset, size]);
+      }
+    })
+    .catch((e) => console.warn("no bundles:", e));
+  // A file the game asks for (its URL is `assets/<path>?v=<hash>`): out of its bundle, which
+  // is let go once all its files are taken, or downloaded alone.
+  function gameFile(url) {
+    return bundlesReady.then(() => {
+      let path = url.replace(/^assets\//, "").split("?")[0];
+      try {
+        path = decodeURIComponent(path);
+      } catch (e) {}
+      const entry = bundled.get(path);
+      if (!entry) return download(url);
+      bundled.delete(path);
+      const [data, offset, size] = entry;
+      return data.then((bytes) => bytes.slice(offset, offset + size));
+    });
   }
 
   // The manifest gives a random artwork (the bar works without it) and the estimate:
@@ -424,7 +458,7 @@
       importObject.env.fs_load_file = (ptr, len) => {
         const url = UTF8ToString(ptr, len);
         const id = FS.unique_id++;
-        download(url).then(
+        gameFile(url).then(
           (bytes) => (FS.loaded_files[id] = bytes),
           (e) => (console.warn(e), (FS.loaded_files[id] = null)),
         ).then(() => wasm_exports.file_loaded(id));
