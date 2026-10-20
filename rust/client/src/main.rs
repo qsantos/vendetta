@@ -87,6 +87,36 @@ fn camera(size: (f32, f32)) -> Camera2D {
 /// `Scrolling_Immediat`: centre the player's top-left corner, clamped to the map. `view` is
 /// the visible area in world pixels. Zoomed out beyond the map's size, the player simply stays
 /// centred on that axis instead of the map sticking to the top-left corner.
+/// How far the mouse moves with its left button down (in CSS pixels) before it drags the map.
+const PAN_SLOP: f32 = 6.0;
+
+/// Whether an order sends the character somewhere, or to act there: the camera then follows
+/// it again.
+fn sends_character(order: &Order) -> bool {
+    use Order::*;
+    matches!(
+        order,
+        Move { .. }
+            | Harvest { .. }
+            | FindResource { .. }
+            | GoOwnCastle { .. }
+            | GoToCastle { .. }
+            | GoHome { .. }
+            | GoToHouse { .. }
+            | BuildHouse { .. }
+            | GoToTreasure { .. }
+            | FindTreasure { .. }
+            | GoSell { .. }
+            | AttackPerso { .. }
+            | AttackHouse { .. }
+            | AttackCastle { .. }
+            | AttackNearest { .. }
+            | AttackGround { .. }
+            | Give { .. }
+            | Charge { .. }
+    )
+}
+
 fn follow(world: &World, player: usize, view: (i32, i32)) -> (i32, i32) {
     let p = &world.persos[player];
     let axis = |pos: i64, view: i32, size: usize| {
@@ -373,6 +403,10 @@ async fn main() {
     let mut gestures = touch::Gestures::default();
     // How far the fingers have pinched since the zoom last changed.
     let mut pinched = 1.0f32;
+    // The camera dragged away from the character (top-left, map pixels), and the mouse's drag.
+    let mut free_cam: Option<(f32, f32)> = None;
+    let mut pan_from: Option<(f32, f32)> = None;
+    let mut panning = false;
     loop {
         let frame_start = perf::now();
         // The interface the menu chose, else the address's, else the screen's; with the touch
@@ -413,10 +447,6 @@ async fn main() {
         layout::set_screen(hud_size.0, hud_size.1);
         hud.set_scale(ui);
 
-        if let Some(c) = hud.camera() {
-            cam = c;
-        }
-        hud.set_view(cam, view);
         let fingers = if touch { gestures.poll(dpi) } else { touch::Frame::default() };
         let (mx, my) = if touch {
             fingers.pos
@@ -427,6 +457,53 @@ async fn main() {
         // The interface's mouse (`SourisX/Y`), clamped to the screen like the original.
         let (hx, hy) = (((mx / ui) as i32).clamp(0, hud_size.0), ((my / ui) as i32).clamp(0, hud_size.1));
         let input = if touch { hud::Input::from_fingers((hx, hy), &fingers, ui) } else { hud::Input::poll((hx, hy)) };
+
+        // Dragging the map looks elsewhere (not in the original, whose camera follows the
+        // character but for the map window's): with the left button pressed on the map, once
+        // the mouse has moved a few pixels (its release then does nothing), or with a finger
+        // (unless it drags a building into place). The camera stays there until the character
+        // is sent somewhere, Space, or the HUD's button or arrow.
+        let pan = if touch {
+            fingers.drag.filter(|_| hud.placing.is_none() && !hud.over_touch_ui(&world, &rules, player, (hx, hy)))
+        } else if let (Some(from), true) = (pan_from, is_mouse_button_down(MouseButton::Left)) {
+            if !panning && (mx - from.0).hypot(my - from.1) > PAN_SLOP * dpi {
+                panning = true;
+            }
+            pan_from = Some((mx, my));
+            panning.then_some((mx - from.0, my - from.1))
+        } else {
+            None
+        };
+        if let Some((dx, dy)) = pan {
+            let (fx, fy) = free_cam.unwrap_or((cam.0 as f32, cam.1 as f32));
+            let clamp = |v: f32, view: i32, size: usize| {
+                let max = (size as i32 * sim::terrain::CELL - view) as f32;
+                if max < 0.0 { v } else { v.clamp(0.0, max) }
+            };
+            free_cam = Some((clamp(fx - dx / zoom, view.0, world.terrain.width), clamp(fy - dy / zoom, view.1, world.terrain.height)));
+        }
+        // (a release that ends a drag is not a click)
+        let input = if panning && input.left_released { hud::Input { left_released: false, ..input } } else { input };
+        if !is_mouse_button_down(MouseButton::Left) && !input.left_released {
+            pan_from = None;
+            panning = false;
+        }
+        if hud.take_follow_request() || is_key_pressed(KeyCode::Space) {
+            free_cam = None;
+            cam = follow(&world, player, view);
+        }
+        if let Some((fx, fy)) = free_cam {
+            cam = (fx.round() as i32, fy.round() as i32);
+        }
+        if let Some(c) = hud.camera() {
+            cam = c;
+        }
+        hud.set_view(cam, view);
+        hud.set_free_camera(free_cam.map(|_| {
+            let p = &world.persos[player];
+            let at = |v: i64, size: i64, c: i32| (((v + size / 2) as i32 - c) as f32 * zoom / ui) as i32;
+            (at(p.x, p.w as i64, cam.0), at(p.y, p.h as i64, cam.1))
+        }));
         // What is under the cursor on the map (`Obstacle` on the cursor's top-left).
         let to_world = |p: f32, c: i32| c + (p / zoom).floor() as i32;
         let (wx, wy) = (to_world(mx, cam.0), to_world(my, cam.1));
@@ -473,9 +550,13 @@ async fn main() {
             hud.draw_comments(&world, |x, y| ((((x as i32 - cam.0) as f32) * zoom / ui) as i32, (((y as i32 - cam.1) as f32) * zoom / ui) as i32));
         }
         let radial_was_open = hud.radial_open();
+        let given = orders.len();
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
         if input.left_pressed {
             pressed_on_map = !on_ui;
+            if !touch && !on_ui && hud.placing.is_none() {
+                pan_from = Some((mx, my));
+            }
         }
         let placed = !on_ui && hud.map_input(&world, &rules, player, &input, centre, &mut orders);
         let holding = world.persos[player].selected_object >= 0;
@@ -559,6 +640,10 @@ async fn main() {
                 _ => 0,
             };
             orders.push(Order::AttackGround { perso: player, x: wx as i64 - p.w as i64 / 2, y: wy as i64 - p.h as i64 / 2, kind });
+        }
+        // Sending the character somewhere follows it again.
+        if orders[given..].iter().any(sends_character) {
+            free_cam = None;
         }
         hud.overlay(&world, &rules, &textures, player, &input, placement, (!on_ui).then_some((hover, hit)));
         if options.perf {

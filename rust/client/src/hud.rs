@@ -3,6 +3,7 @@
 mod bars;
 mod bubbles;
 mod buttons;
+mod follow;
 mod messages;
 mod object_tooltip;
 mod shortcuts;
@@ -151,6 +152,10 @@ pub struct Hud {
     touch: touch::Touch,
     /// The menu was asked for (see `take_menu_request`).
     menu_requested: bool,
+    /// The camera does not follow the character, which is there on the screen (`follow.rs`).
+    free_camera: Option<(i32, i32)>,
+    /// Following the character again was asked for (see `take_follow_request`).
+    follow_requested: bool,
 }
 
 /// Images the HUD needs.
@@ -295,6 +300,8 @@ impl Hud {
             fps_timer: get_time(),
             touch: Default::default(),
             menu_requested: false,
+            free_camera: None,
+            follow_requested: false,
         }
     }
 
@@ -374,6 +381,19 @@ impl Hud {
     /// The HUD for one rendered frame, after the world: draws it, handles its buttons (adding
     /// orders) and draws the hovered tooltip. Returns whether the mouse is on the interface.
     pub fn frame(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, orders: &mut Vec<Order>) -> bool {
+        // Following the character again goes over everything else.
+        if self.over_follow(input.mouse) {
+            let blocked = Input { left_pressed: false, left_released: false, right_pressed: false, ..*input };
+            self.frame_below(world, rules, textures, player, &blocked, orders);
+            self.follow_controls(input);
+            return true;
+        }
+        let on_ui = self.frame_below(world, rules, textures, player, input, orders);
+        self.follow_controls(input);
+        on_ui
+    }
+
+    fn frame_below(&mut self, world: &World, rules: &Rules, textures: &Textures, player: usize, input: &Input, orders: &mut Vec<Order>) -> bool {
         self.frames += 1;
         if get_time() - self.fps_timer >= 1.0 {
             self.fps = self.frames;

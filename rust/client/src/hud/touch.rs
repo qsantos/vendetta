@@ -257,6 +257,7 @@ impl Hud {
         m.0 >= fw
             || m.1 >= fh
             || self.touch.panel.is_some()
+            || self.over_follow(m)
             || self.touch.confirm.is_some_and(|b| b.iter().any(|&(x, y)| inside(m, x, y, CONFIRM, CONFIRM)))
             || self.over_window(world, rules, player, m).is_some()
     }

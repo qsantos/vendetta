@@ -24,7 +24,7 @@ const CHROME_PORT = 9399;
 const [W, H] = [1024, 768];
 
 // Steps: ["move", x, y], ["left", x, y], ["right", x, y], ["key", code], ["wheel", x, y, dy],
-// ["wait", seconds]; with a finger: ["tap", x, y], ["press", x, y] (kept down for the
+// ["wait", seconds], ["drag", x0, y0, x1, y1] (the left button); with a finger: ["tap", x, y], ["press", x, y] (kept down for the
 // screenshot), ["swipe", x0, y0, x1, y1].
 // A scene with `phone: [w, h]` plays on a touch screen of that size (the touch interface).
 const SCENES = {
@@ -62,6 +62,11 @@ const SCENES = {
   switch_inventory: { hash: "seed=1&players=1+3&inventory=Hache+Marteau:2+40:3", steps: [["key", "KeyI"], ["key", "PageDown"], ["move", 512, 600]] },
   // …and Page Up comes back to the first player and its filled bag.
   switch_back: { hash: "seed=1&players=1+3&inventory=Hache+Marteau:2+40:3", steps: [["key", "KeyI"], ["key", "PageDown"], ["key", "PageUp"], ["move", 512, 600]] },
+  // The map dragged away from the character: the button to follow it again, and the arrow
+  // pointing at it.
+  pan: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["move", 512, 400]] },
+  // Space follows the character again.
+  pan_back: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["key", "Space"], ["move", 512, 600]] },
   many_fiefs: { hash: "seed=3&size=256&fiefs=30&villagers=2", steps: [["move", 512, 600]] },
   // The touch interface on a phone held sideways: the bar on the right, the castle's window.
   touch_start: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [] },
@@ -89,6 +94,10 @@ const SCENES = {
   touch_menu: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 315]] },
   // The map window (Fenêtres, then Carte); a finger dragging on the minimap moves the view.
   touch_minimap: { hash: "seed=3&size=256&fiefs=6&villagers=20&layout=touch", phone: [800, 360], steps: [["tap", 770, 146], ["tap", 430, 75], ["swipe", 330, 150, 360, 250]] },
+  // A finger dragging the map: the same.
+  touch_pan: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 490, 40], ["swipe", 150, 300, 700, 60]] },
+  // …and Suivre follows the character again.
+  touch_pan_back: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 490, 40], ["swipe", 150, 300, 700, 60], ["tap", 333, 50]] },
   // Lists scroll under a dragging finger.
   touch_scroll: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["swipe", 300, 300, 300, 150]] },
 };
@@ -248,6 +257,15 @@ async function play(send, scene) {
       await send("Input.dispatchKeyEvent", { type: "keyUp", code: a[0], key: a[0].replace(/^Key/, "").toLowerCase() });
     } else if (kind === "wheel") await mouse("mouseWheel", a[0], a[1], { deltaX: 0, deltaY: a[2] });
     else if (kind === "wait") await sleep(a[0]);
+    else if (kind === "drag") {
+      await mouse("mouseMoved", a[0], a[1]);
+      await mouse("mousePressed", a[0], a[1], { button: "left", clickCount: 1 });
+      for (let k = 1; k <= 10; k++) {
+        await sleep(0.03);
+        await mouse("mouseMoved", a[0] + ((a[2] - a[0]) * k) / 10, a[1] + ((a[3] - a[1]) * k) / 10, { buttons: 1 });
+      }
+      await mouse("mouseReleased", a[2], a[3], { button: "left", clickCount: 1 });
+    }
     else if (kind === "tap") {
       await finger("touchStart", [[a[0], a[1]]]);
       await sleep(0.1);
