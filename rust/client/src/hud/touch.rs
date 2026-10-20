@@ -35,8 +35,6 @@ pub enum Panel {
 #[derive(Clone, Copy, PartialEq)]
 enum BarAction {
     Open(Panel),
-    Confirm,
-    Cancel,
     Drop,
 }
 
@@ -75,6 +73,8 @@ pub struct Touch {
     ghost: Option<(f32, f32)>,
     /// Demolishing the house waits for a confirmation.
     demolishing: bool,
+    /// Where the buttons that confirm or cancel the building or demolishing are, top-left.
+    confirm: Option<[(i32, i32); 2]>,
 }
 
 /// The automatic eating's button, right of the status bars, as high as the four, and the
@@ -85,6 +85,18 @@ const AUTO_ROW: i32 = 36;
 
 fn auto_button() -> (i32, i32) {
     (BAR_X + BAR_W + 4, ay(BAR_Y[0]) - 1)
+}
+
+/// The buttons that confirm or cancel a building or demolishing: their side.
+const CONFIRM: i32 = 40;
+
+/// Where those two buttons go beside a box (left, top, right, bottom): right of it, else left
+/// of it, side by side or one above the other, on the screen.
+fn confirm_beside((l, t, r, b): (i32, i32, i32, i32), side_by_side: bool) -> [(i32, i32); 2] {
+    let (span_w, span_h) = if side_by_side { (2 * CONFIRM + 4, CONFIRM) } else { (CONFIRM, 2 * CONFIRM + 4) };
+    let x = if r + 6 + span_w <= screen_w() { r + 6 } else { (l - 6 - span_w).max(0) };
+    let y = (if side_by_side { t } else { (t + b) / 2 - span_h / 2 }).clamp(0, (screen_h() - span_h).max(0));
+    if side_by_side { [(x, y), (x + CONFIRM + 4, y)] } else { [(x, y), (x, y + CONFIRM + 4)] }
 }
 
 /// The top-left corner of the bar's `i`-th button.
@@ -152,10 +164,7 @@ impl Hud {
             (sheet(DEPLACEMENT, 4, 28), "Déplacer", BarAction::Open(Panel::Move)),
             (sheet(INFOS, 4, 24), "Fenêtres", BarAction::Open(Panel::Windows)),
         ];
-        if self.placing.is_some() || self.touch.demolishing {
-            v.push((Icon::Tick, "Valider", BarAction::Confirm));
-            v.push((sheet(ACTION, 6, 24), "Annuler", BarAction::Cancel));
-        } else if Self::has_selection(world, player) {
+        if Self::has_selection(world, player) {
             let p = &world.persos[player];
             let icon = if p.selected_object >= 0 {
                 sheet(&format!("{}.bmp", rules.objects[p.selected_object as usize].image), 0, 32)
@@ -239,7 +248,11 @@ impl Hud {
     /// Whether `m` is on the touch interface: its bar, panel or window.
     pub fn over_touch_ui(&self, world: &World, rules: &Rules, player: usize, m: (i32, i32)) -> bool {
         let (fw, fh) = (screen_w(), screen_h());
-        m.0 >= fw || m.1 >= fh || self.touch.panel.is_some() || self.over_window(world, rules, player, m).is_some()
+        m.0 >= fw
+            || m.1 >= fh
+            || self.touch.panel.is_some()
+            || self.touch.confirm.is_some_and(|b| b.iter().any(|&(x, y)| inside(m, x, y, CONFIRM, CONFIRM)))
+            || self.over_window(world, rules, player, m).is_some()
     }
 
     /// Where the building being placed is, in map pixels: first `default`, then moved as far
@@ -266,13 +279,54 @@ impl Hud {
         let mut on_ui = false;
         let mut tip = None;
 
-        // What is being placed or demolished, at the top: its tooltip.
+        // What is being placed or demolished, at the top: its tooltip; buttons to confirm or
+        // cancel next to the building's footprint (which they follow), or to the question.
+        self.touch.confirm = None;
         if let Some(kind) = self.placing {
             let state = self.build_cache.iter().zip(build_buttons(rules)).find(|(_, k)| *k == Some(kind)).map_or(1, |(c, _)| c.0);
             let text = self.build_tooltip(world, rules, player, Some(kind), state, 0.0);
             self.banner(&text);
+            if let Some(centre) = self.touch.ghost.map(|(x, y)| (x.round() as i32, y.round() as i32)) {
+                let (x, y, _) = self.footprint(world, rules, player, kind, centre);
+                let (w, h) = rules.buildings[kind].size;
+                // map pixels to interface pixels: the map's view covers the whole screen
+                let ((cx, cy), (vw, _)) = self.windows.view;
+                let k = full_size().0 as f32 / vw.max(1) as f32;
+                let at = |v: i32, c: i32| ((v - c) as f32 * k).round() as i32;
+                self.touch.confirm = Some(confirm_beside((at(x, cx), at(y, cy), at(x + w, cx), at(y + h, cy)), false));
+            }
         } else if self.touch.demolishing {
-            self.banner(&format!("&{} ?", self.strings.demolish));
+            let text = format!("&{} ?", without_key(&self.strings.demolish));
+            let (l, t, r, b) = self.banner(&text);
+            self.touch.confirm = Some(confirm_beside((l, t, r, b), true));
+        }
+        if let Some(buttons) = self.touch.confirm {
+            for (k, &(x, y)) in buttons.iter().enumerate() {
+                draw_rectangle(x as f32, y as f32, CONFIRM as f32, CONFIRM as f32, Color::new(0.15, 0.15, 0.15, 0.9));
+                outline(x, y, x + CONFIRM, y + CONFIRM, LIGHT_GREY);
+                let icon = if k == 0 { Icon::Tick } else { Icon::Sheet { path: ACTION.to_owned(), col: 6, row: 0, size: 24 } };
+                self.draw_icon(textures, &icon, x + (CONFIRM - 32) / 2, y + (CONFIRM - 32) / 2, 32.0 / 24.0);
+                if !inside(m, x, y, CONFIRM, CONFIRM) {
+                    continue;
+                }
+                on_ui = true;
+                if !input.left_pressed {
+                    continue;
+                }
+                if k == 1 {
+                    self.placing = None;
+                    self.touch.demolishing = false;
+                } else if let (Some(kind), Some(centre)) = (self.placing, self.touch.ghost.map(|(x, y)| (x.round() as i32, y.round() as i32))) {
+                    let (x, y, ok) = self.footprint(world, rules, player, kind, centre);
+                    if ok {
+                        orders.push(Order::BuildHouse { perso, x, y, kind });
+                        self.placing = None;
+                    }
+                } else if self.touch.demolishing {
+                    orders.push(Order::Demolish { perso });
+                    self.touch.demolishing = false;
+                }
+            }
         }
 
         // The automatic eating's button, right of the status bars (a tap on a bar eats).
@@ -398,22 +452,6 @@ impl Hud {
                     self.touch.panel = if self.touch.panel == Some(p) { None } else { Some(p) };
                     self.touch.scroll = 0;
                 }
-                BarAction::Confirm => {
-                    if let (Some(kind), Some(centre)) = (self.placing, self.touch.ghost.map(|(x, y)| (x.round() as i32, y.round() as i32))) {
-                        let (x, y, ok) = self.footprint(world, rules, player, kind, centre);
-                        if ok {
-                            orders.push(Order::BuildHouse { perso, x, y, kind });
-                            self.placing = None;
-                        }
-                    } else if self.touch.demolishing {
-                        orders.push(Order::Demolish { perso });
-                        self.touch.demolishing = false;
-                    }
-                }
-                BarAction::Cancel => {
-                    self.placing = None;
-                    self.touch.demolishing = false;
-                }
                 BarAction::Drop => orders.push(Order::Unselect { perso }),
             }
         }
@@ -517,9 +555,11 @@ impl Hud {
         format!("{}…", cut.trim_end())
     }
 
-    /// A tooltip at the top of the screen, centred.
-    fn banner(&self, text: &str) {
-        let (w, _) = super::buttons::tooltip_size(text);
-        self.tooltip(((screen_w() - w) / 2 - 24, 28 - 20), text);
+    /// A tooltip at the top of the screen, centred; returns its box (left, top, right, bottom).
+    fn banner(&self, text: &str) -> (i32, i32, i32, i32) {
+        let (w, h) = super::buttons::tooltip_size(text);
+        let (x, y) = ((screen_w() - w) / 2, 28);
+        self.tooltip((x - 24, y - 20), text);
+        (x - 2, y - 2, x + w + 2, y + h + 2)
     }
 }

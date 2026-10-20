@@ -73,7 +73,8 @@ const SCENES = {
   touch_windows: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 146]] },
   // The build panel scrolled, a building out of reach tapped: its tooltip says why.
   touch_build_scroll: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 770, 30], ["swipe", 400, 300, 400, 100], ["tap", 300, 200]] },
-  // A building being placed: dragged on the map, its tooltip at the top, confirmed on the bar.
+  // A building being placed: dragged on the map, its tooltip at the top, buttons beside it
+  // to confirm or cancel.
   touch_placing: { hash: "seed=1&layout=touch&god", phone: [800, 360], steps: [["tap", 770, 30], ["tap", 290, 30], ["swipe", 300, 250, 250, 200]] },
   // A finger held on the map: what a tap would do, above it.
   touch_press: { hash: "seed=1&layout=touch", phone: [800, 360], steps: [["tap", 490, 40], ["press", 370, 190]] },
