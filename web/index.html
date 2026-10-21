@@ -1512,7 +1512,6 @@
       } catch (e) {}
     };
     let races = null;
-    const raceOf = (c) => races?.races.find((r) => r.index === c.race);
     const raceName = (r, female) => (r.name[language] ?? r.name.FR)[female ? 1 : 0];
     const chosenCharacter = () => characters.find((c) => c.name === chosen);
     // a character as in `characters=` (none: empty)
@@ -1540,10 +1539,7 @@
     const showCharacters = () => {
       for (const select of document.querySelectorAll("#menu select.character")) {
         const options = [new Option(t("Un villageois"), "")];
-        for (const c of characters) {
-          const r = raceOf(c);
-          options.push(new Option(r ? c.name + " — " + raceName(r, c.female) : c.name, c.name));
-        }
+        for (const c of characters) options.push(new Option(c.name, c.name));
         if (races) options.push(new Option(t("Nouveau personnage…"), "\n"));
         select.replaceChildren(...options);
         select.value = chosen;
