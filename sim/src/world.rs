@@ -306,7 +306,16 @@ impl World {
             world.markets_refresh(f);
         }
         world.ai_init(rules);
+        world.prepare_paths(rules);
         Ok(world)
+    }
+
+    /// With [`Paths::Fastest`], what the path search needs of the terrain, made now (see
+    /// [`crate::path::prepare`]).
+    pub(crate) fn prepare_paths(&self, rules: &Rules) {
+        if self.paths == crate::path::Paths::Fastest {
+            crate::path::prepare(rules, &self.terrain);
+        }
     }
 
     /// Characters of every fief, in fief order (`Commencer`, "NouveauMonde").

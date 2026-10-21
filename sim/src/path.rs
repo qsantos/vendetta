@@ -451,6 +451,13 @@ fn step_times(speed: f64) -> (u32, u32) {
     ((STRAIGHT / speed) as u32, (DIAGONAL / speed) as u32)
 }
 
+/// Makes what the search needs of `terrain` ([`Prepared`]) now rather than at the first
+/// search, which would take that much longer (a third of a second on a 1024 × 1024 map).
+pub fn prepare(rules: &Rules, terrain: &Terrain) {
+    // (a search from a corner of the map to itself would use them)
+    Landmarks::of(rules, terrain, (0, 0), &[(0, 0)]);
+}
+
 /// The time to step into each cell of `terrain` (see [`Prepared`]).
 fn steps<'a>(rules: &Rules, terrain: &'a Terrain) -> &'a [(u32, u32)] {
     terrain.prepared.steps.get_or_init(|| {

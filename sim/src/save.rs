@@ -28,6 +28,7 @@ impl World {
         if !consistent {
             return Err("save made with other game data".into());
         }
+        world.prepare_paths(rules);
         Ok(world)
     }
 }
