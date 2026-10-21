@@ -10,7 +10,7 @@
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
   /* the game takes the touches: no scrolling, zooming or double-tap zoom of the page */
-  canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #glcanvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
   /* the game loads behind the menus: nothing to show (or composite) until one is started */
   canvas.waiting { visibility: hidden; }
   /* it has the keyboard while shown: no focus ring around the game */
@@ -95,6 +95,30 @@
   #ingame .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 8px 0; }
   #ingame .row button { padding: 4px 0; width: 40px; margin-left: 6px; }
   #ingame select { font: inherit; }
+  /* A field with a button after it. */
+  #menu .pick { display: flex; gap: 4px; min-width: 0; }
+  #menu .pick select, #menu .pick input { flex: 1; min-width: 0; }
+  #menu .pick button { padding: 2px 8px; }
+  #menu .pick button[hidden] { display: none; }
+  /* The window making a new character, over the menu. */
+  #character { position: fixed; inset: 0; z-index: 1; display: flex; align-items: center;
+               justify-content: center; background: rgba(0, 0, 0, 0.6); }
+  #character[hidden], #character [hidden] { display: none; }
+  #menu #character form { width: min(calc(100vw - 24px), 480px); box-sizing: border-box;
+                          max-height: calc(100vh - 24px); overflow-y: auto; min-width: 0; }
+  #character input[type=text] { width: 100%; box-sizing: border-box; font: inherit; }
+  #character .race { display: flex; gap: 12px; align-items: flex-start; margin: 8px 0; }
+  #character .race img { width: 64px; flex: none; image-rendering: pixelated; }
+  #character .race p, #character .note { margin: 0; font-size: 13px; color: #c8c8b0; }
+  #character .look { display: flex; gap: 16px; align-items: center; margin: 8px 0; }
+  #character canvas { height: 128px; image-rendering: pixelated; flex: none;
+                      background: rgba(0, 0, 0, 0.25); border-radius: 6px; }
+  #character .layers { flex: 1; }
+  #character .row { display: grid; grid-template-columns: 1fr auto 4em auto; align-items: center;
+                    gap: 6px; margin: 6px 0; }
+  #character .row span:nth-child(3) { text-align: center; }
+  #character .row button { padding: 2px 10px; }
+  #character .error { color: #ff8080; min-height: 1.2em; margin: 8px 0 0; text-align: center; }
   /* Small screens (phones): the menus keep off the edges, and scroll when taller than it. */
   @media (max-width: 480px), (max-height: 480px) {
     #menu { overflow-y: auto; align-items: safe center; }
@@ -150,6 +174,27 @@
       "Vitesse": "Speed",
       "Graine": "Seed",
       "au hasard": "random",
+      "Personnage": "Character",
+      "Un villageois": "A villager",
+      "Nouveau personnage…": "New character…",
+      "Nouveau personnage": "New character",
+      "Nom": "Name",
+      "Race": "Race",
+      "Sexe": "Sex",
+      "Masculin": "Male",
+      "Féminin": "Female",
+      "Ce choix est imposé par votre race.": "Your race imposes this choice.",
+      "Apparence": "Appearance",
+      "Apparence aléatoire": "Random appearance",
+      "Corps": "Body",
+      "Cheveux": "Hair",
+      "Habits": "Clothes",
+      "Traits": "Features",
+      "Annuler": "Cancel",
+      "Créer": "Create",
+      "Entrez un nom.": "Enter a name.",
+      "Un autre personnage possède déjà ce nom.": "Another character already has this name.",
+      "Supprimer ce personnage ?": "Delete this character?",
       "Attendre les plus lents": "Wait for the slowest",
       "sans limite": "no limit",
       "1,5 × le plus rapide": "1.5 × the fastest",
@@ -229,6 +274,27 @@
       "Vitesse": "Velocidad",
       "Graine": "Semilla",
       "au hasard": "al azar",
+      "Personnage": "Personaje",
+      "Un villageois": "Un aldeano",
+      "Nouveau personnage…": "Nuevo personaje…",
+      "Nouveau personnage": "Nuevo personaje",
+      "Nom": "Nombre",
+      "Race": "Raza",
+      "Sexe": "Sexo",
+      "Masculin": "Masculino",
+      "Féminin": "Femenino",
+      "Ce choix est imposé par votre race.": "Tu raza impone esta elección.",
+      "Apparence": "Apariencia",
+      "Apparence aléatoire": "Apariencia aleatoria",
+      "Corps": "Cuerpo",
+      "Cheveux": "Pelo",
+      "Habits": "Ropa",
+      "Traits": "Rasgos",
+      "Annuler": "Cancelar",
+      "Créer": "Crear",
+      "Entrez un nom.": "Introduce un nombre.",
+      "Un autre personnage possède déjà ce nom.": "Otro personaje ya tiene este nombre.",
+      "Supprimer ce personnage ?": "¿Eliminar este personaje?",
       "Attendre les plus lents": "Esperar a los más lentos",
       "sans limite": "sin límite",
       "1,5 × le plus rapide": "1,5 × el más rápido",
@@ -311,6 +377,27 @@
       "Vitesse": "速度",
       "Graine": "シード",
       "au hasard": "ランダム",
+      "Personnage": "キャラクター",
+      "Un villageois": "村人",
+      "Nouveau personnage…": "新しいキャラクター…",
+      "Nouveau personnage": "新しいキャラクター",
+      "Nom": "名前",
+      "Race": "種族",
+      "Sexe": "性別",
+      "Masculin": "男性",
+      "Féminin": "女性",
+      "Ce choix est imposé par votre race.": "この選択は種族によって決まっています。",
+      "Apparence": "外見",
+      "Apparence aléatoire": "ランダムな外見",
+      "Corps": "体",
+      "Cheveux": "髪",
+      "Habits": "服",
+      "Traits": "特徴",
+      "Annuler": "キャンセル",
+      "Créer": "作成",
+      "Entrez un nom.": "名前を入力してください。",
+      "Un autre personnage possède déjà ce nom.": "同じ名前のキャラクターが既にいます。",
+      "Supprimer ce personnage ?": "このキャラクターを削除しますか？",
       "Attendre les plus lents": "遅いプレイヤーを待つ",
       "sans limite": "無制限",
       "1,5 × le plus rapide": "最速の1.5倍",
@@ -393,6 +480,27 @@
       "Vitesse": "速度",
       "Graine": "种子",
       "au hasard": "随机",
+      "Personnage": "角色",
+      "Un villageois": "一名村民",
+      "Nouveau personnage…": "新角色…",
+      "Nouveau personnage": "新角色",
+      "Nom": "名字",
+      "Race": "种族",
+      "Sexe": "性别",
+      "Masculin": "男",
+      "Féminin": "女",
+      "Ce choix est imposé par votre race.": "此选项由你的种族决定。",
+      "Apparence": "外观",
+      "Apparence aléatoire": "随机外观",
+      "Corps": "身体",
+      "Cheveux": "头发",
+      "Habits": "服装",
+      "Traits": "特征",
+      "Annuler": "取消",
+      "Créer": "创建",
+      "Entrez un nom.": "请输入名字。",
+      "Un autre personnage possède déjà ce nom.": "已有角色使用此名字。",
+      "Supprimer ce personnage ?": "删除此角色？",
       "Attendre les plus lents": "等待最慢的玩家",
       "sans limite": "无限制",
       "1,5 × le plus rapide": "最快者的1.5倍",
@@ -553,6 +661,8 @@
   </div>
   <form hidden>
     <h1>Vendetta</h1>
+    <label>Personnage
+      <span class="pick"><select class="character"></select><button type="button" class="character-delete">✕</button></span></label>
     <label>Taille de la carte
       <select name="size">
         <option value="128">128 × 128</option><option value="192">192 × 192</option>
@@ -593,6 +703,26 @@
       <button type="submit">Jouer</button>
     </div>
   </form>
+  <div id="character" hidden>
+    <form>
+      <h1>Nouveau personnage</h1>
+      <label>Nom <span class="pick"><input type="text" name="name" maxlength="24"><button type="button" id="character-name">↻</button></span></label>
+      <label>Race <select name="race"></select></label>
+      <div class="race"><img id="character-portrait" alt=""><p id="character-description"></p></div>
+      <label>Sexe
+        <select name="sex"><option value="m">Masculin</option><option value="f">Féminin</option></select></label>
+      <p class="note" id="character-imposed" hidden>Ce choix est imposé par votre race.</p>
+      <fieldset><legend>Apparence</legend>
+        <div class="look"><canvas id="character-preview" width="24" height="32"></canvas><div class="layers" id="character-layers"></div></div>
+        <div class="buttons"><button type="button" id="character-random">Apparence aléatoire</button></div>
+      </fieldset>
+      <p class="error" id="character-error"></p>
+      <div class="buttons">
+        <button type="button" id="character-cancel">Annuler</button>
+        <button type="submit">Créer</button>
+      </div>
+    </form>
+  </div>
 </div>
 <div id="loading" hidden>
   <div id="frame"><div id="bar"></div><img id="art" alt=""></div>
@@ -876,9 +1006,11 @@
     });
   }
 
+  // The files and their versions (path, size and hash on each line).
+  const manifestText = fetch("assets/manifest.txt").then((r) => r.text());
   // The manifest gives the estimate: data files plus the image folders the game always
   // loads (see Manifest in assets.rs).
-  Promise.all([fetch("assets/manifest.txt").then((r) => r.text()), bundlesReady])
+  Promise.all([manifestText, bundlesReady])
     .then(([text]) => {
       const entries = text.split("\n").filter((l) => l).map((l) => {
         const [path, size, hash] = l.split("\t");
@@ -1116,6 +1248,8 @@
   const languageSelect = document.getElementById("language");
   const ingameLanguage = document.getElementById("ingame-language");
   ingameLanguage.innerHTML = languageSelect.innerHTML;
+  // what else shows texts in the language (the characters, below)
+  const onLanguage = [];
   function setLanguage(chosen) {
     const previous = language;
     language = languageSelect.value = ingameLanguage.value = chosen;
@@ -1127,6 +1261,7 @@
     translatePage(previous);
     showIngameNote();
     if (shownSpeed) showSpeed(...shownSpeed);
+    for (const f of onLanguage) f();
     menuCommands.push(6);
   }
   setLanguage(language);
@@ -1319,7 +1454,9 @@
     form.addEventListener("input", () => setHash(items()));
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      begin([...items(), "play", "new"]);
+      const character = characterItems();
+      const others = character.length ? items().filter((o) => !/^(names|characters)=/.test(o)) : items();
+      begin([...others, ...character, "play", "new"]);
     });
     document.getElementById("continue").addEventListener("click", () => {
       let last = "";
@@ -1336,10 +1473,230 @@
     };
     document.getElementById("new").addEventListener("click", () => show(true));
     document.getElementById("back").addEventListener("click", () => show(false));
+    const $ = (id) => document.getElementById(id);
+
+    // Characters to play as (the original's "Personnage"), kept in this browser apart from the
+    // worlds: a name, a playable race (its index in the rules), a sex and a look (one file of
+    // each of the race's lists for that sex, as `Files` lists them). What each race allows
+    // comes from races.json (see sim/examples/races.rs). The one chosen takes the place of the
+    // villager the player takes over (`characters=`, see client/src/options.rs).
+    const charactersKey = "vendetta-characters";
+    const chosenKey = "vendetta-character";
+    let characters = [];
+    let chosen = "";
+    try {
+      characters = JSON.parse(localStorage.getItem(charactersKey)) || [];
+      chosen = localStorage.getItem(chosenKey) || "";
+    } catch (e) {}
+    const saveCharacters = () => {
+      try {
+        localStorage.setItem(charactersKey, JSON.stringify(characters));
+        localStorage.setItem(chosenKey, chosen);
+      } catch (e) {}
+    };
+    let races = null;
+    const raceOf = (c) => races?.races.find((r) => r.index === c.race);
+    const raceName = (r, female) => (r.name[language] ?? r.name.FR)[female ? 1 : 0];
+    // the chosen character, as start options (none: the villager as it is)
+    const characterItems = () => {
+      const c = characters.find((c) => c.name === chosen);
+      if (!c) return [];
+      const look = c.race + ":" + (c.female ? "f" : "m") + ":" + c.look.join(",");
+      return ["names=" + encodeURIComponent(c.name), "characters=" + encodeURIComponent(look)];
+    };
+    // The fields choosing a character: none, a saved one, or a new one (the window below).
+    const pickers = [...document.querySelectorAll("#menu select.character")];
+    const showCharacters = () => {
+      for (const select of pickers) {
+        const options = [new Option(t("Un villageois"), "")];
+        for (const c of characters) {
+          const r = raceOf(c);
+          options.push(new Option(r ? c.name + " — " + raceName(r, c.female) : c.name, c.name));
+        }
+        if (races) options.push(new Option(t("Nouveau personnage…"), "\n"));
+        select.replaceChildren(...options);
+        select.value = chosen;
+        select.parentElement.querySelector(".character-delete").hidden = !chosen;
+      }
+    };
+    for (const select of pickers) {
+      select.addEventListener("change", () => {
+        if (select.value === "\n") {
+          select.value = chosen;
+          openCharacter();
+        } else {
+          chosen = select.value;
+          saveCharacters();
+          showCharacters();
+        }
+      });
+      select.parentElement.querySelector(".character-delete").addEventListener("click", () => {
+        if (!confirm(t("Supprimer ce personnage ?") + "\n" + chosen)) return;
+        characters = characters.filter((c) => c.name !== chosen);
+        chosen = "";
+        saveCharacters();
+        showCharacters();
+      });
+    }
+    onLanguage.push(showCharacters);
+    showCharacters();
+
+    // The window making a new character: name, race (with its portrait and description), sex
+    // (some races impose one) and look, one choice per list, shown standing, turning.
+    const sheet = $("character");
+    const sheetForm = sheet.querySelector("form");
+    const canvas = $("character-preview");
+    const draft = { race: 0, female: false, look: [] };
+    const urls = manifestText.then((text) => {
+      const urls = new Map();
+      for (const line of text.split("\n")) {
+        const [path, , hash] = line.split("\t");
+        if (path) urls.set(path.toLowerCase(), "assets/" + path + (hash ? "?v=" + hash : ""));
+      }
+      return urls;
+    });
+    const images = new Map();
+    const image = (key) => {
+      if (!images.has(key)) {
+        images.set(key, urls.then((urls) => new Promise((ok, ko) => {
+          const img = new Image();
+          img.onload = () => ok(img);
+          img.onerror = ko;
+          img.src = urls.get(key) ?? "assets/" + key;
+        })));
+      }
+      return images.get(key);
+    };
+    const race = () => races.races[draft.race];
+    const lists = () => race().looks[draft.female ? 1 : 0];
+    const files = () => lists().map((l, k) => l[draft.look[k]]);
+    // Standing (the middle column of the 3×4 sheets), facing each way in turn.
+    let facing = 0;
+    let drawing = 0;
+    const draw = () => {
+      const n = ++drawing;
+      Promise.all(files().map(image)).then((imgs) => {
+        if (n !== drawing || !imgs.length) return;
+        const [w, h] = [imgs[0].width / 3, imgs[0].height / 4];
+        [canvas.width, canvas.height] = [w, h];
+        const g = canvas.getContext("2d");
+        g.clearRect(0, 0, w, h);
+        for (const img of imgs) g.drawImage(img, img.width / 3, (facing * img.height) / 4, img.width / 3, img.height / 4, 0, 0, w, h);
+      }).catch(() => {});
+    };
+    let turning = null;
+    // What each list dresses, from its folder (`Images/Apparences/<what>/...`).
+    const layerName = (l, all) => {
+      const what = l[0].split("/")[2];
+      if (all.length === 1) return t("Apparence");
+      if (what === "races") return t(all.some((o) => o[0].split("/")[2] === "corps") ? "Traits" : "Corps");
+      return t({ corps: "Corps", cheveux: "Cheveux", habits: "Habits" }[what] ?? "Apparence");
+    };
+    const showLayers = () => {
+      const all = lists();
+      $("character-layers").replaceChildren(
+        ...all.map((l, k) => {
+          const row = document.createElement("div");
+          row.className = "row";
+          const [name, back, at, next] = ["span", "button", "span", "button"].map((e) => document.createElement(e));
+          name.textContent = layerName(l, all);
+          at.textContent = draft.look[k] + 1 + " / " + l.length;
+          back.type = next.type = "button";
+          back.textContent = "◀";
+          next.textContent = "▶";
+          const step = (by) => () => {
+            draft.look[k] = (draft.look[k] + by + l.length) % l.length;
+            showLayers();
+            draw();
+          };
+          back.addEventListener("click", step(-1));
+          next.addEventListener("click", step(1));
+          row.append(name, back, at, next);
+          return row;
+        }),
+      );
+    };
+    const randomLook = () => {
+      draft.look = lists().map((l) => Math.floor(Math.random() * l.length));
+      showLayers();
+      draw();
+    };
+    const randomName = () => {
+      const names = races.names[draft.female ? 1 : 0];
+      sheetForm.elements.name.value = names[Math.floor(Math.random() * names.length)] ?? "";
+    };
+    // (`fresh`: a new race or sex, with a new look)
+    const showRace = (fresh) => {
+      const r = race();
+      if (!r.female) draft.female = false;
+      if (!r.male) draft.female = true;
+      const sex = sheetForm.elements.sex;
+      sex.value = draft.female ? "f" : "m";
+      sex.options[0].disabled = !r.male;
+      sex.options[1].disabled = !r.female;
+      $("character-imposed").hidden = r.male && r.female;
+      for (const [k, o] of [...sheetForm.elements.race.options].entries()) o.textContent = raceName(races.races[k], draft.female);
+      $("character-description").textContent = r.description[language] ?? r.description.FR;
+      urls.then((urls) => ($("character-portrait").src = urls.get(r.portrait.toLowerCase()) ?? ""));
+      if (fresh) randomLook();
+      else showLayers();
+    };
+    const closeCharacter = () => {
+      sheet.hidden = true;
+      clearInterval(turning);
+    };
+    const openCharacter = () => {
+      draft.race = 0;
+      draft.female = Math.random() < 0.5;
+      sheetForm.elements.race.replaceChildren(...races.races.map((r, k) => new Option(raceName(r, draft.female), k)));
+      sheetForm.elements.race.value = 0;
+      $("character-error").textContent = "";
+      showRace(true);
+      randomName();
+      sheet.hidden = false;
+      sheetForm.elements.name.focus();
+      facing = 0;
+      turning = setInterval(() => {
+        facing = (facing + 1) % 4;
+        draw();
+      }, 1000);
+    };
+    sheetForm.elements.race.addEventListener("change", () => {
+      draft.race = Number(sheetForm.elements.race.value);
+      showRace(true);
+    });
+    sheetForm.elements.sex.addEventListener("change", () => {
+      draft.female = sheetForm.elements.sex.value === "f";
+      showRace(true);
+    });
+    $("character-random").addEventListener("click", randomLook);
+    $("character-name").addEventListener("click", randomName);
+    $("character-cancel").addEventListener("click", closeCharacter);
+    sheet.addEventListener("click", (e) => e.target === sheet && closeCharacter());
+    sheet.addEventListener("keydown", (e) => e.key === "Escape" && closeCharacter());
+    sheetForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = sheetForm.elements.name.value.trim();
+      const error = !name ? "Entrez un nom." : characters.some((c) => c.name.toLowerCase() === name.toLowerCase()) ? "Un autre personnage possède déjà ce nom." : "";
+      $("character-error").textContent = t(error);
+      if (error) return;
+      characters.push({ name, race: race().index, female: draft.female, look: files() });
+      chosen = name;
+      saveCharacters();
+      showCharacters();
+      closeCharacter();
+    });
+    onLanguage.push(() => races && !sheet.hidden && showRace(false));
+    fetch("races.json")
+      .then((r) => r.json())
+      .then((data) => {
+        races = data;
+        showCharacters();
+      })
+      .catch((e) => console.warn("no races:", e));
 
     // Network play (see the server crate): enter a room by creating one or with its code (or a
     // link with `#room=CODE`), pick a fief; the host sets the world and starts.
-    const $ = (id) => document.getElementById(id);
     const lobby = $("lobby");
     const settings = $("room-settings");
     const nameKey = "vendetta-name";

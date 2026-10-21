@@ -35,6 +35,12 @@ grep -q "const build = \"$wasm\";" dist/index.html
 ln -sfn ../assets dist/assets
 # The translations beyond the original's French and English (see tools/translate.py).
 python3 -I tools/translate.py apply assets
+# The playable races, for the page's character window (see sim/examples/races.rs), versioned
+# like the game.
+cargo run --release -q -p sim --example races assets >dist/races.json
+races=$(sha256sum dist/races.json | cut -c1-16)
+sed -i "s|\"races.json\"|\"races.json?v=$races\"|" dist/index.html
+grep -q "races.json?v=$races" dist/index.html
 # The files the game loads as it starts, in a few bundles (see bundle.py), and their index,
 # versioned like the game.
 python3 bundle.py assets dist
