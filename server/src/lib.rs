@@ -11,6 +11,8 @@
 //! - `{"t":"create","name":…}`, `{"t":"join","room":…,"name":…}`: enter a new or existing room;
 //!   these and `rejoin` carry the page's `version` (its build), which must be the room's;
 //! - `{"t":"fief","fief":n}`: pick a fief (from 1);
+//! - `{"t":"character","character":…,"name":…}`: play as a character (as in the URL's
+//!   `characters=`, empty for none), under that name;
 //! - `{"t":"settings","items":[…]}` (host): the world options, as in the URL's hash;
 //! - `{"t":"start"}` (host);
 //! - `{"t":"ready"}`: its world is made, the ticks may start;
@@ -20,8 +22,8 @@
 //! - `{"t":"hash","tick":n,"hash":h}`: the world's digest after tick n.
 //!
 //! From the server:
-//! - `{"t":"lobby","room":…,"you":k,"token":…,"host":k,"players":[{"name","fief","online"}],"items":[…]}`;
-//! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"names":[…],"you":k}`, with `"resume":true`
+//! - `{"t":"lobby","room":…,"you":k,"token":…,"host":k,"players":[{"name","fief","character","online"}],"items":[…]}`;
+//! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"names":[…],"characters":[…],"you":k}`, with `"resume":true`
 //!   after a rejoin;
 //! - `{"t":"wait","ready":n,"players":m}`: n of the m players are ready;
 //! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
@@ -62,6 +64,8 @@ const CODE_LEN: usize = 4;
 const SETTINGS: [&str; 10] = ["size", "fiefs", "villagers", "roads", "edges", "paths", "chase", "seed", "wait", "speed"];
 /// The default number of fiefs (`WorldSetup`).
 const DEFAULT_FIEFS: usize = 4;
+/// The longest character description passed on (its look's file names, mostly).
+const MAX_CHARACTER: usize = 1024;
 /// How long a game in progress lasts with nobody connected.
 const GRACE: Duration = Duration::from_secs(600);
 
@@ -80,6 +84,7 @@ enum In {
         version: String,
     },
     Fief { fief: usize },
+    Character { character: String, name: String },
     Settings { items: Vec<String> },
     Start,
     Ready,
@@ -102,6 +107,9 @@ struct Player {
     conn: u64,
     name: String,
     fief: usize,
+    /// The character it plays as, as in the URL's `characters=` (empty: the citizen as it is):
+    /// passed on, for the game to check.
+    character: String,
     /// Its world is made (once started).
     ready: bool,
     /// Back in the game and not caught up yet: no tick until it asks for those it missed
@@ -195,12 +203,13 @@ impl Room {
     fn start(&self, k: usize, resume: bool) -> Value {
         let fiefs: Vec<usize> = self.players.iter().map(|p| p.fief).collect();
         let names: Vec<&str> = self.players.iter().map(|p| p.name.as_str()).collect();
-        json!({"t": "start", "items": self.items, "seed": self.seed, "players": fiefs, "names": names, "you": k, "resume": resume})
+        let characters: Vec<&str> = self.players.iter().map(|p| p.character.as_str()).collect();
+        json!({"t": "start", "items": self.items, "seed": self.seed, "players": fiefs, "names": names, "characters": characters, "you": k, "resume": resume})
     }
 
     fn send_lobby(&self, code: &str) {
         let host = self.index(self.host).unwrap_or(0);
-        let players: Vec<Value> = self.players.iter().map(|p| json!({"name": p.name, "fief": p.fief, "online": p.tx.is_some()})).collect();
+        let players: Vec<Value> = self.players.iter().map(|p| json!({"name": p.name, "fief": p.fief, "character": p.character, "online": p.tx.is_some()})).collect();
         for k in 0..self.players.len() {
             let token = &self.players[k].token;
             self.send(k, &json!({"t": "lobby", "room": code, "you": k, "token": token, "host": host, "players": players, "items": self.items}));
@@ -221,7 +230,7 @@ impl Rooms {
 
     fn player(&self, conn: u64, name: &str, tx: &UnboundedSender<String>) -> Player {
         let token = format!("{:016x}{:016x}", self.random(conn), self.random(conn ^ 1));
-        Player { id: conn, token, conn, name: clean(name), fief: 1, ready: false, rejoining: false, tx: Some(tx.clone()) }
+        Player { id: conn, token, conn, name: clean(name), fief: 1, character: String::new(), ready: false, rejoining: false, tx: Some(tx.clone()) }
     }
 }
 
@@ -380,6 +389,12 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
             match msg {
                 In::Fief { fief } if !room.started && (1..=room.fiefs()).contains(&fief) => {
                     room.players[k].fief = fief;
+                    room.send_lobby(code);
+                }
+                In::Character { character, name } if !room.started => {
+                    let p = &mut room.players[k];
+                    p.character = character.chars().filter(|c| !c.is_control()).take(MAX_CHARACTER).collect();
+                    p.name = clean(&name);
                     room.send_lobby(code);
                 }
                 In::Settings { items } if !room.started && room.host == id => {

@@ -57,24 +57,28 @@ async fn lobby_and_lockstep() {
     assert_eq!(lobby["players"][1]["fief"], 1, "the first fief, with the others");
 
     send(&mut b, json!({"t": "fief", "fief": 3})).await;
+    // Bob plays as a character of his, named after it
+    send(&mut b, json!({"t": "character", "character": "6:f:a.png,b.png", "name": "Mina"})).await;
     // only the host sets the options
     send(&mut b, json!({"t": "settings", "items": ["fiefs=6"]})).await;
     assert_eq!(next(&mut b, "error").await["t"], "error");
     send(&mut a, json!({"t": "settings", "items": ["fiefs=6", "seed=7", "god"]})).await;
     let lobby = loop {
         let l = next(&mut a, "lobby").await;
-        if l["items"] == json!(["fiefs=6", "seed=7"]) && l["players"][1]["fief"] == 3 {
+        if l["items"] == json!(["fiefs=6", "seed=7"]) && l["players"][1]["fief"] == 3 && l["players"][1]["name"] == "Mina" {
             break l;
         }
     };
     assert_eq!(lobby["host"], 0);
+    assert_eq!(lobby["players"][1]["character"], "6:f:a.png,b.png");
 
     send(&mut a, json!({"t": "start"})).await;
     let start = next(&mut b, "start").await;
     assert_eq!(start["seed"], 7);
     assert_eq!(start["items"], json!(["fiefs=6"]));
     assert_eq!(start["players"], json!([1, 3]));
-    assert_eq!(start["names"], json!(["Alice", "Bob"]));
+    assert_eq!(start["names"], json!(["Alice", "Mina"]));
+    assert_eq!(start["characters"], json!(["", "6:f:a.png,b.png"]));
     assert_eq!(start["you"], 1);
 
     // a late comer is turned away

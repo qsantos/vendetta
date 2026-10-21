@@ -1497,17 +1497,31 @@
     let races = null;
     const raceOf = (c) => races?.races.find((r) => r.index === c.race);
     const raceName = (r, female) => (r.name[language] ?? r.name.FR)[female ? 1 : 0];
+    const chosenCharacter = () => characters.find((c) => c.name === chosen);
+    // a character as in `characters=` (none: empty)
+    const characterText = (c) => (c ? c.race + ":" + (c.female ? "f" : "m") + ":" + c.look.join(",") : "");
+    // the race of a character so written, in the language (none: empty)
+    const raceOfText = (text) => {
+      const [race, sex] = text.split(":");
+      const r = race && races?.races.find((r) => r.index === Number(race));
+      return r ? raceName(r, sex === "f") : "";
+    };
     // the chosen character, as start options (none: the villager as it is)
     const characterItems = () => {
-      const c = characters.find((c) => c.name === chosen);
-      if (!c) return [];
-      const look = c.race + ":" + (c.female ? "f" : "m") + ":" + c.look.join(",");
-      return ["names=" + encodeURIComponent(c.name), "characters=" + encodeURIComponent(look)];
+      const c = chosenCharacter();
+      return c ? ["names=" + encodeURIComponent(c.name), "characters=" + encodeURIComponent(characterText(c))] : [];
     };
     // The fields choosing a character: none, a saved one, or a new one (the window below).
-    const pickers = [...document.querySelectorAll("#menu select.character")];
+    // What else follows the choice (the lobby, below).
+    const onChosen = [];
+    const choose = (name) => {
+      chosen = name;
+      saveCharacters();
+      showCharacters();
+      for (const f of onChosen) f();
+    };
     const showCharacters = () => {
-      for (const select of pickers) {
+      for (const select of document.querySelectorAll("#menu select.character")) {
         const options = [new Option(t("Un villageois"), "")];
         for (const c of characters) {
           const r = raceOf(c);
@@ -1519,25 +1533,31 @@
         select.parentElement.querySelector(".character-delete").hidden = !chosen;
       }
     };
-    for (const select of pickers) {
+    // `pick`: a `.pick` holding a `select.character` and a `.character-delete` button
+    const characterField = (pick) => {
+      const select = pick.querySelector("select.character");
       select.addEventListener("change", () => {
         if (select.value === "\n") {
           select.value = chosen;
           openCharacter();
         } else {
-          chosen = select.value;
-          saveCharacters();
-          showCharacters();
+          choose(select.value);
         }
       });
-      select.parentElement.querySelector(".character-delete").addEventListener("click", () => {
+      pick.querySelector(".character-delete").addEventListener("click", () => {
         if (!confirm(t("Supprimer ce personnage ?") + "\n" + chosen)) return;
         characters = characters.filter((c) => c.name !== chosen);
-        chosen = "";
-        saveCharacters();
-        showCharacters();
+        choose("");
       });
-    }
+      return pick;
+    };
+    const newCharacterField = () => {
+      const pick = document.createElement("span");
+      pick.className = "pick";
+      pick.innerHTML = '<select class="character"></select><button type="button" class="character-delete">✕</button>';
+      return characterField(pick);
+    };
+    characterField(form.querySelector(".pick"));
     onLanguage.push(showCharacters);
     showCharacters();
 
@@ -1681,9 +1701,7 @@
       $("character-error").textContent = t(error);
       if (error) return;
       characters.push({ name, race: race().index, female: draft.female, look: files() });
-      chosen = name;
-      saveCharacters();
-      showCharacters();
+      choose(name);
       closeCharacter();
     });
     onLanguage.push(() => races && !sheet.hidden && showRace(false));
@@ -1748,25 +1766,41 @@
           const name = document.createElement("td");
           name.textContent = p.name + (k === msg.host ? t(" (hôte)") : "") + (k === msg.you ? t(" (vous)") : "");
           const fief = document.createElement("td");
+          const character = document.createElement("td");
           if (k === msg.you) {
             const select = document.createElement("select");
             for (let f = 1; f <= fiefs; f++) select.add(new Option(t("Peuple ") + f, f, false, f === p.fief));
             select.addEventListener("change", () => send({ t: "fief", fief: Number(select.value) }));
             fief.append(select);
+            character.append(newCharacterField());
           } else {
             fief.textContent = t("Peuple ") + p.fief;
+            character.textContent = raceOfText(p.character ?? "");
           }
-          row.append(name, fief);
+          row.append(name, fief, character);
           return row;
         }),
       );
+      showCharacters();
       $("room-start").hidden = !host;
+      // the server keeps our character, for everyone's world
+      if ((msg.players[msg.you]?.character ?? "") !== characterText(chosenCharacter())) sendCharacter();
     };
+    // Our character (and its name, else ours) to the room.
+    const sendCharacter = () => {
+      const c = chosenCharacter();
+      let name = $("name").value.trim();
+      try {
+        name ||= localStorage.getItem(nameKey) || "";
+      } catch (e) {}
+      send({ t: "character", character: characterText(c), name: c ? c.name : name });
+    };
+    onChosen.push(() => netRoom && !netStarted && sendCharacter());
     // The world: the room's options, its seed, everyone's fief and our place.
     const startNet = (msg) => {
       netStarted = true;
       const resume = msg.resume ? ["resume"] : [];
-      startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "names=" + msg.names.map(encodeURIComponent).join("+"), "me=" + msg.you, "room=" + netRoom, ...resume, "play"].join("&");
+      startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "names=" + msg.names.map(encodeURIComponent).join("+"), "characters=" + (msg.characters ?? []).map(encodeURIComponent).join("+"), "me=" + msg.you, "room=" + netRoom, ...resume, "play"].join("&");
       document.getElementById("menu").hidden = true;
       loadingScreen.hidden = false;
       bubble.hidden = false;
