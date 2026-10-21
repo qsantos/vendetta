@@ -262,10 +262,11 @@ impl World {
         // pixels a tick, as `update_step` makes them
         let step = |q: &crate::perso::Perso, coef: f64| ((q.bonus_move as f64 * q.vitality).floor() * coef).floor().clamp(1.0, 16.0);
         // Where the target will be, every half cell, and when; the chaser's top-left corner there
-        // and its feet, as for its path.
+        // and its feet, as for its path (on a torus, the copy nearest to the chaser: a long way
+        // can go round and come back near).
         let meet = |(x, y): (f64, f64)| {
             let (cx, cy) = self.centre_for(i, clng(x), clng(y), t.w, t.h);
-            (cx, cy + feet)
+            self.terrain.near((p.x, p.y + feet), (cx, cy + feet))
         };
         let mut trajectory = Vec::new();
         let (mut at, mut time) = ((t.x as f64 + shift.0, t.y as f64 + shift.1), 0.0);

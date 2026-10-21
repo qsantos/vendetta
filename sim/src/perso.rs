@@ -866,7 +866,9 @@ impl Perso {
         if paths == Paths::Fastest && !self.bonus_flying && self.alive() {
             // (the terrain under the feet, as for the speed)
             let feet = self.h as i64 - 16;
-            let (from, to) = ((self.x, self.y + feet), (self.dest.0, self.dest.1 + feet));
+            let from = (self.x, self.y + feet);
+            // (on a torus, the copy of the destination nearest to the character)
+            let to = terrain.near(from, (self.dest.0, self.dest.1 + feet));
             self.path = crate::path::fastest(rules, terrain, from, to).into_iter().map(|(x, y)| (x, y - feet)).collect();
             self.path_complete = true;
         } else if !self.bonus_flying && self.alive() && PATHFINDING > 0 {
