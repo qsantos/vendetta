@@ -285,7 +285,7 @@ impl Overview {
         let t = &world.terrain;
         let mut terrain = Vec::with_capacity(t.width * t.height * 4);
         for k in 0..t.width * t.height {
-            let tile = t.category[k] as usize * cols + t.shape[k] as usize;
+            let tile = t.category()[k] as usize * cols + t.shape[k] as usize;
             terrain.extend(average.get(tile).copied().unwrap_or([0, 0, 0, 255]));
         }
         let texture = Texture2D::from_rgba8(t.width as u16, t.height as u16, &terrain);
@@ -344,7 +344,7 @@ fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32,
                 continue;
             }
             let k = cy as usize * t.width + cx as usize;
-            let src = Rect::new((t.shape[k] as i32 * CELL) as f32, (t.category[k] as i32 * CELL) as f32, CELL as f32, CELL as f32);
+            let src = Rect::new((t.shape[k] as i32 * CELL) as f32, (t.category()[k] as i32 * CELL) as f32, CELL as f32, CELL as f32);
             let params = DrawTextureParams { source: Some(src), dest_size: Some(vec2(CELL as f32, CELL as f32)), ..Default::default() };
             tiles.draw_ex((cx * CELL - cam.0) as f32, (cy * CELL - cam.1) as f32, WHITE, params);
         }

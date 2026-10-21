@@ -275,7 +275,7 @@ fn search(
             |(c0, r0, c1, r1), &(c, r)| (c0.min(c), r0.min(r), c1.max(c), r1.max(r)),
         )
     });
-    let speeds: Vec<f64> = rules.terrains.iter().map(|t| t.speed).collect();
+    let steps = steps(rules, terrain);
     let first = cell(goals[0]);
     let estimate = |n: (i64, i64), to: (i64, i64)| (octile(n, to) / top) as u64;
     let (reached, cells) = SEEN.with_borrow_mut(|seen| {
@@ -316,13 +316,8 @@ fn search(
                 {
                     continue;
                 }
-                let speed = cell_speed(&speeds, terrain, next).max(0.01);
-                let g = g
-                    + ((if dc != 0 && dr != 0 {
-                        DIAGONAL
-                    } else {
-                        STRAIGHT
-                    }) / speed) as u64;
+                let (straight, diagonal) = step_time(steps, terrain, next);
+                let g = g + if dc != 0 && dr != 0 { diagonal } else { straight } as u64;
                 if seen.entry(next).is_some_and(|(known, _)| known <= g) {
                     continue;
                 }
@@ -357,15 +352,47 @@ fn search(
     (reached, path)
 }
 
-/// [`speed_coef`] at a cell's centre, from the terrains' `speeds`, without going through
-/// pixels.
-fn cell_speed(speeds: &[f64], terrain: &Terrain, (c, r): (i64, i64)) -> f64 {
+/// What the search makes of a [`Terrain`]'s `category` when it first needs it (again after
+/// it changes, see [`Terrain::category_mut`]): the time to step into each cell (as
+/// [`speed_coef`] gives its speed at its centre), straight and diagonally.
+#[derive(Clone, Default)]
+pub struct Prepared {
+    steps: std::sync::OnceLock<Vec<(u32, u32)>>,
+}
+
+impl std::fmt::Debug for Prepared {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Prepared")
+    }
+}
+
+/// The time to step into a cell of `speed`, straight and diagonally.
+fn step_times(speed: f64) -> (u32, u32) {
+    let speed = speed.max(0.01);
+    ((STRAIGHT / speed) as u32, (DIAGONAL / speed) as u32)
+}
+
+/// The time to step into each cell of `terrain` (see [`Prepared`]).
+fn steps<'a>(rules: &Rules, terrain: &'a Terrain) -> &'a [(u32, u32)] {
+    terrain.prepared.steps.get_or_init(|| {
+        terrain.category().iter().map(|&k| step_times(rules.terrains[k as usize].speed)).collect()
+    })
+}
+
+/// The time to step into cell `(c, r)`, straight and diagonally, from `steps`: as at the
+/// speed [`speed_coef`] gives at its centre, keeping the original's index (rows of `width`
+/// without bounds on the column, plain beyond the ends).
+fn step_time(steps: &[(u32, u32)], terrain: &Terrain, (c, r): (i64, i64)) -> (u32, u32) {
     let (w, h) = (terrain.width as i64, terrain.height as i64);
-    let t = if terrain.torus { c.rem_euclid(w) + r.rem_euclid(h) * w } else { c + r * w };
-    if t > 0 && (t as usize) < terrain.category.len() - 1 {
-        speeds[terrain.category[t as usize] as usize]
+    let t = if !terrain.torus || (0..w).contains(&c) && (0..h).contains(&r) {
+        c + r * w
     } else {
-        1.0
+        c.rem_euclid(w) + r.rem_euclid(h) * w
+    };
+    if t > 0 && (t as usize) < steps.len() - 1 {
+        steps[t as usize]
+    } else {
+        step_times(1.0)
     }
 }
 

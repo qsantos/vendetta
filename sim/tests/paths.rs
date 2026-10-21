@@ -26,14 +26,11 @@ fn slowest(rules: &Rules) -> u8 {
 
 /// A 40 × 40 map with the cells for which `water` holds made of the slowest terrain.
 fn map(rules: &Rules, torus: bool, water: impl Fn(usize, usize) -> bool) -> Terrain {
-    let mut t = Terrain {
-        torus,
-        ..Terrain::new(40, 40)
-    };
+    let mut t = Terrain::with_torus(40, 40, torus);
     for r in 0..40 {
         for c in 0..40 {
             if water(c, r) {
-                t.category[c + r * 40] = slowest(rules);
+                t.category_mut()[c + r * 40] = slowest(rules);
             }
         }
     }
@@ -115,11 +112,8 @@ fn across_the_edge() {
 #[test]
 fn far_away() {
     let Some(rules) = load() else { return };
-    let mut t = Terrain {
-        torus: true,
-        ..Terrain::new(1024, 1024)
-    };
-    t.category.fill(slowest(&rules));
+    let mut t = Terrain::with_torus(1024, 1024, true);
+    t.category_mut().fill(slowest(&rules));
     let (from, to) = (px(1, 1), px(500, 300));
     let path = fastest(&rules, &t, from, to);
     // (straight on, across a uniform sea)
@@ -135,7 +129,7 @@ fn along_a_road() {
         .unwrap() as u8;
     let mut t = map(&rules, false, |_, _| false);
     for c in 0..40 {
-        t.category[c + 22 * 40] = road;
+        t.category_mut()[c + 22 * 40] = road;
     }
     let (from, to) = (px(2, 20), px(38, 20));
     let path = fastest(&rules, &t, from, to);
@@ -180,7 +174,7 @@ fn nearest_by_time() {
         let (near, far) = (nodes[0], nodes[1]);
         assert!(dist(&w, far) < 4.0 * dist(&w, near), "pick another seed");
         // all slow, but for a corridor to the farther node
-        w.terrain.category.fill(slowest(&rules));
+        w.terrain.category_mut().fill(slowest(&rules));
         let (fx, fy) = (
             w.resources[far].x as i64 + 16,
             w.resources[far].y as i64 + 16,
@@ -204,7 +198,8 @@ fn nearest_by_time() {
             ] {
                 let c = (x / CELL as i64 + dx).rem_euclid(w.terrain.width as i64);
                 let r = (y / CELL as i64 + dy).rem_euclid(w.terrain.height as i64);
-                w.terrain.category[(c + r * w.terrain.width as i64) as usize] = 1;
+                let k = (c + r * w.terrain.width as i64) as usize;
+                w.terrain.category_mut()[k] = 1;
             }
         }
         w.harvest_nearest(&rules, i, kind as i64);
@@ -231,9 +226,9 @@ fn chase_along_a_road() {
     let plain = (0..rules.terrains.len()).find(|&k| speed(k) == 1.0).unwrap() as u8;
     let width = w.terrain.width;
     let row = 20;
-    w.terrain.category.fill(plain);
+    w.terrain.category_mut().fill(plain);
     for c in 0..width {
-        w.terrain.category[c + row * width] = road;
+        w.terrain.category_mut()[c + row * width] = road;
     }
     let (i, j) = (w.persos.iter().position(|p| p.player).unwrap(), w.persos.iter().rposition(|p| p.player).unwrap());
     assert_ne!(w.persos[i].team, w.persos[j].team);
@@ -278,7 +273,7 @@ fn head_off() {
     let caught = |paths: Paths, chase: Chase| {
         let setup = WorldSetup { seed: 7, paths, chase, players: vec![0, 1], ..Default::default() };
         let mut w = World::create(&rules, &files, &setup).unwrap();
-        w.terrain.category.fill(plain);
+        w.terrain.category_mut().fill(plain);
         let (i, j) = (w.persos.iter().position(|p| p.player).unwrap(), w.persos.iter().rposition(|p| p.player).unwrap());
         let at = |w: &mut World, k: usize, c: i64, r: i64| {
             let p = &mut w.persos[k];

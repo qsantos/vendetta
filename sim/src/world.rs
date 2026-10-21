@@ -182,7 +182,7 @@ impl World {
     pub fn create(rules: &Rules, files: &Files, setup: &WorldSetup) -> Result<World, String> {
         let mut world = World {
             rng: Rnd::new(setup.seed),
-            terrain: Terrain { torus: setup.torus, ..Terrain::new(setup.width, setup.height) },
+            terrain: Terrain::with_torus(setup.width, setup.height, setup.torus),
             fiefs: setup.fiefs.iter().map(|f| Fief::new(rules, f.people, f.team, f.epoch, f.citizens)).collect(),
             castles: Vec::new(),
             resources: Vec::new(),
@@ -580,7 +580,7 @@ impl World {
                     if c > n || wt.surface[c as usize] == 0 {
                         c = 0;
                     }
-                    t.category[k] = c as u8;
+                    t.category_mut()[k] = c as u8;
                 }
                 k += 1;
             }
@@ -596,13 +596,13 @@ impl World {
     /// `ClsJeuMonde.Faire_Pousser`: one in-place growth pass of terrain type `ty`.
     fn grow(&mut self, ty: u8) {
         let t = &mut self.terrain;
-        let n = t.category.len() as isize;
+        let n = t.category().len() as isize;
         for j in 0..n {
             if t.shape[j as usize] != 0 {
                 continue;
             }
             // (across the edges on a torus, see `Terrain::neighbour`)
-            let is = |d: (isize, isize)| t.neighbour(j, d).is_some_and(|i| t.category[i] == ty);
+            let is = |d: (isize, isize)| t.neighbour(j, d).is_some_and(|i| t.category()[i] == ty);
             let mut ch = 0;
             for d in [(0, -1), (0, 1), (-1, 0), (1, 0)] {
                 if is(d) {
@@ -617,7 +617,7 @@ impl World {
                 }
             }
             if self.rng.next() * 100.0 < ch as f64 {
-                t.category[j as usize] = ty;
+                t.category_mut()[j as usize] = ty;
             }
         }
     }
@@ -764,8 +764,8 @@ impl World {
     /// `On Error Resume Next`.
     fn set_cell_at(&mut self, x: i64, y: i64, cat: u8) {
         let k = self.terrain.index_at(x as f64, y as f64);
-        if k >= 0 && (k as usize) < self.terrain.category.len() {
-            self.terrain.category[k as usize] = cat;
+        if k >= 0 && (k as usize) < self.terrain.category().len() {
+            self.terrain.category_mut()[k as usize] = cat;
         }
     }
 
@@ -795,8 +795,8 @@ impl World {
         let point = |x: i32, y: i32| {
             let t = self.terrain.index_at(x as f64, y as f64);
             t > 0
-                && (t as usize) < self.terrain.category.len() - 1
-                && !rules.terrains[self.terrain.category[t as usize] as usize].unbuildable
+                && (t as usize) < self.terrain.category().len() - 1
+                && !rules.terrains[self.terrain.category()[t as usize] as usize].unbuildable
         };
         if w == 0 && h == 0 {
             return point(x, y);
@@ -817,7 +817,7 @@ impl World {
 
     fn buildable_cells(&self, rules: &Rules) -> usize {
         self.terrain
-            .category
+            .category()
             .iter()
             .filter(|&&c| !rules.terrains[c as usize].unbuildable)
             .count()
@@ -827,12 +827,12 @@ impl World {
     fn load_terrain(&mut self, rules: &Rules, files: &Files, dir: &str) -> Result<(), String> {
         let img = decode_png(files, &format!("{dir}/Terrain.png"))?
             .ok_or_else(|| format!("missing {dir}/Terrain.png"))?;
-        self.terrain = Terrain { torus: self.terrain.torus, ..Terrain::new(img.width, img.height) };
+        self.terrain = Terrain::with_torus(img.width, img.height, self.terrain.torus);
         for r in 0..img.height {
             for x in 0..img.width {
                 let rgb = img.rgb(x, r);
                 let ty = rules.map_terrain_colours.iter().position(|&c| c == rgb).unwrap_or(0);
-                self.terrain.category[r * img.width + x] = ty as u8;
+                self.terrain.category_mut()[r * img.width + x] = ty as u8;
             }
         }
         self.terrain.reshape();

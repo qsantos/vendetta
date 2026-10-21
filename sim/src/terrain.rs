@@ -9,8 +9,9 @@ pub const CELL: i32 = 16;
 pub struct Terrain {
     pub width: usize,
     pub height: usize,
-    /// Terrain type per cell (`Terrain.ini [Terrain_n]`), 0 = plain grass.
-    pub category: Vec<u8>,
+    /// Terrain type per cell (`Terrain.ini [Terrain_n]`), 0 = plain grass: see
+    /// [`Terrain::category`].
+    category: Vec<u8>,
     /// Tileset column per cell, chosen from the neighbours by [`Terrain::reshape`].
     pub shape: Vec<u8>,
     /// Not in the original: opposite edges join (a torus), going off one side comes back on
@@ -18,6 +19,10 @@ pub struct Terrain {
     /// shortest difference ([`Terrain::near`]); on a flat map, every helper here does just what
     /// the original does.
     pub torus: bool,
+    /// Not in the original: what the path search makes of `category`, when first needed and
+    /// again after it changes.
+    #[serde(skip)]
+    pub(crate) prepared: crate::path::Prepared,
 }
 
 impl Terrain {
@@ -31,7 +36,24 @@ impl Terrain {
             category: vec![0; n],
             shape: vec![0; n],
             torus: false,
+            prepared: Default::default(),
         }
+    }
+
+    /// [`Terrain::new`], a torus or not.
+    pub fn with_torus(width: usize, height: usize, torus: bool) -> Terrain {
+        Terrain { torus, ..Terrain::new(width, height) }
+    }
+
+    /// The terrain type per cell (`Terrain.ini [Terrain_n]`), 0 = plain grass.
+    pub fn category(&self) -> &[u8] {
+        &self.category
+    }
+
+    /// [`Terrain::category`], to change it.
+    pub fn category_mut(&mut self) -> &mut [u8] {
+        self.prepared = Default::default();
+        &mut self.category
     }
 
     /// The map's size, in pixels.
@@ -155,6 +177,7 @@ impl Terrain {
     /// wrap to the adjacent row at the map edges. On a torus, the neighbours are across the
     /// edges, so that patches continue seamlessly.
     pub fn reshape(&mut self) {
+        self.prepared = Default::default();
         let n = self.category.len() as isize;
         for i in 0..n {
             if self.category[i as usize] == 0 {

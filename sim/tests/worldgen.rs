@@ -35,12 +35,12 @@ fn random_world() {
     let w = World::create(&rules, &files, &setup(None)).unwrap();
     assert_eq!(w.castles.len(), 4);
     assert_eq!(w.resources.len(), 51);
-    let non_plain = w.terrain.category.iter().filter(|&&c| c != 0).count();
+    let non_plain = w.terrain.category().iter().filter(|&&c| c != 0).count();
     eprintln!("non-plain cells: {non_plain}, castles: {:?}", w.castles.iter().map(|c| (c.x, c.y)).collect::<Vec<_>>());
     assert!(non_plain > 0);
     // deterministic
     let w2 = World::create(&rules, &files, &setup(None)).unwrap();
-    assert_eq!(w.terrain.category, w2.terrain.category);
+    assert_eq!(w.terrain.category(), w2.terrain.category());
 }
 
 #[test]

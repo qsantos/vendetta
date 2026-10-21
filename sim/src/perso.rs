@@ -744,8 +744,8 @@ impl Perso {
     fn speed_coef_effect(&mut self, rules: &Rules, terrain: &Terrain) -> f64 {
         let (x, y) = (self.x, self.y + self.h as i64 - 16);
         let t = terrain.index_at(x as f64, y as f64);
-        if t > 0 && (t as usize) < terrain.category.len() - 1 {
-            let ty = &rules.terrains[terrain.category[t as usize] as usize];
+        if t > 0 && (t as usize) < terrain.category().len() - 1 {
+            let ty = &rules.terrains[terrain.category()[t as usize] as usize];
             if let Ok(e) = usize::try_from(ty.effect) {
                 let o = &rules.objects[e];
                 if self.resistance(o.attack_resistance) > rules.resistance_min {
@@ -935,8 +935,8 @@ impl Perso {
 /// `ClsJeuMonde.CoefVitesseSimple`
 pub fn speed_coef(rules: &Rules, terrain: &Terrain, x: i64, y: i64) -> f64 {
     let t = terrain.index_at(x as f64, y as f64);
-    if t > 0 && (t as usize) < terrain.category.len() - 1 {
-        rules.terrains[terrain.category[t as usize] as usize].speed
+    if t > 0 && (t as usize) < terrain.category().len() - 1 {
+        rules.terrains[terrain.category()[t as usize] as usize].speed
     } else {
         1.0
     }
