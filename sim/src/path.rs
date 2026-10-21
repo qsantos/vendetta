@@ -56,7 +56,8 @@ pub fn fastest(
     if cell(from) != cell(to) && clear(rules, terrain, from, to, top) {
         return vec![to];
     }
-    let (reached, mut path) = search(rules, terrain, from, &[to], &|_, time| Some(time), top, MAX_CELLS);
+    let goals = [to];
+    let (reached, mut path) = search(rules, terrain, from, &goals, &|_, time| Some(time), &aim(&goals, top), top);
     if reached.is_none() {
         path.push(to);
     }
@@ -72,14 +73,15 @@ pub fn nearest(
     from: (i64, i64),
     goals: &[(i64, i64)],
 ) -> Option<(usize, Vec<(i64, i64)>)> {
+    let top = top_speed(rules);
     let (reached, path) = search(
         rules,
         terrain,
         from,
         goals,
         &|_, time| Some(time),
-        top_speed(rules),
-        MAX_CELLS,
+        &aim(goals, top),
+        top,
     );
     Some((reached?, straighten(rules, terrain, from, path)))
 }
@@ -118,6 +120,8 @@ pub fn intercept(
     if goals.is_empty() {
         return None;
     }
+    let cells: Vec<(i64, i64)> = goals.iter().map(|&g| cell(g)).collect();
+    let times: Vec<f64> = kept.iter().map(|&k| by(k)).collect();
     let (reached, path) = search(
         rules,
         terrain,
@@ -128,11 +132,52 @@ pub fn intercept(
             let (k, by) = (kept[g], by(kept[g]));
             (time as f64 <= by || stays && k == end).then(|| (time as f64).max(by) as u64)
         },
+        &stretches(&cells, &times, stays, top),
         top,
-        MAX_CELLS,
     );
     let reached = reached?;
     Some((kept[reached], straighten(rules, terrain, from, path)))
+}
+
+/// Stretches of the trajectory that [`intercept`]'s search bounds its scores with.
+const STRETCHES: usize = 32;
+
+/// For [`intercept`]'s search, of the `goals` (cells, in the order of the trajectory) and
+/// when the target leaves each (`by`, increasing; the last one never should it `stay`): a
+/// bound on the score through a cell at a time, by stretches of consecutive goals (each
+/// within its box of cells, left between the first's time and the last's); None when no
+/// goal can be reached through it before the target has left.
+fn stretches(goals: &[(i64, i64)], by: &[f64], stays: bool, top: f64) -> impl Fn((i64, i64), u64) -> Option<u64> {
+    let size = goals.len().div_ceil(STRETCHES);
+    let boxes: Vec<_> = (0..goals.len())
+        .step_by(size)
+        .map(|k| {
+            let end = (k + size).min(goals.len());
+            let (mut c0, mut r0, mut c1, mut r1) = (i64::MAX, i64::MAX, i64::MIN, i64::MIN);
+            for &(c, r) in &goals[k..end] {
+                (c0, r0, c1, r1) = (c0.min(c), r0.min(r), c1.max(c), r1.max(r));
+            }
+            let last = if stays && end == goals.len() { f64::INFINITY } else { by[end - 1] };
+            ((c0, r0, c1, r1), by[k], last)
+        })
+        .collect();
+    move |(c, r), time| {
+        boxes
+            .iter()
+            .filter_map(|&((c0, r0, c1, r1), first, last)| {
+                let near = (c.clamp(c0, c1), r.clamp(r0, r1));
+                let at = time as f64 + octile((c, r), near) / top;
+                (at <= last).then(|| at.max(first) as u64)
+            })
+            .min()
+    }
+}
+
+/// The search's usual bound: the time to reach the nearest goal, straight on at speed `top`
+/// (none beyond [`MAX_AIMED`] goals: spreading evenly until it meets one).
+fn aim(goals: &[(i64, i64)], top: f64) -> impl Fn((i64, i64), u64) -> Option<u64> {
+    let aimed: Vec<(i64, i64)> = if goals.len() <= MAX_AIMED { goals.iter().map(|&g| cell(g)).collect() } else { Vec::new() };
+    move |n, time| Some(time + aimed.iter().map(|&g| (octile(n, g) / top) as u64).min().unwrap_or(0))
 }
 
 /// Above the terrains' speeds, to be sure to find the fastest path.
@@ -193,17 +238,19 @@ pub fn intercept_straight(
 
 /// A* from `from` to the goal that `accept` gives the lowest score (given the goal and the
 /// time to reach it; None when it does not take it, and never below that time), the first
-/// reached of those with the same, looking at no more than `limit` cells: the goal reached,
+/// reached of those with the same, looking at no more than [`MAX_CELLS`] cells: the goal reached,
 /// and the cells where the direction changes up to it, or up to the cell nearest to the
-/// (first) goal when none was reached.
+/// (first) goal when none was reached. `bound` gives, for a cell reached at a time, a score
+/// no goal taken through it is below (None when none can be taken through it, which leaves
+/// the cell out): the A* estimate.
 fn search(
     rules: &Rules,
     terrain: &Terrain,
     from: (i64, i64),
     goals: &[(i64, i64)],
     accept: &dyn Fn(usize, u64) -> Option<u64>,
+    bound: &dyn Fn((i64, i64), u64) -> Option<u64>,
     top: f64,
-    limit: usize,
 ) -> (Option<usize>, Vec<(i64, i64)>) {
     let start = cell(from);
     let mut goal_cells: HashMap<(i64, i64), usize, BuildHasherDefault<CellHasher>> =
@@ -224,20 +271,12 @@ fn search(
             |(c0, r0, c1, r1), &(c, r)| (c0.min(c), r0.min(r), c1.max(c), r1.max(r)),
         )
     });
-    // The time at that speed all the way to the nearest goal: never more than the fastest
-    // path takes.
-    let aimed: Vec<(i64, i64)> = if goals.len() <= MAX_AIMED {
-        goals.iter().map(|&g| cell(g)).collect()
-    } else {
-        Vec::new()
-    };
     let first = cell(goals[0]);
     let estimate = |n: (i64, i64), to: (i64, i64)| (octile(n, to) / top) as u64;
-    let heuristic = |n: (i64, i64)| aimed.iter().map(|&g| estimate(n, g)).min().unwrap_or(0);
     let mut seen: Seen = HashMap::default();
     let mut open = BinaryHeap::new();
     seen.insert(start, (0, start));
-    open.push(Reverse((heuristic(start), 0u64, start)));
+    open.push(Reverse((bound(start, 0).unwrap_or(0), 0u64, start)));
     let mut nearest = (estimate(start, first), start);
     let mut reached = None;
     // the best score of a goal taken: none better is left once every path still open takes
@@ -261,7 +300,7 @@ fn search(
             }
         }
         looked += 1;
-        if looked > limit {
+        if looked > MAX_CELLS {
             break;
         }
         for (dc, dr) in [
@@ -291,9 +330,10 @@ fn search(
             if seen.get(&next).is_some_and(|&(known, _)| known <= g) {
                 continue;
             }
+            let Some(f) = bound(next, g) else { continue };
             seen.insert(next, (g, node));
             nearest = nearest.min((estimate(next, first), next));
-            open.push(Reverse((g + heuristic(next), g, next)));
+            open.push(Reverse((f, g, next)));
         }
     }
     // Back from the end to the start, keeping the cells where the direction changes.
