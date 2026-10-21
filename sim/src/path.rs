@@ -162,14 +162,18 @@ fn stretches(goals: &[(i64, i64)], by: &[f64], stays: bool, top: f64) -> impl Fn
         })
         .collect();
     move |(c, r), time| {
-        boxes
-            .iter()
-            .filter_map(|&((c0, r0, c1, r1), first, last)| {
-                let near = (c.clamp(c0, c1), r.clamp(r0, r1));
-                let at = time as f64 + octile((c, r), near) / top;
-                (at <= last).then(|| at.max(first) as u64)
-            })
-            .min()
+        let mut best: Option<f64> = None;
+        // (in the order of the trajectory: none later scores below the time it is left)
+        for &((c0, r0, c1, r1), first, last) in &boxes {
+            if best.is_some_and(|b| first >= b) {
+                break;
+            }
+            let at = time as f64 + octile((c, r), (c.clamp(c0, c1), r.clamp(r0, r1))) / top;
+            if at <= last {
+                best = Some(best.map_or(at.max(first), |b| b.min(at.max(first))));
+            }
+        }
+        best.map(|b| b as u64)
     }
 }
 
