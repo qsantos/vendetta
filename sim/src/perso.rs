@@ -188,6 +188,9 @@ pub struct Perso {
     pub(crate) path: Vec<(i64, i64)>,
     pub(crate) path_dest: (i64, i64),
     path_complete: bool,
+    /// Not in the original: the destination of the target when it was last headed off (see
+    /// `World::head_off`).
+    pub(crate) headed_off: (i64, i64),
 
     pub action: i32,
     pub in_own_castle: bool,
@@ -389,6 +392,7 @@ impl Perso {
             path: Vec::new(),
             path_dest: (0, 0),
             path_complete: false,
+            headed_off: (0, 0),
             action: action::IDLE,
             in_own_castle: false,
             in_castle: false,

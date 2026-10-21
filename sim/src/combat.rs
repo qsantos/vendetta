@@ -160,10 +160,13 @@ impl World {
                 let t = &self.persos[k];
                 if t.visible() && t.alive() {
                     // Heading off the target: planned again every few ticks (not all the
-                    // chasers at once), or once at the meeting point.
+                    // chasers at once) should its destination have moved by a quarter of the
+                    // chaser's way left (or two cells, close to it), or once at the meeting
+                    // point.
                     let intercepting = self.intercepting(i);
                     let every = (self.terrain.dist((p.x, p.y), (t.x, t.y)) / (4.0 * CELL as f64)).clamp(INTERCEPT_EVERY.0, INTERCEPT_EVERY.1) as u64;
-                    let due = (self.tick + i as u64).is_multiple_of(every) || p.dest == (p.x, p.y);
+                    let moved = self.terrain.dist(p.headed_off, t.dest) > (self.terrain.dist((p.x, p.y), p.dest) / 4.0).max(2.0 * CELL as f64);
+                    let due = (self.tick + i as u64).is_multiple_of(every) && moved || p.dest == (p.x, p.y);
                     if !intercepting || due && !self.head_off(rules, i) {
                         let t = &self.persos[k];
                         let (x, y) = self.centre_for(i, t.x, t.y, t.w, t.h);
@@ -276,6 +279,7 @@ impl World {
         }
         // where it stops, it stays
         let stays = trajectory.len() < INTERCEPT_POINTS;
+        let to = t.dest;
         let (from, speed) = ((p.x, p.y + feet), step(p, 1.0));
         match self.paths {
             Paths::Fastest => {
@@ -290,6 +294,7 @@ impl World {
                 self.persos[i].dest = (x, y - feet);
             }
         }
+        self.persos[i].headed_off = to;
         true
     }
 
