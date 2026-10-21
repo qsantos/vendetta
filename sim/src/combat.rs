@@ -4,15 +4,22 @@
 
 use crate::building::Building;
 use crate::event::NumberKind;
+use crate::path::{Chase, Paths};
 use crate::perso::action;
 use crate::rules::Rules;
 use crate::treasure::TREASURE_SIZE;
 use crate::vb::clng;
-use crate::terrain::Terrain;
+use crate::terrain::{CELL, Terrain};
 use crate::world::World;
 
 /// `Attaquer_Perso` etc.: `Action` codes 300-303.
 pub const ATTACK_PERSO: i32 = 300;
+/// Heading off a target (see `World::head_off`): planned again every so many ticks, more the
+/// farther it is (a tick for every four cells); within that distance (pixels), straight for
+/// it; and the points of its way looked at, at most.
+const INTERCEPT_EVERY: (f64, f64) = (4.0, 32.0);
+const INTERCEPT_NEAR: f64 = 3.0 * CELL as f64;
+const INTERCEPT_POINTS: usize = 4096;
 pub const ATTACK_HOUSE: i32 = 301;
 pub const ATTACK_CASTLE: i32 = 302;
 pub const ATTACK_GROUND: i32 = 303;
@@ -65,12 +72,17 @@ impl World {
         let inside = p.in_house && self.houses[p.house_target].shoot && r > 0.0;
         let in_range = within(&self.terrain, r, self.perso_box(i), self.perso_box(k));
         let p = &mut self.persos[i];
+        let fresh = p.action != ATTACK_PERSO || p.perso_target != k;
         p.action = ATTACK_PERSO;
         p.perso_target = k;
         if !(inside && in_range) {
             p.set_visible(true);
         }
         self.attack_order(rules, i);
+        // (not in the original) a new target, headed off at once
+        if fresh && self.intercepting(i) {
+            self.head_off(rules, i);
+        }
     }
 
     /// `Attaquer_Maison`
@@ -147,8 +159,16 @@ impl World {
                 let k = p.perso_target;
                 let t = &self.persos[k];
                 if t.visible() && t.alive() {
-                    let (x, y) = self.centre_for(i, t.x, t.y, t.w, t.h);
-                    self.persos[i].dest = self.terrain.near((self.persos[i].x, self.persos[i].y), (x, y));
+                    // Heading off the target: planned again every few ticks (not all the
+                    // chasers at once), or once at the meeting point.
+                    let intercepting = self.intercepting(i);
+                    let every = (self.terrain.dist((p.x, p.y), (t.x, t.y)) / (4.0 * CELL as f64)).clamp(INTERCEPT_EVERY.0, INTERCEPT_EVERY.1) as u64;
+                    let due = (self.tick + i as u64).is_multiple_of(every) || p.dest == (p.x, p.y);
+                    if !intercepting || due && !self.head_off(rules, i) {
+                        let t = &self.persos[k];
+                        let (x, y) = self.centre_for(i, t.x, t.y, t.w, t.h);
+                        self.persos[i].dest = self.terrain.near((self.persos[i].x, self.persos[i].y), (x, y));
+                    }
                 } else if t.alive() {
                     // The AIs go after a target hiding in a building.
                     if p.ai {
@@ -203,6 +223,69 @@ impl World {
         let p = &mut self.persos[i];
         let (x, y) = p.dest;
         p.orient(&self.terrain, x, y);
+    }
+
+    /// Not in the original: with [`Chase::Intercept`] (and the fastest paths), whether perso
+    /// `i` heads for where its target will be rather than for where it is: a target on the
+    /// move and not near yet.
+    pub(crate) fn intercepting(&self, i: usize) -> bool {
+        let p = &self.persos[i];
+        let t = &self.persos[p.perso_target];
+        self.chase == Chase::Intercept
+            && self.paths == Paths::Fastest
+            && p.action == ATTACK_PERSO
+            && t.moving
+            && !t.path.is_empty()
+            && !p.projectile
+            && !p.bonus_flying
+            && p.alive()
+            && self.terrain.dist((p.x, p.y), (t.x, t.y)) > INTERCEPT_NEAR
+    }
+
+    /// Heads perso `i` for where it meets its target the soonest (see [`crate::path::intercept`]),
+    /// the target going on along its path at its speed; false when there is no such place
+    /// within the search's reach.
+    pub(crate) fn head_off(&mut self, rules: &Rules, i: usize) -> bool {
+        let p = &self.persos[i];
+        let t = &self.persos[p.perso_target];
+        let feet = p.h as i64 - 16;
+        // (the target's copy nearest to the chaser, its path with it)
+        let (nx, ny) = self.terrain.near((p.x, p.y), (t.x, t.y));
+        let shift = ((nx - t.x) as f64, (ny - t.y) as f64);
+        // pixels a tick, as `update_step` makes them
+        let step = |q: &crate::perso::Perso, coef: f64| ((q.bonus_move as f64 * q.vitality).floor() * coef).floor().clamp(1.0, 16.0);
+        // Where the target will be, every half cell, and when; the chaser's top-left corner there
+        // and its feet, as for its path.
+        let meet = |(x, y): (f64, f64)| {
+            let (cx, cy) = self.centre_for(i, clng(x), clng(y), t.w, t.h);
+            (cx, cy + feet)
+        };
+        let mut trajectory = Vec::new();
+        let (mut at, mut time) = ((t.x as f64 + shift.0, t.y as f64 + shift.1), 0.0);
+        'path: for &(wx, wy) in &t.path {
+            let (dx, dy) = (wx as f64 + shift.0 - at.0, wy as f64 + shift.1 - at.1);
+            let n = ((dx * dx + dy * dy).sqrt() / (CELL as f64 / 2.0)).ceil().max(1.0);
+            for _ in 0..n as usize {
+                let coef = if t.bonus_flying { 1.0 } else { crate::perso::speed_coef(rules, &self.terrain, clng(at.0), clng(at.1) + t.h as i64 - 16) };
+                time += (dx * dx + dy * dy).sqrt() / n / step(t, coef);
+                at = (at.0 + dx / n, at.1 + dy / n);
+                trajectory.push((meet(at), time));
+                if trajectory.len() == INTERCEPT_POINTS {
+                    break 'path;
+                }
+            }
+        }
+        // where it stops, it stays
+        if trajectory.len() < INTERCEPT_POINTS
+            && let Some(end) = trajectory.last_mut()
+        {
+            end.1 = f64::INFINITY;
+        }
+        let found = crate::path::intercept(rules, &self.terrain, (p.x, p.y + feet), step(p, 1.0), &trajectory);
+        let Some((k, path)) = found else { return false };
+        let (x, y) = trajectory[k].0;
+        self.persos[i].follow((x, y - feet), path.into_iter().map(|(x, y)| (x, y - feet)).collect());
+        true
     }
 
     /// `Deplacement2`: give to or attack the target when it is in range, else walk

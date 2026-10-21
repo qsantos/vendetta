@@ -1,6 +1,6 @@
 //! World state, world creation (random generation or map files) and the tick.
 
-use crate::path::Paths;
+use crate::path::{Chase, Paths};
 use serde::{Deserialize, Serialize};
 use crate::ai::Ai;
 use crate::building::Building;
@@ -50,6 +50,8 @@ pub struct World {
     pub confrontation: bool,
     /// How characters find their way.
     pub paths: Paths,
+    /// How characters chase a moving target.
+    pub chase: Chase,
     /// `NoPerso`: the local player's character, which always says its comments.
     pub player: Option<usize>,
     /// `ModIA` state: the round robin and the per-character search state.
@@ -107,6 +109,8 @@ pub struct WorldSetup {
     pub torus: bool,
     /// How characters find their way.
     pub paths: Paths,
+    /// How characters chase a moving target.
+    pub chase: Chase,
     /// The fief of each human player (several may share one): each takes over a citizen of it.
     pub players: Vec<usize>,
     /// The human players' names, in the order of `players`; a missing or empty one keeps the
@@ -147,6 +151,7 @@ impl Default for WorldSetup {
             roads: Roads::Ring,
             torus: false,
             paths: Paths::Greedy,
+            chase: Chase::Direct,
             players: vec![0],
             names: Vec::new(),
         }
@@ -187,6 +192,7 @@ impl World {
             epoch_speed: rules.epoch_speeds.get(setup.epoch_speed).map(|e| e.coef).unwrap_or(1.0),
             confrontation: setup.confrontation,
             paths: setup.paths,
+            chase: setup.chase,
             player: None,
             ai: Ai::default(),
             victory: false,

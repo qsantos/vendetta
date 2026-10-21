@@ -261,3 +261,40 @@ fn chase_along_a_road() {
     }
     assert!(on_road > ticks / 2, "{on_road} ticks of {ticks} on the road");
 }
+
+/// Heading off a target that walks past, ahead of the chaser and as fast: met on its way,
+/// where going for where it is only trails behind it.
+#[test]
+fn head_off() {
+    use sim::orders::Order;
+    use sim::path::{Chase, Paths};
+    use sim::world::{World, WorldSetup};
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets");
+    let Some(rules) = load() else { return };
+    let files = Files::from_dir(&root).unwrap();
+    let plain = (0..rules.terrains.len()).find(|&k| rules.terrains[k].speed == 1.0).unwrap() as u8;
+    let cell = CELL as i64;
+    // the ticks until the chaser is within two cells of its target, if it ever is
+    let caught = |chase: Chase| {
+        let setup = WorldSetup { seed: 7, paths: Paths::Fastest, chase, players: vec![0, 1], ..Default::default() };
+        let mut w = World::create(&rules, &files, &setup).unwrap();
+        w.terrain.category.fill(plain);
+        let (i, j) = (w.persos.iter().position(|p| p.player).unwrap(), w.persos.iter().rposition(|p| p.player).unwrap());
+        let at = |w: &mut World, k: usize, c: i64, r: i64| {
+            let p = &mut w.persos[k];
+            p.in_house = false;
+            p.bonus_move = 4;
+            (p.x, p.y) = (c * cell, r * cell);
+        };
+        at(&mut w, i, 30, 35);
+        at(&mut w, j, 5, 20);
+        w.step(&rules, &[Order::Move { perso: j, x: 70 * cell, y: 20 * cell }]);
+        w.attack_perso(&rules, i, j);
+        (0..400).find(|_| {
+            w.step(&rules, &[]);
+            w.terrain.dist((w.persos[i].x, w.persos[i].y), (w.persos[j].x, w.persos[j].y)) < 2.0 * cell as f64
+        })
+    };
+    let (direct, ahead) = (caught(Chase::Direct), caught(Chase::Intercept));
+    assert!(ahead.is_some_and(|a| direct.is_none_or(|d| a < d)), "direct {direct:?}, heading off {ahead:?}");
+}

@@ -656,7 +656,10 @@ impl World {
                 self.order_charge(rules, i, 0, k as i64, ctrl, shift, false);
             } else {
                 self.attack_perso(rules, i, k);
-                self.persos[i].follow(dest, path);
+                // (unless heading it off)
+                if !self.intercepting(i) {
+                    self.persos[i].follow(dest, path);
+                }
             }
         } else if let Some(k) = self.nearest_enemy(i, -1, -1) {
             if send {

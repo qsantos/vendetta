@@ -21,6 +21,17 @@ pub enum Paths {
     Fastest,
 }
 
+/// How a character chases a moving target.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Chase {
+    /// The original's: straight for where the target is, again every tick.
+    #[default]
+    Direct,
+    /// Not in the original (and only with [`Paths::Fastest`]): where the target will be, met
+    /// on its way (see [`intercept`]).
+    Intercept,
+}
+
 /// Cells looked at before giving up on reaching the destination (then the path goes to the
 /// cell nearest to it found so far, and straight on from there).
 const MAX_CELLS: usize = 1 << 18;
@@ -45,7 +56,7 @@ pub fn fastest(
     if cell(from) != cell(to) && clear(rules, terrain, from, to, top) {
         return vec![to];
     }
-    let (reached, mut path) = search(rules, terrain, from, &[to], top, MAX_CELLS);
+    let (reached, mut path) = search(rules, terrain, from, &[to], &|_, _| true, top, MAX_CELLS);
     if reached.is_none() {
         path.push(to);
     }
@@ -66,10 +77,55 @@ pub fn nearest(
         terrain,
         from,
         goals,
+        &|_, _| true,
         top_speed(rules),
         MAX_CELLS,
     );
     Some((reached?, straighten(rules, terrain, from, path)))
+}
+
+/// Where to meet a moving target, from `from` at `speed` (pixels a tick at speed 1): of
+/// `trajectory`, the points (feet positions, the copies nearest to `from`) where the target
+/// will be with the tick it will be there, ending with where it stops, the first that can be
+/// reached by then, the fastest way; with the waypoints there as [`fastest`] gives them.
+/// None when none is within the search's reach.
+pub fn intercept(
+    rules: &Rules,
+    terrain: &Terrain,
+    from: (i64, i64),
+    speed: f64,
+    trajectory: &[((i64, i64), f64)],
+) -> Option<(usize, Vec<(i64, i64)>)> {
+    // Of the points in a cell, the last: there until then.
+    let mut last: HashMap<(i64, i64), usize, BuildHasherDefault<CellHasher>> = HashMap::default();
+    for (k, &(p, _)) in trajectory.iter().enumerate() {
+        last.insert(cell(p), k);
+    }
+    // (the search's time: thousandths of a cell at speed 1)
+    let by = |k: usize| trajectory[k].1 * speed * STRAIGHT / CELL as f64;
+    // Only those within reach in time, straight on at the top speed.
+    let top = top_speed(rules);
+    let start = cell(from);
+    let mut kept: Vec<usize> = last
+        .into_values()
+        .filter(|&k| octile(start, cell(trajectory[k].0)) / top <= by(k))
+        .collect();
+    kept.sort_unstable();
+    let goals: Vec<(i64, i64)> = kept.iter().map(|&k| trajectory[k].0).collect();
+    if goals.is_empty() {
+        return None;
+    }
+    let (reached, path) = search(
+        rules,
+        terrain,
+        from,
+        &goals,
+        &|g, time| time as f64 <= by(kept[g]),
+        top,
+        MAX_CELLS,
+    );
+    let reached = reached?;
+    Some((kept[reached], straighten(rules, terrain, from, path)))
 }
 
 /// Above the terrains' speeds, to be sure to find the fastest path.
@@ -81,6 +137,13 @@ fn top_speed(rules: &Rules) -> f64 {
         .fold(1.0f64, f64::max)
 }
 
+/// The time between two cells at speed 1 without obstacles (eight directions).
+fn octile((c, r): (i64, i64), to: (i64, i64)) -> f64 {
+    let (dx, dy) = ((c - to.0).abs(), (r - to.1).abs());
+    let (diagonal, straight) = (dx.min(dy), dx.max(dy) - dx.min(dy));
+    diagonal as f64 * DIAGONAL + straight as f64 * STRAIGHT
+}
+
 fn cell((x, y): (i64, i64)) -> (i64, i64) {
     (clng(x as f64 / CELL as f64), clng(y as f64 / CELL as f64))
 }
@@ -89,14 +152,16 @@ fn cell((x, y): (i64, i64)) -> (i64, i64) {
 /// spreading evenly until it meets one.
 const MAX_AIMED: usize = 64;
 
-/// A* from `from` to the first of `goals` reached, looking at no more than `limit` cells: the
-/// goal reached, and the cells where the direction changes up to it, or up to the cell nearest
-/// to the (first) goal when none was reached.
+/// A* from `from` to the first of `goals` reached that `accept` takes (given the goal and the
+/// time to reach it), looking at no more than `limit` cells: the goal reached, and the cells
+/// where the direction changes up to it, or up to the cell nearest to the (first) goal when
+/// none was reached.
 fn search(
     rules: &Rules,
     terrain: &Terrain,
     from: (i64, i64),
     goals: &[(i64, i64)],
+    accept: &dyn Fn(usize, u64) -> bool,
     top: f64,
     limit: usize,
 ) -> (Option<usize>, Vec<(i64, i64)>) {
@@ -106,7 +171,9 @@ fn search(
     for (k, &g) in goals.iter().enumerate().rev() {
         goal_cells.insert(cell(g), k);
     }
-    if let Some(&k) = goal_cells.get(&start) {
+    if let Some(&k) = goal_cells.get(&start)
+        && accept(k, 0)
+    {
         return (Some(k), Vec::new());
     }
     // On a flat map, the cells of the map, and those of the ends should they be off it.
@@ -130,11 +197,7 @@ fn search(
         Vec::new()
     };
     let first = cell(goals[0]);
-    let estimate = |(c, r): (i64, i64), to: (i64, i64)| {
-        let (dx, dy) = ((c - to.0).abs(), (r - to.1).abs());
-        let (diagonal, straight) = (dx.min(dy), dx.max(dy) - dx.min(dy));
-        ((diagonal as f64 * DIAGONAL + straight as f64 * STRAIGHT) / top) as u64
-    };
+    let estimate = |n: (i64, i64), to: (i64, i64)| (octile(n, to) / top) as u64;
     let heuristic = |n: (i64, i64)| aimed.iter().map(|&g| estimate(n, g)).min().unwrap_or(0);
     let mut seen: Seen = HashMap::default();
     let mut open = BinaryHeap::new();
@@ -147,7 +210,9 @@ fn search(
         if seen[&node].0 < g {
             continue;
         }
-        if let Some(&k) = goal_cells.get(&node) {
+        if let Some(&k) = goal_cells.get(&node)
+            && accept(k, g)
+        {
             reached = Some(k);
             nearest.1 = node;
             break;
