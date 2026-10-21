@@ -377,14 +377,14 @@ async fn main() {
     };
     let mut net = options.me.map(|me| net::Net::new(&world, &options.players, &options.names, me, world.tick));
     let mut player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
-    // In network play, the world starts with the server's first tick, once the players are ready.
+    // In network play, the world starts with the server's first tick, once the players have made their worlds.
     // Coming back to a game in progress, the ticks missed are played first, as fast as can be.
     if let Some(net) = &mut net {
         if options.resume {
             info!("resuming at tick {}", world.tick);
             net.since();
         } else {
-            net.ready();
+            net.loaded();
         }
         while net.backlog() == 0 {
             net.poll();

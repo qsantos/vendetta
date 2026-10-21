@@ -15,7 +15,7 @@
 //!   `characters=`, empty for none), under that name;
 //! - `{"t":"settings","items":[…]}` (host): the world options, as in the URL's hash;
 //! - `{"t":"start"}` (host);
-//! - `{"t":"ready"}`: its world is made, the ticks may start;
+//! - `{"t":"loaded"}`: its world is made, the ticks may start;
 //! - `{"t":"rejoin","room":…,"token":…}`: take one's place back in a game in progress;
 //! - `{"t":"since","have":n}`: after a rejoin, the ticks from the n-th on (n of them played);
 //! - `{"t":"order","order":…}`: an order for the next tick, passed on as it is;
@@ -25,7 +25,7 @@
 //! - `{"t":"lobby","room":…,"you":k,"token":…,"host":k,"players":[{"name","fief","character","online"}],"items":[…]}`;
 //! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"names":[…],"characters":[…],"you":k}`, with `"resume":true`
 //!   after a rejoin;
-//! - `{"t":"wait","ready":n,"players":m}`: n of the m players are ready;
+//! - `{"t":"wait","loaded":n,"players":m}`: n of the m players have made their world;
 //! - `{"t":"tick","n":n,"orders":[[k,order]…]}`, n counting from 0;
 //! - `{"t":"presence","player":k,"online":b}`: a player of the game in progress left or came
 //!   back (and, to a player coming back, each one still away);
@@ -34,9 +34,9 @@
 //!
 //! Players are numbered by their place in the room, which the start fixes.
 //!
-//! The ticks start once every player still connected is ready, or, with the room option
-//! `wait=F`, once F times what the first one ready took has passed: slow players then catch up.
-//! Always once one at least is ready.
+//! The ticks start once every player still connected has made its world, or, with the room
+//! option `wait=F`, once F times what the first one took has passed: slow players then catch
+//! up. Always once one at least has.
 //!
 //! A player who leaves a game in progress keeps its place (its character stands still): with
 //! the token the lobby gave it, it takes it back and gets the ticks it missed, which the room
@@ -87,7 +87,7 @@ enum In {
     Character { character: String, name: String },
     Settings { items: Vec<String> },
     Start,
-    Ready,
+    Loaded,
     Rejoin {
         room: String,
         token: String,
@@ -111,7 +111,7 @@ struct Player {
     /// passed on, for the game to check.
     character: String,
     /// Its world is made (once started).
-    ready: bool,
+    loaded: bool,
     /// Back in the game and not caught up yet: no tick until it asks for those it missed
     /// (`In::Since`), which then come in order.
     rejoining: bool,
@@ -133,9 +133,9 @@ struct Room {
     /// The first digest reported for each recent tick.
     hashes: HashMap<u64, u64>,
     desync: bool,
-    /// When the game started, and how long the first player ready took.
+    /// When the game started, and how long the first player took to make its world.
     started_at: Option<Instant>,
-    first_ready: Option<Duration>,
+    first_loaded: Option<Duration>,
     /// Every tick sent, as sent.
     log: Vec<String>,
     /// Since when nobody is connected (a game in progress).
@@ -159,22 +159,22 @@ impl Room {
     }
 
     /// Whether the ticks may start (see the module's doc).
-    fn all_ready(&self) -> bool {
-        let Some(first) = self.first_ready else { return false };
+    fn all_loaded(&self) -> bool {
+        let Some(first) = self.first_loaded else { return false };
         let online = self.players.iter().filter(|p| p.tx.is_some());
-        online.clone().all(|p| p.ready)
+        online.clone().all(|p| p.loaded)
             || self.wait().zip(self.started_at).is_some_and(|(f, at)| at.elapsed() >= first.mul_f64(f))
     }
 
-    /// Player k's world is made (or caught up with the game): see `all_ready`.
-    fn set_ready(&mut self, k: usize) {
-        if std::mem::replace(&mut self.players[k].ready, true) {
+    /// Player k's world is made (or caught up with the game): see `all_loaded`.
+    fn set_loaded(&mut self, k: usize) {
+        if std::mem::replace(&mut self.players[k].loaded, true) {
             return;
         }
         let took = self.started_at.map_or(Duration::ZERO, |at| at.elapsed());
-        self.first_ready.get_or_insert(took);
-        let ready = self.players.iter().filter(|p| p.ready).count();
-        self.broadcast(&json!({"t": "wait", "ready": ready, "players": self.players.len()}));
+        self.first_loaded.get_or_insert(took);
+        let loaded = self.players.iter().filter(|p| p.loaded).count();
+        self.broadcast(&json!({"t": "wait", "loaded": loaded, "players": self.players.len()}));
     }
 
     /// Nobody connected for longer than `GRACE`.
@@ -230,7 +230,7 @@ impl Rooms {
 
     fn player(&self, conn: u64, name: &str, tx: &UnboundedSender<String>) -> Player {
         let token = format!("{:016x}{:016x}", self.random(conn), self.random(conn ^ 1));
-        Player { id: conn, token, conn, name: clean(name), fief: 1, character: String::new(), ready: false, rejoining: false, tx: Some(tx.clone()) }
+        Player { id: conn, token, conn, name: clean(name), fief: 1, character: String::new(), loaded: false, rejoining: false, tx: Some(tx.clone()) }
     }
 }
 
@@ -415,7 +415,7 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
                     }
                     tokio::spawn(ticker(rooms.clone(), code.to_owned()));
                 }
-                In::Ready if room.started => room.set_ready(k),
+                In::Loaded if room.started => room.set_loaded(k),
                 In::Since { have } if room.started => {
                     for text in room.log.iter().skip(have) {
                         if let Some(tx) = &room.players[k].tx {
@@ -423,7 +423,7 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
                         }
                     }
                     room.players[k].rejoining = false;
-                    room.set_ready(k);
+                    room.set_loaded(k);
                 }
                 In::Order { order } if room.started => room.pending.push((k, order)),
                 In::Hash { tick, hash } if room.started => {
@@ -446,7 +446,7 @@ fn clean(name: &str) -> String {
     if name.trim().is_empty() { "Joueur".to_owned() } else { name.trim().to_owned() }
 }
 
-/// Once the players are ready, broadcasts a tick every `TICK`, or as the room's speed says,
+/// Once the players have made their worlds, broadcasts a tick every `TICK`, or as the room's speed says,
 /// while the room lasts.
 async fn ticker(rooms: Arc<Rooms>, code: String) {
     let period = loop {
@@ -457,7 +457,7 @@ async fn ticker(rooms: Arc<Rooms>, code: String) {
                 all.remove(&code);
                 return;
             }
-            if room.all_ready() {
+            if room.all_loaded() {
                 break room.tick_period();
             }
         }

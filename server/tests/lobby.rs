@@ -88,11 +88,11 @@ async fn lobby_and_lockstep() {
 
     // no tick until both worlds are made
     assert!(quiet(&mut a).await);
-    send(&mut a, json!({"t": "ready"})).await;
+    send(&mut a, json!({"t": "loaded"})).await;
     let wait = next(&mut b, "wait").await;
-    assert_eq!((wait["ready"].clone(), wait["players"].clone()), (json!(1), json!(2)));
+    assert_eq!((wait["loaded"].clone(), wait["players"].clone()), (json!(1), json!(2)));
     assert!(quiet(&mut a).await);
-    send(&mut b, json!({"t": "ready"})).await;
+    send(&mut b, json!({"t": "loaded"})).await;
 
     // an order reaches everyone, with its sender, in the same tick
     send(&mut b, json!({"t": "order", "order": {"GoOwnCastle": {"perso": 12}}})).await;
@@ -133,8 +133,8 @@ async fn slow_players_are_not_waited_for_forever() {
     send(&mut a, json!({"t": "start"})).await;
     next(&mut a, "start").await;
     tokio::time::sleep(Duration::from_millis(200)).await;
-    send(&mut a, json!({"t": "ready"})).await;
-    // Bob never says it is ready: the ticks come after about 200 ms more
+    send(&mut a, json!({"t": "loaded"})).await;
+    // Bob never says its world is made: the ticks come after about 200 ms more
     let t = std::time::Instant::now();
     next(&mut a, "tick").await;
     assert!(t.elapsed() >= Duration::from_millis(150), "{:?}", t.elapsed());
@@ -153,8 +153,8 @@ async fn rejoining_a_game_in_progress() {
     let token = next(&mut b, "lobby").await["token"].as_str().unwrap().to_owned();
     send(&mut a, json!({"t": "start"})).await;
     next(&mut b, "start").await;
-    send(&mut a, json!({"t": "ready"})).await;
-    send(&mut b, json!({"t": "ready"})).await;
+    send(&mut a, json!({"t": "loaded"})).await;
+    send(&mut b, json!({"t": "loaded"})).await;
     next(&mut b, "tick").await;
     drop(b);
     let gone = next(&mut a, "presence").await;

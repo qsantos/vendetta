@@ -69,7 +69,7 @@ pub struct Net {
     pub closed: bool,
     /// The page reconnected: the game goes on.
     pub reconnected: bool,
-    /// How many players are ready, of how many, before the first tick.
+    /// How many players have made their world, of how many, before the first tick.
     pub waiting: (u64, u64),
 }
 
@@ -85,9 +85,9 @@ impl Net {
         self.humans.get(self.me).copied().flatten()
     }
 
-    /// The world is made: the ticks may start (once the others are ready too).
-    pub fn ready(&self) {
-        send(&json!({"t": "ready"}));
+    /// The world is made: the ticks may start (once the others have made theirs too).
+    pub fn loaded(&self) {
+        send(&json!({"t": "loaded"}));
     }
 
     /// Back in a game in progress: the ticks after those received.
@@ -163,7 +163,7 @@ impl Net {
                         self.notices.push(if online { format!("{name} {}", tr(["est revenu.", "is back.", "ha vuelto.", "が戻りました。", "回来了。"])) } else { format!("&{name} {}", tr(["s'est déconnecté.", "has disconnected.", "se ha desconectado.", "が切断されました。", "已断开连接。"])) });
                     }
                 }
-                Some("wait") => self.waiting = (msg["ready"].as_u64().unwrap_or(0), msg["players"].as_u64().unwrap_or(0)),
+                Some("wait") => self.waiting = (msg["loaded"].as_u64().unwrap_or(0), msg["players"].as_u64().unwrap_or(0)),
                 _ => {}
             }
         }
