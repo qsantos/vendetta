@@ -520,9 +520,10 @@ impl World {
             }
             let c = s.enemy_house_cursor;
             let m = &self.houses[c];
-            if s.enemy_house_distance as f64 > self.terrain.dist(p, (m.x as i64, m.y as i64))
+            // (the cheapest checks first)
+            if m.visible()
                 && self.persos[c].team != self.persos[i].team
-                && m.visible()
+                && s.enemy_house_distance as f64 > self.terrain.dist(p, (m.x as i64, m.y as i64))
             {
                 return Some(c);
             }
@@ -795,22 +796,27 @@ impl World {
             let c = s.house_cursor;
             let d = s.house_distance;
             let (m, p) = (&self.houses[c], &self.persos[n]);
-            let same = self.persos[c].fief == p.fief;
+            // (every house found is ready: the cheapest checks first)
             let t = &self.terrain;
-            let near = t.dx(m.x as i64, p.x).abs() < d && t.dy(m.y as i64, p.y).abs() < d;
-            let ready = m.built && m.stock() >= 1.0 && same && near;
-            let product = rules.buildings[m.kind].product;
-            if service > 0 {
-                found = m.service as i64 == service && ready;
-            } else if need == 5 {
-                found = m.factory && ready;
-            } else if m.shop || m.factory {
-                if resource == 0 {
-                    if product >= 0 && need < 5 && ready && (1..=4).contains(&need) {
-                        found |= rules.resources[product as usize].gain[need as usize - 1] > 0.0;
+            let ready = m.built
+                && m.stock() >= 1.0
+                && self.persos[c].fief == p.fief
+                && t.dx(m.x as i64, p.x).abs() < d
+                && t.dy(m.y as i64, p.y).abs() < d;
+            if ready {
+                let product = rules.buildings[m.kind].product;
+                if service > 0 {
+                    found = m.service as i64 == service;
+                } else if need == 5 {
+                    found = m.factory;
+                } else if m.shop || m.factory {
+                    if resource == 0 {
+                        if product >= 0 && need < 5 && (1..=4).contains(&need) {
+                            found |= rules.resources[product as usize].gain[need as usize - 1] > 0.0;
+                        }
+                    } else if product == resource && d as f64 >= t.dist((p.x, p.y), (m.x as i64, m.y as i64)) {
+                        found = true;
                     }
-                } else if product == resource && ready && d as f64 >= self.terrain.dist((p.x, p.y), (m.x as i64, m.y as i64)) {
-                    found = true;
                 }
             }
             if found {
