@@ -225,14 +225,13 @@ impl World {
         p.orient(&self.terrain, x, y);
     }
 
-    /// Not in the original: with [`Chase::Intercept`] (and the fastest paths), whether perso
+    /// Not in the original: with [`Chase::Intercept`], whether perso
     /// `i` heads for where its target will be rather than for where it is: a target on the
     /// move and not near yet.
     pub(crate) fn intercepting(&self, i: usize) -> bool {
         let p = &self.persos[i];
         let t = &self.persos[p.perso_target];
         self.chase == Chase::Intercept
-            && self.paths == Paths::Fastest
             && p.action == ATTACK_PERSO
             && t.moving
             && !t.path.is_empty()
@@ -242,9 +241,9 @@ impl World {
             && self.terrain.dist((p.x, p.y), (t.x, t.y)) > INTERCEPT_NEAR
     }
 
-    /// Heads perso `i` for where it meets its target the soonest (see [`crate::path::intercept`]),
-    /// the target going on along its path at its speed; false when there is no such place
-    /// within the search's reach.
+    /// Heads perso `i` for where it meets its target the soonest (see [`crate::path::intercept`],
+    /// or [`crate::path::intercept_straight`] with the original's paths), the target going on
+    /// along its path at its speed; false when there is no such place within reach.
     pub(crate) fn head_off(&mut self, rules: &Rules, i: usize) -> bool {
         let p = &self.persos[i];
         let t = &self.persos[p.perso_target];
@@ -276,15 +275,21 @@ impl World {
             }
         }
         // where it stops, it stays
-        if trajectory.len() < INTERCEPT_POINTS
-            && let Some(end) = trajectory.last_mut()
-        {
-            end.1 = f64::INFINITY;
+        let stays = trajectory.len() < INTERCEPT_POINTS;
+        let (from, speed) = ((p.x, p.y + feet), step(p, 1.0));
+        match self.paths {
+            Paths::Fastest => {
+                let Some((k, path)) = crate::path::intercept(rules, &self.terrain, from, speed, &trajectory, stays) else { return false };
+                let (x, y) = trajectory[k].0;
+                self.persos[i].follow((x, y - feet), path.into_iter().map(|(x, y)| (x, y - feet)).collect());
+            }
+            // the original's paths walk there their way
+            Paths::Greedy => {
+                let Some(k) = crate::path::intercept_straight(rules, &self.terrain, from, speed, &trajectory, stays) else { return false };
+                let (x, y) = trajectory[k].0;
+                self.persos[i].dest = (x, y - feet);
+            }
         }
-        let found = crate::path::intercept(rules, &self.terrain, (p.x, p.y + feet), step(p, 1.0), &trajectory);
-        let Some((k, path)) = found else { return false };
-        let (x, y) = trajectory[k].0;
-        self.persos[i].follow((x, y - feet), path.into_iter().map(|(x, y)| (x, y - feet)).collect());
         true
     }
 

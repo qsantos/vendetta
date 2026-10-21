@@ -27,8 +27,8 @@ pub enum Chase {
     /// The original's: straight for where the target is, again every tick.
     #[default]
     Direct,
-    /// Not in the original (and only with [`Paths::Fastest`]): where the target will be, met
-    /// on its way (see [`intercept`]).
+    /// Not in the original: where the target will be, met on its way (see [`intercept`] and
+    /// [`intercept_straight`]).
     Intercept,
 }
 
@@ -56,7 +56,7 @@ pub fn fastest(
     if cell(from) != cell(to) && clear(rules, terrain, from, to, top) {
         return vec![to];
     }
-    let (reached, mut path) = search(rules, terrain, from, &[to], &|_, _| true, top, MAX_CELLS);
+    let (reached, mut path) = search(rules, terrain, from, &[to], &|_, time| Some(time), top, MAX_CELLS);
     if reached.is_none() {
         path.push(to);
     }
@@ -77,7 +77,7 @@ pub fn nearest(
         terrain,
         from,
         goals,
-        &|_, _| true,
+        &|_, time| Some(time),
         top_speed(rules),
         MAX_CELLS,
     );
@@ -86,8 +86,9 @@ pub fn nearest(
 
 /// Where to meet a moving target, from `from` at `speed` (pixels a tick at speed 1): of
 /// `trajectory`, the points (feet positions, the copies nearest to `from`) where the target
-/// will be with the tick it will be there, ending with where it stops, the first that can be
-/// reached by then, the fastest way; with the waypoints there as [`fastest`] gives them.
+/// will be with the tick it will be there (the last one where it stops, should it `stay`),
+/// the first on its way that can be reached by then, the fastest way; with the waypoints
+/// there as [`fastest`] gives them.
 /// None when none is within the search's reach.
 pub fn intercept(
     rules: &Rules,
@@ -95,7 +96,9 @@ pub fn intercept(
     from: (i64, i64),
     speed: f64,
     trajectory: &[((i64, i64), f64)],
+    stays: bool,
 ) -> Option<(usize, Vec<(i64, i64)>)> {
+    let end = trajectory.len().checked_sub(1)?;
     // Of the points in a cell, the last: there until then.
     let mut last: HashMap<(i64, i64), usize, BuildHasherDefault<CellHasher>> = HashMap::default();
     for (k, &(p, _)) in trajectory.iter().enumerate() {
@@ -108,7 +111,7 @@ pub fn intercept(
     let start = cell(from);
     let mut kept: Vec<usize> = last
         .into_values()
-        .filter(|&k| octile(start, cell(trajectory[k].0)) / top <= by(k))
+        .filter(|&k| stays && k == end || octile(start, cell(trajectory[k].0)) / top <= by(k))
         .collect();
     kept.sort_unstable();
     let goals: Vec<(i64, i64)> = kept.iter().map(|&k| trajectory[k].0).collect();
@@ -120,7 +123,11 @@ pub fn intercept(
         terrain,
         from,
         &goals,
-        &|g, time| time as f64 <= by(kept[g]),
+        // the soonest they are both there
+        &|g, time| {
+            let (k, by) = (kept[g], by(kept[g]));
+            (time as f64 <= by || stays && k == end).then(|| (time as f64).max(by) as u64)
+        },
         top,
         MAX_CELLS,
     );
@@ -152,16 +159,49 @@ fn cell((x, y): (i64, i64)) -> (i64, i64) {
 /// spreading evenly until it meets one.
 const MAX_AIMED: usize = 64;
 
-/// A* from `from` to the first of `goals` reached that `accept` takes (given the goal and the
-/// time to reach it), looking at no more than `limit` cells: the goal reached, and the cells
-/// where the direction changes up to it, or up to the cell nearest to the (first) goal when
-/// none was reached.
+/// [`intercept`] for a chaser walking straight on (the original's paths): of `trajectory`,
+/// the first point reached by then along the straight line, at the terrains' speeds on it.
+pub fn intercept_straight(
+    rules: &Rules,
+    terrain: &Terrain,
+    from: (i64, i64),
+    speed: f64,
+    trajectory: &[((i64, i64), f64)],
+    stays: bool,
+) -> Option<usize> {
+    let top = top_speed(rules);
+    let end = trajectory.len().checked_sub(1)?;
+    trajectory.iter().enumerate().position(|(k, &((x, y), by))| {
+        let by = if stays && k == end { f64::INFINITY } else { by };
+        let (dx, dy) = ((x - from.0) as f64, (y - from.1) as f64);
+        let len = (dx * dx + dy * dy).sqrt();
+        // (not even at the top speed)
+        if len / (speed * top) > by {
+            return false;
+        }
+        // every half cell
+        let n = (len / (CELL as f64 / 2.0)).ceil().max(1.0);
+        let mut time = 0.0;
+        (0..n as usize).all(|k| {
+            let f = (k as f64 + 0.5) / n;
+            let (x, y) = (from.0 as f64 + dx * f, from.1 as f64 + dy * f);
+            time += len / n / (speed * speed_coef(rules, terrain, clng(x), clng(y)).max(0.01));
+            time <= by
+        })
+    })
+}
+
+/// A* from `from` to the goal that `accept` gives the lowest score (given the goal and the
+/// time to reach it; None when it does not take it, and never below that time), the first
+/// reached of those with the same, looking at no more than `limit` cells: the goal reached,
+/// and the cells where the direction changes up to it, or up to the cell nearest to the
+/// (first) goal when none was reached.
 fn search(
     rules: &Rules,
     terrain: &Terrain,
     from: (i64, i64),
     goals: &[(i64, i64)],
-    accept: &dyn Fn(usize, u64) -> bool,
+    accept: &dyn Fn(usize, u64) -> Option<u64>,
     top: f64,
     limit: usize,
 ) -> (Option<usize>, Vec<(i64, i64)>) {
@@ -170,11 +210,6 @@ fn search(
         HashMap::default();
     for (k, &g) in goals.iter().enumerate().rev() {
         goal_cells.insert(cell(g), k);
-    }
-    if let Some(&k) = goal_cells.get(&start)
-        && accept(k, 0)
-    {
-        return (Some(k), Vec::new());
     }
     // On a flat map, the cells of the map, and those of the ends should they be off it.
     let bounds = (!terrain.torus).then(|| {
@@ -205,17 +240,25 @@ fn search(
     open.push(Reverse((heuristic(start), 0u64, start)));
     let mut nearest = (estimate(start, first), start);
     let mut reached = None;
+    // the best score of a goal taken: none better is left once every path still open takes
+    // that long (a goal's score is never below the time to reach it)
+    let mut best = None;
     let mut looked = 0;
-    while let Some(Reverse((_, g, node))) = open.pop() {
+    while let Some(Reverse((f, g, node))) = open.pop() {
+        if best.is_some_and(|b| f >= b) {
+            break;
+        }
         if seen[&node].0 < g {
             continue;
         }
         if let Some(&k) = goal_cells.get(&node)
-            && accept(k, g)
+            && let Some(score) = accept(k, g)
+            && best.is_none_or(|b| score < b)
         {
-            reached = Some(k);
-            nearest.1 = node;
-            break;
+            (best, reached, nearest.1) = (Some(score), Some(k), node);
+            if score <= f {
+                break;
+            }
         }
         looked += 1;
         if looked > limit {

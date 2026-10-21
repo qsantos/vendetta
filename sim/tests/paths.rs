@@ -263,7 +263,7 @@ fn chase_along_a_road() {
 }
 
 /// Heading off a target that walks past, ahead of the chaser and as fast: met on its way,
-/// where going for where it is only trails behind it.
+/// where going for where it is only trails behind it; with either way of finding paths.
 #[test]
 fn head_off() {
     use sim::orders::Order;
@@ -275,8 +275,8 @@ fn head_off() {
     let plain = (0..rules.terrains.len()).find(|&k| rules.terrains[k].speed == 1.0).unwrap() as u8;
     let cell = CELL as i64;
     // the ticks until the chaser is within two cells of its target, if it ever is
-    let caught = |chase: Chase| {
-        let setup = WorldSetup { seed: 7, paths: Paths::Fastest, chase, players: vec![0, 1], ..Default::default() };
+    let caught = |paths: Paths, chase: Chase| {
+        let setup = WorldSetup { seed: 7, paths, chase, players: vec![0, 1], ..Default::default() };
         let mut w = World::create(&rules, &files, &setup).unwrap();
         w.terrain.category.fill(plain);
         let (i, j) = (w.persos.iter().position(|p| p.player).unwrap(), w.persos.iter().rposition(|p| p.player).unwrap());
@@ -295,6 +295,8 @@ fn head_off() {
             w.terrain.dist((w.persos[i].x, w.persos[i].y), (w.persos[j].x, w.persos[j].y)) < 2.0 * cell as f64
         })
     };
-    let (direct, ahead) = (caught(Chase::Direct), caught(Chase::Intercept));
-    assert!(ahead.is_some_and(|a| direct.is_none_or(|d| a < d)), "direct {direct:?}, heading off {ahead:?}");
+    for paths in [Paths::Fastest, Paths::Greedy] {
+        let (direct, ahead) = (caught(paths, Chase::Direct), caught(paths, Chase::Intercept));
+        assert!(ahead.is_some_and(|a| direct.is_none_or(|d| a < d)), "{paths:?}: direct {direct:?}, heading off {ahead:?}");
+    }
 }

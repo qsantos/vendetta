@@ -34,7 +34,7 @@ pub struct Options {
     /// a time, instead of the fastest path.
     pub greedy_paths: bool,
     /// `chase=direct`: the original's way of chasing, straight for where the target is,
-    /// instead of heading it off (only with the fastest paths).
+    /// instead of heading it off.
     pub direct_chase: bool,
     /// `perf`: show where the time goes (see `perf.rs`).
     pub perf: bool,
