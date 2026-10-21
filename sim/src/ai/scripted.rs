@@ -6,7 +6,7 @@ use crate::perso::action;
 use crate::rules::Rules;
 use crate::terrain::CELL;
 use crate::vb::clng;
-use crate::world::World;
+use crate::world::{Towns, World};
 
 /// `NombreRecherchesEmplacementMaison`
 const SITE_TRIES: usize = 10;
@@ -679,6 +679,14 @@ impl World {
             self.ai.obstacle_distance[nf] = castle_w;
             return Some((x as i32, y as i32));
         }
+        // (else, when every site next to the town is taken, the original's)
+        if self.towns == Towns::Compact
+            && !self.persos[n].invocation()
+            && let Some(site) = self.compact_site(rules, n, w, h)
+        {
+            self.ai.obstacle_distance[nf] = castle_w;
+            return Some(site);
+        }
         let (mw, mh) = (self.terrain.width as i64 * CELL as i64, self.terrain.height as i64 * CELL as i64);
         for _ in 0..=SITE_TRIES {
             self.ai.obstacle_distance[nf] += CELL as i64;
@@ -729,5 +737,76 @@ impl World {
             }
         }
         None
+    }
+
+    /// Not in the original ([`Towns::Compact`]): a site of `w` × `h` for perso `n`'s fief next
+    /// to one of its buildings (its castle, its houses), a cell away from every building, so
+    /// that lanes stay open; the nearest to the castle of those free, so that the town grows
+    /// from it, filling its corners. None when there is none.
+    fn compact_site(&self, rules: &Rules, n: usize, w: i32, h: i32) -> Option<(i32, i32)> {
+        let nf = self.persos[n].fief;
+        let gap = CELL;
+        let castle = &self.castles[nf];
+        let centre = (castle.x + castle.w / 2, castle.y + castle.h / 2);
+        // the buildings, by their offset from the castle's centre (across the edges on a torus)
+        let castle_rect = castle.visible().then_some((castle.x, castle.y, castle.w, castle.h));
+        let houses = (0..self.houses.len()).filter(|&j| self.houses[j].visible() && self.persos[j].fief == nf).map(|j| {
+            let m = &self.houses[j];
+            (m.x, m.y, m.w, m.h)
+        });
+        let rects: Vec<(i32, i32, i32, i32)> = castle_rect
+            .into_iter()
+            .chain(houses)
+            .map(|(x, y, bw, bh)| (self.terrain.dx(centre.0 as i64, x as i64) as i32, self.terrain.dy(centre.1 as i64, y as i64) as i32, bw, bh))
+            .collect();
+        // The cells wholly within a cell less a pixel of a building: a site touching one is
+        // taken, which rules out most of those inside the town without asking `obstacle`.
+        let reach = rects.iter().map(|&(x, y, bw, bh)| x.abs().max(y.abs()) + bw.max(bh)).max()? / CELL + w.max(h) / CELL + 3;
+        let side = 2 * reach + 1;
+        let mut taken = vec![false; (side * side) as usize];
+        let at = |c: i32, r: i32| ((c + reach) + (r + reach) * side) as usize;
+        for &(x, y, bw, bh) in &rects {
+            let (x0, x1) = ((x - gap + 1).div_euclid(CELL) + 1, (x + bw + gap - 1 - CELL + 1).div_euclid(CELL));
+            let (y0, y1) = ((y - gap + 1).div_euclid(CELL) + 1, (y + bh + gap - 1 - CELL + 1).div_euclid(CELL));
+            for r in y0..=y1 {
+                for c in x0..=x1 {
+                    taken[at(c, r)] = true;
+                }
+            }
+        }
+        let free = |x: i32, y: i32| {
+            let (c0, c1) = (x.div_euclid(CELL), (x + w - 1).div_euclid(CELL));
+            let (r0, r1) = (y.div_euclid(CELL), (y + h - 1).div_euclid(CELL));
+            (r0..=r1).all(|r| (c0..=c1).all(|c| !taken[at(c, r)]))
+        };
+        let mut sites: Vec<(i64, i32, i32)> = Vec::new();
+        let mut push = |x: i32, y: i32| {
+            if free(x, y) {
+                let (dx, dy) = ((x + w / 2) as i64, (y + h / 2) as i64);
+                sites.push((dx * dx + dy * dy, x, y));
+            }
+        };
+        for &(bx, by, bw, bh) in &rects {
+            // beside it, anywhere along each of its sides, a cell at a time
+            for x in [bx - gap - w, bx + bw + gap] {
+                for y in (by - h + CELL..by + bh).step_by(CELL as usize) {
+                    push(x, y);
+                }
+            }
+            for y in [by - gap - h, by + bh + gap] {
+                for x in (bx - w + CELL..bx + bw).step_by(CELL as usize) {
+                    push(x, y);
+                }
+            }
+        }
+        sites.sort_unstable();
+        sites.dedup();
+        let (mw, mh) = (self.terrain.width as i32 * CELL, self.terrain.height as i32 * CELL);
+        sites.into_iter().map(|(_, x, y)| self.terrain.wrap32((centre.0 + x, centre.1 + y))).find(|&(x, y)| {
+            (self.terrain.torus || x >= 0 && y >= 0 && x <= mw - w && y <= mh - h)
+                && self.obstacle(rules, n, x, y, w, h) == 0
+                // (the cell around it free too, short of the neighbours a cell away)
+                && self.obstacle(rules, n, x - gap + 1, y - gap + 1, w + 2 * gap - 2, h + 2 * gap - 2) == 0
+        })
     }
 }

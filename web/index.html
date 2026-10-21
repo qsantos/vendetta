@@ -168,6 +168,9 @@
       "Paysage": "Land",
       "naturel": "natural",
       "en taches (l'original)": "in patches (the original)",
+      "Villes": "Towns",
+      "groupées": "compact",
+      "éparses (l'original)": "scattered (the original)",
       "fermés (l'original)": "closed (as in the original)",
       "Chemins": "Paths",
       "les plus rapides": "the fastest",
@@ -275,6 +278,9 @@
       "Paysage": "Paisaje",
       "naturel": "natural",
       "en taches (l'original)": "a manchas (el original)",
+      "Villes": "Ciudades",
+      "groupées": "agrupadas",
+      "éparses (l'original)": "dispersas (el original)",
       "fermés (l'original)": "cerrados (el original)",
       "Chemins": "Trayectos",
       "les plus rapides": "los más rápidos",
@@ -385,6 +391,9 @@
       "Paysage": "地形",
       "naturel": "自然",
       "en taches (l'original)": "まだら（オリジナル）",
+      "Villes": "町",
+      "groupées": "まとまった",
+      "éparses (l'original)": "散らばった（オリジナル）",
       "fermés (l'original)": "閉じている（原作どおり）",
       "Chemins": "経路",
       "les plus rapides": "最速",
@@ -495,6 +504,9 @@
       "Paysage": "地形",
       "naturel": "自然",
       "en taches (l'original)": "斑块（原版）",
+      "Villes": "城镇",
+      "groupées": "紧凑",
+      "éparses (l'original)": "分散（原版）",
       "fermés (l'original)": "封闭（原版）",
       "Chemins": "路径",
       "les plus rapides": "最快",
@@ -666,6 +678,11 @@
             <option value="">naturel</option>
             <option value="original">en taches (l'original)</option>
           </select></label>
+        <label>Villes
+          <select name="towns">
+            <option value="">groupées</option>
+            <option value="scattered">éparses (l'original)</option>
+          </select></label>
         <label>Chemins
           <select name="paths">
             <option value="">les plus rapides</option>
@@ -720,6 +737,11 @@
       <select name="land">
         <option value="">naturel</option>
         <option value="original">en taches (l'original)</option>
+      </select></label>
+    <label>Villes
+      <select name="towns">
+        <option value="">groupées</option>
+        <option value="scattered">éparses (l'original)</option>
       </select></label>
     <label>Chemins
       <select name="paths">
@@ -1470,7 +1492,7 @@
   // The pre-game menu: the form mirrors the hash; flags are checkboxes, other keys values.
   {
     const form = document.querySelector("#menu form");
-    const fields = ["size", "fiefs", "villagers", "roads", "edges", "land", "paths", "chase", "speed", "seed"];
+    const fields = ["size", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
     const flags = ["god", "perf"];
     const fill = () => {
       const items = hashItems();

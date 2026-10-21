@@ -52,6 +52,8 @@ pub struct World {
     pub paths: Paths,
     /// How characters chase a moving target.
     pub chase: Chase,
+    /// Where the AI builds.
+    pub towns: Towns,
     /// Not in the original: the searches for paths, spread over the ticks.
     pub(crate) planner: crate::path::Planner,
     /// `NoPerso`: the local player's character, which always says its comments.
@@ -119,6 +121,8 @@ pub struct WorldSetup {
     pub paths: Paths,
     /// How characters chase a moving target.
     pub chase: Chase,
+    /// Where the AI builds.
+    pub towns: Towns,
     /// The fief of each human player (several may share one): each takes over a citizen of it.
     pub players: Vec<usize>,
     /// The human players' names, in the order of `players`; a missing or empty one keeps the
@@ -158,6 +162,18 @@ impl CharacterSetup {
     }
 }
 
+/// Where the AI builds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Towns {
+    /// The original's (`Trouver_Emplacement_Maison`): anywhere in a square round the castle or
+    /// a market, which widens with every site found taken, so towns spread out.
+    #[default]
+    Scattered,
+    /// Not in the original: next to the fief's buildings, a cell apart, the nearest to the
+    /// castle first (see `World::compact_site`).
+    Compact,
+}
+
 /// How roads join castles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Roads {
@@ -193,6 +209,7 @@ impl Default for WorldSetup {
             landscape: Default::default(),
             paths: Paths::Greedy,
             chase: Chase::Direct,
+            towns: Towns::Scattered,
             players: vec![0],
             names: Vec::new(),
             characters: Vec::new(),
@@ -235,6 +252,7 @@ impl World {
             confrontation: setup.confrontation,
             paths: setup.paths,
             chase: setup.chase,
+            towns: setup.towns,
             player: None,
             ai: Ai::default(),
             victory: false,

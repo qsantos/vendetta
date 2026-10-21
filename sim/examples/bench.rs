@@ -1,18 +1,18 @@
 //! Simulation benchmark: `cargo run --release -p sim --example bench [preset...] [ticks=N]
-//! [fastest] [intercept] [torus] [default] [size=N] [fiefs=N] [villagers=N] [every=N]`.
+//! [fastest] [intercept] [torus] [compact] [default] [size=N] [fiefs=N] [villagers=N] [every=N]`.
 //! Presets: `small` (the default world), `large` (512², 16 fiefs of 150), `huge` (1024², 30
 //! fiefs of 500, about where Firefox gave up); all by default. Reports world creation, time
 //! per tick (average and worst, after a warm-up for the villagers to leave their castles) and
 //! saving and loading. `fastest`, `intercept` and `torus` play as the game does by default:
 //! the fastest paths, heading off the targets, on a toroidal map (the simulation's default is
-//! the original's); `default` all three. `size`, `fiefs` and `villagers` change a preset's
+//! the original's); `default` all three. `compact` builds compact towns. `size`, `fiefs` and `villagers` change a preset's
 //! world, as the URL options do; `every=N` also reports the time per tick of each N ticks, to
 //! see it change as the game goes on.
 
 use sim::files::Files;
 use sim::path::{Chase, Paths};
 use sim::rules::Rules;
-use sim::world::{FiefSetup, Roads, World, WorldSetup};
+use sim::world::{FiefSetup, Roads, Towns, World, WorldSetup};
 use std::path::Path;
 use std::time::{Duration, Instant};
 
@@ -36,6 +36,7 @@ fn main() {
     let mut ticks = 1000;
     let mut presets = Vec::new();
     let (mut paths, mut chase, mut torus) = (Paths::Greedy, Chase::Direct, false);
+    let mut towns = Towns::Scattered;
     let (mut size, mut fiefs, mut villagers, mut every) = (None, None, None, None);
     for arg in std::env::args().skip(1) {
         let number = |name: &str| arg.strip_prefix(name).and_then(|n| n.strip_prefix('=')).map(|n| n.parse::<usize>().expect("N"));
@@ -54,6 +55,7 @@ fn main() {
                 "fastest" => paths = Paths::Fastest,
                 "intercept" => chase = Chase::Intercept,
                 "torus" => torus = true,
+                "compact" => towns = Towns::Compact,
                 "default" => (paths, chase, torus) = (Paths::Fastest, Chase::Intercept, true),
                 _ => presets.push(arg),
             }
@@ -77,7 +79,7 @@ fn main() {
         } else {
             setup(&rules, size.unwrap_or(s), fiefs.unwrap_or(f), villagers.unwrap_or(v))
         };
-        let setup = WorldSetup { paths, chase, torus, ..setup };
+        let setup = WorldSetup { paths, chase, torus, towns, ..setup };
         let t = Instant::now();
         let mut world = World::create(&rules, &files, &setup).unwrap();
         let created = t.elapsed();
