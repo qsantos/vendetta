@@ -381,12 +381,13 @@ impl World {
                 v
             }
         };
+        let free = self.free(i);
         let mut tries = 0;
         let (x, y) = loop {
             let x = clamp(clng(px + (self.rng.next() * 128.0 - 64.0) * tl), nx);
             let y = clamp(clng(py + (self.rng.next() * 96.0 - 48.0) * tl), ny);
             tries += 1;
-            if flying || crate::perso::speed_coef(rules, &self.terrain, x, y + h) >= 1.0 || tries > 40 {
+            if flying || crate::perso::speed_through(rules, &self.terrain, free, x, y + h) >= 1.0 || tries > 40 {
                 break (x, y);
             }
         };
@@ -642,7 +643,7 @@ impl World {
         let feet = p.h as i64 - 16;
         let points: Vec<(i64, i64)> = goals.iter().map(|&(_, g)| self.terrain.near((p.x, p.y), g)).collect();
         let at_feet: Vec<(i64, i64)> = points.iter().map(|&(x, y)| (x, y + feet)).collect();
-        let (k, path) = crate::path::nearest(rules, &self.terrain, (p.x, p.y + feet), &at_feet)?;
+        let (k, path) = crate::path::nearest(rules, &self.terrain, self.free(i), (p.x, p.y + feet), &at_feet)?;
         Some((goals[k].0, points[k], path.into_iter().map(|(x, y)| (x, y - feet)).collect()))
     }
 

@@ -2,7 +2,8 @@
 //! `Calculer_Chemin`'s greedy walk (which heads straight for the destination and only swerves
 //! one cell at a time, so it wades through a lake it could have walked around).
 
-use crate::perso::speed_coef;
+use crate::cover::{BUILDING_SPEED, Free};
+use crate::perso::speed_through;
 use crate::rules::Rules;
 use crate::terrain::{CELL, Terrain, wrap_axis};
 use crate::vb::clng;
@@ -100,25 +101,27 @@ const DIAGONAL: f64 = 1000.0 * std::f64::consts::SQRT_2;
 /// terrains' speeds: the cells' centres where the direction changes, the last one being the
 /// cell of `to` (which the caller replaces by `to` itself), or `to` itself after the cell
 /// nearest to it found when the search gave up. On a torus, `to` is the copy of the
-/// destination nearest to `from`, the one the path leads to.
+/// destination nearest to `from`, the one the path leads to. The buildings slow the way but
+/// for those `free` (see [`crate::cover`]).
 pub fn fastest(
     rules: &Rules,
     terrain: &Terrain,
+    free: Free,
     from: (i64, i64),
     to: (i64, i64),
 ) -> Vec<(i64, i64)> {
     let top = top_speed(rules);
     // Straight on when all the way is at that speed: no path over the cells is faster.
-    if cell(from) != cell(to) && clear(rules, terrain, from, to, top) {
+    if cell(from) != cell(to) && clear(rules, terrain, free, from, to, top) {
         return vec![to];
     }
     let goals = [to];
     let landmarks = Landmarks::of(rules, terrain, cell(from), &[cell(to)]);
-    let (reached, mut path) = search(rules, terrain, from, &goals, &|_, time| Some(time), &aim(terrain, landmarks, &goals, top), top);
+    let (reached, mut path) = search(rules, terrain, free, from, &goals, &|_, time| Some(time), &aim(terrain, landmarks, &goals, top));
     if reached.is_none() {
         path.push(to);
     }
-    straighten(rules, terrain, from, path)
+    straighten(rules, terrain, free, from, path)
 }
 
 /// Which of `goals` (feet positions, the copies nearest to `from` on a torus) is the fastest
@@ -127,6 +130,7 @@ pub fn fastest(
 pub fn nearest(
     rules: &Rules,
     terrain: &Terrain,
+    free: Free,
     from: (i64, i64),
     goals: &[(i64, i64)],
 ) -> Option<(usize, Vec<(i64, i64)>)> {
@@ -140,19 +144,19 @@ pub fn nearest(
         // (a little under: the search's steps are rounded down, by up to a 2000th of one)
         let least = |g: (i64, i64)| (octile(start, cell(g)) / top * 0.999) as u64;
         let first = (0..goals.len()).min_by_key(|&k| least(goals[k]))?;
-        if let Some((_, time, path)) = among(rules, terrain, from, &goals[first..=first], top) {
+        if let Some((_, time, path)) = among(rules, terrain, free, from, &goals[first..=first], top) {
             let kept: Vec<usize> = (0..goals.len()).filter(|&k| least(goals[k]) <= time).collect();
             if kept.len() == 1 {
-                return Some((first, straighten(rules, terrain, from, path)));
+                return Some((first, straighten(rules, terrain, free, from, path)));
             }
             let points: Vec<(i64, i64)> = kept.iter().map(|&k| goals[k]).collect();
-            if let Some((k, _, path)) = among(rules, terrain, from, &points, top) {
-                return Some((kept[k], straighten(rules, terrain, from, path)));
+            if let Some((k, _, path)) = among(rules, terrain, free, from, &points, top) {
+                return Some((kept[k], straighten(rules, terrain, free, from, path)));
             }
         }
     }
-    let (k, _, path) = among(rules, terrain, from, goals, top)?;
-    Some((k, straighten(rules, terrain, from, path)))
+    let (k, _, path) = among(rules, terrain, free, from, goals, top)?;
+    Some((k, straighten(rules, terrain, free, from, path)))
 }
 
 /// A goal reached: which, the time to reach it and the cells where the direction changes on
@@ -160,10 +164,10 @@ pub fn nearest(
 type Reached = (usize, u64, Vec<(i64, i64)>);
 
 /// [`nearest`] by a single search.
-fn among(rules: &Rules, terrain: &Terrain, from: (i64, i64), goals: &[(i64, i64)], top: f64) -> Option<Reached> {
+fn among(rules: &Rules, terrain: &Terrain, free: Free, from: (i64, i64), goals: &[(i64, i64)], top: f64) -> Option<Reached> {
     let cells: Vec<(i64, i64)> = goals.iter().take(MAX_LANDMARKED + 1).map(|&g| cell(g)).collect();
     let landmarks = (goals.len() <= MAX_LANDMARKED).then(|| Landmarks::of(rules, terrain, cell(from), &cells)).flatten();
-    let (reached, path) = search(rules, terrain, from, goals, &|_, time| Some(time), &aim(terrain, landmarks, goals, top), top);
+    let (reached, path) = search(rules, terrain, free, from, goals, &|_, time| Some(time), &aim(terrain, landmarks, goals, top));
     let k = reached?;
     Some((k, SEEN.with_borrow(|seen| seen.time(cell(goals[k]))), path))
 }
@@ -177,6 +181,7 @@ fn among(rules: &Rules, terrain: &Terrain, from: (i64, i64), goals: &[(i64, i64)
 pub fn intercept(
     rules: &Rules,
     terrain: &Terrain,
+    free: Free,
     from: (i64, i64),
     speed: f64,
     trajectory: &[((i64, i64), f64)],
@@ -212,16 +217,17 @@ pub fn intercept(
     // The first of them is the soonest place to meet, should it be reached by then: tried
     // alone first, a search that can aim (and use the landmarks).
     let first = kept[0];
-    if let Some((_, time, path)) = among(rules, terrain, from, &goals[..1], top)
+    if let Some((_, time, path)) = among(rules, terrain, free, from, &goals[..1], top)
         && (time as f64 <= by(first) || stays && first == end)
     {
-        return Some((first, straighten(rules, terrain, from, path)));
+        return Some((first, straighten(rules, terrain, free, from, path)));
     }
     let cells: Vec<(i64, i64)> = goals.iter().map(|&g| cell(g)).collect();
     let times: Vec<f64> = kept.iter().map(|&k| by(k)).collect();
     let (reached, path) = search(
         rules,
         terrain,
+        free,
         from,
         &goals,
         // the soonest they are both there
@@ -230,10 +236,9 @@ pub fn intercept(
             (time as f64 <= by || stays && k == end).then(|| (time as f64).max(by) as u64)
         },
         &stretches(terrain, landmarks, &cells, &times, stays, top),
-        top,
     );
     let reached = reached?;
-    Some((kept[reached], straighten(rules, terrain, from, path)))
+    Some((kept[reached], straighten(rules, terrain, free, from, path)))
 }
 
 /// Stretches of the trajectory that [`intercept`]'s search bounds its scores with.
@@ -345,6 +350,7 @@ const MAX_AIMED: usize = 64;
 pub fn intercept_straight(
     rules: &Rules,
     terrain: &Terrain,
+    free: Free,
     from: (i64, i64),
     speed: f64,
     trajectory: &[((i64, i64), f64)],
@@ -366,7 +372,7 @@ pub fn intercept_straight(
         (0..n as usize).all(|k| {
             let f = (k as f64 + 0.5) / n;
             let (x, y) = (from.0 as f64 + dx * f, from.1 as f64 + dy * f);
-            time += len / n / (speed * speed_coef(rules, terrain, clng(x), clng(y)).max(0.01));
+            time += len / n / (speed * speed_through(rules, terrain, free, clng(x), clng(y)).max(0.01));
             time <= by
         })
     })
@@ -382,12 +388,13 @@ pub fn intercept_straight(
 fn search(
     rules: &Rules,
     terrain: &Terrain,
+    free: Free,
     from: (i64, i64),
     goals: &[(i64, i64)],
     accept: &dyn Fn(usize, u64) -> Option<u64>,
     bound: &dyn Fn((i64, i64), u64) -> Option<u64>,
-    top: f64,
 ) -> (Option<usize>, Vec<(i64, i64)>) {
+    let top = top_speed(rules);
     let start = cell(from);
     let mut goal_cells: HashMap<(i64, i64), usize, BuildHasherDefault<CellHasher>> =
         HashMap::default();
@@ -448,7 +455,7 @@ fn search(
                 {
                     continue;
                 }
-                let (straight, diagonal) = step_time(steps, terrain, next);
+                let (straight, diagonal) = step_time(steps, terrain, free, next);
                 let g = g + if dc != 0 && dr != 0 { diagonal } else { straight } as u64;
                 if seen.entry(next).is_some_and(|(known, _)| known <= g) {
                     continue;
@@ -523,19 +530,21 @@ fn steps<'a>(rules: &Rules, terrain: &'a Terrain) -> &'a [(u32, u32)] {
 }
 
 /// The time to step into cell `(c, r)`, straight and diagonally, from `steps`: as at the
-/// speed [`speed_coef`] gives at its centre, keeping the original's index (rows of `width`
+/// speed [`speed_through`] gives at its centre, keeping the original's index (rows of `width`
 /// without bounds on the column, plain beyond the ends).
-fn step_time(steps: &[(u32, u32)], terrain: &Terrain, (c, r): (i64, i64)) -> (u32, u32) {
+fn step_time(steps: &[(u32, u32)], terrain: &Terrain, free: Free, (c, r): (i64, i64)) -> (u32, u32) {
     let (w, h) = (terrain.width as i64, terrain.height as i64);
     let t = if !terrain.torus || (0..w).contains(&c) && (0..h).contains(&r) {
         c + r * w
     } else {
         wrap_axis(c, w) + wrap_axis(r, h) * w
     };
-    if t > 0 && (t as usize) < steps.len() - 1 {
-        steps[t as usize]
+    let times = if t > 0 && (t as usize) < steps.len() - 1 { steps[t as usize] } else { step_times(1.0) };
+    if terrain.cover.slows(t, free) {
+        let slow = step_times(BUILDING_SPEED);
+        (times.0.max(slow.0), times.1.max(slow.1))
     } else {
-        step_times(1.0)
+        times
     }
 }
 
@@ -580,7 +589,7 @@ impl Landmarks {
         let steps = steps(rules, terrain);
         let (w, h) = (terrain.width as i64, terrain.height as i64);
         let n = (w * h) as usize;
-        let cost: Vec<(u32, u32)> = (0..n as i64).map(|k| step_time(steps, terrain, (k % w, k / w))).collect();
+        let cost: Vec<(u32, u32)> = (0..n as i64).map(|k| step_time(steps, terrain, Free::EVERYWHERE, (k % w, k / w))).collect();
         let mut times = vec![[0; LANDMARKS]; n];
         // the time to the nearest landmark so far, the next being the farthest cell
         let mut nearest = vec![u32::MAX; n];
@@ -651,6 +660,7 @@ fn apart(a: &[u32; LANDMARKS], b: &[u32; LANDMARKS]) -> u64 {
 fn straighten(
     rules: &Rules,
     terrain: &Terrain,
+    free: Free,
     from: (i64, i64),
     path: Vec<(i64, i64)>,
 ) -> Vec<(i64, i64)> {
@@ -663,9 +673,9 @@ fn straighten(
         let mut prev = at;
         let mut reach = k;
         for (j, &p) in path.iter().enumerate().skip(k) {
-            fastest = fastest.max(max_speed(rules, terrain, prev, p));
+            fastest = fastest.max(max_speed(rules, terrain, free, prev, p));
             prev = p;
-            if j == k || clear(rules, terrain, at, p, fastest) {
+            if j == k || clear(rules, terrain, free, at, p, fastest) {
                 reach = j;
             }
         }
@@ -677,14 +687,15 @@ fn straighten(
 }
 
 /// The fastest terrain on the straight line from `from` to `to`.
-fn max_speed(rules: &Rules, terrain: &Terrain, from: (i64, i64), to: (i64, i64)) -> f64 {
+fn max_speed(rules: &Rules, terrain: &Terrain, free: Free, from: (i64, i64), to: (i64, i64)) -> f64 {
     let (dx, dy) = (to.0 - from.0, to.1 - from.1);
     let steps = (dx.abs().max(dy.abs()) * 2 / CELL as i64).max(1);
     (0..=steps)
         .map(|k| {
-            speed_coef(
+            speed_through(
                 rules,
                 terrain,
+                free,
                 from.0 + dx * k / steps,
                 from.1 + dy * k / steps,
             )
@@ -693,13 +704,13 @@ fn max_speed(rules: &Rules, terrain: &Terrain, from: (i64, i64), to: (i64, i64))
 }
 
 /// Whether the straight line from `from` to `to` is all at speed `speed` or faster.
-fn clear(rules: &Rules, terrain: &Terrain, from: (i64, i64), to: (i64, i64), speed: f64) -> bool {
+fn clear(rules: &Rules, terrain: &Terrain, free: Free, from: (i64, i64), to: (i64, i64), speed: f64) -> bool {
     let (dx, dy) = (to.0 - from.0, to.1 - from.1);
     // every half cell
     let steps = (dx.abs().max(dy.abs()) * 2 / CELL as i64).max(1);
     (0..=steps).all(|k| {
         let (x, y) = (from.0 + dx * k / steps, from.1 + dy * k / steps);
-        speed_coef(rules, terrain, x, y) >= speed
+        speed_through(rules, terrain, free, x, y) >= speed
     })
 }
 

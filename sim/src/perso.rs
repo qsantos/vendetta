@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use crate::items::{Recharge, TempEffect};
+use crate::cover::{BUILDING_SPEED, Free};
 use crate::path::{Paths, Planner};
 use crate::rules::Rules;
 use crate::stats::{XP_COEFS, XP_OBJECT, XP_RESOURCE, XP_SERVICE, XP_SPECIAL};
@@ -723,14 +724,14 @@ impl Perso {
     }
 
     /// `Calculer_Longueur_Pas`
-    fn update_step(&mut self, rules: &Rules, terrain: &Terrain) {
+    fn update_step(&mut self, rules: &Rules, terrain: &Terrain, free: Free) {
         if !self.alive() {
             self.step = 6;
             return;
         }
         let mut l = (self.bonus_move as f64 * self.vitality).floor();
         if !self.bonus_flying {
-            l = (l * self.speed_coef_effect(rules, terrain)).floor();
+            l = (l * self.speed_coef_effect(rules, terrain, free)).floor();
         }
         let mut l = l as i64;
         if l < 1 && self.bonus_move != 0 {
@@ -743,8 +744,9 @@ impl Perso {
     }
 
     /// `ClsJeuMonde.CoefVitesse`: the terrain's speed coefficient; a terrain with an effect
-    /// (water) applies it unless the character is immune.
-    fn speed_coef_effect(&mut self, rules: &Rules, terrain: &Terrain) -> f64 {
+    /// (water) applies it unless the character is immune. Slowed by a building that is not
+    /// `free` (not in the original, see [`crate::cover`]).
+    fn speed_coef_effect(&mut self, rules: &Rules, terrain: &Terrain, free: Free) -> f64 {
         let (x, y) = (self.x, self.y + self.h as i64 - 16);
         let t = terrain.index_at(x as f64, y as f64);
         if t > 0 && (t as usize) < terrain.category().len() - 1 {
@@ -755,22 +757,22 @@ impl Perso {
                     self.add_effect(rules, e, o.duration, o.duration, None);
                 }
             }
-            ty.speed
+            through(terrain, t, free, ty.speed)
         } else {
-            1.0
+            through(terrain, t, free, 1.0)
         }
     }
 
     /// The character's own part of `Deplacement3`: one step and the action transitions.
     /// Returns whether it is still walking, or None while stunned (`World::move_step` handles
     /// the projectiles).
-    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool, planner: &mut Planner) -> Option<bool> {
+    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, free: Free, paths: Paths, chase: bool, planner: &mut Planner) -> Option<bool> {
         if self.stun > 0 {
             self.stun -= 1;
             return None;
         }
-        self.update_step(rules, terrain);
-        if self.walk(rules, terrain, paths, chase, planner) {
+        self.update_step(rules, terrain, free);
+        if self.walk(rules, terrain, free, paths, chase, planner) {
             if self.action > 99 && self.action % 2 == 0 && self.action < 200 {
                 self.action += 1;
             }
@@ -795,7 +797,7 @@ impl Perso {
 
     /// `Marcher3`: one step along the path; returns whether still moving. With the fastest
     /// paths, one waiting for its path stands (see [`Planner`]).
-    fn walk(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool, planner: &mut Planner) -> bool {
+    fn walk(&mut self, rules: &Rules, terrain: &Terrain, free: Free, paths: Paths, chase: bool, planner: &mut Planner) -> bool {
         if !self.moving {
             return false;
         }
@@ -812,7 +814,7 @@ impl Perso {
             } else if self.searches(paths) && !planner.admit(self.numero, &mut self.path_queued) {
                 return true;
             } else {
-                self.plan(rules, terrain, paths, chase);
+                self.plan(rules, terrain, free, paths, chase);
             }
         }
         let step = self.step as f64;
@@ -856,8 +858,8 @@ impl Perso {
     }
 
     /// Plans the path to `dest` (`Calculer_Chemin`, see [`Perso::compute_path`]).
-    pub(crate) fn plan(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) {
-        self.compute_path(rules, terrain, paths, chase);
+    pub(crate) fn plan(&mut self, rules: &Rules, terrain: &Terrain, free: Free, paths: Paths, chase: bool) {
+        self.compute_path(rules, terrain, free, paths, chase);
         self.path_dest = self.dest;
     }
 
@@ -878,7 +880,7 @@ impl Perso {
     /// moving target, only two steps, and the path is recomputed on the next tick. With
     /// [`Paths::Fastest`] (not in the original), the fastest path instead (see `walk` for a
     /// chase).
-    fn compute_path(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) {
+    fn compute_path(&mut self, rules: &Rules, terrain: &Terrain, free: Free, paths: Paths, chase: bool) {
         self.path.clear();
         let i = CELL as i64;
         let d = (16.0 * 0.7f64).round_ties_even() as i64;
@@ -889,7 +891,7 @@ impl Perso {
             let from = (self.x, self.y + feet);
             // (on a torus, the copy of the destination nearest to the character)
             let to = terrain.near(from, (self.dest.0, self.dest.1 + feet));
-            self.path = crate::path::fastest(rules, terrain, from, to).into_iter().map(|(x, y)| (x, y - feet)).collect();
+            self.path = crate::path::fastest(rules, terrain, free, from, to).into_iter().map(|(x, y)| (x, y - feet)).collect();
             self.path_complete = true;
         } else if !self.bonus_flying && self.alive() && PATHFINDING > 0 {
             let max_steps = if chase { 2 } else { 1024 };
@@ -910,7 +912,7 @@ impl Perso {
                 let mut choice = 0;
                 for (k, (ox, oy)) in offsets.iter().enumerate() {
                     let n = (p.0 + ox, p.1 + oy);
-                    let cost = 16.0 / speed_coef(rules, terrain, n.0, n.1 + self.h as i64 - 16) + (dist(n) - l1);
+                    let cost = 16.0 / speed_through(rules, terrain, free, n.0, n.1 + self.h as i64 - 16) + (dist(n) - l1);
                     if k == 0 || cost < best {
                         best = cost;
                         choice = k as i64;
@@ -952,6 +954,17 @@ impl Perso {
             d => (if self.frame == 3 { 1 } else { self.frame as i32 }, d as i32 - 1),
         }
     }
+}
+
+/// [`speed_coef`] slowed by a building that is not `free` (not in the original, see
+/// [`crate::cover`]).
+pub fn speed_through(rules: &Rules, terrain: &Terrain, free: Free, x: i64, y: i64) -> f64 {
+    through(terrain, terrain.index_at(x as f64, y as f64), free, speed_coef(rules, terrain, x, y))
+}
+
+/// `speed` on cell `t`, slowed by a building that is not `free`.
+fn through(terrain: &Terrain, t: i64, free: Free, speed: f64) -> f64 {
+    if terrain.cover.slows(t, free) { speed.min(BUILDING_SPEED) } else { speed }
 }
 
 /// `ClsJeuMonde.CoefVitesseSimple`

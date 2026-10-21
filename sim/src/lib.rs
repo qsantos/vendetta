@@ -3,6 +3,7 @@
 pub mod ai;
 pub mod building;
 pub mod combat;
+pub mod cover;
 pub mod economy;
 pub mod event;
 pub mod fief;

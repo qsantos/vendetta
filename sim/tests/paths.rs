@@ -2,6 +2,7 @@
 //!
 //! Needs the converted assets in `assets` (see `assetconv`); skipped otherwise.
 
+use sim::cover::Free;
 use sim::files::Files;
 use sim::path::fastest;
 use sim::rules::Rules;
@@ -66,7 +67,7 @@ fn around_a_lake() {
         (15..25).contains(&c) && (8..32).contains(&r)
     });
     let (from, to) = (px(5, 20), px(35, 20));
-    let path = fastest(&rules, &t, from, to);
+    let path = fastest(&rules, &t, Free::EVERYWHERE, from, to);
     let straight = time(&rules, &t, from, &[to]);
     let around = time(&rules, &t, from, &path);
     assert!(
@@ -82,7 +83,7 @@ fn across_a_stream() {
     let Some(rules) = load() else { return };
     let t = map(&rules, false, |c, _| c == 20);
     let (from, to) = (px(5, 20), px(35, 20));
-    assert_eq!(fastest(&rules, &t, from, to), vec![to]);
+    assert_eq!(fastest(&rules, &t, Free::EVERYWHERE, from, to), vec![to]);
 }
 
 /// In the open, straight on.
@@ -91,10 +92,10 @@ fn open_ground() {
     let Some(rules) = load() else { return };
     let t = map(&rules, false, |_, _| false);
     assert_eq!(
-        fastest(&rules, &t, px(2, 2), px(22, 12)),
+        fastest(&rules, &t, Free::EVERYWHERE, px(2, 2), px(22, 12)),
         vec![px(22, 12)]
     );
-    assert_eq!(fastest(&rules, &t, px(2, 2), px(2, 2)), vec![]);
+    assert_eq!(fastest(&rules, &t, Free::EVERYWHERE, px(2, 2), px(2, 2)), vec![]);
 }
 
 /// On a torus, across the edge, with the goal given as its copy nearest to the start.
@@ -103,7 +104,7 @@ fn across_the_edge() {
     let Some(rules) = load() else { return };
     let t = map(&rules, true, |c, r| (10..30).contains(&c) && r != 39);
     let (from, to) = (px(5, 5), px(-5, 5));
-    let path = fastest(&rules, &t, from, to);
+    let path = fastest(&rules, &t, Free::EVERYWHERE, from, to);
     assert_eq!(path, vec![to]);
 }
 
@@ -115,7 +116,7 @@ fn far_away() {
     let mut t = Terrain::with_torus(1024, 1024, true);
     t.category_mut().fill(slowest(&rules));
     let (from, to) = (px(1, 1), px(500, 300));
-    let path = fastest(&rules, &t, from, to);
+    let path = fastest(&rules, &t, Free::EVERYWHERE, from, to);
     // (straight on, across a uniform sea)
     assert_eq!(path, vec![to]);
 }
@@ -132,7 +133,7 @@ fn along_a_road() {
         t.category_mut()[c + 22 * 40] = road;
     }
     let (from, to) = (px(2, 20), px(38, 20));
-    let path = fastest(&rules, &t, from, to);
+    let path = fastest(&rules, &t, Free::EVERYWHERE, from, to);
     assert!(
         time(&rules, &t, from, &path) < time(&rules, &t, from, &[to]) * 0.9,
         "{path:?}"
@@ -294,4 +295,46 @@ fn head_off() {
         let (direct, ahead) = (caught(paths, Chase::Direct), caught(paths, Chase::Intercept));
         assert!(ahead.is_some_and(|a| direct.is_none_or(|d| a < d)), "{paths:?}: direct {direct:?}, heading off {ahead:?}");
     }
+}
+
+/// With compact towns, the buildings slow those who walk through them, but for their own: a
+/// walker goes round another fief's castle, and through its own; through both with the
+/// original's towns.
+#[test]
+fn around_a_castle() {
+    use sim::orders::Order;
+    use sim::path::Paths;
+    use sim::world::{Towns, World, WorldSetup};
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets");
+    let Some(rules) = load() else { return };
+    let files = Files::from_dir(&root).unwrap();
+    let plain = (0..rules.terrains.len()).find(|&k| rules.terrains[k].speed == 1.0).unwrap() as u8;
+    // the ticks walking across the middle of fief `f`'s castle, from its left to its right
+    let inside = |towns: Towns, own: bool| {
+        let setup = WorldSetup { seed: 7, paths: Paths::Fastest, towns, ..Default::default() };
+        let mut w = World::create(&rules, &files, &setup).unwrap();
+        w.terrain.category_mut().fill(plain);
+        let i = w.persos.iter().position(|p| p.player).unwrap();
+        let f = if own { w.persos[i].fief } else { (w.persos[i].fief + 1) % w.castles.len() };
+        let (cx, cy, cw, ch) = (w.castles[f].x as i64, w.castles[f].y as i64, w.castles[f].w as i64, w.castles[f].h as i64);
+        let p = &mut w.persos[i];
+        p.in_house = false;
+        let y = cy + ch / 2 - (p.h as i64 - 16);
+        (p.x, p.y) = (cx - 3 * CELL as i64, y);
+        w.step(&rules, &[Order::Move { perso: i, x: cx + cw + 3 * CELL as i64, y }]);
+        let mut inside = 0;
+        for _ in 0..300 {
+            w.step(&rules, &[]);
+            let p = &w.persos[i];
+            let feet = (p.x, p.y + p.h as i64 - 16);
+            let cell = CELL as i64;
+            if (cx + cell..cx + cw - cell).contains(&feet.0) && (cy + cell..cy + ch - cell).contains(&feet.1) {
+                inside += 1;
+            }
+        }
+        inside
+    };
+    assert_eq!(inside(Towns::Compact, false), 0);
+    assert!(inside(Towns::Compact, true) > 0);
+    assert!(inside(Towns::Scattered, false) > 0);
 }

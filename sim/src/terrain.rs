@@ -38,6 +38,9 @@ pub struct Terrain {
     /// again after it changes.
     #[serde(skip)]
     pub(crate) prepared: crate::path::Prepared,
+    /// Not in the original: the buildings, which slow walkers with compact towns.
+    #[serde(skip)]
+    pub(crate) cover: crate::cover::Cover,
 }
 
 impl Terrain {
@@ -52,6 +55,7 @@ impl Terrain {
             shape: vec![0; n],
             torus: false,
             prepared: Default::default(),
+            cover: Default::default(),
         }
     }
 

@@ -22,9 +22,9 @@ const INTERCEPT_NEAR: f64 = 3.0 * CELL as f64;
 const INTERCEPT_POINTS: usize = 4096;
 pub const ATTACK_HOUSE: i32 = 301;
 
-/// Where to head off a target (see `World::head_off`) by where from, at what speed, its
-/// trajectory (the times as bits) and whether it stays at its end.
-type HeadingKey = ((i64, i64), u64, Vec<((i64, i64), u64)>, bool);
+/// Where to head off a target (see `World::head_off`) by where from, through which buildings
+/// freely, at what speed, its trajectory (the times as bits) and whether it stays at its end.
+type HeadingKey = ((i64, i64), crate::cover::Free, u64, Vec<((i64, i64), u64)>, bool);
 pub(crate) type Headings = std::collections::HashMap<HeadingKey, Option<(usize, Vec<(i64, i64)>)>>;
 pub const ATTACK_CASTLE: i32 = 302;
 pub const ATTACK_GROUND: i32 = 303;
@@ -255,6 +255,7 @@ impl World {
     pub(crate) fn head_off(&mut self, rules: &Rules, i: usize) -> bool {
         let p = &self.persos[i];
         let t = &self.persos[p.perso_target];
+        let (free, target_free) = (self.free(i), self.free(p.perso_target));
         let feet = p.h as i64 - 16;
         // (the target's copy nearest to the chaser, its path with it)
         let (nx, ny) = self.terrain.near((p.x, p.y), (t.x, t.y));
@@ -274,7 +275,7 @@ impl World {
             let (dx, dy) = (wx as f64 + shift.0 - at.0, wy as f64 + shift.1 - at.1);
             let n = ((dx * dx + dy * dy).sqrt() / (CELL as f64 / 2.0)).ceil().max(1.0);
             for _ in 0..n as usize {
-                let coef = if t.bonus_flying { 1.0 } else { crate::perso::speed_coef(rules, &self.terrain, clng(at.0), clng(at.1) + t.h as i64 - 16) };
+                let coef = if t.bonus_flying { 1.0 } else { crate::perso::speed_through(rules, &self.terrain, target_free, clng(at.0), clng(at.1) + t.h as i64 - 16) };
                 time += (dx * dx + dy * dy).sqrt() / n / step(t, coef);
                 at = (at.0 + dx / n, at.1 + dy / n);
                 trajectory.push((meet(at), time));
@@ -289,13 +290,13 @@ impl World {
         let (from, speed) = ((p.x, p.y + feet), step(p, 1.0));
         match self.paths {
             Paths::Fastest => {
-                let key = (from, speed.to_bits(), trajectory.iter().map(|&(p, t)| (p, t.to_bits())).collect(), stays);
+                let key = (from, free, speed.to_bits(), trajectory.iter().map(|&(p, t)| (p, t.to_bits())).collect(), stays);
                 let found = match self.headings.get(&key) {
                     Some(found) => found.clone(),
                     // (the tick's searches spent: straight for the target, see `Planner`)
                     None if self.planner.spent() => return false,
                     None => {
-                        let found = crate::path::intercept(rules, &self.terrain, from, speed, &trajectory, stays);
+                        let found = crate::path::intercept(rules, &self.terrain, free, from, speed, &trajectory, stays);
                         self.headings.insert(key, found.clone());
                         found
                     }
@@ -306,7 +307,7 @@ impl World {
             }
             // the original's paths walk there their way
             Paths::Greedy => {
-                let Some(k) = crate::path::intercept_straight(rules, &self.terrain, from, speed, &trajectory, stays) else { return false };
+                let Some(k) = crate::path::intercept_straight(rules, &self.terrain, free, from, speed, &trajectory, stays) else { return false };
                 let (x, y) = trajectory[k].0;
                 self.persos[i].dest = (x, y - feet);
             }
