@@ -72,6 +72,15 @@ async fn lobby_and_lockstep() {
     assert_eq!(lobby["host"], 0);
     assert_eq!(lobby["players"][1]["character"], "6:f:a.png,b.png");
 
+    // the host starts once everyone else is ready, again after new options
+    send(&mut b, json!({"t": "ready", "ready": true})).await;
+    while next(&mut a, "lobby").await["players"][1]["ready"] != true {}
+    send(&mut a, json!({"t": "settings", "items": ["fiefs=6", "seed=7"]})).await;
+    while next(&mut a, "lobby").await["players"][1]["ready"] != false {}
+    send(&mut a, json!({"t": "start"})).await;
+    assert_eq!(next(&mut a, "error").await["message"], "tous les joueurs ne sont pas prêts");
+    send(&mut b, json!({"t": "ready", "ready": true})).await;
+    while next(&mut a, "lobby").await["players"][1]["ready"] != true {}
     send(&mut a, json!({"t": "start"})).await;
     let start = next(&mut b, "start").await;
     assert_eq!(start["seed"], 7);
@@ -130,6 +139,9 @@ async fn slow_players_are_not_waited_for_forever() {
     send(&mut b, json!({"t": "join", "room": code, "name": "Bob"})).await;
     next(&mut b, "lobby").await;
     send(&mut a, json!({"t": "settings", "items": ["wait=2"]})).await;
+    while next(&mut b, "lobby").await["items"] != json!(["wait=2"]) {}
+    send(&mut b, json!({"t": "ready", "ready": true})).await;
+    while next(&mut a, "lobby").await["players"][1]["ready"] != true {}
     send(&mut a, json!({"t": "start"})).await;
     next(&mut a, "start").await;
     tokio::time::sleep(Duration::from_millis(200)).await;
@@ -151,6 +163,8 @@ async fn rejoining_a_game_in_progress() {
     let mut b = connect(port).await;
     send(&mut b, json!({"t": "join", "room": code, "name": "Bob"})).await;
     let token = next(&mut b, "lobby").await["token"].as_str().unwrap().to_owned();
+    send(&mut b, json!({"t": "ready", "ready": true})).await;
+    while next(&mut a, "lobby").await["players"][1]["ready"] != true {}
     send(&mut a, json!({"t": "start"})).await;
     next(&mut b, "start").await;
     send(&mut a, json!({"t": "loaded"})).await;
@@ -201,6 +215,8 @@ async fn other_builds_are_turned_away() {
     assert_eq!(next(&mut b, "error").await["code"], "version");
     send(&mut b, json!({"t": "join", "room": code, "name": "Bob", "version": "abc"})).await;
     let token = next(&mut b, "lobby").await["token"].as_str().unwrap().to_owned();
+    send(&mut b, json!({"t": "ready", "ready": true})).await;
+    while next(&mut a, "lobby").await["players"][1]["ready"] != true {}
     send(&mut a, json!({"t": "start"})).await;
     next(&mut b, "start").await;
     drop(b);

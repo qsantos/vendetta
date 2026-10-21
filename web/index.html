@@ -67,6 +67,7 @@
   #lobby table { width: 100%; border-collapse: collapse; margin: 8px 0; }
   #lobby td { padding: 3px 4px; }
   #lobby tr.offline { color: #999; }
+  #lobby td label { display: flex; align-items: center; gap: 6px; margin: 0; }
   #lobby .link { font-size: 12px; word-break: break-all; }
   /* The in-game menu, over the game (which a solo game pauses behind it). */
   #ingame { position: fixed; inset: 0; z-index: 4; display: flex; align-items: center;
@@ -240,6 +241,8 @@
       "pas dans une partie": "not in a game",
       "partie reprise depuis une autre connexion": "game resumed from another connection",
       "pas maintenant": "not now",
+      "Prêt": "Ready",
+      "tous les joueurs ne sont pas prêts": "not every player is ready",
       "Ko": "KB",
       " s : ": " s: ",
     },
@@ -340,6 +343,8 @@
       "pas dans une partie": "no está en una partida",
       "partie reprise depuis une autre connexion": "partida reanudada desde otra conexión",
       "pas maintenant": "ahora no",
+      "Prêt": "Listo",
+      "tous les joueurs ne sont pas prêts": "no todos los jugadores están listos",
       "Interface": "Interfaz",
       "Tests": "Pruebas",
       "Menu": "Menú",
@@ -443,6 +448,8 @@
       "pas dans une partie": "ゲームに参加していません",
       "partie reprise depuis une autre connexion": "別の接続からゲームが再開されました",
       "pas maintenant": "今はできません",
+      "Prêt": "準備完了",
+      "tous les joueurs ne sont pas prêts": "全員の準備ができていません",
       "Tests": "テスト",
       "Menu": "メニュー",
       "Interface": "インターフェース",
@@ -546,6 +553,8 @@
       "pas dans une partie": "不在游戏中",
       "partie reprise depuis une autre connexion": "游戏已在另一个连接上恢复",
       "pas maintenant": "现在无法执行此操作",
+      "Prêt": "已准备",
+      "tous les joueurs ne sont pas prêts": "并非所有玩家都已准备",
       "Menu": "菜单",
       "Tests": "测试",
       "Interface": "界面",
@@ -1777,12 +1786,26 @@
             fief.textContent = t("Peuple ") + p.fief;
             character.textContent = raceOfText(p.character ?? "");
           }
-          row.append(name, fief, character);
+          // set to play: the host starts once everyone else is
+          const ready = document.createElement("td");
+          if (k === msg.you && !host) {
+            const label = document.createElement("label");
+            const box = document.createElement("input");
+            box.type = "checkbox";
+            box.checked = p.ready;
+            box.addEventListener("change", () => send({ t: "ready", ready: box.checked }));
+            label.append(box, t("Prêt"));
+            ready.append(label);
+          } else if (k !== msg.host && p.ready) {
+            ready.append("✓ ", t("Prêt"));
+          }
+          row.append(name, fief, character, ready);
           return row;
         }),
       );
       showCharacters();
       $("room-start").hidden = !host;
+      $("room-start").disabled = !msg.players.every((p, k) => p.ready || k === msg.host);
       // the server keeps our character, for everyone's world
       if ((msg.players[msg.you]?.character ?? "") !== characterText(chosenCharacter())) sendCharacter();
     };

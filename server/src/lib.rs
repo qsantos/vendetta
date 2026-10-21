@@ -13,6 +13,8 @@
 //! - `{"t":"fief","fief":n}`: pick a fief (from 1);
 //! - `{"t":"character","character":…,"name":…}`: play as a character (as in the URL's
 //!   `characters=`, empty for none), under that name;
+//! - `{"t":"ready","ready":b}`: say one is set to play, or not anymore (the host need not:
+//!   it starts once everyone else is; new world options make everyone say it again);
 //! - `{"t":"settings","items":[…]}` (host): the world options, as in the URL's hash;
 //! - `{"t":"start"}` (host);
 //! - `{"t":"loaded"}`: its world is made, the ticks may start;
@@ -22,7 +24,7 @@
 //! - `{"t":"hash","tick":n,"hash":h}`: the world's digest after tick n.
 //!
 //! From the server:
-//! - `{"t":"lobby","room":…,"you":k,"token":…,"host":k,"players":[{"name","fief","character","online"}],"items":[…]}`;
+//! - `{"t":"lobby","room":…,"you":k,"token":…,"host":k,"players":[{"name","fief","character","ready","online"}],"items":[…]}`;
 //! - `{"t":"start","items":[…],"seed":s,"players":[fief…],"names":[…],"characters":[…],"you":k}`, with `"resume":true`
 //!   after a rejoin;
 //! - `{"t":"wait","loaded":n,"players":m}`: n of the m players have made their world;
@@ -85,6 +87,7 @@ enum In {
     },
     Fief { fief: usize },
     Character { character: String, name: String },
+    Ready { ready: bool },
     Settings { items: Vec<String> },
     Start,
     Loaded,
@@ -110,6 +113,8 @@ struct Player {
     /// The character it plays as, as in the URL's `characters=` (empty: the citizen as it is):
     /// passed on, for the game to check.
     character: String,
+    /// It says it is set to play (in the room, before the start).
+    ready: bool,
     /// Its world is made (once started).
     loaded: bool,
     /// Back in the game and not caught up yet: no tick until it asks for those it missed
@@ -209,7 +214,7 @@ impl Room {
 
     fn send_lobby(&self, code: &str) {
         let host = self.index(self.host).unwrap_or(0);
-        let players: Vec<Value> = self.players.iter().map(|p| json!({"name": p.name, "fief": p.fief, "character": p.character, "online": p.tx.is_some()})).collect();
+        let players: Vec<Value> = self.players.iter().map(|p| json!({"name": p.name, "fief": p.fief, "character": p.character, "ready": p.ready, "online": p.tx.is_some()})).collect();
         for k in 0..self.players.len() {
             let token = &self.players[k].token;
             self.send(k, &json!({"t": "lobby", "room": code, "you": k, "token": token, "host": host, "players": players, "items": self.items}));
@@ -230,7 +235,7 @@ impl Rooms {
 
     fn player(&self, conn: u64, name: &str, tx: &UnboundedSender<String>) -> Player {
         let token = format!("{:016x}{:016x}", self.random(conn), self.random(conn ^ 1));
-        Player { id: conn, token, conn, name: clean(name), fief: 1, character: String::new(), loaded: false, rejoining: false, tx: Some(tx.clone()) }
+        Player { id: conn, token, conn, name: clean(name), fief: 1, character: String::new(), ready: false, loaded: false, rejoining: false, tx: Some(tx.clone()) }
     }
 }
 
@@ -402,8 +407,16 @@ fn handle(rooms: &Arc<Rooms>, conn: u64, tx: &UnboundedSender<String>, joined: &
                     let fiefs = room.fiefs();
                     for p in &mut room.players {
                         p.fief = p.fief.min(fiefs);
+                        p.ready = false;
                     }
                     room.send_lobby(code);
+                }
+                In::Ready { ready } if !room.started => {
+                    room.players[k].ready = ready;
+                    room.send_lobby(code);
+                }
+                In::Start if !room.started && room.host == id && !room.players.iter().all(|p| p.ready || p.id == id) => {
+                    error(tx, "tous les joueurs ne sont pas prêts")
                 }
                 In::Start if !room.started && room.host == id => {
                     room.started = true;
