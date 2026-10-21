@@ -150,7 +150,7 @@ fn clamp_free_cam(world: &World, (x, y): (f32, f32), view: (i32, i32)) -> (f32, 
 }
 
 /// Whether the map can zoom out from showing `view`: while some of the map is out of view (on a
-/// torus, the whole map then shows, with some of it twice on the longer axis).
+/// torus, the whole map then shows, with repeats around it, dimmed by `render::dim_copies`).
 fn can_zoom_out(world: &World, view: (i32, i32)) -> bool {
     let (w, h) = world.terrain.size_px();
     view.0 < w as i32 || view.1 < h as i32
@@ -495,13 +495,6 @@ async fn main() {
         // `screen_width()` and the mouse are in CSS pixels; the frame is in physical pixels.
         let dpi = screen_dpi_scale();
         let (w, h) = ((screen_width() * dpi) as i32, (screen_height() * dpi) as i32);
-        // On a torus, zoomed out no further than the map filling the screen on one axis (some
-        // of it twice on the other), even from a zoom kept from a larger map or window.
-        if world.terrain.torus {
-            let (mw, mh) = world.terrain.size_px();
-            let fit = (w as f32 / mw as f32).min(h as f32 / mh as f32) / dpi;
-            scales.zoom = scales.zoom.max(fit);
-        }
         let (zoom, ui) = scales.effective();
         // The touch interface fits a window in a phone's shorter side, whatever the setting;
         // a tablet's has room to spare.
