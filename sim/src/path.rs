@@ -275,6 +275,7 @@ fn search(
             |(c0, r0, c1, r1), &(c, r)| (c0.min(c), r0.min(r), c1.max(c), r1.max(r)),
         )
     });
+    let speeds: Vec<f64> = rules.terrains.iter().map(|t| t.speed).collect();
     let first = cell(goals[0]);
     let estimate = |n: (i64, i64), to: (i64, i64)| (octile(n, to) / top) as u64;
     let (reached, cells) = SEEN.with_borrow_mut(|seen| {
@@ -315,8 +316,7 @@ fn search(
                 {
                     continue;
                 }
-                let speed =
-                    speed_coef(rules, terrain, next.0 * CELL as i64, next.1 * CELL as i64).max(0.01);
+                let speed = cell_speed(&speeds, terrain, next).max(0.01);
                 let g = g
                     + ((if dc != 0 && dr != 0 {
                         DIAGONAL
@@ -355,6 +355,18 @@ fn search(
         }
     }
     (reached, path)
+}
+
+/// [`speed_coef`] at a cell's centre, from the terrains' `speeds`, without going through
+/// pixels.
+fn cell_speed(speeds: &[f64], terrain: &Terrain, (c, r): (i64, i64)) -> f64 {
+    let (w, h) = (terrain.width as i64, terrain.height as i64);
+    let t = if terrain.torus { c.rem_euclid(w) + r.rem_euclid(h) * w } else { c + r * w };
+    if t > 0 && (t as usize) < terrain.category.len() - 1 {
+        speeds[terrain.category[t as usize] as usize]
+    } else {
+        1.0
+    }
 }
 
 /// `path` without the waypoints that a straight line can skip: one all at least as fast as
