@@ -21,6 +21,11 @@ const INTERCEPT_EVERY: (f64, f64) = (4.0, 32.0);
 const INTERCEPT_NEAR: f64 = 3.0 * CELL as f64;
 const INTERCEPT_POINTS: usize = 4096;
 pub const ATTACK_HOUSE: i32 = 301;
+
+/// Where to head off a target (see `World::head_off`) by where from, at what speed, its
+/// trajectory (the times as bits) and whether it stays at its end.
+type HeadingKey = ((i64, i64), u64, Vec<((i64, i64), u64)>, bool);
+pub(crate) type Headings = std::collections::HashMap<HeadingKey, Option<(usize, Vec<(i64, i64)>)>>;
 pub const ATTACK_CASTLE: i32 = 302;
 pub const ATTACK_GROUND: i32 = 303;
 
@@ -283,7 +288,16 @@ impl World {
         let (from, speed) = ((p.x, p.y + feet), step(p, 1.0));
         match self.paths {
             Paths::Fastest => {
-                let Some((k, path)) = crate::path::intercept(rules, &self.terrain, from, speed, &trajectory, stays) else { return false };
+                let key = (from, speed.to_bits(), trajectory.iter().map(|&(p, t)| (p, t.to_bits())).collect(), stays);
+                let found = match self.headings.get(&key) {
+                    Some(found) => found.clone(),
+                    None => {
+                        let found = crate::path::intercept(rules, &self.terrain, from, speed, &trajectory, stays);
+                        self.headings.insert(key, found.clone());
+                        found
+                    }
+                };
+                let Some((k, path)) = found else { return false };
                 let (x, y) = trajectory[k].0;
                 self.persos[i].follow((x, y - feet), path.into_iter().map(|(x, y)| (x, y - feet)).collect());
             }

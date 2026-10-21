@@ -68,6 +68,10 @@ pub struct World {
     /// Where persos, houses and resource nodes are, for `obstacle_at`.
     #[serde(skip)]
     pub(crate) spatial: crate::spatial::Spatial,
+    /// The ways to head off targets found this tick, for the chasers that look for the same
+    /// (a troop together after the same target): see `World::head_off`.
+    #[serde(skip)]
+    pub(crate) headings: crate::combat::Headings,
 }
 
 /// One fief of the setup screen.
@@ -199,6 +203,7 @@ impl World {
             events: Vec::new(),
             god: None,
             spatial: Default::default(),
+            headings: Default::default(),
         };
         world.create_citizens(rules);
         world.castles = world
@@ -433,6 +438,7 @@ impl World {
     /// One simulation tick (`FrmMoteur2D.MoteurJeu`, solo branch).
     pub fn step(&mut self, rules: &Rules, orders: &[Order]) {
         self.events.clear();
+        self.headings.clear();
         self.tick += 1;
         self.index_positions(rules);
         self.refill_god(rules);
