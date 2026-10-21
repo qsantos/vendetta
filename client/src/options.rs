@@ -58,6 +58,10 @@ pub struct Options {
     /// `names=Alice+Bob`: the human players' names, in the order of `players`, each
     /// percent-encoded (`encodeURIComponent`).
     pub names: Vec<String>,
+    /// `characters=…`: the human players' characters, in the order of `players`, each
+    /// percent-encoded `race:f|m:file,file…` (the race from 0, in `Parametres_Races.ini`'s
+    /// order; the look's files as `Files` lists them); an empty one for none.
+    pub characters: Vec<Option<sim::world::CharacterSetup>>,
     /// `me=k`: network play (see `net.rs`), as the k-th player of `players` (from 0).
     pub me: Option<usize>,
     /// `room=CODE`: the network game's room, whose world is saved apart from the solo one.
@@ -122,6 +126,7 @@ impl Options {
                 }
                 "me" => o.me = value.parse().ok(),
                 "names" => o.names = value.split('+').map(percent_decode).collect(),
+                "characters" => o.characters = value.split('+').map(|c| character(&percent_decode(c))).collect(),
                 "room" => o.room = value.to_uppercase(),
                 "resume" => o.resume = true,
                 "lang" => o.lang = Some(value.to_uppercase()),
@@ -154,7 +159,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
@@ -171,6 +176,19 @@ impl Options {
 
 fn clamp_size(v: usize) -> usize {
     v.clamp(*SIZES.start(), *SIZES.end())
+}
+
+/// A character of `characters=`, None when it is not one.
+fn character(s: &str) -> Option<sim::world::CharacterSetup> {
+    let mut parts = s.splitn(3, ':');
+    let race = parts.next()?.parse().ok()?;
+    let female = match parts.next()? {
+        "f" => true,
+        "m" => false,
+        _ => return None,
+    };
+    let look = parts.next()?.split(',').filter(|f| !f.is_empty()).map(str::to_owned).collect();
+    Some(sim::world::CharacterSetup { race, female, look })
 }
 
 /// Undoes `encodeURIComponent` (`%XX` bytes, UTF-8).

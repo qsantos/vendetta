@@ -8,7 +8,7 @@ use crate::event::Event;
 use crate::fief::Fief;
 use crate::files::Files;
 use crate::ini::Ini;
-use crate::perso::{Perso, action};
+use crate::perso::{Look, Perso, action};
 use crate::rules::Rules;
 use crate::terrain::{CELL, Terrain};
 use crate::treasure::{Decor, Treasure};
@@ -120,6 +120,38 @@ pub struct WorldSetup {
     /// The human players' names, in the order of `players`; a missing or empty one keeps the
     /// citizen's own.
     pub names: Vec<String>,
+    /// The human players' characters, in the order of `players`; a missing one, or one the
+    /// rules do not allow, keeps the citizen as it is.
+    pub characters: Vec<Option<CharacterSetup>>,
+}
+
+/// A character a human player made to play as (the original's `Personnage`): it takes the
+/// place of the citizen the player takes over.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CharacterSetup {
+    /// Index into `Rules::races`, a playable one.
+    pub race: usize,
+    pub female: bool,
+    /// The look's files (keys as `Files` lists them): one of each of the race's lists for the
+    /// sex, in order (a single one for a race that has whole sheets).
+    pub look: Vec<String>,
+}
+
+impl CharacterSetup {
+    /// The look, when the rules allow the character: a playable race, a sex it allows, and a
+    /// look from its files for that sex.
+    pub fn look(&self, rules: &Rules) -> Option<Look> {
+        let r = rules.races.get(self.race).filter(|r| r.playable)?;
+        if self.female && r.no_female || !self.female && r.no_male {
+            return None;
+        }
+        let lists: Vec<&Vec<String>> = r.look_files[self.female as usize].iter().filter(|l| !l.is_empty()).collect();
+        let fits = self.look.len() == lists.len() && self.look.iter().zip(&lists).all(|(f, l)| l.contains(f));
+        if !fits || lists.is_empty() {
+            return None;
+        }
+        Some(if r.whole_sheet { Look::Sheet(self.look[0].clone()) } else { Look::Layers(self.look.clone()) })
+    }
 }
 
 /// How roads join castles.
@@ -158,6 +190,7 @@ impl Default for WorldSetup {
             chase: Chase::Direct,
             players: vec![0],
             names: Vec::new(),
+            characters: Vec::new(),
         }
     }
 }
@@ -245,12 +278,24 @@ impl World {
         world.start_resources(rules, setup.start_resources);
         world.place_persos();
         // Each human player takes over the first free citizen of their fief; the first one is
-        // `NoPerso` (the original's local player).
+        // `NoPerso` (the original's local player). One with a character makes the citizen it:
+        // its race (with the race's starting objects only), sex and look (once every character
+        // has drawn one, below).
+        let mut looks = Vec::new();
         for (k, &fief) in setup.players.iter().enumerate() {
             if let Some(i) = world.persos.iter().position(|p| p.fief == fief && !p.player) {
                 world.persos[i].player = true;
                 if let Some(name) = setup.names.get(k).filter(|n| !n.is_empty()) {
                     world.persos[i].name = name.clone();
+                }
+                if let Some(c) = setup.characters.get(k).and_then(|c| c.as_ref())
+                    && let Some(look) = c.look(rules)
+                {
+                    let p = &mut world.persos[i];
+                    p.inventory.iter_mut().chain(&mut p.equipped).for_each(|o| *o = None);
+                    p.change_race(rules, &mut world.rng, c.race, false);
+                    p.female = c.female;
+                    looks.push((i, look));
                 }
                 world.player.get_or_insert(i);
             }
@@ -289,6 +334,9 @@ impl World {
                 }
             }
             world.persos[i] = p;
+        }
+        for (i, look) in looks {
+            world.persos[i].look = look;
         }
         // The race's free talents (`Changer_Race_Personnage_Equipement` for the NPCs; the player
         // gets the same ones as its preselected talents, `Charger_Sauvegarde_Tresor`).

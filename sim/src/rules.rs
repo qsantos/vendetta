@@ -65,6 +65,10 @@ pub struct Race {
     pub plural: BySex<String>,
     pub random_name: bool,
     pub playable: bool,
+    /// `Description`, shown when choosing a character's race.
+    pub description: String,
+    /// `Portrait`: the race's picture (`Images\Portraits\...`), as written.
+    pub portrait: String,
     /// `RestrictionFeminin`: never female.
     pub no_female: bool,
     /// `RestrictionMaculin` (sic): never male. Misspelled variants in the data are ignored.
@@ -474,6 +478,8 @@ impl Rules {
                     plural: ["NomMPluriel", "NomFPluriel"].map(|k| last_of(r, &["NomPluriel", k], 0, &suffix).unwrap_or("").to_owned()),
                     random_name: r.flag("NomAleatoire"),
                     playable: r.flag("Jouable"),
+                    description: r.get_l("Description", &suffix).unwrap_or("").to_owned(),
+                    portrait: r.get("Portrait").unwrap_or("").to_owned(),
                     no_female: r.flag("RestrictionFeminin"),
                     no_male: r.flag("RestrictionMaculin"),
                     size: (r.int("Largeur", 0) as i32, r.int("Hauteur", 0) as i32),

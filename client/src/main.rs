@@ -306,6 +306,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
         setup.players = options.players.clone();
     }
     setup.names = options.names.clone();
+    setup.characters = options.characters.clone();
     if options.fiefs.is_some() || options.villagers.is_some() {
         // The default fiefs keep their people; extra ones get a random one, like the original's
         // "Aléatoire", each fief its own team.
