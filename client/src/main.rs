@@ -453,6 +453,8 @@ async fn main() {
             }
         }
     }
+    // The interface's random choices (tracks, tips), not the world's: different each game.
+    rand::srand((macroquad::miniquad::date::now() * 1000.0) as u64);
     // The game starts with a "Debut" track (`FrmMoteur2D.frm:405`).
     music.play(music::DEBUT, false);
     let mut last_save = get_time();
@@ -468,7 +470,6 @@ async fn main() {
 
     // `Afficher_Conseil`: a tip to start with (not in the still scenes of the rendering tests).
     if !options::test_mode() {
-        rand::srand((macroquad::miniquad::date::now() * 1000.0) as u64);
         hud.add_tip(rand::gen_range(0.0, 1.0));
     }
     let mut scales = Scales::load();
