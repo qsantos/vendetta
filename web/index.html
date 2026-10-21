@@ -179,6 +179,8 @@
       "Un villageois": "A villager",
       "Nouveau personnage…": "New character…",
       "Nouveau personnage": "New character",
+      "Modifier le personnage": "Edit the character",
+      "Enregistrer": "Save",
       "Nom": "Name",
       "Race": "Race",
       "Sexe": "Sex",
@@ -281,6 +283,8 @@
       "Un villageois": "Un aldeano",
       "Nouveau personnage…": "Nuevo personaje…",
       "Nouveau personnage": "Nuevo personaje",
+      "Modifier le personnage": "Modificar el personaje",
+      "Enregistrer": "Guardar",
       "Nom": "Nombre",
       "Race": "Raza",
       "Sexe": "Sexo",
@@ -386,6 +390,8 @@
       "Un villageois": "村人",
       "Nouveau personnage…": "新しいキャラクター…",
       "Nouveau personnage": "新しいキャラクター",
+      "Modifier le personnage": "キャラクターを編集",
+      "Enregistrer": "保存",
       "Nom": "名前",
       "Race": "種族",
       "Sexe": "性別",
@@ -491,6 +497,8 @@
       "Un villageois": "一名村民",
       "Nouveau personnage…": "新角色…",
       "Nouveau personnage": "新角色",
+      "Modifier le personnage": "编辑角色",
+      "Enregistrer": "保存",
       "Nom": "名字",
       "Race": "种族",
       "Sexe": "性别",
@@ -671,7 +679,7 @@
   <form hidden>
     <h1>Vendetta</h1>
     <label>Personnage
-      <span class="pick"><select class="character"></select><button type="button" class="character-delete">✕</button></span></label>
+      <span class="pick"><select class="character"></select><button type="button" class="character-edit">✎</button><button type="button" class="character-delete">✕</button></span></label>
     <label>Taille de la carte
       <select name="size">
         <option value="128">128 × 128</option><option value="192">192 × 192</option>
@@ -714,7 +722,7 @@
   </form>
   <div id="character" hidden>
     <form>
-      <h1>Nouveau personnage</h1>
+      <h1 id="character-title">Nouveau personnage</h1>
       <label>Nom <span class="pick"><input type="text" name="name" maxlength="24"><button type="button" id="character-name">↻</button></span></label>
       <label>Race <select name="race"></select></label>
       <div class="race"><img id="character-portrait" alt=""><p id="character-description"></p></div>
@@ -728,7 +736,7 @@
       <p class="error" id="character-error"></p>
       <div class="buttons">
         <button type="button" id="character-cancel">Annuler</button>
-        <button type="submit">Créer</button>
+        <button type="submit" id="character-submit">Créer</button>
       </div>
     </form>
   </div>
@@ -1539,10 +1547,11 @@
         if (races) options.push(new Option(t("Nouveau personnage…"), "\n"));
         select.replaceChildren(...options);
         select.value = chosen;
-        select.parentElement.querySelector(".character-delete").hidden = !chosen;
+        for (const b of select.parentElement.querySelectorAll(".character-edit, .character-delete")) b.hidden = !chosen;
       }
     };
-    // `pick`: a `.pick` holding a `select.character` and a `.character-delete` button
+    // `pick`: a `.pick` holding a `select.character`, a `.character-edit` and a `.character-delete`
+    // button
     const characterField = (pick) => {
       const select = pick.querySelector("select.character");
       select.addEventListener("change", () => {
@@ -1553,6 +1562,7 @@
           choose(select.value);
         }
       });
+      pick.querySelector(".character-edit").addEventListener("click", () => races && openCharacter(chosenCharacter()));
       pick.querySelector(".character-delete").addEventListener("click", () => {
         if (!confirm(t("Supprimer ce personnage ?") + "\n" + chosen)) return;
         characters = characters.filter((c) => c.name !== chosen);
@@ -1563,7 +1573,7 @@
     const newCharacterField = () => {
       const pick = document.createElement("span");
       pick.className = "pick";
-      pick.innerHTML = '<select class="character"></select><button type="button" class="character-delete">✕</button>';
+      pick.innerHTML = '<select class="character"></select><button type="button" class="character-edit">✎</button><button type="button" class="character-delete">✕</button>';
       return characterField(pick);
     };
     characterField(form.querySelector(".pick"));
@@ -1677,14 +1687,30 @@
       sheet.hidden = true;
       clearInterval(turning);
     };
-    const openCharacter = () => {
-      draft.race = 0;
-      draft.female = Math.random() < 0.5;
+    // the character changed in the window, none for a new one
+    let editing = null;
+    const openCharacter = (character) => {
+      editing = character ?? null;
+      const k = editing ? races.races.findIndex((r) => r.index === editing.race) : -1;
+      draft.race = Math.max(k, 0);
+      draft.female = editing ? editing.female : Math.random() < 0.5;
       sheetForm.elements.race.replaceChildren(...races.races.map((r, k) => new Option(raceName(r, draft.female), k)));
-      sheetForm.elements.race.value = 0;
+      sheetForm.elements.race.value = draft.race;
       $("character-error").textContent = "";
-      showRace(true);
-      randomName();
+      $("character-title").textContent = t(editing ? "Modifier le personnage" : "Nouveau personnage");
+      $("character-submit").textContent = t(editing ? "Enregistrer" : "Créer");
+      if (editing && k >= 0) {
+        // its look as it is (a file the rules no longer list: their first one)
+        showRace(false);
+        draft.look = lists().map((l, j) => Math.max(l.indexOf(editing.look[j]), 0));
+        showLayers();
+        draw();
+        sheetForm.elements.name.value = editing.name;
+      } else {
+        showRace(true);
+        if (editing) sheetForm.elements.name.value = editing.name;
+        else randomName();
+      }
       sheet.hidden = false;
       sheetForm.elements.name.focus();
       facing = 0;
@@ -1709,10 +1735,13 @@
     sheetForm.addEventListener("submit", (e) => {
       e.preventDefault();
       const name = sheetForm.elements.name.value.trim();
-      const error = !name ? "Entrez un nom." : characters.some((c) => c.name.toLowerCase() === name.toLowerCase()) ? "Un autre personnage possède déjà ce nom." : "";
+      const taken = characters.some((c) => c !== editing && c.name.toLowerCase() === name.toLowerCase());
+      const error = !name ? "Entrez un nom." : taken ? "Un autre personnage possède déjà ce nom." : "";
       $("character-error").textContent = t(error);
       if (error) return;
-      characters.push({ name, race: race().index, female: draft.female, look: files() });
+      const made = { name, race: race().index, female: draft.female, look: files() };
+      if (editing) characters[characters.indexOf(editing)] = made;
+      else characters.push(made);
       choose(name);
       closeCharacter();
     });
