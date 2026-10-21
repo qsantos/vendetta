@@ -4,7 +4,7 @@
 
 use crate::perso::speed_coef;
 use crate::rules::Rules;
-use crate::terrain::{CELL, Terrain};
+use crate::terrain::{CELL, Terrain, wrap_axis};
 use crate::vb::clng;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
@@ -466,7 +466,7 @@ fn step_time(steps: &[(u32, u32)], terrain: &Terrain, (c, r): (i64, i64)) -> (u3
     let t = if !terrain.torus || (0..w).contains(&c) && (0..h).contains(&r) {
         c + r * w
     } else {
-        c.rem_euclid(w) + r.rem_euclid(h) * w
+        wrap_axis(c, w) + wrap_axis(r, h) * w
     };
     if t > 0 && (t as usize) < steps.len() - 1 {
         steps[t as usize]
@@ -494,7 +494,7 @@ impl Landmarks {
         let k = if (0..w).contains(&c) && (0..h).contains(&r) {
             c + r * w
         } else if terrain.torus {
-            c.rem_euclid(w) + r.rem_euclid(h) * w
+            wrap_axis(c, w) + wrap_axis(r, h) * w
         } else {
             return None;
         };
@@ -558,7 +558,7 @@ impl Landmarks {
                 let j = if (0..w).contains(&nc) && (0..h).contains(&nr) {
                     nc + nr * w
                 } else if terrain.torus {
-                    nc.rem_euclid(w) + nr.rem_euclid(h) * w
+                    wrap_axis(nc, w) + wrap_axis(nr, h) * w
                 } else {
                     continue;
                 } as usize;

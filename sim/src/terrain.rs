@@ -5,6 +5,21 @@ use crate::vb::clng;
 
 pub const CELL: i32 = 16;
 
+/// `v.rem_euclid(size)`, without dividing when `v` is less than a turn off `[0, size)` (as
+/// positions on a torus mostly are): a division took much of the time spent measuring
+/// distances.
+pub fn wrap_axis(v: i64, size: i64) -> i64 {
+    if (0..size).contains(&v) {
+        v
+    } else if (-size..0).contains(&v) {
+        v + size
+    } else if (size..2 * size).contains(&v) {
+        v - size
+    } else {
+        v.rem_euclid(size)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Terrain {
     pub width: usize,
@@ -67,7 +82,7 @@ impl Terrain {
         if !self.torus || size <= 0 {
             return d;
         }
-        let d = d.rem_euclid(size);
+        let d = wrap_axis(d, size);
         if d * 2 >= size { d - size } else { d }
     }
 
@@ -119,7 +134,7 @@ impl Terrain {
             return (x, y);
         }
         let (w, h) = self.size_px();
-        (x.rem_euclid(w), y.rem_euclid(h))
+        (wrap_axis(x, w), wrap_axis(y, h))
     }
 
     /// [`Terrain::wrap`] for `i32` positions.
@@ -147,7 +162,7 @@ impl Terrain {
     pub fn index_at(&self, x: f64, y: f64) -> i64 {
         let (c, r) = (clng(x / CELL as f64), clng(y / CELL as f64));
         if self.torus {
-            return c.rem_euclid(self.width as i64) + r.rem_euclid(self.height as i64) * self.width as i64;
+            return wrap_axis(c, self.width as i64) + wrap_axis(r, self.height as i64) * self.width as i64;
         }
         c + r * self.width as i64
     }
