@@ -24,8 +24,6 @@ pub enum Paths {
 /// Cells looked at before giving up on reaching the destination (then the path goes to the
 /// cell nearest to it found so far, and straight on from there).
 const MAX_CELLS: usize = 1 << 18;
-/// The same while chasing a moving target, when the path is planned again every tick.
-const MAX_CELLS_CHASE: usize = 1 << 11;
 
 /// Time to cross one cell, straight or diagonally, in thousandths of `CELL` at speed 1.
 const STRAIGHT: f64 = 1000.0;
@@ -41,21 +39,13 @@ pub fn fastest(
     terrain: &Terrain,
     from: (i64, i64),
     to: (i64, i64),
-    chase: bool,
 ) -> Vec<(i64, i64)> {
-    let top = top_speed(rules, chase);
+    let top = top_speed(rules);
     // Straight on when all the way is at that speed: no path over the cells is faster.
     if cell(from) != cell(to) && clear(rules, terrain, from, to, top) {
         return vec![to];
     }
-    let (reached, mut path) = search(
-        rules,
-        terrain,
-        from,
-        &[to],
-        top,
-        if chase { MAX_CELLS_CHASE } else { MAX_CELLS },
-    );
+    let (reached, mut path) = search(rules, terrain, from, &[to], top, MAX_CELLS);
     if reached.is_none() {
         path.push(to);
     }
@@ -76,25 +66,19 @@ pub fn nearest(
         terrain,
         from,
         goals,
-        top_speed(rules, false),
+        top_speed(rules),
         MAX_CELLS,
     );
     Some((reached?, straighten(rules, terrain, from, path)))
 }
 
-/// Above the terrains' speeds, to be sure to find the fastest path; while chasing (planned
-/// again every tick, and over short distances), as if roads were of normal speed: much less to
-/// search, for paths that may only miss a road.
-fn top_speed(rules: &Rules, chase: bool) -> f64 {
-    if chase {
-        1.0
-    } else {
-        rules
-            .terrains
-            .iter()
-            .map(|t| t.speed)
-            .fold(1.0f64, f64::max)
-    }
+/// Above the terrains' speeds, to be sure to find the fastest path.
+fn top_speed(rules: &Rules) -> f64 {
+    rules
+        .terrains
+        .iter()
+        .map(|t| t.speed)
+        .fold(1.0f64, f64::max)
 }
 
 fn cell((x, y): (i64, i64)) -> (i64, i64) {

@@ -792,8 +792,20 @@ impl Perso {
             return false;
         }
         if self.dest != self.path_dest || !self.path_complete {
-            self.compute_path(rules, terrain, paths, chase);
-            self.path_dest = self.dest;
+            // With the fastest paths, a target that moved since the path was planned for it
+            // (`path_dest`) only moves its end, until it moved by a quarter of the way left
+            // (or two cells, close to it): planned again every tick, a chase could not afford
+            // the search a path along the roads takes.
+            let (dx, dy) = ((self.dest.0 - self.path_dest.0) as f64, (self.dest.1 - self.path_dest.1) as f64);
+            let (lx, ly) = ((self.dest.0 - self.x) as f64, (self.dest.1 - self.y) as f64);
+            let near = (dx * dx + dy * dy).sqrt() <= ((lx * lx + ly * ly).sqrt() / 4.0).max(2.0 * CELL as f64);
+            match self.path.last_mut() {
+                Some(last) if paths == Paths::Fastest && self.path_complete && near => *last = self.dest,
+                _ => {
+                    self.compute_path(rules, terrain, paths, chase);
+                    self.path_dest = self.dest;
+                }
+            }
         }
         let step = self.step as f64;
         let toward = |p: &mut Perso, (wx, wy): (i64, i64)| {
@@ -840,7 +852,8 @@ impl Perso {
 
     /// `Calculer_Chemin`: greedy 8-neighbour search toward the destination; when chasing a
     /// moving target, only two steps, and the path is recomputed on the next tick. With
-    /// [`Paths::Fastest`] (not in the original), the fastest path instead.
+    /// [`Paths::Fastest`] (not in the original), the fastest path instead (see `walk` for a
+    /// chase).
     fn compute_path(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) {
         self.path.clear();
         let i = CELL as i64;
@@ -850,8 +863,8 @@ impl Perso {
             // (the terrain under the feet, as for the speed)
             let feet = self.h as i64 - 16;
             let (from, to) = ((self.x, self.y + feet), (self.dest.0, self.dest.1 + feet));
-            self.path = crate::path::fastest(rules, terrain, from, to, chase).into_iter().map(|(x, y)| (x, y - feet)).collect();
-            self.path_complete = !chase;
+            self.path = crate::path::fastest(rules, terrain, from, to).into_iter().map(|(x, y)| (x, y - feet)).collect();
+            self.path_complete = true;
         } else if !self.bonus_flying && self.alive() && PATHFINDING > 0 {
             let max_steps = if chase { 2 } else { 1024 };
             self.path_complete = !chase;

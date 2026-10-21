@@ -69,7 +69,7 @@ fn around_a_lake() {
         (15..25).contains(&c) && (8..32).contains(&r)
     });
     let (from, to) = (px(5, 20), px(35, 20));
-    let path = fastest(&rules, &t, from, to, false);
+    let path = fastest(&rules, &t, from, to);
     let straight = time(&rules, &t, from, &[to]);
     let around = time(&rules, &t, from, &path);
     assert!(
@@ -85,7 +85,7 @@ fn across_a_stream() {
     let Some(rules) = load() else { return };
     let t = map(&rules, false, |c, _| c == 20);
     let (from, to) = (px(5, 20), px(35, 20));
-    assert_eq!(fastest(&rules, &t, from, to, false), vec![to]);
+    assert_eq!(fastest(&rules, &t, from, to), vec![to]);
 }
 
 /// In the open, straight on.
@@ -94,10 +94,10 @@ fn open_ground() {
     let Some(rules) = load() else { return };
     let t = map(&rules, false, |_, _| false);
     assert_eq!(
-        fastest(&rules, &t, px(2, 2), px(22, 12), false),
+        fastest(&rules, &t, px(2, 2), px(22, 12)),
         vec![px(22, 12)]
     );
-    assert_eq!(fastest(&rules, &t, px(2, 2), px(2, 2), false), vec![]);
+    assert_eq!(fastest(&rules, &t, px(2, 2), px(2, 2)), vec![]);
 }
 
 /// On a torus, across the edge, with the goal given as its copy nearest to the start.
@@ -106,7 +106,7 @@ fn across_the_edge() {
     let Some(rules) = load() else { return };
     let t = map(&rules, true, |c, r| (10..30).contains(&c) && r != 39);
     let (from, to) = (px(5, 5), px(-5, 5));
-    let path = fastest(&rules, &t, from, to, false);
+    let path = fastest(&rules, &t, from, to);
     assert_eq!(path, vec![to]);
 }
 
@@ -121,7 +121,7 @@ fn far_away() {
     };
     t.category.fill(slowest(&rules));
     let (from, to) = (px(1, 1), px(500, 300));
-    let path = fastest(&rules, &t, from, to, true);
+    let path = fastest(&rules, &t, from, to);
     // (straight on, across a uniform sea)
     assert_eq!(path, vec![to]);
 }
@@ -138,7 +138,7 @@ fn along_a_road() {
         t.category[c + 22 * 40] = road;
     }
     let (from, to) = (px(2, 20), px(38, 20));
-    let path = fastest(&rules, &t, from, to, false);
+    let path = fastest(&rules, &t, from, to);
     assert!(
         time(&rules, &t, from, &path) < time(&rules, &t, from, &[to]) * 0.9,
         "{path:?}"
@@ -211,4 +211,53 @@ fn nearest_by_time() {
         let want = if paths == Paths::Fastest { far } else { near };
         assert_eq!(w.persos[i].resource_target, want, "{paths:?}");
     }
+}
+
+/// Chasing a target that walks away along a road, from beside it: onto the road, where the
+/// chaser is faster, rather than heading for the target across the grass (the path is planned
+/// once, its end following the target, rather than again every tick).
+#[test]
+fn chase_along_a_road() {
+    use sim::orders::Order;
+    use sim::path::Paths;
+    use sim::world::{World, WorldSetup};
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets");
+    let Some(rules) = load() else { return };
+    let files = Files::from_dir(&root).unwrap();
+    let setup = WorldSetup { seed: 7, paths: Paths::Fastest, players: vec![0, 1], ..Default::default() };
+    let mut w = World::create(&rules, &files, &setup).unwrap();
+    let speed = |k: usize| rules.terrains[k].speed;
+    let road = (0..rules.terrains.len()).max_by(|&a, &b| speed(a).total_cmp(&speed(b))).unwrap() as u8;
+    let plain = (0..rules.terrains.len()).find(|&k| speed(k) == 1.0).unwrap() as u8;
+    let width = w.terrain.width;
+    let row = 20;
+    w.terrain.category.fill(plain);
+    for c in 0..width {
+        w.terrain.category[c + row * width] = road;
+    }
+    let (i, j) = (w.persos.iter().position(|p| p.player).unwrap(), w.persos.iter().rposition(|p| p.player).unwrap());
+    assert_ne!(w.persos[i].team, w.persos[j].team);
+    let cell = CELL as i64;
+    // (positions of the feet, `y + h - 16`)
+    let at = |w: &mut World, k: usize, c: i64, r: i64| {
+        let p = &mut w.persos[k];
+        p.in_house = false;
+        (p.x, p.y) = (c * cell, r * cell - (p.h as i64 - 16));
+    };
+    at(&mut w, i, 4, row as i64 + 8);
+    at(&mut w, j, 24, row as i64);
+    let far = (width as i64 - 4) * cell;
+    let jy = w.persos[j].y;
+    w.step(&rules, &[Order::Move { perso: j, x: far, y: jy }]);
+    w.attack_perso(&rules, i, j);
+    let mut on_road = 0;
+    let ticks = 150;
+    for _ in 0..ticks {
+        w.step(&rules, &[]);
+        let p = &w.persos[i];
+        if sim::perso::speed_coef(&rules, &w.terrain, p.x, p.y + p.h as i64 - 16) == speed(road as usize) {
+            on_road += 1;
+        }
+    }
+    assert!(on_road > ticks / 2, "{on_road} ticks of {ticks} on the road");
 }

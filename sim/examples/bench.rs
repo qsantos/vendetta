@@ -1,10 +1,13 @@
-//! Simulation benchmark: `cargo run --release -p sim --example bench [preset...] [ticks=N]`.
+//! Simulation benchmark: `cargo run --release -p sim --example bench [preset...] [ticks=N]
+//! [fastest] [torus]`.
 //! Presets: `small` (the default world), `large` (512², 16 fiefs of 150), `huge` (1024², 30
 //! fiefs of 500, about where Firefox gave up); all by default. Reports world creation, time
 //! per tick (average and worst, after a warm-up for the villagers to leave their castles) and
-//! saving and loading.
+//! saving and loading. `fastest` and `torus` play as the game does by default: the fastest
+//! paths, on a toroidal map (the simulation's default is the original's).
 
 use sim::files::Files;
+use sim::path::Paths;
 use sim::rules::Rules;
 use sim::world::{FiefSetup, Roads, World, WorldSetup};
 use std::path::Path;
@@ -29,10 +32,13 @@ fn main() {
     let rules = Rules::load(&files, "Francais").unwrap();
     let mut ticks = 1000;
     let mut presets = Vec::new();
+    let (mut paths, mut torus) = (Paths::Greedy, false);
     for arg in std::env::args().skip(1) {
-        match arg.strip_prefix("ticks=") {
-            Some(n) => ticks = n.parse().expect("ticks=N"),
-            None => presets.push(arg),
+        match (arg.as_str(), arg.strip_prefix("ticks=")) {
+            (_, Some(n)) => ticks = n.parse().expect("ticks=N"),
+            ("fastest", _) => paths = Paths::Fastest,
+            ("torus", _) => torus = true,
+            _ => presets.push(arg),
         }
     }
     if presets.is_empty() {
@@ -45,6 +51,7 @@ fn main() {
             "huge" => setup(&rules, 1024, 30, 500),
             _ => panic!("unknown preset {name}"),
         };
+        let setup = WorldSetup { paths, torus, ..setup };
         let t = Instant::now();
         let mut world = World::create(&rules, &files, &setup).unwrap();
         let created = t.elapsed();
