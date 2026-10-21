@@ -8,7 +8,7 @@ use crate::terrain::{CELL, Terrain, wrap_axis};
 use crate::vb::clng;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, VecDeque};
 use std::hash::{BuildHasherDefault, Hasher};
 
 /// How characters find their way.
@@ -35,6 +35,62 @@ pub enum Chase {
 /// Cells looked at before giving up on reaching the destination (then the path goes to the
 /// cell nearest to it found so far, and straight on from there).
 const MAX_CELLS: usize = 1 << 18;
+
+/// Cells the searches a tick starts may look at, together: past them, the paths asked for
+/// wait for the next ticks (see [`Planner`]). A search started finishes, so a tick takes up to
+/// this and one search more.
+pub const BUDGET: u64 = 1 << 16;
+
+/// Not in the original: spreads the searches over the ticks, so that many asked for at once
+/// (a troop sent far away) do not stall the game. A tick starts searches until they have looked
+/// at [`BUDGET`] cells; past that, the characters asking for a path wait in a queue, standing,
+/// served first at the next ticks, in the order they asked; and the other searches (the AI
+/// choosing what to go for, heading off) are not made, which fall back on the original's ways.
+/// Counted in cells, not time, it is the same on every copy of a network game.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Planner {
+    /// The characters waiting for a path, oldest first.
+    pub(crate) queue: VecDeque<usize>,
+    /// [`looked`] when the tick started.
+    #[serde(skip)]
+    start: u64,
+}
+
+impl Planner {
+    /// A new tick, with its budget.
+    pub(crate) fn begin_tick(&mut self) {
+        self.start = looked();
+    }
+
+    /// Whether this tick's budget is spent.
+    pub(crate) fn spent(&self) -> bool {
+        looked() - self.start >= BUDGET
+    }
+
+    /// Whether perso `i`, which needs a path, may plan it now: when nobody waits and the
+    /// budget is not spent; otherwise it waits its turn (`queued`).
+    pub(crate) fn admit(&mut self, i: usize, queued: &mut bool) -> bool {
+        if *queued {
+            return false;
+        }
+        if self.queue.is_empty() && !self.spent() {
+            return true;
+        }
+        self.queue.push_back(i);
+        *queued = true;
+        false
+    }
+}
+
+thread_local! {
+    /// Cells the searches of this thread have looked at, ever (see [`Planner`]).
+    static LOOKED: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
+
+/// Cells the searches of this thread have looked at so far.
+pub fn looked() -> u64 {
+    LOOKED.get()
+}
 
 /// Time to cross one cell, straight or diagonally, in thousandths of `CELL` at speed 1.
 const STRAIGHT: f64 = 1000.0;
@@ -403,6 +459,7 @@ fn search(
                 open.push(Reverse((f, g, next)));
             }
         }
+        LOOKED.set(LOOKED.get() + looked as u64);
         // Back from the end to the start, keeping the cells where the direction changes.
         let mut cells = vec![nearest.1];
         while let Some(&last) = cells.last() {

@@ -52,6 +52,8 @@ pub struct World {
     pub paths: Paths,
     /// How characters chase a moving target.
     pub chase: Chase,
+    /// Not in the original: the searches for paths, spread over the ticks.
+    pub(crate) planner: crate::path::Planner,
     /// `NoPerso`: the local player's character, which always says its comments.
     pub player: Option<usize>,
     /// `ModIA` state: the round robin and the per-character search state.
@@ -237,6 +239,7 @@ impl World {
             god: None,
             spatial: Default::default(),
             headings: Default::default(),
+            planner: Default::default(),
         };
         world.create_citizens(rules);
         world.castles = world
@@ -546,6 +549,7 @@ impl World {
 
     /// `Deplacer_Persos`
     fn move_persos(&mut self, rules: &Rules) {
+        self.serve_paths(rules);
         for i in 0..self.persos.len() {
             if self.persos[i].ia_berserk() > 0 && self.persos[i].alive() {
                 self.berserk(rules, i);
@@ -562,6 +566,22 @@ impl World {
                 if self.rng.next() > 0.99 || self.persos[i].player {
                     self.say(rules, i, m as i64);
                 }
+            }
+        }
+    }
+
+    /// Not in the original: a new budget for the searches, first spent on the characters that
+    /// have been waiting for their path the longest (see [`crate::path::Planner`]).
+    fn serve_paths(&mut self, rules: &Rules) {
+        self.planner.begin_tick();
+        while !self.planner.spent() {
+            let Some(i) = self.planner.queue.pop_front() else { break };
+            let p = &mut self.persos[i];
+            p.path_queued = false;
+            // (unless it no longer needs it: stopped, dead, or given its way since)
+            if p.moving && p.alive() && p.needs_path() {
+                let chase = p.action == crate::combat::ATTACK_PERSO && self.persos[self.persos[i].perso_target].moving;
+                self.persos[i].plan(rules, &self.terrain, self.paths, chase);
             }
         }
     }
@@ -589,7 +609,7 @@ impl World {
         let before = p.action;
         // Chasing a moving target only plans two steps ahead, again every tick.
         let chase = before == crate::combat::ATTACK_PERSO && self.persos[p.perso_target].moving;
-        let step = self.persos[i].step_move(rules, &self.terrain, self.paths, chase);
+        let step = self.persos[i].step_move(rules, &self.terrain, self.paths, chase, &mut self.planner);
         self.wrap_perso(i);
         let p = &self.persos[i];
         self.spatial.persos.moved_to(i, p.x, p.y, crate::spatial::DRIFT);

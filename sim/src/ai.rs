@@ -631,10 +631,11 @@ impl World {
 
     /// Not in the original: with [`Paths::Fastest`], which of `goals` (a candidate, and the
     /// point perso `i` heads for to reach it) is the fastest to reach, with that point (its copy
-    /// nearest to `i`) and the way there; None to choose as the original does, by distance.
+    /// nearest to `i`) and the way there; None to choose as the original does, by distance
+    /// (also once the tick's searches are spent, see [`crate::path::Planner`]).
     fn fastest_goal(&self, rules: &Rules, i: usize, goals: &[(usize, (i64, i64))]) -> Option<Goal> {
         let p = &self.persos[i];
-        if self.paths != Paths::Fastest || goals.is_empty() || p.bonus_flying || !p.alive() {
+        if self.paths != Paths::Fastest || goals.is_empty() || p.bonus_flying || !p.alive() || self.planner.spent() {
             return None;
         }
         // (the terrain under the feet, as for the speed)

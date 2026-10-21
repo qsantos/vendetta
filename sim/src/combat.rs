@@ -292,6 +292,8 @@ impl World {
                 let key = (from, speed.to_bits(), trajectory.iter().map(|&(p, t)| (p, t.to_bits())).collect(), stays);
                 let found = match self.headings.get(&key) {
                     Some(found) => found.clone(),
+                    // (the tick's searches spent: straight for the target, see `Planner`)
+                    None if self.planner.spent() => return false,
                     None => {
                         let found = crate::path::intercept(rules, &self.terrain, from, speed, &trajectory, stays);
                         self.headings.insert(key, found.clone());

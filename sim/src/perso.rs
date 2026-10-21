@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use crate::items::{Recharge, TempEffect};
-use crate::path::Paths;
+use crate::path::{Paths, Planner};
 use crate::rules::Rules;
 use crate::stats::{XP_COEFS, XP_OBJECT, XP_RESOURCE, XP_SERVICE, XP_SPECIAL};
 use crate::terrain::{CELL, Terrain};
@@ -188,6 +188,8 @@ pub struct Perso {
     pub(crate) path: Vec<(i64, i64)>,
     pub(crate) path_dest: (i64, i64),
     path_complete: bool,
+    /// Waiting in the [`crate::path::Planner`]'s queue for a path.
+    pub(crate) path_queued: bool,
     /// Not in the original: the destination of the target when it was last headed off (see
     /// `World::head_off`).
     pub(crate) headed_off: (i64, i64),
@@ -392,6 +394,7 @@ impl Perso {
             path: Vec::new(),
             path_dest: (0, 0),
             path_complete: false,
+            path_queued: false,
             headed_off: (0, 0),
             action: action::IDLE,
             in_own_castle: false,
@@ -761,13 +764,13 @@ impl Perso {
     /// The character's own part of `Deplacement3`: one step and the action transitions.
     /// Returns whether it is still walking, or None while stunned (`World::move_step` handles
     /// the projectiles).
-    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) -> Option<bool> {
+    pub(crate) fn step_move(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool, planner: &mut Planner) -> Option<bool> {
         if self.stun > 0 {
             self.stun -= 1;
             return None;
         }
         self.update_step(rules, terrain);
-        if self.walk(rules, terrain, paths, chase) {
+        if self.walk(rules, terrain, paths, chase, planner) {
             if self.action > 99 && self.action % 2 == 0 && self.action < 200 {
                 self.action += 1;
             }
@@ -790,12 +793,13 @@ impl Perso {
         }
     }
 
-    /// `Marcher3`: one step along the path; returns whether still moving.
-    fn walk(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) -> bool {
+    /// `Marcher3`: one step along the path; returns whether still moving. With the fastest
+    /// paths, one waiting for its path stands (see [`Planner`]).
+    fn walk(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool, planner: &mut Planner) -> bool {
         if !self.moving {
             return false;
         }
-        if self.dest != self.path_dest || !self.path_complete {
+        if self.needs_path() {
             // With the fastest paths, a target that moved since the path was planned for it
             // (`path_dest`) only moves its end, until it moved by a quarter of the way left
             // (or two cells, close to it): planned again every tick, a chase could not afford
@@ -803,12 +807,12 @@ impl Perso {
             let (dx, dy) = ((self.dest.0 - self.path_dest.0) as f64, (self.dest.1 - self.path_dest.1) as f64);
             let (lx, ly) = ((self.dest.0 - self.x) as f64, (self.dest.1 - self.y) as f64);
             let near = (dx * dx + dy * dy).sqrt() <= ((lx * lx + ly * ly).sqrt() / 4.0).max(2.0 * CELL as f64);
-            match self.path.last_mut() {
-                Some(last) if paths == Paths::Fastest && self.path_complete && near => *last = self.dest,
-                _ => {
-                    self.compute_path(rules, terrain, paths, chase);
-                    self.path_dest = self.dest;
-                }
+            if paths == Paths::Fastest && self.path_complete && near && !self.path.is_empty() {
+                *self.path.last_mut().unwrap() = self.dest;
+            } else if self.searches(paths) && !planner.admit(self.numero, &mut self.path_queued) {
+                return true;
+            } else {
+                self.plan(rules, terrain, paths, chase);
             }
         }
         let step = self.step as f64;
@@ -839,6 +843,22 @@ impl Perso {
             self.moving = false;
         }
         self.moving
+    }
+
+    /// Whether its path is not the one to `dest` (or not all of it).
+    pub(crate) fn needs_path(&self) -> bool {
+        self.dest != self.path_dest || !self.path_complete
+    }
+
+    /// Whether planning its path searches (see [`Planner`]).
+    fn searches(&self, paths: Paths) -> bool {
+        paths == Paths::Fastest && !self.bonus_flying && self.alive()
+    }
+
+    /// Plans the path to `dest` (`Calculer_Chemin`, see [`Perso::compute_path`]).
+    pub(crate) fn plan(&mut self, rules: &Rules, terrain: &Terrain, paths: Paths, chase: bool) {
+        self.compute_path(rules, terrain, paths, chase);
+        self.path_dest = self.dest;
     }
 
     /// Not in the original: walk to `dest` along `path` (waypoints as `compute_path` gives
