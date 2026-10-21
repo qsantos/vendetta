@@ -110,8 +110,8 @@ fn across_the_edge() {
     assert_eq!(path, vec![to]);
 }
 
-/// A destination that cannot be reached within the search's limit (across a sea): toward the
-/// nearest cell found, then straight on.
+/// A destination that cannot be reached within the search's limit (across a sea): still
+/// toward it.
 #[test]
 fn far_away() {
     let Some(rules) = load() else { return };
@@ -122,8 +122,26 @@ fn far_away() {
     t.category.fill(slowest(&rules));
     let (from, to) = (px(1, 1), px(500, 300));
     let path = fastest(&rules, &t, from, to, true);
-    assert!(path.len() >= 2, "{path:?}");
-    assert_eq!(*path.last().unwrap(), to);
-    let reached = path[path.len() - 2];
-    assert!(t.dist(reached, to) < t.dist(from, to));
+    // (straight on, across a uniform sea)
+    assert_eq!(path, vec![to]);
+}
+
+/// Along a road rather than beside it, when going the same way.
+#[test]
+fn along_a_road() {
+    let Some(rules) = load() else { return };
+    let road = (0..rules.terrains.len())
+        .max_by(|&a, &b| rules.terrains[a].speed.total_cmp(&rules.terrains[b].speed))
+        .unwrap() as u8;
+    let mut t = map(&rules, false, |_, _| false);
+    for c in 0..40 {
+        t.category[c + 22 * 40] = road;
+    }
+    let (from, to) = (px(2, 20), px(38, 20));
+    let path = fastest(&rules, &t, from, to, false);
+    assert!(
+        time(&rules, &t, from, &path) < time(&rules, &t, from, &[to]) * 0.9,
+        "{path:?}"
+    );
+    assert!(path.iter().any(|&(_, y)| y == 22 * CELL as i64), "{path:?}");
 }

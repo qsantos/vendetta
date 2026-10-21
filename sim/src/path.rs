@@ -9,6 +9,7 @@ use crate::vb::clng;
 use serde::{Deserialize, Serialize};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
+use std::hash::{BuildHasherDefault, Hasher};
 
 /// How characters find their way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -22,7 +23,7 @@ pub enum Paths {
 
 /// Cells looked at before giving up on reaching the destination (then the path goes to the
 /// cell nearest to it found so far, and straight on from there).
-const MAX_CELLS: usize = 1 << 16;
+const MAX_CELLS: usize = 1 << 18;
 /// The same while chasing a moving target, when the path is planned again every tick.
 const MAX_CELLS_CHASE: usize = 1 << 11;
 
@@ -47,8 +48,16 @@ pub fn fastest(
     if start == goal {
         return Vec::new();
     }
-    // Straight on when nothing slows down on the way: no path over the cells is shorter.
-    if clear(rules, terrain, from, to) {
+    let fastest_terrain = rules
+        .terrains
+        .iter()
+        .map(|t| t.speed)
+        .fold(1.0f64, f64::max);
+    // While chasing (planned again every tick, and over short distances), as if roads were of
+    // normal speed: much less to search, for paths that may only miss a road.
+    let top = if chase { 1.0 } else { fastest_terrain };
+    // Straight on when all the way is at that speed: no path over the cells is faster.
+    if clear(rules, terrain, from, to, top) {
         return vec![to];
     }
     // On a flat map, the cells of the map, and those of the ends should they be off it.
@@ -61,14 +70,13 @@ pub fn fastest(
             start.1.max(goal.1).max(h - 1),
         )
     });
-    // The time at normal speed: the search is much faster than assuming roads (the fastest
-    // terrain) all the way, for paths seldom slower, and then only by missing a road.
+    // The time at that speed all the way: never more than the fastest path takes.
     let heuristic = |(c, r): (i64, i64)| {
         let (dx, dy) = ((c - goal.0).abs(), (r - goal.1).abs());
         let (diagonal, straight) = (dx.min(dy), dx.max(dy) - dx.min(dy));
-        (diagonal as f64 * DIAGONAL + straight as f64 * STRAIGHT) as u64
+        ((diagonal as f64 * DIAGONAL + straight as f64 * STRAIGHT) / top) as u64
     };
-    let mut seen: HashMap<(i64, i64), (u64, (i64, i64))> = HashMap::new();
+    let mut seen: Seen = HashMap::default();
     let mut open = BinaryHeap::new();
     seen.insert(start, (0, start));
     open.push(Reverse((heuristic(start), 0u64, start)));
@@ -143,16 +151,91 @@ pub fn fastest(
     if nearest.1 != goal {
         path.push(to);
     }
-    path
+    straighten(rules, terrain, from, path)
 }
 
-/// Whether no terrain slower than normal is on the straight line from `from` to `to`.
-fn clear(rules: &Rules, terrain: &Terrain, from: (i64, i64), to: (i64, i64)) -> bool {
+/// `path` without the waypoints that a straight line can skip: one all at least as fast as
+/// the fastest terrain of the stretch of `path` it replaces (and so shorter, and no slower).
+/// It removes the zigzags of paths over cells, keeping the turns that follow faster terrain.
+fn straighten(
+    rules: &Rules,
+    terrain: &Terrain,
+    from: (i64, i64),
+    path: Vec<(i64, i64)>,
+) -> Vec<(i64, i64)> {
+    let mut out = Vec::new();
+    let mut at = from;
+    let mut k = 0;
+    while k < path.len() {
+        // the farthest waypoint reachable straight on
+        let mut fastest = 0.0f64;
+        let mut prev = at;
+        let mut reach = k;
+        for (j, &p) in path.iter().enumerate().skip(k) {
+            fastest = fastest.max(max_speed(rules, terrain, prev, p));
+            prev = p;
+            if j == k || clear(rules, terrain, at, p, fastest) {
+                reach = j;
+            }
+        }
+        out.push(path[reach]);
+        at = path[reach];
+        k = reach + 1;
+    }
+    out
+}
+
+/// The fastest terrain on the straight line from `from` to `to`.
+fn max_speed(rules: &Rules, terrain: &Terrain, from: (i64, i64), to: (i64, i64)) -> f64 {
+    let (dx, dy) = (to.0 - from.0, to.1 - from.1);
+    let steps = (dx.abs().max(dy.abs()) * 2 / CELL as i64).max(1);
+    (0..=steps)
+        .map(|k| {
+            speed_coef(
+                rules,
+                terrain,
+                from.0 + dx * k / steps,
+                from.1 + dy * k / steps,
+            )
+        })
+        .fold(0.0, f64::max)
+}
+
+/// Whether the straight line from `from` to `to` is all at speed `speed` or faster.
+fn clear(rules: &Rules, terrain: &Terrain, from: (i64, i64), to: (i64, i64), speed: f64) -> bool {
     let (dx, dy) = (to.0 - from.0, to.1 - from.1);
     // every half cell
     let steps = (dx.abs().max(dy.abs()) * 2 / CELL as i64).max(1);
     (0..=steps).all(|k| {
         let (x, y) = (from.0 + dx * k / steps, from.1 + dy * k / steps);
-        speed_coef(rules, terrain, x, y) >= 1.0
+        speed_coef(rules, terrain, x, y) >= speed
     })
+}
+
+/// For each cell reached: the time to reach it, and the cell it is reached from.
+type Seen = HashMap<(i64, i64), (u64, (i64, i64)), BuildHasherDefault<CellHasher>>;
+
+/// A hasher for cells, much faster than the default one (which resists attacks that do not
+/// concern positions on a map): FxHash's multiply and rotate.
+#[derive(Default)]
+struct CellHasher(u64);
+
+impl Hasher for CellHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.write_u64(b as u64);
+        }
+    }
+
+    fn write_i64(&mut self, v: i64) {
+        self.write_u64(v as u64);
+    }
+
+    fn write_u64(&mut self, v: u64) {
+        self.0 = (self.0.rotate_left(5) ^ v).wrapping_mul(0x51_7c_c1_b7_27_22_0a_95);
+    }
+
+    fn finish(&self) -> u64 {
+        self.0
+    }
 }
