@@ -57,7 +57,8 @@ pub fn fastest(
         return vec![to];
     }
     let goals = [to];
-    let (reached, mut path) = search(rules, terrain, from, &goals, &|_, time| Some(time), &aim(&goals, top), top);
+    let landmarks = Landmarks::of(rules, terrain, cell(from), &[cell(to)]);
+    let (reached, mut path) = search(rules, terrain, from, &goals, &|_, time| Some(time), &aim(terrain, landmarks, &goals, top), top);
     if reached.is_none() {
         path.push(to);
     }
@@ -74,13 +75,15 @@ pub fn nearest(
     goals: &[(i64, i64)],
 ) -> Option<(usize, Vec<(i64, i64)>)> {
     let top = top_speed(rules);
+    let cells: Vec<(i64, i64)> = goals.iter().take(MAX_LANDMARKED + 1).map(|&g| cell(g)).collect();
+    let landmarks = (goals.len() <= MAX_LANDMARKED).then(|| Landmarks::of(rules, terrain, cell(from), &cells)).flatten();
     let (reached, path) = search(
         rules,
         terrain,
         from,
         goals,
         &|_, time| Some(time),
-        &aim(goals, top),
+        &aim(terrain, landmarks, goals, top),
         top,
     );
     Some((reached?, straighten(rules, terrain, from, path)))
@@ -111,9 +114,16 @@ pub fn intercept(
     // Only those within reach in time, straight on at the top speed.
     let top = top_speed(rules);
     let start = cell(from);
+    let points: Vec<(i64, i64)> = trajectory.iter().map(|&(p, _)| cell(p)).collect();
+    let landmarks = Landmarks::of(rules, terrain, start, &points);
+    let (here, marks) = (landmarks.and_then(|l| l.at(terrain, start)), landmarks.map(|l| |c| l.at(terrain, c).unwrap()));
+    let least = |k: usize| {
+        let straight = (octile(start, points[k]) / top) as u64;
+        here.zip(marks).map_or(straight, |(a, marks)| straight.max(apart(a, marks(points[k]))))
+    };
     let mut kept: Vec<usize> = last
         .into_values()
-        .filter(|&k| stays && k == end || octile(start, cell(trajectory[k].0)) / top <= by(k))
+        .filter(|&k| stays && k == end || least(k) as f64 <= by(k))
         .collect();
     kept.sort_unstable();
     let goals: Vec<(i64, i64)> = kept.iter().map(|&k| trajectory[k].0).collect();
@@ -132,7 +142,7 @@ pub fn intercept(
             let (k, by) = (kept[g], by(kept[g]));
             (time as f64 <= by || stays && k == end).then(|| (time as f64).max(by) as u64)
         },
-        &stretches(&cells, &times, stays, top),
+        &stretches(terrain, landmarks, &cells, &times, stays, top),
         top,
     );
     let reached = reached?;
@@ -147,28 +157,49 @@ const STRETCHES: usize = 32;
 /// bound on the score through a cell at a time, by stretches of consecutive goals (each
 /// within its box of cells, left between the first's time and the last's); None when no
 /// goal can be reached through it before the target has left.
-fn stretches(goals: &[(i64, i64)], by: &[f64], stays: bool, top: f64) -> impl Fn((i64, i64), u64) -> Option<u64> {
+fn stretches<'a>(
+    terrain: &'a Terrain,
+    landmarks: Option<&'a Landmarks>,
+    goals: &[(i64, i64)],
+    by: &[f64],
+    stays: bool,
+    top: f64,
+) -> impl Fn((i64, i64), u64) -> Option<u64> + 'a {
     let size = goals.len().div_ceil(STRETCHES);
     let boxes: Vec<_> = (0..goals.len())
         .step_by(size)
         .map(|k| {
             let end = (k + size).min(goals.len());
             let (mut c0, mut r0, mut c1, mut r1) = (i64::MAX, i64::MAX, i64::MIN, i64::MIN);
+            // the least and most times from each landmark
+            let mut marks = [(u32::MAX, 0); LANDMARKS];
             for &(c, r) in &goals[k..end] {
                 (c0, r0, c1, r1) = (c0.min(c), r0.min(r), c1.max(c), r1.max(r));
+                if let Some(at) = landmarks.and_then(|l| l.at(terrain, (c, r))) {
+                    for (m, &t) in marks.iter_mut().zip(at) {
+                        *m = (m.0.min(t), m.1.max(t));
+                    }
+                }
             }
             let last = if stays && end == goals.len() { f64::INFINITY } else { by[end - 1] };
-            ((c0, r0, c1, r1), by[k], last)
+            ((c0, r0, c1, r1), marks, by[k], last)
         })
         .collect();
     move |(c, r), time| {
+        let at = landmarks.and_then(|l| l.at(terrain, (c, r)));
         let mut best: Option<f64> = None;
         // (in the order of the trajectory: none later scores below the time it is left)
-        for &((c0, r0, c1, r1), first, last) in &boxes {
+        for &((c0, r0, c1, r1), marks, first, last) in &boxes {
             if best.is_some_and(|b| first >= b) {
                 break;
             }
-            let at = time as f64 + octile((c, r), (c.clamp(c0, c1), r.clamp(r0, r1))) / top;
+            let mut apart = octile((c, r), (c.clamp(c0, c1), r.clamp(r0, r1))) / top;
+            if let Some(at) = at {
+                for (&(least, most), &t) in marks.iter().zip(at) {
+                    apart = apart.max(least.saturating_sub(t).max(t.saturating_sub(most)) as f64);
+                }
+            }
+            let at = time as f64 + apart;
             if at <= last {
                 best = Some(best.map_or(at.max(first), |b| b.min(at.max(first))));
             }
@@ -178,11 +209,25 @@ fn stretches(goals: &[(i64, i64)], by: &[f64], stays: bool, top: f64) -> impl Fn
 }
 
 /// The search's usual bound: the time to reach the nearest goal, straight on at speed `top`
-/// (none beyond [`MAX_AIMED`] goals: spreading evenly until it meets one).
-fn aim(goals: &[(i64, i64)], top: f64) -> impl Fn((i64, i64), u64) -> Option<u64> {
+/// or by the `landmarks` (for up to [`MAX_LANDMARKED`] goals), whichever is the longer (none
+/// beyond [`MAX_AIMED`] goals: spreading evenly until it meets one).
+fn aim<'a>(terrain: &'a Terrain, landmarks: Option<&'a Landmarks>, goals: &[(i64, i64)], top: f64) -> impl Fn((i64, i64), u64) -> Option<u64> + 'a {
     let aimed: Vec<(i64, i64)> = if goals.len() <= MAX_AIMED { goals.iter().map(|&g| cell(g)).collect() } else { Vec::new() };
-    move |n, time| Some(time + aimed.iter().map(|&g| (octile(n, g) / top) as u64).min().unwrap_or(0))
+    let landmarks = landmarks.filter(|_| goals.len() <= MAX_LANDMARKED);
+    let marks: Vec<[u32; LANDMARKS]> = landmarks.map_or(Vec::new(), |l| aimed.iter().map(|&g| *l.at(terrain, g).unwrap()).collect());
+    move |n, time| {
+        let at = landmarks.and_then(|l| l.at(terrain, n));
+        let bound = |k: usize| {
+            let straight = (octile(n, aimed[k]) / top) as u64;
+            at.map_or(straight, |a| straight.max(apart(a, &marks[k])))
+        };
+        Some(time + (0..aimed.len()).map(bound).min().unwrap_or(0))
+    }
 }
+
+/// Goals beyond which [`aim`] leaves the landmarks out (the bound would cost more than it
+/// saves).
+const MAX_LANDMARKED: usize = 4;
 
 /// Above the terrains' speeds, to be sure to find the fastest path.
 fn top_speed(rules: &Rules) -> f64 {
@@ -354,10 +399,13 @@ fn search(
 
 /// What the search makes of a [`Terrain`]'s `category` when it first needs it (again after
 /// it changes, see [`Terrain::category_mut`]): the time to step into each cell (as
-/// [`speed_coef`] gives its speed at its centre), straight and diagonally.
+/// [`speed_coef`] gives its speed at its centre), straight and diagonally; and the
+/// [`Landmarks`].
 #[derive(Clone, Default)]
 pub struct Prepared {
     steps: std::sync::OnceLock<Vec<(u32, u32)>>,
+    // (shared by copies of the terrain, rather than copied)
+    landmarks: std::sync::OnceLock<std::sync::Arc<Landmarks>>,
 }
 
 impl std::fmt::Debug for Prepared {
@@ -394,6 +442,112 @@ fn step_time(steps: &[(u32, u32)], terrain: &Terrain, (c, r): (i64, i64)) -> (u3
     } else {
         step_times(1.0)
     }
+}
+
+/// Landmarks spread over the map, each as far as can be from the others.
+const LANDMARKS: usize = 8;
+
+/// For each cell of the map, the time from each of [`LANDMARKS`] cells, each step taken at
+/// the cheaper of its two ways: the time between two cells is at least the difference of
+/// theirs from a landmark (the triangle inequality), a bound on the search's time much closer
+/// than the straight line at the top speed when slow ground lies between. None on a flat map
+/// when the search may leave it (its ends off it), where the landmarks know nothing.
+pub(crate) struct Landmarks {
+    times: Vec<[u32; LANDMARKS]>,
+}
+
+impl Landmarks {
+    /// The times of cell `(c, r)` from the landmarks, None off a flat map.
+    fn at(&self, terrain: &Terrain, (c, r): (i64, i64)) -> Option<&[u32; LANDMARKS]> {
+        let (w, h) = (terrain.width as i64, terrain.height as i64);
+        let k = if (0..w).contains(&c) && (0..h).contains(&r) {
+            c + r * w
+        } else if terrain.torus {
+            c.rem_euclid(w) + r.rem_euclid(h) * w
+        } else {
+            return None;
+        };
+        Some(&self.times[k as usize])
+    }
+
+    /// The landmarks of `terrain`, for a search from `from` to `goals` (cells); None on a
+    /// flat map when one of them is off it.
+    fn of<'a>(rules: &Rules, terrain: &'a Terrain, from: (i64, i64), goals: &[(i64, i64)]) -> Option<&'a Landmarks> {
+        let (w, h) = (terrain.width as i64, terrain.height as i64);
+        let on = |(c, r): (i64, i64)| (0..w).contains(&c) && (0..h).contains(&r);
+        if !terrain.torus && !(on(from) && goals.iter().all(|&g| on(g))) {
+            return None;
+        }
+        Some(terrain.prepared.landmarks.get_or_init(|| std::sync::Arc::new(Landmarks::new(rules, terrain))))
+    }
+
+    fn new(rules: &Rules, terrain: &Terrain) -> Landmarks {
+        let steps = steps(rules, terrain);
+        let (w, h) = (terrain.width as i64, terrain.height as i64);
+        let n = (w * h) as usize;
+        let cost: Vec<(u32, u32)> = (0..n as i64).map(|k| step_time(steps, terrain, (k % w, k / w))).collect();
+        let mut times = vec![[0; LANDMARKS]; n];
+        // the time to the nearest landmark so far, the next being the farthest cell
+        let mut nearest = vec![u32::MAX; n];
+        let mut at = 0;
+        for l in 0..LANDMARKS {
+            let time = Self::spread(terrain, &cost, at);
+            for ((marks, near), &t) in times.iter_mut().zip(&mut nearest).zip(&time) {
+                marks[l] = t;
+                *near = (*near).min(t);
+            }
+            at = (0..n).max_by_key(|&k| nearest[k]).unwrap_or(0);
+        }
+        Landmarks { times }
+    }
+
+    /// Dijkstra over the whole map from cell `from`, each step at the cheaper of its two
+    /// ways (stepping into either cell), with buckets (a ring of times, longer than a step).
+    fn spread(terrain: &Terrain, cost: &[(u32, u32)], from: usize) -> Vec<u32> {
+        let (w, h) = (terrain.width as i64, terrain.height as i64);
+        let ring = (cost.iter().map(|c| c.1).max().unwrap_or(1) as usize + 1).next_power_of_two();
+        let mut buckets: Vec<Vec<u32>> = vec![Vec::new(); ring];
+        let mut time = vec![u32::MAX; cost.len()];
+        time[from] = 0;
+        buckets[0].push(from as u32);
+        let (mut queued, mut now) = (1usize, 0u32);
+        while queued > 0 {
+            let Some(k) = buckets[now as usize & (ring - 1)].pop() else {
+                now += 1;
+                continue;
+            };
+            queued -= 1;
+            let k = k as usize;
+            if time[k] < now {
+                continue;
+            }
+            let (c, r) = (k as i64 % w, k as i64 / w);
+            for (dc, dr) in NEIGHBOURS {
+                let (nc, nr) = (c + dc, r + dr);
+                let j = if (0..w).contains(&nc) && (0..h).contains(&nr) {
+                    nc + nr * w
+                } else if terrain.torus {
+                    nc.rem_euclid(w) + nr.rem_euclid(h) * w
+                } else {
+                    continue;
+                } as usize;
+                let diagonal = dc != 0 && dr != 0;
+                let step = |(s, d): (u32, u32)| if diagonal { d } else { s };
+                let t = now + step(cost[k]).min(step(cost[j]));
+                if t < time[j] {
+                    time[j] = t;
+                    buckets[t as usize & (ring - 1)].push(j as u32);
+                    queued += 1;
+                }
+            }
+        }
+        time
+    }
+}
+
+/// The bound [`Landmarks`] give on the time between two cells of times `a` and `b` from them.
+fn apart(a: &[u32; LANDMARKS], b: &[u32; LANDMARKS]) -> u64 {
+    a.iter().zip(b).map(|(&a, &b)| a.abs_diff(b)).max().unwrap_or(0) as u64
 }
 
 /// `path` without the waypoints that a straight line can skip: one all at least as fast as
