@@ -145,3 +145,70 @@ fn along_a_road() {
     );
     assert!(path.iter().any(|&(_, y)| y == 22 * CELL as i64), "{path:?}");
 }
+
+/// "The nearest" is the fastest to reach: behind slow ground, a nearer resource loses to one
+/// farther away along clear ground (and the character walks the path found choosing it).
+#[test]
+fn nearest_by_time() {
+    use sim::path::Paths;
+    use sim::world::{World, WorldSetup};
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets");
+    let Some(rules) = load() else { return };
+    let files = Files::from_dir(&root).unwrap();
+    for paths in [Paths::Greedy, Paths::Fastest] {
+        let mut w = World::create(
+            &rules,
+            &files,
+            &WorldSetup {
+                seed: 7,
+                paths,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let i = 0;
+        let (px, py) = (w.persos[i].x, w.persos[i].y);
+        let kind = w.resources[0].kind;
+        let mut nodes: Vec<usize> = (0..w.resources.len())
+            .filter(|&k| w.resources[k].kind == kind)
+            .collect();
+        let dist = |w: &World, k: usize| {
+            w.terrain
+                .dist((px, py), (w.resources[k].x as i64, w.resources[k].y as i64))
+        };
+        nodes.sort_by(|&a, &b| dist(&w, a).total_cmp(&dist(&w, b)));
+        let (near, far) = (nodes[0], nodes[1]);
+        assert!(dist(&w, far) < 4.0 * dist(&w, near), "pick another seed");
+        // all slow, but for a corridor to the farther node
+        w.terrain.category.fill(slowest(&rules));
+        let (fx, fy) = (
+            w.resources[far].x as i64 + 16,
+            w.resources[far].y as i64 + 16,
+        );
+        let steps = 200;
+        for s in 0..=steps {
+            let (x, y) = (px + (fx - px) * s / steps, py + (fy - py) * s / steps);
+            for (dx, dy) in [
+                (-1, -1),
+                (0, -1),
+                (1, -1),
+                (-1, 0),
+                (0, 0),
+                (1, 0),
+                (-1, 1),
+                (0, 1),
+                (1, 1),
+                (0, 2),
+                (1, 2),
+                (-1, 2),
+            ] {
+                let c = (x / CELL as i64 + dx).rem_euclid(w.terrain.width as i64);
+                let r = (y / CELL as i64 + dy).rem_euclid(w.terrain.height as i64);
+                w.terrain.category[(c + r * w.terrain.width as i64) as usize] = 1;
+            }
+        }
+        w.harvest_nearest(&rules, i, kind as i64);
+        let want = if paths == Paths::Fastest { far } else { near };
+        assert_eq!(w.persos[i].resource_target, want, "{paths:?}");
+    }
+}

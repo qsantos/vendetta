@@ -43,52 +43,129 @@ pub fn fastest(
     to: (i64, i64),
     chase: bool,
 ) -> Vec<(i64, i64)> {
-    let cell = |(x, y): (i64, i64)| (clng(x as f64 / CELL as f64), clng(y as f64 / CELL as f64));
-    let (start, goal) = (cell(from), cell(to));
-    if start == goal {
-        return Vec::new();
-    }
-    let fastest_terrain = rules
-        .terrains
-        .iter()
-        .map(|t| t.speed)
-        .fold(1.0f64, f64::max);
-    // While chasing (planned again every tick, and over short distances), as if roads were of
-    // normal speed: much less to search, for paths that may only miss a road.
-    let top = if chase { 1.0 } else { fastest_terrain };
+    let top = top_speed(rules, chase);
     // Straight on when all the way is at that speed: no path over the cells is faster.
-    if clear(rules, terrain, from, to, top) {
+    if cell(from) != cell(to) && clear(rules, terrain, from, to, top) {
         return vec![to];
+    }
+    let (reached, mut path) = search(
+        rules,
+        terrain,
+        from,
+        &[to],
+        top,
+        if chase { MAX_CELLS_CHASE } else { MAX_CELLS },
+    );
+    if reached.is_none() {
+        path.push(to);
+    }
+    straighten(rules, terrain, from, path)
+}
+
+/// Which of `goals` (feet positions, the copies nearest to `from` on a torus) is the fastest
+/// to reach from `from`, the first of them on a tie, and the waypoints there as
+/// [`fastest`] gives them; None when none is within the search's reach.
+pub fn nearest(
+    rules: &Rules,
+    terrain: &Terrain,
+    from: (i64, i64),
+    goals: &[(i64, i64)],
+) -> Option<(usize, Vec<(i64, i64)>)> {
+    let (reached, path) = search(
+        rules,
+        terrain,
+        from,
+        goals,
+        top_speed(rules, false),
+        MAX_CELLS,
+    );
+    Some((reached?, straighten(rules, terrain, from, path)))
+}
+
+/// Above the terrains' speeds, to be sure to find the fastest path; while chasing (planned
+/// again every tick, and over short distances), as if roads were of normal speed: much less to
+/// search, for paths that may only miss a road.
+fn top_speed(rules: &Rules, chase: bool) -> f64 {
+    if chase {
+        1.0
+    } else {
+        rules
+            .terrains
+            .iter()
+            .map(|t| t.speed)
+            .fold(1.0f64, f64::max)
+    }
+}
+
+fn cell((x, y): (i64, i64)) -> (i64, i64) {
+    (clng(x as f64 / CELL as f64), clng(y as f64 / CELL as f64))
+}
+
+/// Goals beyond which the search does not aim (the estimate would cost more than it saves),
+/// spreading evenly until it meets one.
+const MAX_AIMED: usize = 64;
+
+/// A* from `from` to the first of `goals` reached, looking at no more than `limit` cells: the
+/// goal reached, and the cells where the direction changes up to it, or up to the cell nearest
+/// to the (first) goal when none was reached.
+fn search(
+    rules: &Rules,
+    terrain: &Terrain,
+    from: (i64, i64),
+    goals: &[(i64, i64)],
+    top: f64,
+    limit: usize,
+) -> (Option<usize>, Vec<(i64, i64)>) {
+    let start = cell(from);
+    let mut goal_cells: HashMap<(i64, i64), usize, BuildHasherDefault<CellHasher>> =
+        HashMap::default();
+    for (k, &g) in goals.iter().enumerate().rev() {
+        goal_cells.insert(cell(g), k);
+    }
+    if let Some(&k) = goal_cells.get(&start) {
+        return (Some(k), Vec::new());
     }
     // On a flat map, the cells of the map, and those of the ends should they be off it.
     let bounds = (!terrain.torus).then(|| {
         let (w, h) = (terrain.width as i64, terrain.height as i64);
-        (
-            start.0.min(goal.0).min(0),
-            start.1.min(goal.1).min(0),
-            start.0.max(goal.0).max(w - 1),
-            start.1.max(goal.1).max(h - 1),
+        goal_cells.keys().fold(
+            (
+                start.0.min(0),
+                start.1.min(0),
+                start.0.max(w - 1),
+                start.1.max(h - 1),
+            ),
+            |(c0, r0, c1, r1), &(c, r)| (c0.min(c), r0.min(r), c1.max(c), r1.max(r)),
         )
     });
-    // The time at that speed all the way: never more than the fastest path takes.
-    let heuristic = |(c, r): (i64, i64)| {
-        let (dx, dy) = ((c - goal.0).abs(), (r - goal.1).abs());
+    // The time at that speed all the way to the nearest goal: never more than the fastest
+    // path takes.
+    let aimed: Vec<(i64, i64)> = if goals.len() <= MAX_AIMED {
+        goals.iter().map(|&g| cell(g)).collect()
+    } else {
+        Vec::new()
+    };
+    let first = cell(goals[0]);
+    let estimate = |(c, r): (i64, i64), to: (i64, i64)| {
+        let (dx, dy) = ((c - to.0).abs(), (r - to.1).abs());
         let (diagonal, straight) = (dx.min(dy), dx.max(dy) - dx.min(dy));
         ((diagonal as f64 * DIAGONAL + straight as f64 * STRAIGHT) / top) as u64
     };
+    let heuristic = |n: (i64, i64)| aimed.iter().map(|&g| estimate(n, g)).min().unwrap_or(0);
     let mut seen: Seen = HashMap::default();
     let mut open = BinaryHeap::new();
     seen.insert(start, (0, start));
     open.push(Reverse((heuristic(start), 0u64, start)));
-    let mut nearest = (heuristic(start), start);
-    let limit = if chase { MAX_CELLS_CHASE } else { MAX_CELLS };
+    let mut nearest = (estimate(start, first), start);
+    let mut reached = None;
     let mut looked = 0;
     while let Some(Reverse((_, g, node))) = open.pop() {
         if seen[&node].0 < g {
             continue;
         }
-        if node == goal {
-            nearest = (0, goal);
+        if let Some(&k) = goal_cells.get(&node) {
+            reached = Some(k);
+            nearest.1 = node;
             break;
         }
         looked += 1;
@@ -123,9 +200,8 @@ pub fn fastest(
                 continue;
             }
             seen.insert(next, (g, node));
-            let h = heuristic(next);
-            nearest = nearest.min((h, next));
-            open.push(Reverse((g + h, g, next)));
+            nearest = nearest.min((estimate(next, first), next));
+            open.push(Reverse((g + heuristic(next), g, next)));
         }
     }
     // Back from the end to the start, keeping the cells where the direction changes.
@@ -148,10 +224,7 @@ pub fn fastest(
             path.push((cells[k].0 * CELL as i64, cells[k].1 * CELL as i64));
         }
     }
-    if nearest.1 != goal {
-        path.push(to);
-    }
-    straighten(rules, terrain, from, path)
+    (reached, path)
 }
 
 /// `path` without the waypoints that a straight line can skip: one all at least as fast as

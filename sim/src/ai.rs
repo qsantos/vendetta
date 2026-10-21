@@ -8,6 +8,7 @@ mod dialogue;
 mod scripted;
 mod work;
 
+use crate::path::Paths;
 use serde::{Deserialize, Serialize};
 use crate::event::{Line, NumberKind};
 use crate::perso::action;
@@ -81,6 +82,9 @@ pub struct Ai {
     pub persos: Vec<PersoAi>,
     depth: u32,
 }
+
+/// A goal chosen by [`World::fastest_goal`]: the candidate, the point to walk to, the way there.
+type Goal = (usize, (i64, i64), Vec<(i64, i64)>);
 
 impl World {
     // ---------------------------------------------------------------- scheduling
@@ -620,9 +624,41 @@ impl World {
         best
     }
 
-    /// `IA_Trouver_Ennemi`: attack the nearest enemy, or send the soldiers.
+    /// Not in the original: with [`Paths::Fastest`], which of `goals` (a candidate, and the
+    /// point perso `i` heads for to reach it) is the fastest to reach, with that point (its copy
+    /// nearest to `i`) and the way there; None to choose as the original does, by distance.
+    fn fastest_goal(&self, rules: &Rules, i: usize, goals: &[(usize, (i64, i64))]) -> Option<Goal> {
+        let p = &self.persos[i];
+        if self.paths != Paths::Fastest || goals.is_empty() || p.bonus_flying || !p.alive() {
+            return None;
+        }
+        // (the terrain under the feet, as for the speed)
+        let feet = p.h as i64 - 16;
+        let points: Vec<(i64, i64)> = goals.iter().map(|&(_, g)| self.terrain.near((p.x, p.y), g)).collect();
+        let at_feet: Vec<(i64, i64)> = points.iter().map(|&(x, y)| (x, y + feet)).collect();
+        let (k, path) = crate::path::nearest(rules, &self.terrain, (p.x, p.y + feet), &at_feet)?;
+        Some((goals[k].0, points[k], path.into_iter().map(|(x, y)| (x, y - feet)).collect()))
+    }
+
+    /// The candidates of [`World::fastest_goal`], only with [`Paths::Fastest`].
+    fn goals(&self, goals: impl Iterator<Item = (usize, (i64, i64))>) -> Vec<(usize, (i64, i64))> {
+        if self.paths == Paths::Fastest { goals.collect() } else { Vec::new() }
+    }
+
+    /// `IA_Trouver_Ennemi`: attack the nearest enemy, or send the soldiers. With
+    /// [`Paths::Fastest`], the enemy the fastest to reach.
     pub fn attack_nearest_enemy(&mut self, rules: &Rules, i: usize, send: bool, ctrl: bool, shift: bool) {
-        if let Some(k) = self.nearest_enemy(i, -1, -1) {
+        let team = self.persos[i].team;
+        let enemies = self.persos.iter().enumerate().filter(|(_, q)| q.team != team && q.attackable());
+        let goals = self.goals(enemies.map(|(j, q)| (j, self.centre_for(i, q.x, q.y, q.w, q.h))));
+        if let Some((k, dest, path)) = self.fastest_goal(rules, i, &goals) {
+            if send {
+                self.order_charge(rules, i, 0, k as i64, ctrl, shift, false);
+            } else {
+                self.attack_perso(rules, i, k);
+                self.persos[i].follow(dest, path);
+            }
+        } else if let Some(k) = self.nearest_enemy(i, -1, -1) {
             if send {
                 self.order_charge(rules, i, 0, k as i64, ctrl, shift, false);
             } else {
@@ -631,9 +667,19 @@ impl World {
         }
     }
 
-    /// `IA_Trouver_MaisonEnnemi`
+    /// `IA_Trouver_MaisonEnnemi`; with [`Paths::Fastest`], the house the fastest to reach.
     pub fn attack_nearest_house(&mut self, rules: &Rules, i: usize, send: bool, ctrl: bool, shift: bool) {
-        if let Some(k) = self.nearest_enemy_house(i) {
+        let team = self.persos[i].team;
+        let houses = self.houses.iter().enumerate().filter(|&(j, m)| self.persos[j].team != team && m.visible());
+        let goals = self.goals(houses.map(|(j, m)| (j, self.centre_for(i, m.x as i64, m.y as i64, m.w, m.h))));
+        if let Some((k, dest, path)) = self.fastest_goal(rules, i, &goals) {
+            if send {
+                self.order_charge(rules, i, 1, k as i64, ctrl, shift, false);
+            } else {
+                self.attack_house(rules, i, k);
+                self.persos[i].follow(dest, path);
+            }
+        } else if let Some(k) = self.nearest_enemy_house(i) {
             if send {
                 self.order_charge(rules, i, 1, k as i64, ctrl, shift, false);
             } else {
@@ -642,9 +688,19 @@ impl World {
         }
     }
 
-    /// `IA_Trouver_ChateauEnnemi`
+    /// `IA_Trouver_ChateauEnnemi`; with [`Paths::Fastest`], the castle the fastest to reach.
     pub fn attack_nearest_castle(&mut self, rules: &Rules, i: usize, send: bool, ctrl: bool, shift: bool) {
-        if let Some(k) = self.nearest_enemy_castle(i) {
+        let team = self.persos[i].team;
+        let castles = self.castles.iter().enumerate().filter(|&(j, c)| self.fiefs[j].team != team && c.visible());
+        let goals = self.goals(castles.map(|(j, c)| (j, self.centre_for(i, c.x as i64, c.y as i64, c.w, c.h))));
+        if let Some((k, dest, path)) = self.fastest_goal(rules, i, &goals) {
+            if send {
+                self.order_charge(rules, i, 2, k as i64, ctrl, shift, false);
+            } else {
+                self.attack_castle(rules, i, k);
+                self.persos[i].follow(dest, path);
+            }
+        } else if let Some(k) = self.nearest_enemy_castle(i) {
             if send {
                 self.order_charge(rules, i, 2, k as i64, ctrl, shift, false);
             } else {
@@ -654,9 +710,14 @@ impl World {
     }
 
     /// `IA_Trouver_Allie`: walk to the nearest such ally (`EnDeplacement` tells whether it is
-    /// already there) and target it.
+    /// already there) and target it. With [`Paths::Fastest`], the ally the fastest to reach.
     fn go_to_ally(&mut self, rules: &Rules, i: usize, alive: bool, dead: bool) -> bool {
-        let Some(k) = self.nearest_ally(i, alive, dead) else { return false };
+        let p = &self.persos[i];
+        let allies = self.persos.iter().enumerate();
+        let allies = allies.filter(|(_, q)| q.team == p.team && !q.invocation() && (!alive || q.alive()) && !(dead && q.alive()));
+        let goals = self.goals(allies.map(|(j, q)| (j, (q.x, q.y))));
+        let fastest = self.fastest_goal(rules, i, &goals);
+        let Some(k) = fastest.as_ref().map(|f| f.0).or_else(|| self.nearest_ally(i, alive, dead)) else { return false };
         let (p, q) = (&self.persos[i], &self.persos[k]);
         let (qx, qy) = (q.x, q.y);
         let t = &self.terrain;
@@ -665,6 +726,9 @@ impl World {
         } else {
             self.walk_to(rules, i, qx, qy);
             self.persos[i].moving = true;
+            if let Some((_, dest, path)) = fastest {
+                self.persos[i].follow(dest, path);
+            }
         }
         self.persos[i].perso_target = k;
         true
@@ -679,8 +743,19 @@ impl World {
     }
 
     /// `IA_Trouver_Ressource`: the nearest node of terrain resource type `t`; node 0 when none
-    /// matches.
+    /// matches. With [`Paths::Fastest`], the node the fastest to reach.
     pub fn harvest_nearest(&mut self, rules: &Rules, i: usize, t: i64) {
+        let w = self.persos[i].w as f64;
+        let h = self.persos[i].h as f64;
+        // where `go_harvest` heads
+        let half = crate::world::RESOURCE_SIZE as f64 / 2.0;
+        let nodes = self.resources.iter().enumerate().filter(|(_, n)| n.kind as i64 == t);
+        let goals = self.goals(nodes.map(|(j, n)| (j, (clng(n.x as f64 + half - w / 2.0), clng(n.y as f64 + half - h / 2.0)))));
+        if let Some((k, dest, path)) = self.fastest_goal(rules, i, &goals) {
+            self.go_harvest(rules, i, k);
+            self.persos[i].follow(dest, path);
+            return;
+        }
         let p = self.pos(i);
         let mut d = self.half_perimeter();
         let mut best = 0;

@@ -122,7 +122,7 @@ impl World {
     // ---------------------------------------------------------------- Deplacement1/2
 
     /// The centre of the box (x, y, w, h) for perso `i`'s top-left corner.
-    fn centre_for(&self, i: usize, x: i64, y: i64, w: i32, h: i32) -> (i64, i64) {
+    pub(crate) fn centre_for(&self, i: usize, x: i64, y: i64, w: i32, h: i32) -> (i64, i64) {
         let p = &self.persos[i];
         (
             clng(x as f64 + w as f64 / 2.0 - p.w as f64 / 2.0),

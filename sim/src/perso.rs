@@ -825,6 +825,19 @@ impl Perso {
         self.moving
     }
 
+    /// Not in the original: walk to `dest` along `path` (waypoints as `compute_path` gives
+    /// them), found while choosing where to go, without planning it again.
+    pub(crate) fn follow(&mut self, dest: (i64, i64), path: Vec<(i64, i64)>) {
+        self.dest = dest;
+        self.path = path;
+        match self.path.last_mut() {
+            None => self.path.push(dest),
+            Some(last) => *last = dest,
+        }
+        self.path_dest = dest;
+        self.path_complete = true;
+    }
+
     /// `Calculer_Chemin`: greedy 8-neighbour search toward the destination; when chasing a
     /// moving target, only two steps, and the path is recomputed on the next tick. With
     /// [`Paths::Fastest`] (not in the original), the fastest path instead.

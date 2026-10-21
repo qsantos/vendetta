@@ -135,7 +135,7 @@ fn fastest_paths() {
     let Some((files, rules)) = load() else { return };
     let setup = WorldSetup { torus: true, paths: Paths::Fastest, ..crowded(&rules) };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("fastest_paths", &rules, world, &[], &[(0, 0x73c603db9f1adb52), (500, 0x58d84a63f4aeb04f), (1500, 0xeb77de508b840790)]);
+    check("fastest_paths", &rules, world, &[], &[(0, 0x73c603db9f1adb52), (500, 0x15c3c51edf198123), (1500, 0x9abaa8fa59f04b47)]);
 }
 
 /// The player at work and at war: harvesting, going home, attacking the nearest enemy.
