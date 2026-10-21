@@ -463,6 +463,37 @@ pub fn copies(world: &World, cam: (i32, i32), view: (i32, i32)) -> Vec<(i32, i32
     cams
 }
 
+/// How dark [`dim_copies`] makes the copies of the map.
+const COPY_SHADE: f32 = 0.45;
+
+/// Not in the original: on a torus, dims what lies outside the map-sized rectangle centred on
+/// the player, so that the copies of the map around it read as repeats.
+pub fn dim_copies(world: &World, player: usize, cam: (i32, i32), view: (i32, i32)) {
+    let Some(p) = world.persos.get(player) else { return };
+    if !world.terrain.torus {
+        return;
+    }
+    let (mw, mh) = world.terrain.size_px();
+    let (mw, mh) = (mw as i32, mh as i32);
+    let cx = rel(true, p.x as i32 + p.w / 2, cam.0, view.0, mw);
+    let cy = rel(true, p.y as i32 + p.h / 2, cam.1, view.1, mh);
+    let (left, top) = (cx - mw / 2, cy - mh / 2);
+    let (right, bottom) = (left + mw, top + mh);
+    let (vw, vh) = view;
+    let shade = Color::new(0.0, 0.0, 0.0, COPY_SHADE);
+    let rect = |x0: i32, y0: i32, x1: i32, y1: i32| {
+        if x1 > x0 && y1 > y0 {
+            draw_rectangle(x0 as f32, y0 as f32, (x1 - x0) as f32, (y1 - y0) as f32, shade);
+        }
+    };
+    // above, below, then the sides between
+    rect(0, 0, vw, top);
+    rect(0, bottom, vw, vh);
+    let (y0, y1) = (top.max(0), bottom.min(vh));
+    rect(0, y0, left, y1);
+    rect(right, y0, vw, y1);
+}
+
 /// Where the map's `x` is relative to `cam` on an axis of `size` pixels with `view` of it
 /// visible: `x - cam`, or on a torus that of the copy of `x` nearest to the middle of the view.
 pub fn rel(torus: bool, x: i32, cam: i32, view: i32, size: i32) -> i32 {

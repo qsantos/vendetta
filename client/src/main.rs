@@ -625,6 +625,7 @@ async fn main() {
                 effects.draw(&textures, c, view, zoom);
             }
         }
+        render::dim_copies(&world, player, cam, view);
         let placement = hud.draw_placement(&world, &rules, player, centre, cam);
         // (changing the camera submits the map's drawings)
         set_camera(&camera(hud_f));
