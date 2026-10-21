@@ -7,6 +7,7 @@ pub mod economy;
 pub mod event;
 pub mod fief;
 pub mod items;
+pub mod landscape;
 pub mod files;
 pub mod ia_file;
 pub mod ini;

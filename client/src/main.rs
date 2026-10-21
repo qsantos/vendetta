@@ -289,6 +289,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let mut setup = WorldSetup { seed: (macroquad::miniquad::date::now() * 1000.0) as u64 as u32, ..Default::default() };
     setup.roads = if options.ring_roads { sim::world::Roads::Ring } else { sim::world::Roads::Nearest };
     setup.torus = !options.closed_edges;
+    setup.landscape = if options.original_land { sim::landscape::Landscape::Original } else { sim::landscape::Landscape::Natural };
     setup.paths = if options.greedy_paths { sim::path::Paths::Greedy } else { sim::path::Paths::Fastest };
     setup.chase = if options.direct_chase { sim::path::Chase::Direct } else { sim::path::Chase::Intercept };
     if let Some(speed) = options.speed {

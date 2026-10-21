@@ -63,7 +63,7 @@ pub const TICK: Duration = Duration::from_millis(100);
 const CODE_CHARS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LEN: usize = 4;
 /// The world options the host may set (see the client's `options.rs`), and `wait`.
-const SETTINGS: [&str; 10] = ["size", "fiefs", "villagers", "roads", "edges", "paths", "chase", "seed", "wait", "speed"];
+const SETTINGS: [&str; 11] = ["size", "fiefs", "villagers", "roads", "edges", "land", "paths", "chase", "seed", "wait", "speed"];
 /// The default number of fiefs (`WorldSetup`).
 const DEFAULT_FIEFS: usize = 4;
 /// The longest character description passed on (its look's file names, mostly).

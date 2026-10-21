@@ -113,6 +113,8 @@ pub struct WorldSetup {
     pub roads: Roads,
     /// Not in the original: opposite edges join (see `Terrain::torus`).
     pub torus: bool,
+    /// How a random world's land is made.
+    pub landscape: crate::landscape::Landscape,
     /// How characters find their way.
     pub paths: Paths,
     /// How characters chase a moving target.
@@ -188,6 +190,7 @@ impl Default for WorldSetup {
             confrontation: false,
             roads: Roads::Ring,
             torus: false,
+            landscape: Default::default(),
             paths: Paths::Greedy,
             chase: Chase::Direct,
             players: vec![0],
@@ -270,11 +273,16 @@ impl World {
             }
             None => {
                 world.resources = vec![ResourceNode { x: 0, y: 0, kind: 0 }; setup.resources + 1];
-                world.generate_terrain(rules, setup.world_type);
-                world.place_castles_randomly();
-                world.init_castles(rules);
-                world.build_roads(rules, setup.world_type, setup.roads);
-                world.place_resources(rules);
+                match setup.landscape {
+                    crate::landscape::Landscape::Original => {
+                        world.generate_terrain(rules, setup.world_type);
+                        world.place_castles_randomly();
+                        world.init_castles(rules);
+                        world.build_roads(rules, setup.world_type, setup.roads);
+                        world.place_resources(rules);
+                    }
+                    crate::landscape::Landscape::Natural => world.generate_natural(rules, setup.world_type, setup.roads),
+                }
             }
         }
         world.houses = (0..world.persos.len()).map(|i| Building { owner: i, ..Building::new(rules) }).collect();
@@ -414,7 +422,7 @@ impl World {
     }
 
     /// `Placer_Chateaux`, second half: castle HP from the people plus every age's bonus.
-    fn init_castles(&mut self, rules: &Rules) {
+    pub(crate) fn init_castles(&mut self, rules: &Rules) {
         for (c, f) in self.castles.iter_mut().zip(&self.fiefs) {
             let p = &rules.peoples[f.people];
             c.max_life = p.castle_max_life;
@@ -781,9 +789,14 @@ impl World {
                 }
             }
         }
-        // Pave around each castle (the original did it after each castle's road; paving draws
-        // nothing, so this is the same).
-        for i in 0..nf {
+        // (the original paved after each castle's road; paving draws nothing, so this is the same)
+        self.pave_castles(road);
+        self.terrain.reshape();
+    }
+
+    /// Paves around each castle (`Placer_Routes`).
+    pub(crate) fn pave_castles(&mut self, road: u8) {
+        for i in 0..self.castles.len() {
             let a = &self.castles[i];
             let (ax, ay, aw, ah) = (a.x, a.y, a.w, a.h);
             let mut kx = ax - 16;
@@ -796,12 +809,11 @@ impl World {
                 kx += 16;
             }
         }
-        self.terrain.reshape();
     }
 
     /// [`Roads::Nearest`]: the pairs of castles to join, each castle to its nearest ones plus a
     /// minimum spanning tree (Prim's), so all are connected; in a stable order.
-    fn nearest_links(&self) -> Vec<(usize, usize)> {
+    pub(crate) fn nearest_links(&self) -> Vec<(usize, usize)> {
         let centre = |c: &crate::building::Building| (c.x as f64 + c.w as f64 / 2.0, c.y as f64 + c.h as f64 / 2.0);
         let centres: Vec<(f64, f64)> = self.castles.iter().map(centre).collect();
         let t = &self.terrain;
