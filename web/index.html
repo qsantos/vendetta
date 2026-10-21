@@ -1623,8 +1623,11 @@
     };
     const showLayers = () => {
       const all = lists();
+      // listed from the head down: the hair first, the rest in the order they are drawn
+      const hair = (l) => l[0].split("/")[2] === "cheveux";
+      const rows = all.map((l, k) => [l, k]).sort(([a], [b]) => hair(b) - hair(a));
       $("character-layers").replaceChildren(
-        ...all.map((l, k) => {
+        ...rows.map(([l, k]) => {
           const row = document.createElement("div");
           row.className = "row";
           const [name, back, at, next] = ["span", "button", "span", "button"].map((e) => document.createElement(e));
