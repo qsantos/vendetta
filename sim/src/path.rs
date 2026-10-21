@@ -153,6 +153,14 @@ pub fn intercept(
     if goals.is_empty() {
         return None;
     }
+    // The first of them is the soonest place to meet, should it be reached by then: tried
+    // alone first, a search that can aim (and use the landmarks).
+    let first = kept[0];
+    if let Some((_, time, path)) = among(rules, terrain, from, &goals[..1], top)
+        && (time as f64 <= by(first) || stays && first == end)
+    {
+        return Some((first, straighten(rules, terrain, from, path)));
+    }
     let cells: Vec<(i64, i64)> = goals.iter().map(|&g| cell(g)).collect();
     let times: Vec<f64> = kept.iter().map(|&k| by(k)).collect();
     let (reached, path) = search(
