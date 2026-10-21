@@ -86,6 +86,10 @@ pub struct Ai {
 /// A goal chosen by [`World::fastest_goal`]: the candidate, the point to walk to, the way there.
 type Goal = (usize, (i64, i64), Vec<(i64, i64)>);
 
+/// Ticks between two picks of what to attack by a berserker still busy, with
+/// [`Paths::Fastest`] (see `World::seek_and_destroy`).
+const REPICK: u64 = 10;
+
 impl World {
     // ---------------------------------------------------------------- scheduling
 
@@ -1048,6 +1052,20 @@ impl World {
     /// Berserk 0 and 1: attack the nearest enemy, else castle, else house; wander otherwise.
     /// Mode 5 (`guarded`) only wanders when not fighting.
     fn seek_and_destroy(&mut self, rules: &Rules, i: usize, guarded: bool) {
+        // Not in the original: with the fastest paths, a pick is a search that can cover much
+        // of the map, so one still busy (after an enemy still there, or walking) picks again
+        // only every `REPICK` ticks, characters in turn.
+        if self.paths == Paths::Fastest && !(self.tick + i as u64).is_multiple_of(REPICK) {
+            let p = &self.persos[i];
+            let busy = if p.fighting() {
+                p.action != crate::combat::ATTACK_PERSO || self.persos[p.perso_target].attackable()
+            } else {
+                p.moving
+            };
+            if busy {
+                return;
+            }
+        }
         self.attack_nearest_enemy(rules, i, false, false, false);
         if !self.persos[i].fighting() {
             self.attack_nearest_castle(rules, i, false, false, false);
