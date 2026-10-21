@@ -75,18 +75,41 @@ pub fn nearest(
     goals: &[(i64, i64)],
 ) -> Option<(usize, Vec<(i64, i64)>)> {
     let top = top_speed(rules);
+    // Beyond a few goals, the search can neither aim nor use the landmarks, and spreads evenly
+    // until it meets one. But once the time to one of them is known, none is faster to reach
+    // that is slower straight on at the top speed: the search is among the others only (the
+    // same goal, but on a tie), often the one alone.
+    if goals.len() > MAX_LANDMARKED {
+        let start = cell(from);
+        // (a little under: the search's steps are rounded down, by up to a 2000th of one)
+        let least = |g: (i64, i64)| (octile(start, cell(g)) / top * 0.999) as u64;
+        let first = (0..goals.len()).min_by_key(|&k| least(goals[k]))?;
+        if let Some((_, time, path)) = among(rules, terrain, from, &goals[first..=first], top) {
+            let kept: Vec<usize> = (0..goals.len()).filter(|&k| least(goals[k]) <= time).collect();
+            if kept.len() == 1 {
+                return Some((first, straighten(rules, terrain, from, path)));
+            }
+            let points: Vec<(i64, i64)> = kept.iter().map(|&k| goals[k]).collect();
+            if let Some((k, _, path)) = among(rules, terrain, from, &points, top) {
+                return Some((kept[k], straighten(rules, terrain, from, path)));
+            }
+        }
+    }
+    let (k, _, path) = among(rules, terrain, from, goals, top)?;
+    Some((k, straighten(rules, terrain, from, path)))
+}
+
+/// A goal reached: which, the time to reach it and the cells where the direction changes on
+/// the way.
+type Reached = (usize, u64, Vec<(i64, i64)>);
+
+/// [`nearest`] by a single search.
+fn among(rules: &Rules, terrain: &Terrain, from: (i64, i64), goals: &[(i64, i64)], top: f64) -> Option<Reached> {
     let cells: Vec<(i64, i64)> = goals.iter().take(MAX_LANDMARKED + 1).map(|&g| cell(g)).collect();
     let landmarks = (goals.len() <= MAX_LANDMARKED).then(|| Landmarks::of(rules, terrain, cell(from), &cells)).flatten();
-    let (reached, path) = search(
-        rules,
-        terrain,
-        from,
-        goals,
-        &|_, time| Some(time),
-        &aim(terrain, landmarks, goals, top),
-        top,
-    );
-    Some((reached?, straighten(rules, terrain, from, path)))
+    let (reached, path) = search(rules, terrain, from, goals, &|_, time| Some(time), &aim(terrain, landmarks, goals, top), top);
+    let k = reached?;
+    Some((k, SEEN.with_borrow(|seen| seen.time(cell(goals[k]))), path))
 }
 
 /// Where to meet a moving target, from `from` at `speed` (pixels a tick at speed 1): of
