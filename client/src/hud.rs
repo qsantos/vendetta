@@ -314,6 +314,16 @@ impl Hud {
         }
     }
 
+    /// Another language's texts (see `new`), keeping everything else.
+    pub fn set_texts(&mut self, strings: Strings, window_strings: WindowStrings, tooltip_labels: object_tooltip::TooltipLabels, files: &Files, lang: &str) {
+        self.strings = strings;
+        self.windows.set_strings(window_strings);
+        self.tooltip_labels = tooltip_labels;
+        self.messages.set_texts(messages::MessageLog::load(files, lang));
+        // the texts made once per tick
+        self.cache_tick = None;
+    }
+
     /// Text in the small font (Arial Bold 8 pt).
     pub fn small_text(&self, x: i32, y: i32, s: &str, colour: Color) {
         self.small_font.draw(s, x, y + 9, colour);

@@ -6,22 +6,26 @@ use crate::atlas::Shelf;
 use macroquad::prelude::*;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::sync::OnceLock;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 /// The font for the characters the interface's font lacks (Chinese, Japanese: see `set_fallback`).
-static FALLBACK: OnceLock<fontdue::Font> = OnceLock::new();
+static FALLBACK: Mutex<Option<fontdue::Font>> = Mutex::new(None);
+/// Counts the changes of `FALLBACK`, after which the glyphs are rasterised again.
+static FALLBACK_CHANGES: AtomicU32 = AtomicU32::new(0);
 
 /// Sets the font for the characters the others lack (the language's `Polices/<folder>.otf`),
-/// before any of them is drawn; a font that does not load is left out.
-pub fn set_fallback(bytes: &[u8]) {
-    match fontdue::Font::from_bytes(bytes, fontdue::FontSettings::default()) {
-        Ok(font) => {
-            let _ = FALLBACK.set(font);
-        }
+/// or none; a font that does not load is left out.
+pub fn set_fallback(bytes: Option<&[u8]>) {
+    let font = bytes.and_then(|b| match fontdue::Font::from_bytes(b, fontdue::FontSettings::default()) {
+        Ok(font) => Some(font),
         Err(e) => {
             warn!("fallback font: {e}");
+            None
         }
-    }
+    });
+    *FALLBACK.lock().unwrap() = font;
+    FALLBACK_CHANGES.fetch_add(1, Ordering::Relaxed);
 }
 
 /// Side of an atlas texture, in pixels.
@@ -69,6 +73,8 @@ pub struct TextRenderer {
     px: f32,
     /// Screen pixels per interface pixel; glyphs are rasterised at `px * scale`.
     scale: Cell<f32>,
+    /// `FALLBACK_CHANGES` when the glyphs were rasterised.
+    fallback: Cell<u32>,
     glyphs: RefCell<HashMap<char, Glyph>>,
     /// Where new glyphs go; a full one is replaced, its glyphs keeping it.
     atlas: RefCell<Atlas>,
@@ -78,20 +84,24 @@ impl TextRenderer {
     pub fn new(ttf: &[u8], px: f32) -> TextRenderer {
         let font = fontdue::Font::from_bytes(ttf, fontdue::FontSettings::default()).unwrap();
         let (glyphs, atlas) = (RefCell::new(HashMap::new()), RefCell::new(Atlas::new()));
-        TextRenderer { font, px, scale: Cell::new(1.0), glyphs, atlas }
+        TextRenderer { font, px, scale: Cell::new(1.0), fallback: Cell::new(FALLBACK_CHANGES.load(Ordering::Relaxed)), glyphs, atlas }
     }
 
-    /// Sets how many screen pixels an interface pixel covers (re-rasterising on change).
+    /// Sets how many screen pixels an interface pixel covers (re-rasterising on change, or
+    /// when the fallback font changed).
     pub fn set_scale(&self, scale: f32) {
-        if (scale - self.scale.get()).abs() > 1e-4 {
+        let fallback = FALLBACK_CHANGES.load(Ordering::Relaxed);
+        if (scale - self.scale.get()).abs() > 1e-4 || fallback != self.fallback.get() {
             self.scale.set(scale);
+            self.fallback.set(fallback);
             self.glyphs.borrow_mut().clear();
             *self.atlas.borrow_mut() = Atlas::new();
         }
     }
 
     fn rasterise(&self, c: char) -> Glyph {
-        let font = match FALLBACK.get() {
+        let fallback = FALLBACK.lock().unwrap();
+        let font = match &*fallback {
             Some(fallback) if self.font.lookup_glyph_index(c) == 0 => fallback,
             _ => &self.font,
         };

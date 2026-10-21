@@ -74,6 +74,11 @@ fn count(p: &Perso, o: usize) -> i64 {
 }
 
 impl MessageLog {
+    /// The texts of `other` (another language's), keeping the messages shown.
+    pub fn set_texts(&mut self, other: MessageLog) {
+        self.texts = other.texts;
+    }
+
     /// Starts comparing afresh, e.g. with another character.
     pub fn forget(&mut self) {
         self.seen = None;

@@ -19,7 +19,7 @@ mod touch;
 use macroquad::prelude::*;
 use layout::{MIN_H, MIN_W};
 use macroquad::miniquad::window::dpi_scale as screen_dpi_scale;
-use macroquad::experimental::coroutines::start_coroutine;
+use macroquad::experimental::coroutines::{Coroutine, start_coroutine};
 use sim::files::Files;
 use sim::rules::Rules;
 use sim::world::{Order, World, WorldSetup};
@@ -203,10 +203,16 @@ const AUTOSAVE_INTERVAL: f64 = 5.0;
 /// Ticks a frame may run to catch up with the clock.
 const MAX_TICKS_PER_FRAME: u32 = 5;
 
+/// A language's data files and font (see `assets::load_language`).
+type LanguageFiles = (Vec<(String, Vec<u8>)>, Option<Vec<u8>>);
+
 struct Loaded {
     options: options::Options,
     /// The text's language: its folder in `Donnees/`.
     lang: String,
+    /// Those of `Langues.ini`, and every file, to change language during the game.
+    languages: Vec<sim::rules::Language>,
+    manifest: assets::Manifest,
     /// The world was just made, not resumed from the save.
     created: bool,
     music: music::Music,
@@ -217,22 +223,32 @@ struct Loaded {
     textures: assets::Textures,
 }
 
+/// Another language's files, once downloaded: its rules, and its font for the text.
+fn take_language(files: &mut Files, folder: &str, (loaded, font): LanguageFiles) -> Result<Rules, String> {
+    for (path, data) in loaded {
+        files.insert(&path, data);
+    }
+    let rules = Rules::load(files, folder)?;
+    text::set_fallback(font.as_deref());
+    Ok(rules)
+}
+
 /// Downloads the data and images and creates the world, reporting progress.
 async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let mut manifest = assets::Manifest::load().await?;
     // the language first, for the loading screen's labels
     let languages = load_string(manifest.url("Donnees/Langues.ini").unwrap_or_default()).await.unwrap_or_default();
     let languages = sim::rules::Language::list(&sim::ini::Ini::parse(&languages));
-    let lang = lang::choose(&languages).folder;
+    let mut lang = lang::choose(&languages).folder;
     manifest.only_language(&languages, &lang);
     progress.load_decoration(&manifest, &lang).await;
     progress.set_total(manifest.data_bytes() + assets::image_work(manifest.image_estimate()));
-    let files = assets::load_files(&manifest, &progress).await?;
-    let rules = Rules::load(&files, &lang)?;
+    let mut files = assets::load_files(&manifest, &progress).await?;
+    let mut rules = Rules::load(&files, &lang)?;
     // the characters the interface's font lacks (Chinese, Japanese)
     if let Some(url) = manifest.url(&format!("Polices/{lang}.otf")) {
         match load_file(url).await {
-            Ok(bytes) => text::set_fallback(&bytes),
+            Ok(bytes) => text::set_fallback(Some(&bytes)),
             Err(e) => {
                 warn!("Polices/{lang}.otf: {e}");
             }
@@ -254,6 +270,17 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     // once after a slow frame, and would spin here forever)
     while !storage::started() {
         assets::yield_now().await;
+    }
+    // a language chosen in the menus meanwhile (the game then finds its command done)
+    let chosen = lang::choose(&languages).folder;
+    if chosen != lang {
+        let font = manifest.url(&format!("Polices/{chosen}.otf")).map(str::to_owned);
+        match assets::load_language(manifest.language_files(&chosen), font).await.and_then(|l| take_language(&mut files, &chosen, l)) {
+            Ok(r) => (rules, lang) = (r, chosen),
+            Err(e) => {
+                warn!("{chosen}: {e}");
+            }
+        }
     }
     progress.message(&progress.label(2));
     let options = options::Options::load();
@@ -326,7 +353,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
         }
     };
     progress.work(world_work);
-    Ok(Loaded { options, lang, created, music: music::Music::new(&manifest), effects, files, rules, world, textures })
+    Ok(Loaded { options, lang, languages, created, music: music::Music::new(&manifest), manifest, effects, files, rules, world, textures })
 }
 
 #[macroquad::main(window_conf)]
@@ -338,7 +365,7 @@ async fn main() {
         screen.draw();
         next_frame().await;
     }
-    let Loaded { options, lang, created, mut music, mut effects, files, rules, mut world, textures } = match task.retrieve().unwrap() {
+    let Loaded { options, mut lang, languages, manifest, created, mut music, mut effects, mut files, mut rules, mut world, textures } = match task.retrieve().unwrap() {
         Ok(l) => l,
         Err(e) => loop {
             screen.progress.message(&format!("&{}#{e}", lang::tr(["Erreur", "Error", "Error", "エラー", "错误"])));
@@ -470,6 +497,8 @@ async fn main() {
     let mut zoom_anchor: Option<(f32, f32)> = None;
     let mut pan_from: Option<(f32, f32)> = None;
     let mut panning = false;
+    // Another language's files on their way (see `MenuCommand::Language`).
+    let mut new_language: Option<(String, Coroutine<Result<LanguageFiles, String>>)> = None;
     loop {
         let frame_start = perf::now();
         // The interface the menu chose, else the address's, else the screen's; with the touch
@@ -848,11 +877,13 @@ async fn main() {
             storage::show_speed(world.speed, net.is_some());
         }
         let mut quit = false;
+        let mut language_changed = false;
         loop {
             let out = can_zoom_out(&world, view);
             match storage::menu_command() {
                 storage::MenuCommand::None => break,
                 storage::MenuCommand::Quit => quit = true,
+                storage::MenuCommand::Language => language_changed = true,
                 storage::MenuCommand::Zoom(up) if up || out => scales.zoom = step(&ZOOMS, scales.zoom, up),
                 storage::MenuCommand::Zoom(_) => {}
                 storage::MenuCommand::Interface(up) => scales.ui = step(&UI_SCALES, scales.ui, up),
@@ -861,6 +892,27 @@ async fn main() {
                 storage::MenuCommand::Speed(_) => {}
             }
             scales.store();
+        }
+        // The page's menu changed the language: the port's own texts follow at once, those of
+        // the data once its files are there, the game going on meanwhile.
+        if language_changed {
+            let folder = lang::choose(&languages).folder;
+            new_language = (folder != lang).then(|| {
+                let font = manifest.url(&format!("Polices/{folder}.otf")).map(str::to_owned);
+                let task = start_coroutine(assets::load_language(manifest.language_files(&folder), font));
+                (folder, task)
+            });
+        }
+        if let Some((folder, task)) = new_language.take_if(|(_, task)| task.is_done()) {
+            match task.retrieve().unwrap().and_then(|l| take_language(&mut files, &folder, l)) {
+                Ok(r) => {
+                    hud.set_texts(hud::Strings::load(&files, &folder), hud::WindowStrings::load(&files, &folder), hud::TooltipLabels::load(&files, &folder), &files, &folder);
+                    (rules, lang) = (r, folder);
+                }
+                Err(e) => {
+                    warn!("{folder}: {e}");
+                }
+            }
         }
         let still = hud.paused() || options::test_mode() || net.is_some();
         if still {

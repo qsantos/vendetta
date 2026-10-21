@@ -257,6 +257,12 @@ impl Windows {
     pub fn new(strings: WindowStrings) -> Windows {
         Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false, skill_scroll: 0, bestiary_scroll: 0, skill_sort: 1, skill_all: false, skill_cache: Default::default(), minimap: Default::default(), camera: None, view: ((0, 0), (0, 0)) }
     }
+
+    /// Another language's texts.
+    pub fn set_strings(&mut self, strings: WindowStrings) {
+        self.strings = strings;
+        *self.skill_cache.borrow_mut() = None;
+    }
 }
 
 impl Hud {

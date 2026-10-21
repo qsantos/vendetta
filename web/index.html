@@ -106,9 +106,10 @@
 <script>
   // The language (`Langues.ini` suffix): the menu's choice, else the address's `lang=`, else
   // the original's French. The page's French texts are translated with `translations`, by
-  // their French; the game reads the language as it starts (`vendetta_language`).
+  // their French; the game reads the language as it starts (`vendetta_language`), and again
+  // when the menus change it (see `setLanguage`).
   const languageKey = "vendetta-language";
-  const language = (() => {
+  let language = (() => {
     let chosen = null;
     try {
       chosen = localStorage.getItem(languageKey);
@@ -433,19 +434,31 @@
     },
   };
   // a language without the page's texts gets them in English
-  const pageTexts = translations[language] ?? translations.EN;
-  const t = (fr) => (language === "FR" ? fr : pageTexts[fr] ?? fr);
-  // the page's own texts, once it is all there
-  document.addEventListener("DOMContentLoaded", () => {
+  const textsOf = (lang) => (lang === "FR" ? {} : translations[lang] ?? translations.EN);
+  const t = (fr) => textsOf(language)[fr] ?? fr;
+  // The page's own texts in the language, from `previous`: each text's French is kept with
+  // what it shows, or found back from its translation for a text written since.
+  const french = new WeakMap();
+  function translatePage(previous) {
     document.documentElement.lang = language.toLowerCase();
-    if (language === "FR") return;
+    const back = new Map(Object.entries(textsOf(previous)).map(([fr, text]) => [text, fr]));
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       const text = n.nodeValue.trim();
-      if (text && pageTexts[text] && n.parentElement.tagName !== "SCRIPT") n.nodeValue = n.nodeValue.replace(text, pageTexts[text]);
+      if (!text || n.parentElement.tagName === "SCRIPT") continue;
+      const [fr, shown] = french.get(n) ?? [];
+      const source = shown === text ? fr : back.get(text) ?? text;
+      const translated = t(source);
+      if (translated !== text) n.nodeValue = n.nodeValue.replace(text, translated);
+      french.set(n, [source, translated]);
     }
-    for (const e of document.querySelectorAll("[placeholder]")) e.placeholder = t(e.placeholder);
-  });
+    for (const e of document.querySelectorAll("[placeholder]")) {
+      e.dataset.placeholder ??= e.placeholder;
+      e.placeholder = t(e.dataset.placeholder);
+    }
+  }
+  // the page's own texts, once it is all there
+  document.addEventListener("DOMContentLoaded", () => translatePage("FR"));
 </script>
 </head>
 <body>
@@ -798,23 +811,33 @@
   const otherLanguages = new Set();
   let bundleBytes = 0;
   let bundleTotal = 0;
-  const bundlesReady = download("bundles.json")
+  // every bundle, for a change of language (see `fetchLanguage`)
+  let allBundles = [];
+  const fetchBundle = (b, onBytes) => {
+    const data = download(b.url, onBytes);
+    for (const [path, offset, size] of b.files) bundled.set(path, [data, offset, size]);
+  };
+  // of the languages', only the player's (the game reads no other), else the French
+  const bundleLanguage = (lang) => (allBundles.some((b) => b.language === lang) ? lang : "FR");
+  let bundlesReady = download("bundles.json")
     .then((bytes) => {
-      // of the languages', only the player's (the game reads no other), else the French
-      let { bundles } = JSON.parse(new TextDecoder().decode(bytes));
-      const lang = bundles.some((b) => b.language === language) ? language : "FR";
-      for (const b of bundles) if (b.language && b.language !== lang) for (const [path] of b.files) otherLanguages.add(path);
-      bundles = bundles.filter((b) => !b.language || b.language === lang);
+      allBundles = JSON.parse(new TextDecoder().decode(bytes)).bundles;
+      const lang = bundleLanguage(language);
+      for (const b of allBundles) if (b.language && b.language !== lang) for (const [path] of b.files) otherLanguages.add(path);
+      const bundles = allBundles.filter((b) => !b.language || b.language === lang);
       bundleTotal = bundles.reduce((sum, b) => sum + b.size, 0);
-      for (const b of bundles) {
-        const data = download(b.url, (n) => {
+      for (const b of bundles)
+        fetchBundle(b, (n) => {
           bundleBytes += n;
           showProgress();
         });
-        for (const [path, offset, size] of b.files) bundled.set(path, [data, offset, size]);
-      }
     })
     .catch((e) => console.warn("no bundles:", e));
+  // The bundles of the language chosen during the game, before the game asks for its files.
+  const fetchLanguage = (lang) =>
+    (bundlesReady = bundlesReady.then(() => {
+      for (const b of allBundles) if (b.language === bundleLanguage(lang)) fetchBundle(b);
+    }));
   // A file the game asks for (its URL is `assets/<path>?v=<hash>`): out of its bundle, which
   // is let go once all its files are taken, or downloaded alone.
   function gameFile(url) {
@@ -951,8 +974,7 @@
       importObject.env.vendetta_quit = () => {
         writesDone().then(() => {
           if (socket) socket.close();
-          // (back in the same game when changing the language)
-          if (!relaunch) setHash(hashItems().filter((o) => o !== "play" && !o.startsWith("room=")));
+          setHash(hashItems().filter((o) => o !== "play" && !o.startsWith("room=")));
           location.reload();
         });
       };
@@ -1006,11 +1028,13 @@
   const ingame = document.getElementById("ingame");
   const menuCommands = [];
   const networkGame = () => (startHash || "").split("&").some((o) => o.startsWith("me="));
+  const showIngameNote = () =>
+    (document.getElementById("ingame-note").textContent = networkGame()
+      ? t("La partie continue : votre personnage attend.")
+      : t("Partie en pause"));
   function openIngameMenu() {
     if (!ingame.hidden) return;
-    document.getElementById("ingame-note").textContent = networkGame()
-      ? t("La partie continue : votre personnage attend.")
-      : t("Partie en pause");
+    showIngameNote();
     showUiSize();
     fullscreen.checked = !!document.fullscreenElement;
     ingame.hidden = false;
@@ -1065,30 +1089,26 @@
   try {
     layoutChoice = localStorage.getItem(layoutKey) || "auto";
   } catch (e) {}
-  // The language: the game loads its text as it starts, behind the menu, so a change reloads.
+  // The language, in the menus before and during the game: the page translates itself, and
+  // the game, told, takes its texts in the new language (fetched meanwhile).
   const languageSelect = document.getElementById("language");
-  languageSelect.value = language;
-  languageSelect.addEventListener("change", () => {
-    try {
-      localStorage.setItem(languageKey, languageSelect.value);
-    } catch (e) {}
-    writesDone().then(() => location.reload());
-  });
-  // The same during a game, which is saved first, then taken up again in the new language
-  // (a solo one from its save, a network one by rejoining its room).
-  let relaunch = false;
   const ingameLanguage = document.getElementById("ingame-language");
   ingameLanguage.innerHTML = languageSelect.innerHTML;
-  ingameLanguage.value = language;
-  ingameLanguage.addEventListener("change", () => {
+  function setLanguage(chosen) {
+    const previous = language;
+    language = languageSelect.value = ingameLanguage.value = chosen;
+    if (chosen === previous) return;
     try {
-      localStorage.setItem(languageKey, ingameLanguage.value);
+      localStorage.setItem(languageKey, chosen);
     } catch (e) {}
-    for (const c of ingame.querySelectorAll("button, select, input")) c.disabled = true;
-    document.getElementById("ingame-note").textContent = t("Enregistrement…");
-    relaunch = true;
-    menuCommands.push(1);
-  });
+    fetchLanguage(chosen);
+    translatePage(previous);
+    showIngameNote();
+    if (shownSpeed) showSpeed(...shownSpeed);
+    menuCommands.push(6);
+  }
+  setLanguage(language);
+  for (const select of [languageSelect, ingameLanguage]) select.addEventListener("change", () => setLanguage(select.value));
   const layoutSelect = document.getElementById("layout");
   layoutSelect.value = layoutChoice;
   const touchLayout = () =>
@@ -1117,7 +1137,9 @@
   // game takes a new one at once; a network game's is the room's.
   const speedInput = document.getElementById("speed");
   const speedValue = document.getElementById("speed-value");
+  let shownSpeed = null;
   function showSpeed(speed, network) {
+    shownSpeed = [speed, network];
     speedInput.value = speed;
     speedInput.hidden = network;
     speedValue.textContent = speed + (network ? t(" (celle de la partie)") : "");

@@ -104,6 +104,8 @@ pub enum MenuCommand {
     Interface(bool),
     /// The game's speed, in ticks per second.
     Speed(i64),
+    /// The page's language changed (see `language`).
+    Language,
 }
 
 /// Opens the page's in-game menu (natively, there is none).
@@ -134,6 +136,7 @@ pub fn menu_command() -> MenuCommand {
         3 => MenuCommand::Zoom(true),
         4 => MenuCommand::Interface(false),
         5 => MenuCommand::Interface(true),
+        6 => MenuCommand::Language,
         n @ 100.. => MenuCommand::Speed(n as i64 - 100),
         _ => MenuCommand::None,
     };

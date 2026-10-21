@@ -65,6 +65,8 @@ async fn run_parallel<T>(jobs: Vec<Pin<Box<dyn Future<Output = T> + Send>>>, mut
 /// (`path<TAB>size<TAB>hash`).
 pub struct Manifest {
     pub entries: Vec<(String, u64)>,
+    /// Every file, those of the languages `only_language` leaves out included.
+    all: Vec<(String, u64)>,
     /// By `key`: (size, URL). The URL carries the hash (`?v=`), so the server can let
     /// browsers cache it forever: a changed file gets a new URL.
     by_key: HashMap<String, (u64, String)>,
@@ -93,23 +95,29 @@ impl Manifest {
             by_key.insert(key(&path), (size, url));
             entries.push((path, size));
         }
-        Ok(Manifest { entries, by_key })
+        Ok(Manifest { all: entries.clone(), entries, by_key })
     }
 
     /// Leaves out the files of the languages other than `lang` (their folders in `Donnees/` and
     /// `Donnees/ModsOfficiels/`, their font): the game never reads them, and the page does not
     /// download them (see bundle.py).
     pub fn only_language(&mut self, languages: &[sim::rules::Language], lang: &str) {
-        let others: Vec<String> = languages
-            .iter()
-            .filter(|l| l.folder != lang)
-            .flat_map(|l| [format!("Donnees/{}/", l.folder), format!("Donnees/ModsOfficiels/{}/", l.folder), format!("Polices/{}.", l.folder)])
-            .map(|p| p.to_lowercase())
-            .collect();
+        let others: Vec<String> = languages.iter().filter(|l| l.folder != lang).flat_map(|l| language_prefixes(&l.folder)).collect();
         self.entries.retain(|(p, _)| {
             let p = p.to_lowercase();
             !others.iter().any(|o| p.starts_with(o))
         });
+    }
+
+    /// The data files of language `lang` (its folder), with their URLs, for a change of
+    /// language during the game (see `load_language`).
+    pub fn language_files(&self, lang: &str) -> Vec<(String, String)> {
+        let prefixes = language_prefixes(lang);
+        self.all
+            .iter()
+            .filter(|(p, _)| Self::is_data(p) && prefixes.iter().any(|o| p.to_lowercase().starts_with(o)))
+            .map(|(p, _)| (p.clone(), self.url(p).unwrap_or_default().to_owned()))
+            .collect()
     }
 
     pub fn size(&self, path: &str) -> u64 {
@@ -153,6 +161,36 @@ impl Manifest {
         ];
         self.entries.iter().filter(|(p, _)| FOLDERS.iter().any(|f| p.starts_with(f))).map(|(_, s)| s).sum()
     }
+}
+
+/// The start of the paths of a language's files (lower case): its folders in `Donnees/` and
+/// `Donnees/ModsOfficiels/`, its font.
+fn language_prefixes(folder: &str) -> [String; 3] {
+    [format!("Donnees/{folder}/"), format!("Donnees/ModsOfficiels/{folder}/"), format!("Polices/{folder}.")].map(|p| p.to_lowercase())
+}
+
+/// A language's data files (`Manifest::language_files`), downloaded during the game, and its
+/// font, if it has one.
+pub async fn load_language(wanted: Vec<(String, String)>, font: Option<String>) -> Result<(Vec<(String, Vec<u8>)>, Option<Vec<u8>>), String> {
+    let jobs = wanted
+        .into_iter()
+        .map(|(path, url)| -> Pin<Box<dyn Future<Output = _> + Send>> { Box::pin(async move { (load_file(&url).await, path) }) })
+        .collect();
+    let mut loaded = Vec::new();
+    let mut error = None;
+    run_parallel(jobs, |(data, path)| match data {
+        Ok(data) => loaded.push((path, data)),
+        Err(e) => error = Some(format!("{path}: {e}")),
+    })
+    .await;
+    if let Some(e) = error {
+        return Err(e);
+    }
+    let font = match font {
+        Some(url) => Some(load_file(&url).await.map_err(|e| format!("{url}: {e}"))?),
+        None => None,
+    };
+    Ok((loaded, font))
 }
 
 /// Loads every data file the simulation needs into memory, counting bytes into `progress`.
