@@ -57,7 +57,7 @@ fn player(world: &World) -> usize {
 fn torus_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &WorldSetup { seed: 1, torus: true, ..Default::default() }).unwrap();
-    check("torus_world", &rules, world, &[], &[(0, 0xdcd45854e029e942), (500, 0xbbe69a597ff12107), (1500, 0x81c204bcaf4d26ed), (3000, 0x09164569eeca07e7)]);
+    check("torus_world", &rules, world, &[], &[(0, 0x2c9bad5a2a259553), (500, 0xdb75d1dfbd09b37b), (1500, 0x82fad295917adbcb), (3000, 0xea8ee33e58f06672)]);
 }
 
 /// On a torus, a character sent to a point just past the left edge walks there across the edge,
@@ -135,7 +135,7 @@ fn fastest_paths() {
     let Some((files, rules)) = load() else { return };
     let setup = WorldSetup { torus: true, paths: Paths::Fastest, ..crowded(&rules) };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("fastest_paths", &rules, world, &[], &[(0, 0x73c603db9f1adb52), (500, 0x15c3c51edf198123), (1500, 0x9abaa8fa59f04b47)]);
+    check("fastest_paths", &rules, world, &[], &[(0, 0x4a3738a3462940d5), (500, 0x250364af65d60785), (1500, 0xfa43073bd8d22c75)]);
 }
 
 /// The player at work and at war: harvesting, going home, attacking the nearest enemy.

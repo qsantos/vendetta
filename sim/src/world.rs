@@ -616,9 +616,11 @@ impl World {
         if nf < 2 {
             return;
         }
-        let lines = self.terrain.height as i64 - 9;
-        let columns = self.terrain.width as i64 - 9;
-        let objects = place_objects(&mut self.rng, lines, columns, nf);
+        // (on a torus, with no edge to keep the castles off, the whole map)
+        let margin = if self.terrain.torus { 0 } else { 9 };
+        let lines = self.terrain.height as i64 - margin;
+        let columns = self.terrain.width as i64 - margin;
+        let objects = place_objects(&mut self.rng, lines, columns, nf, self.terrain.torus);
         for (castle, (line, col)) in self.castles.iter_mut().zip(objects) {
             let jx = (8.0 - self.rng.next() * 16.0).floor() as i64;
             castle.x = (jx + col * 16) as i32;
@@ -905,8 +907,14 @@ impl World {
 }
 
 /// `ClsPlaceObject`: spreads `count` objects over a board, returns (line, column) pairs
-/// (1-based cells).
-fn place_objects(rng: &mut Rnd, lines: i64, columns: i64, count: usize) -> Vec<(i64, i64)> {
+/// (1-based cells). On a `torus` (not in the original), the board's opposite edges join:
+/// objects are kept apart the short way round and move across the edges, where the original
+/// would push them against opposite edges, next to each other across them.
+fn place_objects(rng: &mut Rnd, lines: i64, columns: i64, count: usize, torus: bool) -> Vec<(i64, i64)> {
+    let gap = |a: i64, b: i64, size: i64| {
+        let d = (a - b).abs();
+        if torus { d.min(size - d) } else { d }
+    };
     let nf = count as f64;
     let min_space =
         ((lines + columns) as f64 / ((nf - 2.0).sqrt() + 1.0)).floor() as i64 - ((nf / nf.sqrt()).floor() as i64 + 2);
@@ -957,7 +965,7 @@ fn place_objects(rng: &mut Rnd, lines: i64, columns: i64, count: usize) -> Vec<(
                 for l in -1..=1 {
                     for &(ol, oc) in &objects {
                         if (oc, ol) != (jc, jl) {
-                            let d = (jl + k - ol).abs() + (jc + l - oc).abs();
+                            let d = gap(jl + k, ol, lines) + gap(jc + l, oc, columns);
                             let p = &mut pos[(k + 1) as usize][(l + 1) as usize];
                             if d < min_space && d < *p {
                                 *p = d;
@@ -973,17 +981,16 @@ fn place_objects(rng: &mut Rnd, lines: i64, columns: i64, count: usize) -> Vec<(
                 for k in -1..=1 {
                     for l in -1..=1 {
                         let p = pos[(k + 1) as usize][(l + 1) as usize];
-                        if p >= v
-                            && p > 0
-                            && 1 <= jl + k
-                            && jl + k <= lines
-                            && 1 <= jc + l
-                            && jc + l <= columns
-                        {
+                        let on_board = torus || (1 <= jl + k && jl + k <= lines && 1 <= jc + l && jc + l <= columns);
+                        if p >= v && p > 0 && on_board {
                             let r = rng.next();
                             if (p == v && r < 0.5) || p > v {
                                 v = p;
-                                target = (jl + k, jc + l);
+                                target = if torus {
+                                    ((jl + k - 1).rem_euclid(lines) + 1, (jc + l - 1).rem_euclid(columns) + 1)
+                                } else {
+                                    (jl + k, jc + l)
+                                };
                             }
                         }
                     }
