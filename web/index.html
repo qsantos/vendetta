@@ -144,6 +144,9 @@
       "Chemins": "Paths",
       "les plus rapides": "the fastest",
       "droit devant (l'original)": "straight ahead (as in the original)",
+      "Poursuite": "Chase",
+      "au-devant de la cible": "heading the target off",
+      "droit sur la cible (l'original)": "straight at the target (as in the original)",
       "Vitesse": "Speed",
       "Graine": "Seed",
       "au hasard": "random",
@@ -220,6 +223,9 @@
       "Chemins": "Trayectos",
       "les plus rapides": "los más rápidos",
       "droit devant (l'original)": "en línea recta (el original)",
+      "Poursuite": "Persecución",
+      "au-devant de la cible": "cortándole el paso al objetivo",
+      "droit sur la cible (l'original)": "directa hacia el objetivo (el original)",
       "Vitesse": "Velocidad",
       "Graine": "Semilla",
       "au hasard": "al azar",
@@ -299,6 +305,9 @@
       "Chemins": "経路",
       "les plus rapides": "最速",
       "droit devant (l'original)": "まっすぐ（原作どおり）",
+      "Poursuite": "追跡",
+      "au-devant de la cible": "先回りする",
+      "droit sur la cible (l'original)": "目標へまっすぐ（原作どおり）",
       "Vitesse": "速度",
       "Graine": "シード",
       "au hasard": "ランダム",
@@ -378,6 +387,9 @@
       "Chemins": "路径",
       "les plus rapides": "最快",
       "droit devant (l'original)": "直线前进（原版）",
+      "Poursuite": "追击",
+      "au-devant de la cible": "抢先拦截目标",
+      "droit sur la cible (l'original)": "直扑目标（原版）",
       "Vitesse": "速度",
       "Graine": "种子",
       "au hasard": "随机",
@@ -517,6 +529,11 @@
             <option value="">les plus rapides</option>
             <option value="greedy">droit devant (l'original)</option>
           </select></label>
+        <label>Poursuite
+          <select name="chase">
+            <option value="">au-devant de la cible</option>
+            <option value="direct">droit sur la cible (l'original)</option>
+          </select></label>
         <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
         <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
         <label>Attendre les plus lents
@@ -559,6 +576,11 @@
       <select name="paths">
         <option value="">les plus rapides</option>
         <option value="greedy">droit devant (l'original)</option>
+      </select></label>
+    <label>Poursuite
+      <select name="chase">
+        <option value="">au-devant de la cible</option>
+        <option value="direct">droit sur la cible (l'original)</option>
       </select></label>
     <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
     <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
@@ -1274,7 +1296,7 @@
   // The pre-game menu: the form mirrors the hash; flags are checkboxes, other keys values.
   {
     const form = document.querySelector("#menu form");
-    const fields = ["size", "fiefs", "villagers", "roads", "edges", "paths", "speed", "seed"];
+    const fields = ["size", "fiefs", "villagers", "roads", "edges", "paths", "chase", "speed", "seed"];
     const flags = ["god", "perf"];
     const fill = () => {
       const items = hashItems();

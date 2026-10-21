@@ -33,6 +33,9 @@ pub struct Options {
     /// `paths=greedy`: the original's way of walking, straight for the destination one cell at
     /// a time, instead of the fastest path.
     pub greedy_paths: bool,
+    /// `chase=direct`: the original's way of chasing, straight for where the target is,
+    /// instead of heading it off (only with the fastest paths).
+    pub direct_chase: bool,
     /// `perf`: show where the time goes (see `perf.rs`).
     pub perf: bool,
     /// `new`: a new world, not the saved one (the page then takes `new` out of the address).
@@ -106,6 +109,7 @@ impl Options {
                 "roads" => o.ring_roads = value.eq_ignore_ascii_case("ring"),
                 "edges" => o.closed_edges = value.eq_ignore_ascii_case("closed"),
                 "paths" => o.greedy_paths = value.eq_ignore_ascii_case("greedy"),
+                "chase" => o.direct_chase = value.eq_ignore_ascii_case("direct"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
                 "villagers" => o.villagers = value.parse::<usize>().ok().map(|n| n.clamp(1, 2000)),
                 "effects" => {
@@ -150,7 +154,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, greedy_paths: o.greedy_paths, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
@@ -160,7 +164,8 @@ impl Options {
     pub fn setup_key(&self) -> String {
         let (ring, closed) = (if self.ring_roads { " ring" } else { "" }, if self.closed_edges { " closed" } else { "" });
         let greedy = if self.greedy_paths { " greedy" } else { "" };
-        format!("{:?} {:?} {:?} {:?}{ring}{closed}{greedy} {:?}", self.size, self.seed, self.fiefs, self.villagers, self.players)
+        let direct = if self.direct_chase { " direct" } else { "" };
+        format!("{:?} {:?} {:?} {:?}{ring}{closed}{greedy}{direct} {:?}", self.size, self.seed, self.fiefs, self.villagers, self.players)
     }
 }
 
