@@ -592,6 +592,8 @@
       <legend>Affichage</legend>
       <div class="row">Zoom de la carte <span><button type="button" data-command="2">−</button><button type="button" data-command="3">+</button></span></div>
       <div class="row" id="ui-size">Taille de l'interface <span><button type="button" data-command="4">−</button><button type="button" data-command="5">+</button></span></div>
+      <div class="row">Langue
+        <select id="ingame-language"></select></div>
       <div class="row">Interface
         <select id="layout">
           <option value="auto">Automatique</option>
@@ -949,7 +951,8 @@
       importObject.env.vendetta_quit = () => {
         writesDone().then(() => {
           if (socket) socket.close();
-          setHash(hashItems().filter((o) => o !== "play" && !o.startsWith("room=")));
+          // (back in the same game when changing the language)
+          if (!relaunch) setHash(hashItems().filter((o) => o !== "play" && !o.startsWith("room=")));
           location.reload();
         });
       };
@@ -1070,6 +1073,21 @@
       localStorage.setItem(languageKey, languageSelect.value);
     } catch (e) {}
     writesDone().then(() => location.reload());
+  });
+  // The same during a game, which is saved first, then taken up again in the new language
+  // (a solo one from its save, a network one by rejoining its room).
+  let relaunch = false;
+  const ingameLanguage = document.getElementById("ingame-language");
+  ingameLanguage.innerHTML = languageSelect.innerHTML;
+  ingameLanguage.value = language;
+  ingameLanguage.addEventListener("change", () => {
+    try {
+      localStorage.setItem(languageKey, ingameLanguage.value);
+    } catch (e) {}
+    for (const c of ingame.querySelectorAll("button, select, input")) c.disabled = true;
+    document.getElementById("ingame-note").textContent = t("Enregistrement…");
+    relaunch = true;
+    menuCommands.push(1);
   });
   const layoutSelect = document.getElementById("layout");
   layoutSelect.value = layoutChoice;
