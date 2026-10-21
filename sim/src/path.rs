@@ -273,79 +273,73 @@ fn search(
     });
     let first = cell(goals[0]);
     let estimate = |n: (i64, i64), to: (i64, i64)| (octile(n, to) / top) as u64;
-    let mut seen: Seen = HashMap::default();
-    let mut open = BinaryHeap::new();
-    seen.insert(start, (0, start));
-    open.push(Reverse((bound(start, 0).unwrap_or(0), 0u64, start)));
-    let mut nearest = (estimate(start, first), start);
-    let mut reached = None;
-    // the best score of a goal taken: none better is left once every path still open takes
-    // that long (a goal's score is never below the time to reach it)
-    let mut best = None;
-    let mut looked = 0;
-    while let Some(Reverse((f, g, node))) = open.pop() {
-        if best.is_some_and(|b| f >= b) {
-            break;
-        }
-        if seen[&node].0 < g {
-            continue;
-        }
-        if let Some(&k) = goal_cells.get(&node)
-            && let Some(score) = accept(k, g)
-            && best.is_none_or(|b| score < b)
-        {
-            (best, reached, nearest.1) = (Some(score), Some(k), node);
-            if score <= f {
+    let (reached, cells) = SEEN.with_borrow_mut(|seen| {
+        seen.reset(start);
+        let mut open = BinaryHeap::new();
+        seen.insert(start, (0, start));
+        open.push(Reverse((bound(start, 0).unwrap_or(0), 0u64, start)));
+        let mut nearest = (estimate(start, first), start);
+        let mut reached = None;
+        // the best score of a goal taken: none better is left once every path still open takes
+        // that long (a goal's score is never below the time to reach it)
+        let mut best = None;
+        let mut looked = 0;
+        while let Some(Reverse((f, g, node))) = open.pop() {
+            if best.is_some_and(|b| f >= b) {
                 break;
             }
-        }
-        looked += 1;
-        if looked > MAX_CELLS {
-            break;
-        }
-        for (dc, dr) in [
-            (-1, -1),
-            (0, -1),
-            (1, -1),
-            (-1, 0),
-            (1, 0),
-            (-1, 1),
-            (0, 1),
-            (1, 1),
-        ] {
-            let next = (node.0 + dc, node.1 + dr);
-            if let Some((c0, r0, c1, r1)) = bounds
-                && (next.0 < c0 || next.1 < r0 || next.0 > c1 || next.1 > r1)
+            if seen.time(node) < g {
+                continue;
+            }
+            if let Some(&k) = goal_cells.get(&node)
+                && let Some(score) = accept(k, g)
+                && best.is_none_or(|b| score < b)
             {
-                continue;
+                (best, reached, nearest.1) = (Some(score), Some(k), node);
+                if score <= f {
+                    break;
+                }
             }
-            let speed =
-                speed_coef(rules, terrain, next.0 * CELL as i64, next.1 * CELL as i64).max(0.01);
-            let g = g
-                + ((if dc != 0 && dr != 0 {
-                    DIAGONAL
-                } else {
-                    STRAIGHT
-                }) / speed) as u64;
-            if seen.get(&next).is_some_and(|&(known, _)| known <= g) {
-                continue;
+            looked += 1;
+            if looked > MAX_CELLS {
+                break;
             }
-            let Some(f) = bound(next, g) else { continue };
-            seen.insert(next, (g, node));
-            nearest = nearest.min((estimate(next, first), next));
-            open.push(Reverse((f, g, next)));
+            for (dc, dr) in NEIGHBOURS {
+                let next = (node.0 + dc, node.1 + dr);
+                if let Some((c0, r0, c1, r1)) = bounds
+                    && (next.0 < c0 || next.1 < r0 || next.0 > c1 || next.1 > r1)
+                {
+                    continue;
+                }
+                let speed =
+                    speed_coef(rules, terrain, next.0 * CELL as i64, next.1 * CELL as i64).max(0.01);
+                let g = g
+                    + ((if dc != 0 && dr != 0 {
+                        DIAGONAL
+                    } else {
+                        STRAIGHT
+                    }) / speed) as u64;
+                if seen.entry(next).is_some_and(|(known, _)| known <= g) {
+                    continue;
+                }
+                let Some(f) = bound(next, g) else { continue };
+                seen.insert(next, (g, node));
+                nearest = nearest.min((estimate(next, first), next));
+                open.push(Reverse((f, g, next)));
+            }
         }
-    }
-    // Back from the end to the start, keeping the cells where the direction changes.
-    let mut cells = vec![nearest.1];
-    while let Some(&last) = cells.last() {
-        let parent = seen[&last].1;
-        if parent == last {
-            break;
+        // Back from the end to the start, keeping the cells where the direction changes.
+        let mut cells = vec![nearest.1];
+        while let Some(&last) = cells.last() {
+            let parent = seen.parent(last);
+            if parent == last {
+                break;
+            }
+            cells.push(parent);
         }
-        cells.push(parent);
-    }
-    cells.reverse();
+        cells.reverse();
+        (reached, cells)
+    });
     let mut path: Vec<(i64, i64)> = Vec::new();
     for k in 1..cells.len() {
         let turn = k + 1 == cells.len() || {
@@ -417,8 +411,86 @@ fn clear(rules: &Rules, terrain: &Terrain, from: (i64, i64), to: (i64, i64), spe
     })
 }
 
-/// For each cell reached: the time to reach it, and the cell it is reached from.
-type Seen = HashMap<(i64, i64), (u64, (i64, i64)), BuildHasherDefault<CellHasher>>;
+/// The neighbours of a cell, in the order the search looks at them.
+const NEIGHBOURS: [(i64, i64); 8] = [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)];
+
+/// Cells from the start, either way, that [`Seen`] keeps in its window.
+const WINDOW: i64 = 256;
+
+/// For each cell reached by a search: the time to reach it, and the cell it is reached from.
+/// In a window around the start, reused from search to search (a hash map took most of the
+/// search's time), beyond it in a hash map.
+struct Seen {
+    start: (i64, i64),
+    /// The search the window's entries are from: older ones are not reached.
+    search: u32,
+    window: Vec<(u32, u64, u8)>,
+    beyond: HashMap<(i64, i64), (u64, u8), BuildHasherDefault<CellHasher>>,
+}
+
+thread_local! {
+    static SEEN: std::cell::RefCell<Seen> = std::cell::RefCell::new(Seen {
+        start: (0, 0),
+        search: 0,
+        window: Vec::new(),
+        beyond: HashMap::default(),
+    });
+}
+
+impl Seen {
+    /// For a new search from `start`.
+    fn reset(&mut self, start: (i64, i64)) {
+        let side = (2 * WINDOW) as usize;
+        if self.window.is_empty() || self.search == u32::MAX {
+            self.window = vec![(0, 0, 0); side * side];
+            self.search = 0;
+        }
+        self.search += 1;
+        self.start = start;
+        self.beyond.clear();
+    }
+
+    fn index(&self, (c, r): (i64, i64)) -> Option<usize> {
+        let (dc, dr) = (c - self.start.0 + WINDOW, r - self.start.1 + WINDOW);
+        let side = 2 * WINDOW;
+        ((0..side).contains(&dc) && (0..side).contains(&dr)).then(|| (dc + dr * side) as usize)
+    }
+
+    /// The time to reach a cell and the neighbour it is reached from (an index into
+    /// [`NEIGHBOURS`], or 8 for the start), if reached.
+    fn entry(&self, cell: (i64, i64)) -> Option<(u64, u8)> {
+        match self.index(cell) {
+            Some(k) => {
+                let (search, time, from) = self.window[k];
+                (search == self.search).then_some((time, from))
+            }
+            None => self.beyond.get(&cell).copied(),
+        }
+    }
+
+    fn time(&self, cell: (i64, i64)) -> u64 {
+        self.entry(cell).unwrap().0
+    }
+
+    /// The cell `cell` is reached from (itself for the start).
+    fn parent(&self, cell: (i64, i64)) -> (i64, i64) {
+        match self.entry(cell).unwrap().1 {
+            8 => cell,
+            k => (cell.0 - NEIGHBOURS[k as usize].0, cell.1 - NEIGHBOURS[k as usize].1),
+        }
+    }
+
+    fn insert(&mut self, cell: (i64, i64), (time, parent): (u64, (i64, i64))) {
+        let step = (cell.0 - parent.0, cell.1 - parent.1);
+        let from = NEIGHBOURS.iter().position(|&n| n == step).unwrap_or(8) as u8;
+        match self.index(cell) {
+            Some(k) => self.window[k] = (self.search, time, from),
+            None => {
+                self.beyond.insert(cell, (time, from));
+            }
+        }
+    }
+}
 
 /// A hasher for cells, much faster than the default one (which resists attacks that do not
 /// concern positions on a map): FxHash's multiply and rotate.
