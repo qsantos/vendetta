@@ -54,6 +54,9 @@ pub struct World {
     pub chase: Chase,
     /// Where the AI builds.
     pub towns: Towns,
+    /// The terrain type of this world's roads (`WorldType::road`), 0 for none: compact towns
+    /// keep off them.
+    pub road: u8,
     /// Not in the original: the searches for paths, spread over the ticks.
     pub(crate) planner: crate::path::Planner,
     /// `NoPerso`: the local player's character, which always says its comments.
@@ -253,6 +256,7 @@ impl World {
             paths: setup.paths,
             chase: setup.chase,
             towns: setup.towns,
+            road: rules.world_types.get(setup.world_type).map_or(0, |t| t.road),
             player: None,
             ai: Ai::default(),
             victory: false,

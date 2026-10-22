@@ -733,7 +733,9 @@ impl World {
                     y = clng((mh - h as i64) as f64 - self.rng.next() * CELL as f64);
                 }
             }
-            if self.obstacle(rules, n, x as i32, y as i32, w, h) == 0 && (!compact || self.spaced_in_town(n, x as i32, y as i32, w, h)) {
+            if self.obstacle(rules, n, x as i32, y as i32, w, h) == 0
+                && (!compact || self.spaced_in_town(n, x as i32, y as i32, w, h) && self.off_road(x as i32, y as i32, w, h))
+            {
                 self.ai.obstacle_distance[nf] = castle_w;
                 return Some((x as i32, y as i32));
             }
@@ -757,7 +759,13 @@ impl World {
         let centre = (castle.w / 2, castle.h / 2);
         let mut sites = Vec::new();
         for _ in 0..SITE_CANDIDATES {
-            let (bx, by, bw, bh) = own[self.rng.below(own.len() as i64) as usize];
+            // (the nearest to the castle of a few taken at random, so that the town fills in)
+            let picks: [Rect; ANCHOR_PICKS] = std::array::from_fn(|_| own[self.rng.below(own.len() as i64) as usize]);
+            let far = |&(x, y, w, h): &Rect| {
+                let (dx, dy) = ((x + w / 2 - centre.0) as i64, (y + h / 2 - centre.1) as i64);
+                dx * dx + dy * dy
+            };
+            let (bx, by, bw, bh) = *picks.iter().min_by_key(|&r| far(r)).unwrap();
             let gap = if self.rng.next() < AGAINST { 0 } else { STREET + (self.rng.next() * STREET as f64) as i32 };
             let side = self.rng.below(4);
             // (overlapping it along that side by a pixel at least; or in line with one of its
@@ -814,9 +822,22 @@ impl World {
     }
 
     /// Whether nothing stands on a site at `(x, y)` of `w` × `h` for perso `n`, but what only
-    /// touches it (which `obstacle` counts), so that houses can stand side by side.
+    /// touches it (which `obstacle` counts), so that houses can stand side by side; and no
+    /// road runs there.
     fn clear(&self, rules: &Rules, n: usize, x: i32, y: i32, w: i32, h: i32) -> bool {
-        self.obstacle(rules, n, x + 1, y + 1, w - 2, h - 2) == 0
+        self.obstacle(rules, n, x + 1, y + 1, w - 2, h - 2) == 0 && self.off_road(x, y, w, h)
+    }
+
+    /// Whether no road runs on the cells under a site at `(x, y)` of `w` × `h` (cell `c` spans
+    /// from `16c - 8` to `16c + 8`, see [`crate::terrain::Terrain::index_at`]).
+    fn off_road(&self, x: i32, y: i32, w: i32, h: i32) -> bool {
+        let span = |from: i32, len: i32| (from + CELL / 2).div_euclid(CELL)..=(from + len - 1 + CELL / 2).div_euclid(CELL);
+        (span(y, h)).all(|r| {
+            (span(x, w)).all(|c| {
+                let t = self.terrain.index_at((c * CELL) as f64, (r * CELL) as f64);
+                usize::try_from(t).ok().and_then(|t| self.terrain.category().get(t)).is_none_or(|&k| self.road == 0 || k != self.road)
+            })
+        })
     }
 
     /// Whether perso `n`'s house can stand at `(x, y)` as `w` × `h`, where it stands or not,
@@ -836,6 +857,8 @@ type Rect = (i32, i32, i32, i32);
 // Not in the original ([`Towns::Compact`]): how towns grow.
 /// The sites tried around a town for a house.
 const SITE_CANDIDATES: usize = 48;
+/// The buildings of the town drawn for each site, the one nearest the castle kept.
+const ANCHOR_PICKS: usize = 3;
 /// How often a site is tried against a building rather than a street away.
 const AGAINST: f64 = 0.7;
 /// The narrowest way between two buildings: room for a walker, and more.
