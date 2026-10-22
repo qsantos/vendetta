@@ -20,6 +20,9 @@ use crate::world::World;
 
 /// `VitesseIA`, `VitesseRechercheIA` (Singles).
 const AI_SPEED: f32 = 0.01;
+/// [`World::roam`]: cells walked toward the enemy at a time, and at most so many aside.
+const ROAM: i32 = 48;
+const ROAM_ASIDE: i32 = 8;
 const SEARCH_SPEED: f32 = 0.6;
 /// `DistancePalierRecherchePerso`, `DistancePalierRechercheMaison`.
 const PERSO_SEARCH_STEP: i64 = 48;
@@ -864,6 +867,9 @@ impl World {
             if self.persos[i].idle() {
                 self.aggressive(rules, i);
             }
+            if self.persos[i].idle() && self.monsters == crate::world::Monsters::Roam {
+                self.roam(rules, i);
+            }
         } else if self.rng.next() > 0.99 {
             self.stop(rules, i);
         }
@@ -907,6 +913,31 @@ impl World {
         } else if let Some(k) = self.search_enemy(i) {
             self.attack_perso(rules, i, k);
         }
+    }
+
+    /// Not in the original ([`crate::world::Monsters::Roam`]): a monster with nothing to do
+    /// heads for the nearest enemy castle, up to [`ROAM`] cells at a time and a little aside, so
+    /// that it meets someone on the way; a peaceful one, or one with no enemy castle left, walks
+    /// at random.
+    fn roam(&mut self, rules: &Rules, i: usize) {
+        let (team, (x, y)) = (self.persos[i].team, (self.persos[i].x, self.persos[i].y));
+        let nearest = (0..self.castles.len())
+            .filter(|&c| self.castles[c].visible() && self.fiefs[c].team != team)
+            .map(|c| (self.terrain.dx(x, self.castles[c].x as i64), self.terrain.dy(y, self.castles[c].y as i64)))
+            .min_by_key(|&(dx, dy)| dx * dx + dy * dy);
+        let Some((dx, dy)) = nearest.filter(|_| !self.persos[i].ai_pacific) else {
+            return self.random_walk(rules, i);
+        };
+        let d = ((dx * dx + dy * dy) as f64).sqrt().max(1.0);
+        let step = d.min((ROAM * CELL) as f64);
+        let mut aside = || (self.rng.next() * 2.0 - 1.0) * (ROAM_ASIDE * CELL) as f64;
+        let (ax, ay) = (aside(), aside());
+        let tx = x + clng(dx as f64 / d * step + ax);
+        let ty = y + clng(dy as f64 / d * step + ay);
+        let (w, h) = self.terrain.size_px();
+        let p = &self.persos[i];
+        let (tx, ty) = if self.terrain.torus { (tx, ty) } else { (tx.clamp(0, w - p.w as i64), ty.clamp(0, h - p.h as i64)) };
+        self.walk_to(rules, i, tx, ty);
     }
 
     fn go_home_or_chef(&mut self, rules: &Rules, i: usize) {

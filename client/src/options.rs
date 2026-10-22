@@ -42,6 +42,9 @@ pub struct Options {
     /// `towns=scattered`: the AI builds anywhere around its castle as in the original, instead
     /// of next to its buildings, a cell apart.
     pub scattered_towns: bool,
+    /// `monsters=wait`: monsters with nobody to attack in reach mostly stand about, as in the
+    /// original, instead of roaming toward the nearest enemy castle.
+    pub waiting_monsters: bool,
     /// `paths=greedy`: the original's way of walking, straight for the destination one cell at
     /// a time, instead of the fastest path.
     pub greedy_paths: bool,
@@ -128,6 +131,7 @@ impl Options {
                 "shape" => o.shape = sim::landscape::Shape::from_name(value),
                 "land" => o.original_land = value.eq_ignore_ascii_case("original"),
                 "towns" => o.scattered_towns = value.eq_ignore_ascii_case("scattered"),
+                "monsters" => o.waiting_monsters = value.eq_ignore_ascii_case("wait"),
                 "paths" => o.greedy_paths = value.eq_ignore_ascii_case("greedy"),
                 "chase" => o.direct_chase = value.eq_ignore_ascii_case("direct"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
@@ -175,7 +179,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, world: o.world, shape: o.shape, original_land: o.original_land, scattered_towns: o.scattered_towns, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, world: o.world, shape: o.shape, original_land: o.original_land, scattered_towns: o.scattered_towns, waiting_monsters: o.waiting_monsters, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
@@ -188,7 +192,8 @@ impl Options {
         let direct = if self.direct_chase { " direct" } else { "" };
         let land = if self.original_land { " original-land" } else { "" };
         let towns = if self.scattered_towns { " scattered" } else { "" };
-        format!("{:?} {:?} {:?} {:?} {:?} {:?}{ring}{closed}{land}{towns}{greedy}{direct} {:?}", self.size, self.world, self.shape, self.seed, self.fiefs, self.villagers, self.players)
+        let monsters = if self.waiting_monsters { " waiting" } else { "" };
+        format!("{:?} {:?} {:?} {:?} {:?} {:?}{ring}{closed}{land}{towns}{monsters}{greedy}{direct} {:?}", self.size, self.world, self.shape, self.seed, self.fiefs, self.villagers, self.players)
     }
 }
 

@@ -57,7 +57,7 @@ fn player(world: &World) -> usize {
 fn torus_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &WorldSetup { seed: 1, torus: true, ..Default::default() }).unwrap();
-    check("torus_world", &rules, world, &[], &[(0, 0x89cf35d22a64afb8), (500, 0x9c850a5b5a308e9c), (1500, 0x6eb20c6761c7fe50), (3000, 0xa8e245ecb6fd11c3)]);
+    check("torus_world", &rules, world, &[(0, 0xa277a7aa79fd0a6b), (500, 0x2020391481c30327), (1500, 0x909ea20f0ac3cdc5), (3000, 0xa16ac4f1ce5d3020)]);
 }
 
 /// On a torus, a character sent to a point just past the left edge walks there across the edge,
@@ -95,7 +95,7 @@ fn torus_crossing() {
 fn default_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &WorldSetup { seed: 1, ..Default::default() }).unwrap();
-    check("default_world", &rules, world, &[], &[(0, 0xd59aa66f27a660fd), (500, 0x324afcfd09aabcf7), (1500, 0xc25dc6c1029a37b4), (3000, 0x76a2a3f2fde13d1c)]);
+    check("default_world", &rules, world, &[(0, 0xf6bdd5505ac46538), (500, 0xaa70f59211e65d94), (1500, 0xee5fc2f8f0c064e1), (3000, 0xe5c5f3356538985b)]);
 }
 
 /// A shipped map.
@@ -104,7 +104,7 @@ fn shipped_map() {
     let Some((files, rules)) = load() else { return };
     let setup = WorldSetup { seed: 2, map: Some("(04) Delta".into()), ..Default::default() };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("shipped_map", &rules, world, &[], &[(0, 0xd8f571cb12dc6edc), (1000, 0x351b247bf6e3b0ef), (2500, 0x5a446cfc96fd7bd8)]);
+    check("shipped_map", &rules, world, &[(0, 0xeab0b7f5ddd4d7bf), (1000, 0x4feaa2c5aa977734), (2500, 0x49ace4dbcd80b055)]);
 }
 
 /// Many fiefs and the nearest-castle roads.
@@ -126,7 +126,7 @@ fn crowded(rules: &Rules) -> WorldSetup {
 fn crowded_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &crowded(&rules)).unwrap();
-    check("crowded_world", &rules, world, &[], &[(0, 0x6b26281b021c3a67), (500, 0x5c2cf959c4fd32da), (1500, 0x73cd1d33dd7b2eba)]);
+    check("crowded_world", &rules, world, &[(0, 0xff5d787f153d9c3e), (500, 0x2623fbf6fc1b3cd5), (1500, 0x30d0890acab9324f)]);
 }
 
 /// A crowded world on a torus, walking the fastest paths and heading off the targets (the
@@ -136,7 +136,7 @@ fn fastest_paths() {
     let Some((files, rules)) = load() else { return };
     let setup = WorldSetup { torus: true, paths: Paths::Fastest, chase: Chase::Intercept, ..crowded(&rules) };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("fastest_paths", &rules, world, &[], &[(0, 0x07151a3088d88cf9), (500, 0xe1faa2b1b8db7173), (1500, 0x264f69b1332863f0)]);
+    check("fastest_paths", &rules, world, &[(0, 0x0ccc7d514e81dcc4), (500, 0x96903fcbe2d0cbf4), (1500, 0x25e5966f5d8bb917)]);
 }
 
 /// The player at work and at war: harvesting, going home, attacking the nearest enemy.
@@ -151,7 +151,7 @@ fn player_orders() {
         (600, Order::AttackNearest { perso, kind: 0, send: false, ctrl: false, shift: false }),
         (1200, Order::FindTreasure { perso }),
     ];
-    check("player_orders", &rules, world, &orders, &[(0, 0x9aa2eafcf49c95a5), (300, 0x6a329d1c7207ebdd), (800, 0x9ef7906cae5d35ba), (2000, 0xe7269ae10c3e3b3c)]);
+    check("player_orders", &rules, world, &orders, &[(0, 0x7885c54088152020), (300, 0x67549b53c42dadd2), (800, 0xe1f6ca32b395fc0f), (2000, 0x599876fd25c233a1)]);
 }
 
 /// A large world, the scale optimisations target: 2400 characters on a 512×512 map.
@@ -169,7 +169,7 @@ fn large_world() {
         ..d
     };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("large_world", &rules, world, &[], &[(0, 0xcedd44e582dc4c53), (1000, 0xdf8c91c64c12613c), (2000, 0x9600531731cbc667)]);
+    check("large_world", &rules, world, &[(0, 0xc186141678cd9ca2), (1000, 0xca22dfc0b6964355), (2000, 0x22e4514c1a445d50)]);
 }
 
 /// Three human players, two of them in the same fief, giving orders.
@@ -193,7 +193,7 @@ fn several_players() {
         (5, Order::FindResource { perso: humans[1], kind: 3 }),
         (300, Order::AttackNearest { perso: humans[2], kind: 0, send: false, ctrl: false, shift: false }),
     ];
-    check("several_players", &rules, world, &orders, &[(0, 0x67d99fcbea92b5a1), (500, 0x00a9226f0045f6ef), (1500, 0x7c1440368c9c2761)]);
+    check("several_players", &rules, world, &orders, &[(0, 0xeee9a615f95a7c80), (500, 0x362f572b231d35e2), (1500, 0x2cfdf2a43c6b64c2)]);
 }
 
 /// The language changes only text, not the game: a world plays the same in every language as

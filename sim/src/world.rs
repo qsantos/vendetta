@@ -54,6 +54,8 @@ pub struct World {
     pub chase: Chase,
     /// Where the AI builds.
     pub towns: Towns,
+    /// What monsters do with nobody to attack in reach.
+    pub monsters: Monsters,
     /// How the land was laid (which the client draws the borders between its patches by).
     pub landscape: crate::landscape::Landscape,
     /// The terrain type of this world's roads (`WorldType::road`), 0 for none: compact towns
@@ -132,6 +134,8 @@ pub struct WorldSetup {
     pub chase: Chase,
     /// Where the AI builds.
     pub towns: Towns,
+    /// What monsters do with nobody to attack in reach.
+    pub monsters: Monsters,
     /// The fief of each human player (several may share one): each takes over a citizen of it.
     pub players: Vec<usize>,
     /// The human players' names, in the order of `players`; a missing or empty one keeps the
@@ -183,6 +187,19 @@ pub enum Towns {
     Compact,
 }
 
+/// What the monsters (wild animals, the undead: characters without a script) do at their turn
+/// when they find nobody to attack in reach.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum Monsters {
+    /// The original's (`IA_Agressif`): mostly nothing, now and then a random walk or home, so
+    /// that on a big map, with nobody within 40 cells, they stand about for a minute.
+    #[default]
+    Wait,
+    /// Not in the original: they roam, toward the nearest enemy castle (the peaceful ones at
+    /// random), until they meet someone (see `World::roam`).
+    Roam,
+}
+
 /// How roads join castles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Roads {
@@ -220,6 +237,7 @@ impl Default for WorldSetup {
             paths: Paths::Greedy,
             chase: Chase::Direct,
             towns: Towns::Scattered,
+            monsters: Monsters::Wait,
             players: vec![0],
             names: Vec::new(),
             characters: Vec::new(),
@@ -268,6 +286,7 @@ impl World {
             paths: setup.paths,
             chase: setup.chase,
             towns: setup.towns,
+            monsters: setup.monsters,
             landscape: setup.landscape,
             road: rules.world_types.get(world_type).map_or(0, |t| t.road),
             player: None,

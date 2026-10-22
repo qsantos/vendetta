@@ -227,6 +227,9 @@
       "Villes": "Towns",
       "groupées": "compact",
       "éparses (l'original)": "scattered (the original)",
+      "Monstres": "Monsters",
+      "rôdent vers l'ennemi": "roam toward the enemy",
+      "guettent une proie (l'original)": "lie in wait for prey (the original)",
       "fermés (l'original)": "closed (as in the original)",
       "Chemins": "Paths",
       "les plus rapides": "the fastest",
@@ -362,6 +365,9 @@
       "Villes": "Ciudades",
       "groupées": "agrupadas",
       "éparses (l'original)": "dispersas (el original)",
+      "Monstres": "Monstruos",
+      "rôdent vers l'ennemi": "merodean hacia el enemigo",
+      "guettent une proie (l'original)": "acechan una presa (el original)",
       "fermés (l'original)": "cerrados (el original)",
       "Chemins": "Trayectos",
       "les plus rapides": "los más rápidos",
@@ -500,6 +506,9 @@
       "Villes": "町",
       "groupées": "まとまった",
       "éparses (l'original)": "散らばった（オリジナル）",
+      "Monstres": "モンスター",
+      "rôdent vers l'ennemi": "敵に向かってうろつく",
+      "guettent une proie (l'original)": "獲物を待ち伏せる（オリジナル）",
       "fermés (l'original)": "閉じている（原作どおり）",
       "Chemins": "経路",
       "les plus rapides": "最速",
@@ -638,6 +647,9 @@
       "Villes": "城镇",
       "groupées": "紧凑",
       "éparses (l'original)": "分散（原版）",
+      "Monstres": "怪物",
+      "rôdent vers l'ennemi": "向敌人游荡",
+      "guettent une proie (l'original)": "伺机等待猎物（原版）",
       "fermés (l'original)": "封闭（原版）",
       "Chemins": "路径",
       "les plus rapides": "最快",
@@ -834,6 +846,11 @@
               <option value="">groupées</option>
               <option value="scattered">éparses (l'original)</option>
             </select></label>
+          <label>Monstres
+            <select name="monsters">
+              <option value="">rôdent vers l'ennemi</option>
+              <option value="wait">guettent une proie (l'original)</option>
+            </select></label>
           <label>Chemins
             <select name="paths">
               <option value="">les plus rapides</option>
@@ -915,6 +932,11 @@
         <select name="towns">
           <option value="">groupées</option>
           <option value="scattered">éparses (l'original)</option>
+        </select></label>
+      <label>Monstres
+        <select name="monsters">
+          <option value="">rôdent vers l'ennemi</option>
+          <option value="wait">guettent une proie (l'original)</option>
         </select></label>
       <label>Chemins
         <select name="paths">
@@ -1403,7 +1425,7 @@
   // changes the address, and a reload starts afresh: "Continuer" resumes the saved game.
   const hashItems = () => decodeURIComponent(location.hash.slice(1)).split("&").filter((o) => o);
   // The settings of a world, as the menu shows them (and a link shares them).
-  const settingFields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
+  const settingFields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "monsters", "paths", "chase", "speed", "seed"];
   // The window sharing a link to the page with `items` in its hash (none: the page alone),
   // as a QR code and an address to copy, `note` saying what it opens.
   const share = (items, note) => {
@@ -1734,7 +1756,7 @@
     // The settings that can be as in the original (their value then), in a window of their own
     // in `root` (the form, the room's settings), with a switch for them all; the button that
     // opens it tells how many are. Returns what shows that again, after a change from afar.
-    const original = { roads: "ring", edges: "closed", land: "original", towns: "scattered", paths: "greedy", chase: "direct" };
+    const original = { roads: "ring", edges: "closed", land: "original", towns: "scattered", monsters: "wait", paths: "greedy", chase: "direct" };
     const originalPanel = (root) => {
       const panel = root.querySelector(".original");
       const all = panel.querySelector(".all-original");

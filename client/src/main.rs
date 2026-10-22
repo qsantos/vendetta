@@ -299,6 +299,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     };
     setup.shape = options.shape;
     setup.towns = if options.scattered_towns { sim::world::Towns::Scattered } else { sim::world::Towns::Compact };
+    setup.monsters = if options.waiting_monsters { sim::world::Monsters::Wait } else { sim::world::Monsters::Roam };
     setup.paths = if options.greedy_paths { sim::path::Paths::Greedy } else { sim::path::Paths::Fastest };
     setup.chase = if options.direct_chase { sim::path::Chase::Direct } else { sim::path::Chase::Intercept };
     if let Some(speed) = options.speed {
