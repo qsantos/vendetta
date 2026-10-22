@@ -57,7 +57,7 @@ fn player(world: &World) -> usize {
 fn torus_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &WorldSetup { seed: 1, torus: true, ..Default::default() }).unwrap();
-    check("torus_world", &rules, world, &[(0, 0xa277a7aa79fd0a6b), (500, 0x2020391481c30327), (1500, 0x909ea20f0ac3cdc5), (3000, 0xa16ac4f1ce5d3020)]);
+    check("torus_world", &rules, world, &[], &[(0, 0xa277a7aa79fd0a6b), (500, 0x2020391481c30327), (1500, 0x909ea20f0ac3cdc5), (3000, 0xa16ac4f1ce5d3020)]);
 }
 
 /// On a torus, a character sent to a point just past the left edge walks there across the edge,
@@ -95,7 +95,7 @@ fn torus_crossing() {
 fn default_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &WorldSetup { seed: 1, ..Default::default() }).unwrap();
-    check("default_world", &rules, world, &[(0, 0xf6bdd5505ac46538), (500, 0xaa70f59211e65d94), (1500, 0xee5fc2f8f0c064e1), (3000, 0xe5c5f3356538985b)]);
+    check("default_world", &rules, world, &[], &[(0, 0xf6bdd5505ac46538), (500, 0xaa70f59211e65d94), (1500, 0xee5fc2f8f0c064e1), (3000, 0xe5c5f3356538985b)]);
 }
 
 /// A shipped map.
@@ -104,7 +104,7 @@ fn shipped_map() {
     let Some((files, rules)) = load() else { return };
     let setup = WorldSetup { seed: 2, map: Some("(04) Delta".into()), ..Default::default() };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("shipped_map", &rules, world, &[(0, 0xeab0b7f5ddd4d7bf), (1000, 0x4feaa2c5aa977734), (2500, 0x49ace4dbcd80b055)]);
+    check("shipped_map", &rules, world, &[], &[(0, 0xeab0b7f5ddd4d7bf), (1000, 0x4feaa2c5aa977734), (2500, 0x49ace4dbcd80b055)]);
 }
 
 /// Many fiefs and the nearest-castle roads.
@@ -126,7 +126,7 @@ fn crowded(rules: &Rules) -> WorldSetup {
 fn crowded_world() {
     let Some((files, rules)) = load() else { return };
     let world = World::create(&rules, &files, &crowded(&rules)).unwrap();
-    check("crowded_world", &rules, world, &[(0, 0xff5d787f153d9c3e), (500, 0x2623fbf6fc1b3cd5), (1500, 0x30d0890acab9324f)]);
+    check("crowded_world", &rules, world, &[], &[(0, 0xff5d787f153d9c3e), (500, 0x2623fbf6fc1b3cd5), (1500, 0x30d0890acab9324f)]);
 }
 
 /// A crowded world on a torus, walking the fastest paths and heading off the targets (the
@@ -136,7 +136,7 @@ fn fastest_paths() {
     let Some((files, rules)) = load() else { return };
     let setup = WorldSetup { torus: true, paths: Paths::Fastest, chase: Chase::Intercept, ..crowded(&rules) };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("fastest_paths", &rules, world, &[(0, 0x0ccc7d514e81dcc4), (500, 0x96903fcbe2d0cbf4), (1500, 0x25e5966f5d8bb917)]);
+    check("fastest_paths", &rules, world, &[], &[(0, 0x0ccc7d514e81dcc4), (500, 0x96903fcbe2d0cbf4), (1500, 0x25e5966f5d8bb917)]);
 }
 
 /// The player at work and at war: harvesting, going home, attacking the nearest enemy.
@@ -169,7 +169,7 @@ fn large_world() {
         ..d
     };
     let world = World::create(&rules, &files, &setup).unwrap();
-    check("large_world", &rules, world, &[(0, 0xc186141678cd9ca2), (1000, 0xca22dfc0b6964355), (2000, 0x22e4514c1a445d50)]);
+    check("large_world", &rules, world, &[], &[(0, 0xc186141678cd9ca2), (1000, 0xca22dfc0b6964355), (2000, 0x22e4514c1a445d50)]);
 }
 
 /// Three human players, two of them in the same fief, giving orders.
