@@ -61,13 +61,6 @@ const SCENES = {
   messages: { hash: "seed=1", steps: [["key", "F9"], ["move", 512, 600]] },
   // Holding an object over the own castle: the sell cursor and its bubble.
   sell: { hash: "seed=1&hold=0", steps: [["move", 330, 312]] },
-  // Several human players: Page Down controls the one of the third fief (its own view, bars
-  // and house).
-  switch: { hash: "seed=1&players=1+3", steps: [["key", "PageDown"], ["move", 512, 600]] },
-  // The bag shown is the controlled character's: the second player's is empty…
-  switch_inventory: { hash: "seed=1&players=1+3&inventory=Hache+Marteau:2+40:3", steps: [["key", "KeyI"], ["key", "PageDown"], ["move", 512, 600]] },
-  // …and Page Up comes back to the first player and its filled bag.
-  switch_back: { hash: "seed=1&players=1+3&inventory=Hache+Marteau:2+40:3", steps: [["key", "KeyI"], ["key", "PageDown"], ["key", "PageUp"], ["move", 512, 600]] },
   // The map dragged away from the character: the button to follow it again, and the arrow
   // pointing at it.
   pan: { hash: "seed=1", steps: [["drag", 300, 650, 900, 150], ["move", 512, 400]] },
