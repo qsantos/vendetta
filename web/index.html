@@ -38,7 +38,7 @@
   #netstatus { position: fixed; left: 24px; top: 4px; z-index: 2; color: #fc6;
                font: bold 12px Arial, "Liberation Sans", sans-serif; pointer-events: none; }
   #netstatus[hidden] { display: none; }
-  /* The pre-game menu: the solo game's settings, kept in the address's hash. */
+  /* The pre-game menu: the solo game's settings (a link's hash fills them in). */
   #menu { position: fixed; inset: 0; z-index: 3; display: flex; align-items: center;
           justify-content: center; background: #000;
           font: 15px Arial, "Liberation Sans", sans-serif; color: #e8e8d0; }
@@ -77,7 +77,25 @@
   #lobby td { padding: 3px 4px; }
   #lobby tr.offline { color: #999; }
   #lobby td label { display: flex; align-items: center; gap: 6px; margin: 0; }
-  #lobby .link { font-size: 12px; word-break: break-all; }
+  /* "Partager", discreet, in a corner of the menus; its window, over everything. */
+  #main, #menu form, #room, #ingame .panel { position: relative; }
+  .share-open { position: absolute; top: 6px; right: 10px; background: none; border: none;
+                padding: 2px 4px !important; color: #c8c8b0; text-decoration: underline;
+                font: 12px Arial, "Liberation Sans", sans-serif !important; cursor: pointer; }
+  .share-open:hover { color: #fff; }
+  #share { position: fixed; inset: 0; z-index: 6; display: flex; align-items: center;
+           justify-content: center; background: rgba(0, 0, 0, 0.6);
+           font: 15px Arial, "Liberation Sans", sans-serif; color: #e8e8d0; }
+  #share[hidden], #share [hidden] { display: none; }
+  #share .window { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70); border-radius: 12px;
+                   padding: 16px 20px; box-sizing: border-box; width: min(calc(100vw - 24px), 340px);
+                   display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  #share h1 { margin: 0; font-size: 20px; }
+  #share p { margin: 0; font-size: 13px; color: #c8c8b0; text-align: center; }
+  #share img { width: 200px; height: 200px; image-rendering: pixelated; }
+  #share .copy { display: flex; gap: 6px; width: 100%; }
+  #share input { flex: 1; min-width: 0; font: 13px monospace; }
+  #share button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 6px 14px; }
   /* The in-game menu, over the game (which a solo game pauses behind it). */
   #ingame { position: fixed; inset: 0; z-index: 4; display: flex; align-items: center;
             justify-content: center; background: rgba(0, 0, 0, 0.5);
@@ -168,7 +186,13 @@
       "Retour": "Back",
       "Rejoindre": "Join",
       "Partie": "Game",
-      "Lien à partager :": "Link to share:",
+      "Partager": "Share",
+      "Copier": "Copy",
+      "Copié !": "Copied!",
+      "Ce lien ouvre le jeu.": "This link opens the game.",
+      "Ce lien ouvre le jeu avec ces réglages.": "This link opens the game with these settings.",
+      "Ce lien ouvre le jeu avec les réglages de cette partie.": "This link opens the game with this game's settings.",
+      "Ce lien rejoint cette partie.": "This link joins this game.",
       "Monde (choisi par l'hôte)": "World (chosen by the host)",
       "Taille de la carte": "Map size",
       "Peuples": "Nations",
@@ -297,7 +321,13 @@
       "Retour": "Volver",
       "Rejoindre": "Unirse",
       "Partie": "Partida",
-      "Lien à partager :": "Enlace para compartir:",
+      "Partager": "Compartir",
+      "Copier": "Copiar",
+      "Copié !": "¡Copiado!",
+      "Ce lien ouvre le jeu.": "Este enlace abre el juego.",
+      "Ce lien ouvre le jeu avec ces réglages.": "Este enlace abre el juego con estos ajustes.",
+      "Ce lien ouvre le jeu avec les réglages de cette partie.": "Este enlace abre el juego con los ajustes de esta partida.",
+      "Ce lien rejoint cette partie.": "Este enlace une a esta partida.",
       "Monde (choisi par l'hôte)": "Mundo (elegido por el anfitrión)",
       "Taille de la carte": "Tamaño del mapa",
       "Peuples": "Pueblos",
@@ -429,7 +459,13 @@
       "Retour": "戻る",
       "Rejoindre": "参加",
       "Partie": "ゲーム",
-      "Lien à partager :": "共有リンク：",
+      "Partager": "共有",
+      "Copier": "コピー",
+      "Copié !": "コピーしました",
+      "Ce lien ouvre le jeu.": "このリンクでゲームが開きます。",
+      "Ce lien ouvre le jeu avec ces réglages.": "このリンクでこの設定のゲームが開きます。",
+      "Ce lien ouvre le jeu avec les réglages de cette partie.": "このリンクでこのゲームと同じ設定のゲームが開きます。",
+      "Ce lien rejoint cette partie.": "このリンクでこのゲームに参加できます。",
       "Monde (choisi par l'hôte)": "世界（ホストが選択）",
       "Taille de la carte": "マップの大きさ",
       "Peuples": "民族の数",
@@ -561,7 +597,13 @@
       "Retour": "返回",
       "Rejoindre": "加入",
       "Partie": "游戏",
-      "Lien à partager :": "分享链接：",
+      "Partager": "分享",
+      "Copier": "复制",
+      "Copié !": "已复制",
+      "Ce lien ouvre le jeu.": "此链接打开游戏。",
+      "Ce lien ouvre le jeu avec ces réglages.": "此链接以这些设置打开游戏。",
+      "Ce lien ouvre le jeu avec les réglages de cette partie.": "此链接以本局的设置打开游戏。",
+      "Ce lien rejoint cette partie.": "此链接加入本局游戏。",
       "Monde (choisi par l'hôte)": "世界（由房主选择）",
       "Taille de la carte": "地图大小",
       "Peuples": "民族",
@@ -714,6 +756,7 @@
 <body>
 <div id="menu" hidden>
   <div id="main">
+    <button type="button" class="share-open" data-share="game">Partager</button>
     <h1>Vendetta</h1>
     <button type="button" id="continue" disabled>Continuer</button>
     <button type="button" id="new">Nouveau</button>
@@ -739,8 +782,8 @@
       </div>
     </div>
     <div id="room" hidden>
+      <button type="button" class="share-open" data-share="room">Partager</button>
       <div>Partie <span class="code" id="room-code"></span></div>
-      <div class="link">Lien à partager : <a id="room-link"></a></div>
       <table id="players"></table>
       <fieldset id="room-settings"><legend>Monde (choisi par l'hôte)</legend>
         <label>Taille de la carte
@@ -821,6 +864,7 @@
     <p class="error" id="lobby-error"></p>
   </div>
   <form hidden>
+    <button type="button" class="share-open" data-share="settings">Partager</button>
     <h1>Vendetta</h1>
     <label>Personnage
       <span class="pick"><select class="character"></select><button type="button" class="character-edit">✎</button><button type="button" class="character-delete">✕</button></span></label>
@@ -933,6 +977,7 @@
 <div id="bubble" hidden>Chargement…</div>
 <div id="ingame" hidden>
   <div class="panel">
+    <button type="button" class="share-open" data-share="ingame">Partager</button>
     <div class="actions">
       <h1>Menu</h1>
       <p class="note" id="ingame-note"></p>
@@ -968,11 +1013,21 @@
     </div>
   </div>
 </div>
+<div id="share" hidden>
+  <div class="window" role="dialog">
+    <h1>Partager</h1>
+    <p id="share-note"></p>
+    <img id="share-qr" alt="">
+    <div class="copy"><input type="text" id="share-url" readonly><button type="button" id="share-copy">Copier</button></div>
+    <button type="button" id="share-close">Fermer</button>
+  </div>
+</div>
 <div id="errors" hidden></div>
 <div id="netstatus" hidden></div>
 <canvas id="glcanvas" class="waiting" tabindex="1" oncontextmenu="event.preventDefault()"></canvas>
 <!-- build-web.sh appends ?v=<hash> to these two URLs so they can be cached for good -->
 <script src="mq_js_bundle.js"></script>
+<script src="qrcode.js" defer></script>
 <script>
   // Digits are the object keys: keep Firefox's quick find (' is 4 on AZERTY, /) and similar
   // shortcuts from taking them.
@@ -1320,8 +1375,10 @@
       importObject.env.vendetta_quit = () => {
         writesDone().then(() => {
           if (socket) socket.close();
-          setHash(hashItems().filter((o) => o !== "play" && !o.startsWith("room=")));
-          location.reload();
+          setTab([]);
+          // (a link that starts a game: the page without it)
+          if (hashItems().some((o) => o === "play" || o.startsWith("room="))) location.replace(location.pathname + location.search);
+          else location.reload();
         });
       };
       importObject.env.vendetta_speed = (speed, network) => showSpeed(speed, !!network);
@@ -1334,7 +1391,7 @@
       // The touch interface on phones and tablets (see client/src/layout.rs).
       importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
       // after the pending writes, so that none is lost
-      window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
+      window.addEventListener("hashchange", () => writesDone().then(() => (setTab([]), location.reload())));
       importObject.env.vendetta_read = (ptr) => {
         new Uint8Array(wasm_memory.buffer, ptr, pendingRead.length).set(pendingRead);
         pendingRead = null;
@@ -1343,11 +1400,80 @@
   });
 
   // The options in the URL's hash (see client/src/options.rs), which the game reads as it
-  // starts. `play` starts it at once; without it, the pre-game menu shows them and every change
-  // rewrites the hash in place. `new` (a new world) applies to one start only: it is taken out
-  // of the address, so that reloading resumes that world.
+  // starts: `play` starts it at once; without it, the pre-game menu shows them. The page never
+  // changes the address: what this tab plays (the options of the game started, a room) is kept
+  // for it alone, with the address it was at, and taken over that address's on a reload (not
+  // on another address). `new` (a new world) applies to one start only: it is not kept, so
+  // that reloading resumes that world.
   const hashItems = () => decodeURIComponent(location.hash.slice(1)).split("&").filter((o) => o);
-  const setHash = (items) => history.replaceState(null, "", location.pathname + location.search + (items.length ? "#" + items.join("&") : ""));
+  const tabKey = "vendetta-tab";
+  const tabItems = () => {
+    try {
+      const tab = JSON.parse(sessionStorage.getItem(tabKey));
+      return tab && tab.at === location.href ? tab.items : [];
+    } catch (e) {
+      return [];
+    }
+  };
+  const setTab = (items) => {
+    try {
+      if (items.length) sessionStorage.setItem(tabKey, JSON.stringify({ at: location.href, items }));
+      else sessionStorage.removeItem(tabKey);
+    } catch (e) {}
+  };
+  // The settings of a world, as the menu shows them (and a link shares them).
+  const settingFields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
+  // The window sharing a link to the page with `items` in its hash (none: the page alone),
+  // as a QR code and an address to copy, `note` saying what it opens.
+  const share = (items, note) => {
+    const url = location.href.split("#")[0] + (items.length ? "#" + items.join("&") : "");
+    const qr = document.getElementById("share-qr");
+    qr.hidden = typeof qrcode === "undefined";
+    if (!qr.hidden) {
+      const code = qrcode(0, "M");
+      code.addData(url);
+      code.make();
+      qr.src = code.createDataURL(8, 4);
+    }
+    document.getElementById("share-note").textContent = t(note);
+    document.getElementById("share-url").value = url;
+    document.getElementById("share-copy").textContent = t("Copier");
+    document.getElementById("share").hidden = false;
+    document.getElementById("share-copy").focus();
+  };
+  {
+    const window_ = document.getElementById("share");
+    const input = document.getElementById("share-url");
+    const copy = document.getElementById("share-copy");
+    const close = () => (window_.hidden = true);
+    copy.addEventListener("click", () => {
+      const done = () => (copy.textContent = t("Copié !"));
+      // (no clipboard API off a secure page: the selection, the old way)
+      const old = () => {
+        input.select();
+        if (document.execCommand("copy")) done();
+      };
+      if (navigator.clipboard) navigator.clipboard.writeText(input.value).then(done, old);
+      else old();
+    });
+    input.addEventListener("focus", () => input.select());
+    document.getElementById("share-close").addEventListener("click", close);
+    window_.addEventListener("click", (e) => e.target === window_ && close());
+    window_.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    });
+  }
+  // The game in progress: a network game's room, else the settings it was started with.
+  document.querySelector('[data-share="ingame"]').addEventListener("click", () => {
+    const items = (startHash || "").split("&");
+    const room = items.find((o) => o.startsWith("room="));
+    if (networkGame() && room) share([room], "Ce lien rejoint cette partie.");
+    else share(items.filter((o) => settingFields.some((k) => o.startsWith(k + "="))), "Ce lien ouvre le jeu avec les réglages de cette partie.");
+  });
+  document.querySelector('[data-share="game"]').addEventListener("click", () => share([], "Ce lien ouvre le jeu."));
   // The options of the game chosen in the menus; none yet.
   let startHash = null;
   // The settings the game in progress was started with, for "Continuer la partie".
@@ -1516,7 +1642,7 @@
     } catch (e) {}
     const named = name && !items.some((o) => o.startsWith("names="));
     startHash = (named ? [...items, "names=" + encodeURIComponent(name)] : items).join("&");
-    setHash(kept);
+    setTab(kept);
     document.getElementById("menu").hidden = true;
     loadingScreen.hidden = false;
     bubble.hidden = false;
@@ -1623,7 +1749,7 @@
   // The pre-game menu: the form mirrors the hash; flags are checkboxes, other keys values.
   {
     const form = document.querySelector("#menu form");
-    const fields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
+    const fields = settingFields;
     const flags = ["god", "perf"];
     // The settings that can be as in the original (their value then), in a window of their own
     // in `root` (the form, the room's settings), with a switch for them all; the button that
@@ -1686,7 +1812,9 @@
       for (const k of flags) if (form.elements[k].checked) out.push(k);
       return out;
     };
-    form.addEventListener("input", () => setHash(items()));
+    form.querySelector('[data-share="settings"]').addEventListener("click", () => {
+      share(items().filter((o) => fields.some((k) => o.startsWith(k + "="))), "Ce lien ouvre le jeu avec ces réglages.");
+    });
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const character = characterItems();
@@ -2004,10 +2132,9 @@
     const showLobby = (msg) => {
       netRoom = msg.room;
       setNetSlot({ room: msg.room, token: msg.token });
-      setHash(["room=" + msg.room]);
+      setTab(["room=" + msg.room]);
       inRoom(true);
       $("room-code").textContent = msg.room;
-      $("room-link").href = $("room-link").textContent = location.href;
       const host = msg.you === msg.host;
       for (const k of roomFields) {
         const el = settings.elements[k];
@@ -2144,9 +2271,10 @@
       socket = null;
       if (ws) ws.close();
       inRoom(false);
-      setHash([]);
+      setTab([]);
     });
     $("room-start").addEventListener("click", () => send({ t: "start" }));
+    document.querySelector('[data-share="room"]').addEventListener("click", () => share(["room=" + netRoom], "Ce lien rejoint cette partie."));
     settings.addEventListener("input", () => {
       const items = [];
       for (const k of roomFields) {
@@ -2179,9 +2307,11 @@
 
     // The game loads at once, behind the menus.
     startGame();
-    const room = roomValue(hashItems(), "room");
-    if (hashItems().includes("play")) {
-      begin(hashItems());
+    // (this tab's game, on a reload, else the link's)
+    const at = tabItems().length ? tabItems() : hashItems();
+    const room = roomValue(at, "room");
+    if (at.includes("play")) {
+      begin(at);
     } else if (room) {
       document.getElementById("menu").hidden = false;
       openLobby(room);

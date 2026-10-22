@@ -32,6 +32,11 @@ sed -e "s|\"client.wasm\"|\"client.wasm?v=$wasm\"|" \
     -e "s|src=\"mq_js_bundle.js\"|src=\"mq_js_bundle.js?v=$bundle\"|" \
     web/index.html > dist/index.html
 grep -q "const build = \"$wasm\";" dist/index.html
+# The share window's QR codes (qrcode-generator 1.4.4, by Kazuhiko Arase, MIT), versioned.
+cp -f web/qrcode.js dist/
+qr=$(sha256sum dist/qrcode.js | cut -c1-16)
+sed -i "s|src=\"qrcode.js\"|src=\"qrcode.js?v=$qr\"|" dist/index.html
+grep -q "qrcode.js?v=$qr" dist/index.html
 ln -sfn ../assets dist/assets
 # The translations beyond the original's French and English (see tools/translate.py).
 python3 -I tools/translate.py apply assets
