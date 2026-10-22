@@ -203,30 +203,35 @@ impl Terrain {
                 continue;
             }
             let set = |d: (isize, isize)| self.neighbour(i, d).is_some_and(|j| self.category[j] > 0);
-            let (u, d, l, r) = (set((0, -1)), set((0, 1)), set((-1, 0)), set((1, 0)));
-            let shape = match (u, d, l, r) {
-                (true, true, true, true) => 1,
-                (false, true, false, false) => 2,
-                (true, false, false, false) => 3,
-                (false, false, false, true) => 4,
-                (false, false, true, false) => 5,
-                (true, true, false, false) => 6,
-                (false, false, true, true) => 7,
-                (false, true, true, true) => 8,
-                (true, false, true, true) => 9,
-                (true, true, false, true) => 10,
-                (true, true, true, false) => 11,
-                (false, true, false, true) => 12,
-                (false, true, true, false) => 13,
-                (true, false, false, true) => 14,
-                (true, false, true, false) => 15,
-                (false, false, false, false) => {
-                    self.category[i as usize] = 0;
-                    0
-                }
-            };
+            let shape = shape(set((0, -1)), set((0, 1)), set((-1, 0)), set((1, 0)));
+            if shape == 0 {
+                self.category[i as usize] = 0;
+            }
             self.shape[i as usize] = shape;
         }
+    }
+}
+
+/// The shape of a patch's cell (its tile in the tileset's row for its type) by which of its
+/// neighbours, up, down, left and right, the patch goes on to; 0 for none (a lone cell).
+pub fn shape(u: bool, d: bool, l: bool, r: bool) -> u8 {
+    match (u, d, l, r) {
+        (true, true, true, true) => 1,
+        (false, true, false, false) => 2,
+        (true, false, false, false) => 3,
+        (false, false, false, true) => 4,
+        (false, false, true, false) => 5,
+        (true, true, false, false) => 6,
+        (false, false, true, true) => 7,
+        (false, true, true, true) => 8,
+        (true, false, true, true) => 9,
+        (true, true, false, true) => 10,
+        (true, true, true, false) => 11,
+        (false, true, false, true) => 12,
+        (false, true, true, false) => 13,
+        (true, false, false, true) => 14,
+        (true, false, true, false) => 15,
+        (false, false, false, false) => 0,
     }
 }
 

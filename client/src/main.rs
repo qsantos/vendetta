@@ -261,6 +261,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     let images: u64 = textures.missing(&all).iter().map(|p| assets::image_work(manifest.size(p))).sum();
     progress.set_total(manifest.data_bytes() + images + effects::SOUND_WORK);
     textures.load_all(&manifest, &terrain, &progress, &progress.label(7)).await;
+    render::add_border_tiles(&mut textures);
     textures.load_all(&manifest, &persos, &progress, &progress.label(6)).await;
     textures.load_all(&manifest, &hud, &progress, &progress.label(10)).await;
     progress.message(&progress.label(11));

@@ -54,6 +54,8 @@ pub struct World {
     pub chase: Chase,
     /// Where the AI builds.
     pub towns: Towns,
+    /// How the land was laid (which the client draws the borders between its patches by).
+    pub landscape: crate::landscape::Landscape,
     /// The terrain type of this world's roads (`WorldType::road`), 0 for none: compact towns
     /// keep off them.
     pub road: u8,
@@ -256,6 +258,7 @@ impl World {
             paths: setup.paths,
             chase: setup.chase,
             towns: setup.towns,
+            landscape: setup.landscape,
             road: rules.world_types.get(setup.world_type).map_or(0, |t| t.road),
             player: None,
             ai: Ai::default(),

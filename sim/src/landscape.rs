@@ -23,7 +23,7 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, VecDeque};
 
 /// How a random world's land is made.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub enum Landscape {
     /// The original's blobs of terrain, castles on a grid.
     #[default]

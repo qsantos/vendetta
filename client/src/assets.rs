@@ -386,6 +386,11 @@ impl Textures {
         self.loaded.insert(k, Sprite { page, rect });
     }
 
+    /// Adds an image made here rather than loaded, as `path`.
+    pub fn add(&mut self, path: &str, image: Image) {
+        self.pack(key(path), image);
+    }
+
     pub fn get(&self, path: &str) -> Option<&Sprite> {
         self.loaded.get(&key(path))
     }

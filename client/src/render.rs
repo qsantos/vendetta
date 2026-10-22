@@ -8,6 +8,7 @@ use sim::terrain::CELL;
 use sim::perso::{Look, Perso};
 use sim::treasure::TREASURE_SIZE;
 use sim::vb::clng;
+use sim::landscape::Landscape;
 use sim::world::{RESOURCE_SIZE, World};
 
 
@@ -178,6 +179,7 @@ fn draw_persos(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32
     }
 }
 
+
 /// `ClsAffApparence.Afficher`: the character's sheets, then the overlays of the objects it
 /// wears. A mount is drawn with its own frame size and walk, behind or in front of the rider
 /// by direction; the rider then stays on its middle frame, shifted per direction and bobbing.
@@ -328,9 +330,82 @@ fn fief_colour(fief: usize) -> [u8; 4] {
     [(c.r * 255.0) as u8, (c.g * 255.0) as u8, (c.b * 255.0) as u8, 255]
 }
 
+/// Not in the original: where a type of terrain stands in the layering of the patches' borders
+/// with the natural lay of the land ([`Landscape::Natural`]). The tileset only has the edges of
+/// a patch on grass; a patch on one of a lower type is drawn with its edges on that one
+/// instead (see [`add_border_tiles`]), so that the shore of a lake on sand is as soft as on
+/// grass.
+fn layer(category: u8) -> u8 {
+    match category {
+        0 => 0,
+        1 => 1,
+        3 => 2,
+        2 => 3,
+        10 => 4,
+        4 => 5,
+        5 => 7,
+        6..=9 => 8,
+        _ => 6,
+    }
+}
+
+/// The tiles of type `top`'s patches on type `under` (see [`layer`]).
+fn border_tiles(top: u8, under: u8) -> String {
+    format!("Terrains/{top}-on-{under}.png")
+}
+
+/// Not in the original: makes the tiles of each type's patches on each lower type (see
+/// [`layer`]) from the tileset, the grass around their edges (its few colours, which no
+/// other type but tall grass uses, lower than all) taken for the lower type's whole tile.
+pub fn add_border_tiles(textures: &mut Textures) {
+    let Some(tiles) = textures.pixels(TILESET).cloned() else { return };
+    let (width, rows) = (tiles.width(), tiles.height() / CELL as usize);
+    let at = |x: usize, y: usize| -> [u8; 4] { tiles.bytes[(y * width + x) * 4..][..4].try_into().unwrap() };
+    let grass: std::collections::HashSet<[u8; 4]> = (0..CELL as usize).flat_map(|y| (0..width).map(move |x| (x, y))).map(|(x, y)| at(x, y)).collect();
+    let cell = CELL as usize;
+    for top in 1..rows {
+        for under in 1..rows {
+            if layer(under as u8) >= layer(top as u8) {
+                continue;
+            }
+            let mut bytes = Vec::with_capacity(width * cell * 4);
+            for y in 0..cell {
+                for x in 0..width {
+                    let p = at(x, top * cell + y);
+                    // (the whole tile of the type under, shape 1)
+                    bytes.extend(if grass.contains(&p) { at(cell + x % cell, under * cell + y) } else { p });
+                }
+            }
+            let image = Image { bytes, width: width as u16, height: cell as u16 };
+            textures.add(&border_tiles(top as u8, under as u8), image);
+        }
+    }
+}
+
+/// The tile a cell of the terrain is drawn with: its shape, and the type it stands on (0 for
+/// grass). With the natural lay of the land (not in the original), a patch goes on to the
+/// neighbours of its layer or a higher one (see [`layer`]), and stands on the type most of
+/// its other neighbours are; else the original's, on grass.
+fn tile(world: &World, k: usize) -> (u8, u8) {
+    let t = &world.terrain;
+    let c = t.category()[k];
+    if world.landscape != Landscape::Natural || c == 0 {
+        return (t.shape[k], 0);
+    }
+    let around = [(0, -1), (0, 1), (-1, 0), (1, 0)].map(|d| t.neighbour(k as isize, d).map_or(c, |j| t.category()[j]));
+    let on = around.map(|n| layer(n) >= layer(c));
+    let shape = sim::terrain::shape(on[0], on[1], on[2], on[3]);
+    // (the most of the others, the higher on a tie: grass the lowest)
+    let under = (around.iter().filter(|&&n| layer(n) < layer(c)))
+        .max_by_key(|&&n| (around.iter().filter(|&&m| m == n).count(), layer(n)))
+        .copied()
+        .unwrap_or(0);
+    (shape, under)
+}
+
 /// `ClsAffTerrain.AfficheFast`: one 16×16 tile per visible cell.
 fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32, i32)) {
-    let Some(tiles) = textures.get(TILESET) else { return };
+    let Some(plain) = textures.get(TILESET) else { return };
     let t = &world.terrain;
     let (cx0, cy0) = (cam.0.div_euclid(CELL), cam.1.div_euclid(CELL));
     // Every cell overlapping the view, also when the camera is not on a cell boundary.
@@ -344,7 +419,13 @@ fn draw_terrain(world: &World, textures: &Textures, cam: (i32, i32), view: (i32,
                 continue;
             }
             let k = cy as usize * t.width + cx as usize;
-            let src = Rect::new((t.shape[k] as i32 * CELL) as f32, (t.category()[k] as i32 * CELL) as f32, CELL as f32, CELL as f32);
+            let (shape, under) = tile(world, k);
+            let category = t.category()[k];
+            let (tiles, row) = match under {
+                0 => (plain, category as i32),
+                _ => (textures.get(&border_tiles(category, under)).unwrap_or(plain), 0),
+            };
+            let src = Rect::new((shape as i32 * CELL) as f32, (row * CELL) as f32, CELL as f32, CELL as f32);
             let params = DrawTextureParams { source: Some(src), dest_size: Some(vec2(CELL as f32, CELL as f32)), ..Default::default() };
             tiles.draw_ex((cx * CELL - cam.0) as f32, (cy * CELL - cam.1) as f32, WHITE, params);
         }
