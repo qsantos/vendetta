@@ -1,7 +1,8 @@
 //! Not in the original: the houses slow those who walk through them, like walls, with compact
 //! towns (`Towns::Compact`), whose streets then make the ways through a town (not the castles,
-//! which everyone goes in and out of). Which house stands on each cell, kept up to date as
-//! they are built and fall.
+//! which everyone goes in and out of); but for a way in, from the door (the building type's
+//! entrance) down to the front. Which house stands on each cell, kept up to date as they are
+//! built and fall.
 
 use crate::building::Building;
 use crate::terrain::{CELL, Terrain, wrap_axis};
@@ -19,8 +20,8 @@ pub struct Cover {
     /// For each cell (as [`Terrain::index_at`] gives them), its house's number plus one, 0 for
     /// none.
     under: Vec<u32>,
-    /// The place of each house on `under`, None when not standing.
-    placed: Vec<Option<Rect>>,
+    /// The place of each house on `under`, and of its way in, None when not standing.
+    placed: Vec<Option<(Rect, Rect)>>,
 }
 
 /// Whether the houses slow a walker: not one that flies, or where they do not slow at all.
@@ -54,21 +55,26 @@ impl Cover {
         }
         self.placed.resize(houses.len(), None);
         for (k, b) in houses.iter().enumerate() {
-            let now = b.visible().then_some((b.x, b.y, b.w, b.h));
+            let now = b.visible().then(|| ((b.x, b.y, b.w, b.h), way_in(b)));
             if self.placed[k] == now {
                 continue;
             }
             let id = k as u32 + 1;
-            if let Some(was) = self.placed[k] {
+            if let Some((was, _)) = self.placed[k] {
                 for t in cells(terrain, was) {
                     if self.under[t] == id {
                         self.under[t] = 0;
                     }
                 }
             }
-            if let Some(now) = now {
+            if let Some((now, way)) = now {
                 for t in cells(terrain, now) {
                     self.under[t] = id;
+                }
+                for t in cells(terrain, way) {
+                    if self.under[t] == id {
+                        self.under[t] = 0;
+                    }
                 }
             }
             self.placed[k] = now;
@@ -84,6 +90,15 @@ impl Cover {
     pub fn slows(&self, t: i64, free: Free) -> bool {
         !free.everywhere && usize::try_from(t).ok().and_then(|t| self.under.get(t)).is_some_and(|&b| b != 0)
     }
+}
+
+/// The way into house `b`: a cell wide, from its door (where those who go in stand, see
+/// [`Building::entrance_for`]) down to its front, a cell deep at least.
+fn way_in(b: &Building) -> Rect {
+    let (x, y) = (b.x + b.w / 2 + b.entrance.0, b.y + b.h / 2 + b.entrance.1);
+    let bottom = b.y + b.h;
+    let top = y.min(bottom - CELL);
+    (x - CELL / 2, top, CELL, bottom - top)
 }
 
 /// The cells whose middle lies in `rect` less [`FEET`] (cell `c` spans from `16c - 8` to

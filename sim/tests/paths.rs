@@ -345,3 +345,54 @@ fn around_a_house() {
     assert!(inside(Towns::Compact, false) > 0);
     assert!(inside(Towns::Scattered, true) > 0);
 }
+
+/// With compact towns, a house's way in, from its door down to its front, does not slow: a
+/// walker comes up to the door from below as fast as with the original's towns, but not to a
+/// place inside beside it.
+#[test]
+fn way_into_a_house() {
+    use sim::orders::Order;
+    use sim::path::Paths;
+    use sim::world::{Towns, World, WorldSetup};
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets");
+    let Some(rules) = load() else { return };
+    let files = Files::from_dir(&root).unwrap();
+    let plain = (0..rules.terrains.len()).find(|&k| rules.terrains[k].speed == 1.0).unwrap() as u8;
+    // the ticks walking from below a house of type `kind` to its door, or to `aside` beside it
+    let walk = |kind: usize, towns: Towns, aside: i64| {
+        let setup = WorldSetup { seed: 7, paths: Paths::Fastest, towns, ..Default::default() };
+        let mut w = World::create(&rules, &files, &setup).unwrap();
+        w.terrain.category_mut().fill(plain);
+        let i = w.persos.iter().position(|p| p.player).unwrap();
+        let f = (w.persos[i].fief + 1) % w.castles.len();
+        let (cx, cy) = (w.castles[f].x, w.castles[f].y);
+        let j = (0..w.houses.len()).find(|&j| j != i).unwrap();
+        w.houses[j].set_kind(&rules, kind);
+        let m = &mut w.houses[j];
+        (m.x, m.y, m.life) = (cx, cy + 256, 100.0);
+        let (m, p) = (&w.houses[j], &w.persos[i]);
+        let (dx, dy) = m.entrance_for(p.w, p.h);
+        let to = (dx + aside, dy);
+        let p = &mut w.persos[i];
+        p.in_house = false;
+        (p.x, p.y) = (to.0, dy + 6 * CELL as i64);
+        w.step(&rules, &[Order::Move { perso: i, x: to.0, y: to.1 }]);
+        for t in 0..600 {
+            let p = &w.persos[i];
+            if (p.x - to.0).abs() <= 2 && (p.y - to.1).abs() <= 2 {
+                return t;
+            }
+            w.step(&rules, &[]);
+        }
+        panic!("never there");
+    };
+    // (doors deep enough in for the walker's feet to be in the house: the farms, the sheepfold,
+    // the foundry, the laboratory, left, right, or in the middle)
+    for kind in [0, 1, 3, 17, 24] {
+        let (door, open) = (walk(kind, Towns::Compact, 0), walk(kind, Towns::Scattered, 0));
+        assert!(door <= open + 2, "{kind}, to the door: {door} ticks, {open} without houses slowing");
+    }
+    // (the sheepfold, wide enough to have inside beside its door)
+    let (aside, open) = (walk(3, Towns::Compact, 2 * CELL as i64), walk(3, Towns::Scattered, 2 * CELL as i64));
+    assert!(aside > open + 5, "beside the door: {aside} ticks, {open} without houses slowing");
+}
