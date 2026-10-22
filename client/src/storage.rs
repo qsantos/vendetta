@@ -27,6 +27,7 @@ unsafe extern "C" {
     fn vendetta_menu_open() -> bool;
     fn vendetta_menu_command() -> u32;
     fn vendetta_quit();
+    fn vendetta_progress(text: *const u8, len: usize, new_game: bool);
     /// The volume the menu's sound settings give the music (0) or the sound effects (1),
     /// 0 to 1, 0 when turned off.
     fn vendetta_volume(kind: u32) -> f32;
@@ -176,6 +177,23 @@ pub fn menu_command() -> MenuCommand {
     };
     #[cfg(not(target_arch = "wasm32"))]
     MenuCommand::None
+}
+
+/// Tells the page what the player's character has now (`sim::stats::Progress::text`), from
+/// the start of a `new_game` on, then as it is saved: the page adds what came since the last
+/// time to the character the player chose, so that it keeps what it earned (also from a game
+/// where it started like a new one).
+pub fn progress(text: &str, new_game: bool) {
+    if crate::options::test_mode() {
+        return;
+    }
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: the page copies the text out of wasm memory before returning.
+    unsafe {
+        vendetta_progress(text.as_ptr(), text.len(), new_game)
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = (text, new_game);
 }
 
 /// The game is saved: the page goes back to its menus (natively, the game ends).

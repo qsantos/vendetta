@@ -77,8 +77,13 @@ pub struct Options {
     pub names: Vec<String>,
     /// `characters=…`: the human players' characters, in the order of `players`, each
     /// percent-encoded `race:f|m:file,file…` (the race from 0, in `Parametres_Races.ini`'s
-    /// order; the look's files as `Files` lists them); an empty one for none.
+    /// order; the look's files as `Files` lists them), then optionally `:` and what it kept
+    /// from its earlier games (`sim::stats::Progress::text`); an empty one for none.
     pub characters: Vec<Option<sim::world::CharacterSetup>>,
+    /// `stats=saved`: in network play, the characters come with what they kept from their
+    /// earlier games; otherwise they start like new ones (what they earn is still theirs, see
+    /// `storage::progress`). Alone, they always do.
+    pub saved_stats: bool,
     /// `me=k`: network play (see `net.rs`), as the k-th player of `players` (from 0).
     pub me: Option<usize>,
     /// `room=CODE`: the network game's room, whose world is saved apart from the solo one.
@@ -135,6 +140,7 @@ impl Options {
                 "towns" => o.scattered_towns = value.eq_ignore_ascii_case("scattered"),
                 "monsters" => o.waiting_monsters = value.eq_ignore_ascii_case("wait"),
                 "rebuild" => o.rebuild_elsewhere = value.eq_ignore_ascii_case("elsewhere"),
+                "stats" => o.saved_stats = value.eq_ignore_ascii_case("saved"),
                 "paths" => o.greedy_paths = value.eq_ignore_ascii_case("greedy"),
                 "chase" => o.direct_chase = value.eq_ignore_ascii_case("direct"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
@@ -182,7 +188,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, world: o.world, shape: o.shape, original_land: o.original_land, scattered_towns: o.scattered_towns, waiting_monsters: o.waiting_monsters, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, rebuild_elsewhere: o.rebuild_elsewhere, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, world: o.world, shape: o.shape, original_land: o.original_land, scattered_towns: o.scattered_towns, waiting_monsters: o.waiting_monsters, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, rebuild_elsewhere: o.rebuild_elsewhere, players: o.players, names: o.names, characters: o.characters, saved_stats: o.saved_stats, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
@@ -206,7 +212,7 @@ fn clamp_size(v: usize) -> usize {
 
 /// A character of `characters=`, None when it is not one.
 fn character(s: &str) -> Option<sim::world::CharacterSetup> {
-    let mut parts = s.splitn(3, ':');
+    let mut parts = s.splitn(4, ':');
     let race = parts.next()?.parse().ok()?;
     let female = match parts.next()? {
         "f" => true,
@@ -214,7 +220,8 @@ fn character(s: &str) -> Option<sim::world::CharacterSetup> {
         _ => return None,
     };
     let look = parts.next()?.split(',').filter(|f| !f.is_empty()).map(str::to_owned).collect();
-    Some(sim::world::CharacterSetup { race, female, look })
+    let progress = parts.next().and_then(sim::stats::Progress::parse);
+    Some(sim::world::CharacterSetup { race, female, look, progress })
 }
 
 /// Undoes `encodeURIComponent` (`%XX` bytes, UTF-8).

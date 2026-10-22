@@ -271,6 +271,9 @@
       "Supprimer ce personnage ?": "Delete this character?",
       "Attendre les plus lents": "Wait for the slowest",
       "sans limite": "no limit",
+      "Personnages": "Characters",
+      "neufs (leurs gains leur restent)": "new (they keep what they earn)",
+      "tels que sauvegardés": "as saved",
       "1,5 × le plus rapide": "1.5 × the fastest",
       "2 × le plus rapide": "2 × the fastest",
       "3 × le plus rapide": "3 × the fastest",
@@ -413,6 +416,9 @@
       "Supprimer ce personnage ?": "¿Eliminar este personaje?",
       "Attendre les plus lents": "Esperar a los más lentos",
       "sans limite": "sin límite",
+      "Personnages": "Personajes",
+      "neufs (leurs gains leur restent)": "nuevos (conservan lo que ganan)",
+      "tels que sauvegardés": "tal como están guardados",
       "1,5 × le plus rapide": "1,5 × el más rápido",
       "2 × le plus rapide": "2 × el más rápido",
       "3 × le plus rapide": "3 × el más rápido",
@@ -558,6 +564,9 @@
       "Supprimer ce personnage ?": "このキャラクターを削除しますか？",
       "Attendre les plus lents": "遅いプレイヤーを待つ",
       "sans limite": "無制限",
+      "Personnages": "キャラクター",
+      "neufs (leurs gains leur restent)": "初期状態（獲得したものは残る）",
+      "tels que sauvegardés": "保存された状態",
       "1,5 × le plus rapide": "最速の1.5倍",
       "2 × le plus rapide": "最速の2倍",
       "3 × le plus rapide": "最速の3倍",
@@ -703,6 +712,9 @@
       "Supprimer ce personnage ?": "删除此角色？",
       "Attendre les plus lents": "等待最慢的玩家",
       "sans limite": "无限制",
+      "Personnages": "角色",
+      "neufs (leurs gains leur restent)": "全新（所得仍会保留）",
+      "tels que sauvegardés": "按保存的状态",
       "1,5 × le plus rapide": "最快者的1.5倍",
       "2 × le plus rapide": "最快者的2倍",
       "3 × le plus rapide": "最快者的3倍",
@@ -895,6 +907,11 @@
             <option value="1.5">1,5 × le plus rapide</option>
             <option value="2">2 × le plus rapide</option>
             <option value="3">3 × le plus rapide</option>
+          </select></label>
+        <label>Personnages
+          <select name="stats">
+            <option value="">neufs (leurs gains leur restent)</option>
+            <option value="saved">tels que sauvegardés</option>
           </select></label>
       </fieldset>
       <div class="buttons">
@@ -1104,6 +1121,9 @@
   // its release on, and the moves until then; not those of a press elsewhere (the menus). And
   // it tells the game when the mouse is off the canvas, where the game hides its cursor.
   let pointerOut = false;
+  // the game being played and its character (see `gameProgress`, set with the menus)
+  let playing = { game: "solo", character: "" };
+  let gameProgress = () => {};
   {
     const canvas = document.getElementById("glcanvas");
     canvas.addEventListener("mouseleave", () => (pointerOut = true));
@@ -1464,6 +1484,7 @@
       // The touch interface on phones and tablets (see client/src/layout.rs).
       importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
       importObject.env.vendetta_pointer_out = () => pointerOut;
+      importObject.env.vendetta_progress = (ptr, len, newGame) => gameProgress(new TextDecoder().decode(new Uint8Array(wasm_memory.buffer, ptr, len)), newGame);
       // The game's cursor, drawn by the browser (as a CSS cursor, its tip the hot spot).
       const cursors = new Map();
       importObject.env.vendetta_cursor = (kind, size, ptr) => {
@@ -1892,6 +1913,7 @@
       e.preventDefault();
       const character = characterItems();
       const others = character.length ? items().filter((o) => !/^(names|characters)=/.test(o)) : items();
+      playing = { game: "solo", character: chosen };
       begin([...others, ...character, "play", "new"]);
     });
     document.getElementById("continue").addEventListener("click", () => {
@@ -1899,6 +1921,7 @@
       try {
         last = localStorage.getItem(lastKey) || "";
       } catch (e) {}
+      playing = { game: "solo", character: progressRecords().solo?.character ?? "" };
       begin([...last.split("&").filter((o) => o), "play"]);
     });
     // The main menu ("Continuer", greyed without a saved game; "Nouveau") and the form.
@@ -1930,11 +1953,65 @@
         localStorage.setItem(chosenKey, chosen);
       } catch (e) {}
     };
+    // What a character earns in a game is added to it (see client/src/storage.rs `progress`):
+    // the game tells what its character has, as it starts and then as it is saved; the page
+    // keeps, per game ("solo", or "net:" and the room), the character playing it and what it
+    // had last time, and adds the difference. Alone, the character starts with what it has, so
+    // it just follows; in a room where characters start new, it gets what they earned there.
+    const progressKey = "vendetta-progress";
+    const progressRecords = () => {
+      try {
+        return JSON.parse(localStorage.getItem(progressKey)) || {};
+      } catch (e) {
+        return {};
+      }
+    };
+    // `b=1,2;s=…` (sim::stats::Progress::text) as {b: [1, 2], s: …}, and back
+    const parseProgress = (text) => Object.fromEntries((text || "").split(";").filter((g) => g.includes("=")).map((g) => [g.split("=")[0], g.split("=")[1].split(",").map(Number)]));
+    const progressText = (p) =>
+      Object.entries(p)
+        .map(([k, v]) => {
+          const n = v.map((x) => String(Number(x.toFixed(2))));
+          while (n.length && n[n.length - 1] === "0") n.pop();
+          return [k, n];
+        })
+        .filter(([, n]) => n.length)
+        .map(([k, n]) => k + "=" + n.join(","))
+        .join(";");
+    gameProgress = (text, newGame) => {
+      const records = progressRecords();
+      let record = records[playing.game];
+      if (newGame || !record) record = { character: playing.character, last: null };
+      const c = characters.find((c) => c.name === record.character);
+      if (c && record.last !== null) {
+        const [have, now, last] = [parseProgress(c.progress), parseProgress(text), parseProgress(record.last)];
+        for (const k of Object.keys(now)) {
+          have[k] ??= [];
+          now[k].forEach((v, i) => (have[k][i] = (have[k][i] || 0) + Math.max(0, v - (last[k]?.[i] || 0))));
+          for (let i = 0; i < have[k].length; i++) have[k][i] ||= 0;
+        }
+        c.progress = progressText(have);
+        saveCharacters();
+      }
+      record.last = text;
+      // the solo game's, and this one's
+      const kept = { solo: records.solo, [playing.game]: record };
+      try {
+        localStorage.setItem(progressKey, JSON.stringify(kept));
+      } catch (e) {}
+    };
+    const renamedCharacter = (from, to) => {
+      const records = progressRecords();
+      for (const r of Object.values(records)) if (r && r.character === from) r.character = to;
+      try {
+        localStorage.setItem(progressKey, JSON.stringify(records));
+      } catch (e) {}
+    };
     let races = null;
     const raceName = (r, female) => (r.name[language] ?? r.name.FR)[female ? 1 : 0];
     const chosenCharacter = () => characters.find((c) => c.name === chosen);
-    // a character as in `characters=` (none: empty)
-    const characterText = (c) => (c ? c.race + ":" + (c.female ? "f" : "m") + ":" + c.look.join(",") : "");
+    // a character as in `characters=` (none: empty), with what it kept from its earlier games
+    const characterText = (c, progress) => (c ? c.race + ":" + (c.female ? "f" : "m") + ":" + c.look.join(",") + (progress && c.progress ? ":" + c.progress : "") : "");
     // the race of a character so written, in the language (none: empty)
     const raceOfText = (text) => {
       const [race, sex] = text.split(":");
@@ -1944,7 +2021,7 @@
     // the chosen character, as start options (none: the villager as it is)
     const characterItems = () => {
       const c = chosenCharacter();
-      return c ? ["names=" + encodeURIComponent(c.name), "characters=" + encodeURIComponent(characterText(c))] : [];
+      return c ? ["names=" + encodeURIComponent(c.name), "characters=" + encodeURIComponent(characterText(c, true))] : [];
     };
     // The fields choosing a character: none, a saved one, or a new one (the window below).
     // What else follows the choice (the lobby, below).
@@ -2154,8 +2231,11 @@
       const error = !name ? "Entrez un nom." : taken ? "Un autre personnage possède déjà ce nom." : "";
       $("character-error").textContent = t(error);
       if (error) return;
-      const made = { name, race: race().index, female: draft.female, look: files() };
-      if (editing) characters[characters.indexOf(editing)] = made;
+      const made = { name, race: race().index, female: draft.female, look: files(), progress: editing?.progress };
+      if (editing) {
+        characters[characters.indexOf(editing)] = made;
+        renamedCharacter(editing.name, name);
+      }
       else characters.push(made);
       choose(name);
       closeCharacter();
@@ -2184,7 +2264,7 @@
     };
     const send = (msg) => socket && socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(msg));
     // the world's options, and how long to wait for slow players to load (see the server)
-    const roomFields = [...fields, "wait"];
+    const roomFields = [...fields, "wait", "stats"];
     const roomValue = (items, k) => (items.find((o) => o.startsWith(k + "=")) || "").slice(k.length + 1);
     // The room we are in and our token in it (see the server), kept to come back to it.
     const netKey = "vendetta-net";
@@ -2202,8 +2282,13 @@
       } catch (e) {}
     };
     let netRoom = null;
+    // the room's settings, last told
+    let roomItems = [];
+    // whether the room's characters come as saved (else new, see client/src/options.rs)
+    const savedStats = () => roomValue(roomItems, "stats") === "saved";
     const showLobby = (msg) => {
       netRoom = msg.room;
+      roomItems = msg.items;
       setNetSlot({ room: msg.room, token: msg.token });
       inRoom(true);
       $("room-code").textContent = msg.room;
@@ -2255,7 +2340,7 @@
       $("room-start").hidden = !host;
       $("room-start").disabled = !msg.players.every((p, k) => p.ready || k === msg.host);
       // the server keeps our character, for everyone's world
-      if ((msg.players[msg.you]?.character ?? "") !== characterText(chosenCharacter())) sendCharacter();
+      if ((msg.players[msg.you]?.character ?? "") !== characterText(chosenCharacter(), savedStats())) sendCharacter();
     };
     // Our character (and its name, else ours) to the room.
     const sendCharacter = () => {
@@ -2264,12 +2349,13 @@
       try {
         name ||= localStorage.getItem(nameKey) || "";
       } catch (e) {}
-      send({ t: "character", character: characterText(c), name: c ? c.name : name });
+      send({ t: "character", character: characterText(c, savedStats()), name: c ? c.name : name });
     };
     onChosen.push(() => netRoom && !netStarted && sendCharacter());
     // The world: the room's options, its seed, everyone's fief and our place.
     const startNet = (msg) => {
       netStarted = true;
+      playing = { game: "net:" + netRoom, character: chosen };
       const resume = msg.resume ? ["resume"] : [];
       startHash = [...msg.items, "seed=" + msg.seed, "players=" + msg.players.join("+"), "names=" + msg.names.map(encodeURIComponent).join("+"), "characters=" + (msg.characters ?? []).map(encodeURIComponent).join("+"), "me=" + msg.you, "room=" + netRoom, ...resume, "play"].join("&");
       document.getElementById("menu").hidden = true;

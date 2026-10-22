@@ -318,6 +318,11 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     }
     setup.names = options.names.clone();
     setup.characters = options.characters.clone();
+    if options.me.is_some() && !options.saved_stats {
+        for c in setup.characters.iter_mut().flatten() {
+            c.progress = None;
+        }
+    }
     if options.fiefs.is_some() || options.villagers.is_some() {
         // The default fiefs keep their people; extra ones get a random one, like the original's
         // "Aléatoire", each fief its own team.
@@ -388,6 +393,15 @@ async fn main() {
     };
     let mut net = options.me.map(|me| net::Net::new(&world, &options.players, &options.names, me, world.tick));
     let mut player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
+    // The player's own character, whose progress is theirs (not one controlled after a switch).
+    let players = if options.players.is_empty() { sim::world::WorldSetup::default().players } else { options.players.clone() };
+    let mine = world.humans(&players).get(options.me.unwrap_or(0)).copied().flatten();
+    let report_progress = |world: &World, new_game: bool| {
+        if let Some(i) = mine {
+            storage::progress(&world.persos[i].progress().text(), new_game);
+        }
+    };
+    report_progress(&world, created);
     // In network play, the world starts with the server's first tick, once the players have made their worlds.
     // Coming back to a game in progress, the ticks missed are played first, as fast as can be.
     if let Some(net) = &mut net {
@@ -962,6 +976,7 @@ async fn main() {
                 save_size = bytes.len();
                 storage::store(if net.is_some() { NET_SAVE } else { "save" }, &bytes);
             });
+            report_progress(&world, false);
             if save_now && !quit {
                 hud.add_saved_message();
             }

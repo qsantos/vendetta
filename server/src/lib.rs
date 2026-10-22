@@ -63,11 +63,12 @@ pub const TICK: Duration = Duration::from_millis(100);
 const CODE_CHARS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LEN: usize = 4;
 /// The world options the host may set (see the client's `options.rs`), and `wait`.
-const SETTINGS: [&str; 16] = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "monsters", "paths", "chase", "rebuild", "seed", "wait", "speed"];
+const SETTINGS: [&str; 17] = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "monsters", "paths", "chase", "rebuild", "stats", "seed", "wait", "speed"];
 /// The default number of fiefs (`WorldSetup`).
 const DEFAULT_FIEFS: usize = 4;
-/// The longest character description passed on (its look's file names, mostly).
-const MAX_CHARACTER: usize = 1024;
+/// The longest character description passed on (its look's file names, and what it kept from
+/// its earlier games).
+const MAX_CHARACTER: usize = 4096;
 /// How long a game in progress lasts with nobody connected.
 const GRACE: Duration = Duration::from_secs(600);
 
