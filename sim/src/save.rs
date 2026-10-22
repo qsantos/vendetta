@@ -5,7 +5,7 @@ use crate::world::World;
 
 /// Bump when the layout of the saved types changes, so old saves are discarded instead of
 /// misread.
-const FORMAT: u32 = 5;
+const FORMAT: u32 = 6;
 const MAGIC: &[u8; 4] = b"VNDT";
 
 impl World {

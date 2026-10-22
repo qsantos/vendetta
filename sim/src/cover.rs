@@ -1,6 +1,7 @@
 //! Not in the original: the buildings slow those who walk through them, like walls, but for
-//! their own (see [`Free`]), with compact towns (`Towns::Compact`), whose lanes then make
-//! streets. Which building stands on each cell, kept up to date as they are built and fall.
+//! the one they go to or leave (see [`Free`]), with compact towns (`Towns::Compact`), whose
+//! lanes then make streets. Which building stands on each cell, kept up to date as they are
+//! built and fall.
 
 use crate::building::Building;
 use crate::terrain::{CELL, Terrain, wrap_axis};
@@ -11,8 +12,8 @@ pub const BUILDING_SPEED: f64 = 0.2;
 type Rect = (i32, i32, i32, i32);
 
 /// Which building stands on each cell (none in the original, where they do not slow): a cell
-/// is under a building when its centre is (castles and houses never overlap, so under one at
-/// most). Not saved: made again from the buildings.
+/// is under a building when the feet of a walker whose speed is read there are (castles and
+/// houses never overlap, so under one at most). Not saved: made again from the buildings.
 #[derive(Debug, Clone, Default)]
 pub struct Cover {
     /// For each cell (as [`Terrain::index_at`] gives them), its building's number plus one, 0
@@ -22,18 +23,23 @@ pub struct Cover {
     placed: Vec<Option<Rect>>,
 }
 
-/// The buildings that do not slow a walker: its castle, its house and the one it goes to (or
+/// The buildings that do not slow a walker: the one it goes to and the one it is leaving (or
 /// none at all).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Free {
     everywhere: bool,
-    buildings: [u32; 3],
+    buildings: [u32; 2],
 }
 
 impl Free {
     /// Nothing slows (no building does in the original).
-    pub const EVERYWHERE: Free = Free { everywhere: true, buildings: [0; 3] };
+    pub const EVERYWHERE: Free = Free { everywhere: true, buildings: [0; 2] };
 }
+
+/// How far a walker's feet are from the corner of the cell its speed is read in (that of its
+/// lowest cell's corner, see `Perso::speed_coef_effect`), give or take: the middle of a
+/// character, near its bottom.
+const FEET: i32 = 20;
 
 impl Cover {
     /// Places the `castles` and `houses` standing, changing only where they changed since; or
@@ -75,14 +81,18 @@ impl Cover {
         self.under.is_empty()
     }
 
-    /// What does not slow a walker of `fief` (whose house is `house`) going to `to` (a feet
-    /// position).
-    pub fn free(&self, terrain: &Terrain, castles: usize, fief: usize, house: usize, to: (i64, i64)) -> Free {
+    /// What does not slow a walker going to `to` (where its speed would be read there) and
+    /// leaving building `leaving` (as [`Cover::under`] gives it).
+    pub fn free(&self, terrain: &Terrain, to: (i64, i64), leaving: u32) -> Free {
         if self.is_off() {
             return Free::EVERYWHERE;
         }
-        let dest = self.at(terrain.index_at(to.0 as f64, to.1 as f64));
-        Free { everywhere: false, buildings: [fief as u32 + 1, (castles + house) as u32 + 1, dest] }
+        Free { everywhere: false, buildings: [self.under(terrain, to), leaving] }
+    }
+
+    /// The building of a walker whose speed is read at `at`, plus one; 0 for none.
+    pub fn under(&self, terrain: &Terrain, at: (i64, i64)) -> u32 {
+        self.at(terrain.index_at(at.0 as f64, at.1 as f64))
     }
 
     /// The building on cell `t` plus one, 0 for none.
@@ -100,9 +110,9 @@ impl Cover {
     }
 }
 
-/// The cells whose centre lies in `rect`.
+/// The cells whose corner lies in `rect` less [`FEET`].
 fn cells(terrain: &Terrain, (x, y, w, h): Rect) -> impl Iterator<Item = usize> + '_ {
-    let span = |from: i32, len: i32| (from + CELL - 1).div_euclid(CELL)..(from + len + CELL - 1).div_euclid(CELL);
+    let span = |from: i32, len: i32| (from - FEET + CELL - 1).div_euclid(CELL)..(from - FEET + len + CELL - 1).div_euclid(CELL);
     let (cols, rows) = (span(x, w), span(y, h));
     let (tw, th) = (terrain.width as i64, terrain.height as i64);
     rows.flat_map(move |r| cols.clone().map(move |c| (c as i64, r as i64))).filter_map(move |(c, r)| {

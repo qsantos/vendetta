@@ -194,6 +194,9 @@ pub struct Perso {
     /// Not in the original: the destination of the target when it was last headed off (see
     /// `World::head_off`).
     pub(crate) headed_off: (i64, i64),
+    /// Not in the original: the building it is leaving, which does not slow it (see
+    /// [`crate::cover`]), as a number from [`crate::cover::Cover::under`]; 0 for none.
+    pub(crate) leaving: u32,
 
     pub action: i32,
     pub in_own_castle: bool,
@@ -397,6 +400,7 @@ impl Perso {
             path_complete: false,
             path_queued: false,
             headed_off: (0, 0),
+            leaving: 0,
             action: action::IDLE,
             in_own_castle: false,
             in_castle: false,
