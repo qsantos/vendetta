@@ -34,7 +34,6 @@ struct Texts {
     /// `MessageEmpereurVieM/F`, `MessageEmpereurMortM/F`.
     emperor: [String; 2],
     emperor_dead: [String; 2],
-    saved: String,
     /// The first line of `Info_Conseils.txt`, then the tips.
     tip_prefix: String,
     tips: Vec<String>,
@@ -118,7 +117,6 @@ impl MessageLog {
             skill: format!(" {} ", get("MessageCompetence")),
             emperor: [get("MessageEmpereurVieM"), get("MessageEmpereurVieF")],
             emperor_dead: [get("MessageEmpereurMortM"), get("MessageEmpereurMortF")],
-            saved: get("MessageSauvegardeMonde"),
             tip_prefix,
             tips,
         };
@@ -153,12 +151,6 @@ impl MessageLog {
     /// Any line of text (`&` for red).
     pub fn add_text(&mut self, text: &str) {
         self.add(text.to_owned());
-    }
-
-    /// `Ajouter_Message_SauvegardeMonde`
-    pub fn add_saved(&mut self) {
-        let m = self.texts.saved.clone();
-        self.add(m);
     }
 
     /// `Actualiser_Messages`, once a second: compares the player with what was seen.
@@ -344,11 +336,6 @@ impl Hud {
     /// A line of the game's own (not the original's) in the message log, `&` for red.
     pub fn add_notice(&mut self, text: &str) {
         self.messages.add_text(text);
-    }
-
-    /// "World saved" in the message log.
-    pub fn add_saved_message(&mut self) {
-        self.messages.add_saved();
     }
 
     /// `Afficher_Messages`: the message log, under the rest of the interface.

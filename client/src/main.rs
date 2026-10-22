@@ -966,8 +966,9 @@ async fn main() {
         if ticks > 0 {
             cam = follow(&world, player, view);
         }
-        // `ToucheSauvegarderMonde` (F12) saves now and says so (`Enregistrer_Sauvegarde_Monde`).
-        let save_now = !options::test_mode() && (quit || is_key_pressed(KeyCode::F12) && net.is_none());
+        // Quitting saves now (not the original's `ToucheSauvegarderMonde`, F12: the game is saved
+        // every few seconds anyway).
+        let save_now = !options::test_mode() && quit;
         // Big worlds are saved less often: a second per megabyte (51 MB at 15000 characters).
         if save_now || get_time() - last_save > AUTOSAVE_INTERVAL.max(save_size as f64 / 1e6) {
             last_save = get_time();
@@ -977,9 +978,6 @@ async fn main() {
                 storage::store(if net.is_some() { NET_SAVE } else { "save" }, &bytes);
             });
             report_progress(&world, false);
-            if save_now && !quit {
-                hud.add_saved_message();
-            }
         }
         if quit {
             storage::quit();
