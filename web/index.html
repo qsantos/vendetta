@@ -181,6 +181,20 @@
       "Paysage": "Land",
       "naturel": "natural",
       "en taches (l'original)": "in patches (the original)",
+      "Type de monde": "World type",
+      "Classique": "Classic",
+      "Plaines": "Plains",
+      "Désert": "Desert",
+      "Montagneux": "Mountainous",
+      "Grands Lacs": "Large lakes",
+      "Forme du pays": "Land shape",
+      "libre": "free",
+      "un continent": "a continent",
+      "un archipel": "an archipelago",
+      "des lacs": "lakes",
+      "des hautes terres": "highlands",
+      "des fleuves": "rivers",
+      "une côte": "a coast",
       "Règles de l'original": "The original's rules",
       "Tout comme l'original": "All as in the original",
       "Fermer": "Close",
@@ -296,6 +310,20 @@
       "Paysage": "Paisaje",
       "naturel": "natural",
       "en taches (l'original)": "a manchas (el original)",
+      "Type de monde": "Tipo de mundo",
+      "Classique": "Clásico",
+      "Plaines": "Llanuras",
+      "Désert": "Desierto",
+      "Montagneux": "Montañoso",
+      "Grands Lacs": "Grandes lagos",
+      "Forme du pays": "Forma del país",
+      "libre": "libre",
+      "un continent": "un continente",
+      "un archipel": "un archipiélago",
+      "des lacs": "lagos",
+      "des hautes terres": "tierras altas",
+      "des fleuves": "ríos",
+      "une côte": "una costa",
       "Règles de l'original": "Reglas del original",
       "Tout comme l'original": "Todo como el original",
       "Fermer": "Cerrar",
@@ -414,6 +442,20 @@
       "Paysage": "地形",
       "naturel": "自然",
       "en taches (l'original)": "まだら（オリジナル）",
+      "Type de monde": "世界の種類",
+      "Classique": "標準",
+      "Plaines": "平原",
+      "Désert": "砂漠",
+      "Montagneux": "山岳",
+      "Grands Lacs": "大湖",
+      "Forme du pays": "土地の形",
+      "libre": "自由",
+      "un continent": "大陸",
+      "un archipel": "群島",
+      "des lacs": "湖",
+      "des hautes terres": "高地",
+      "des fleuves": "川",
+      "une côte": "海岸",
       "Règles de l'original": "オリジナルのルール",
       "Tout comme l'original": "すべてオリジナル通り",
       "Fermer": "閉じる",
@@ -532,6 +574,20 @@
       "Paysage": "地形",
       "naturel": "自然",
       "en taches (l'original)": "斑块（原版）",
+      "Type de monde": "世界类型",
+      "Classique": "经典",
+      "Plaines": "平原",
+      "Désert": "沙漠",
+      "Montagneux": "多山",
+      "Grands Lacs": "大湖区",
+      "Forme du pays": "土地形状",
+      "libre": "自由",
+      "un continent": "大陆",
+      "un archipel": "群岛",
+      "des lacs": "湖泊",
+      "des hautes terres": "高地",
+      "des fleuves": "河流",
+      "une côte": "海岸",
       "Règles de l'original": "原版规则",
       "Tout comme l'original": "全部按原版",
       "Fermer": "关闭",
@@ -694,6 +750,21 @@
             <option value="512">512 × 512</option><option value="640">640 × 640</option>
             <option value="768">768 × 768</option><option value="1024">1024 × 1024</option>
           </select></label>
+        <label>Type de monde
+          <select name="world">
+            <option value="">au hasard</option>
+            <option value="1">Classique</option><option value="2">Plaines</option>
+            <option value="3">Désert</option><option value="4">Montagneux</option>
+            <option value="5">Grands Lacs</option>
+          </select></label>
+        <label>Forme du pays
+          <select name="shape">
+            <option value="">au hasard</option>
+            <option value="free">libre</option><option value="continent">un continent</option>
+            <option value="archipelago">un archipel</option><option value="lakes">des lacs</option>
+            <option value="highlands">des hautes terres</option><option value="rivers">des fleuves</option>
+            <option value="coast">une côte</option>
+          </select></label>
         <label>Peuples <input type="number" name="fiefs" min="2" max="200" placeholder="4"></label>
         <label>Villageois par peuple <input type="number" name="villagers" min="1" max="2000" placeholder="10"></label>
         <label>Règles de l'original <button type="button" class="original-open"></button></label>
@@ -759,6 +830,21 @@
         <option value="256">256 × 256</option><option value="384">384 × 384</option>
         <option value="512">512 × 512</option><option value="640">640 × 640</option>
         <option value="768">768 × 768</option><option value="1024">1024 × 1024</option>
+      </select></label>
+    <label>Type de monde
+      <select name="world">
+        <option value="">au hasard</option>
+        <option value="1">Classique</option><option value="2">Plaines</option>
+        <option value="3">Désert</option><option value="4">Montagneux</option>
+        <option value="5">Grands Lacs</option>
+      </select></label>
+    <label>Forme du pays
+      <select name="shape">
+        <option value="">au hasard</option>
+        <option value="free">libre</option><option value="continent">un continent</option>
+        <option value="archipelago">un archipel</option><option value="lakes">des lacs</option>
+        <option value="highlands">des hautes terres</option><option value="rivers">des fleuves</option>
+        <option value="coast">une côte</option>
       </select></label>
     <label>Peuples <input type="number" name="fiefs" min="2" max="200" placeholder="4"></label>
     <label>Villageois par peuple <input type="number" name="villagers" min="1" max="2000" placeholder="10"></label>
@@ -1537,7 +1623,7 @@
   // The pre-game menu: the form mirrors the hash; flags are checkboxes, other keys values.
   {
     const form = document.querySelector("#menu form");
-    const fields = ["size", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
+    const fields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
     const flags = ["god", "perf"];
     // The settings that can be as in the original (their value then), in a window of their own
     // in `root` (the form, the room's settings), with a switch for them all; the button that

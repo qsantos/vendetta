@@ -30,6 +30,12 @@ pub struct Options {
     /// `edges=closed`: the original's map, with edges, instead of one whose opposite edges
     /// join (a torus: going off one side comes back on the other).
     pub closed_edges: bool,
+    /// `world=N`: the world type, `Monde_N` of `Terrain.ini` (`TerrainChoisi`); by default
+    /// one by chance on the natural land, the original's ("Plaines") on its own.
+    pub world: Option<usize>,
+    /// `shape=continent`: the overall shape of the natural land (see `sim::landscape::Shape`),
+    /// by default one by chance.
+    pub shape: Option<sim::landscape::Shape>,
     /// `land=original`: the original's random land (blobs of terrain, castles on a grid),
     /// instead of hills, lakes, rivers and fairly placed castles (see `sim::landscape`).
     pub original_land: bool,
@@ -118,6 +124,8 @@ impl Options {
                 "speed" => o.speed = value.parse::<i64>().ok().map(|v| v.clamp(SPEEDS.0, SPEEDS.1)),
                 "roads" => o.ring_roads = value.eq_ignore_ascii_case("ring"),
                 "edges" => o.closed_edges = value.eq_ignore_ascii_case("closed"),
+                "world" => o.world = value.parse::<usize>().ok().filter(|&n| n >= 1),
+                "shape" => o.shape = sim::landscape::Shape::from_name(value),
                 "land" => o.original_land = value.eq_ignore_ascii_case("original"),
                 "towns" => o.scattered_towns = value.eq_ignore_ascii_case("scattered"),
                 "paths" => o.greedy_paths = value.eq_ignore_ascii_case("greedy"),
@@ -167,7 +175,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, original_land: o.original_land, scattered_towns: o.scattered_towns, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, world: o.world, shape: o.shape, original_land: o.original_land, scattered_towns: o.scattered_towns, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o
@@ -180,7 +188,7 @@ impl Options {
         let direct = if self.direct_chase { " direct" } else { "" };
         let land = if self.original_land { " original-land" } else { "" };
         let towns = if self.scattered_towns { " scattered" } else { "" };
-        format!("{:?} {:?} {:?} {:?}{ring}{closed}{land}{towns}{greedy}{direct} {:?}", self.size, self.seed, self.fiefs, self.villagers, self.players)
+        format!("{:?} {:?} {:?} {:?} {:?} {:?}{ring}{closed}{land}{towns}{greedy}{direct} {:?}", self.size, self.world, self.shape, self.seed, self.fiefs, self.villagers, self.players)
     }
 }
 
