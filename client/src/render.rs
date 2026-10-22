@@ -175,23 +175,38 @@ fn draw_persos(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32
             }
             status_bar(p.defense, p.defense, max_defense, x, y + 10, p.w, 5, Some(Color::from_rgba(0, 0, 255, 255)));
         }
-        draw_look(p, rules, textures, (p.x as i32 - cam.0, p.y as i32 - cam.1), tint);
+        draw_look(p, rules, textures, (p.x as i32 - cam.0, p.y as i32 - cam.1), sunk(world, rules, p), tint);
     }
 }
 
+/// `ImgDecalageX/Y` (`FrmMoteur2D.frm:1942-1967`): how far the terrain under a walker's feet
+/// (where its speed is read) moves its sprites, cut by as much on that side, so that it is
+/// sunk in water; not a flying or dead one.
+fn sunk(world: &World, rules: &Rules, p: &Perso) -> (i32, i32) {
+    let t = &world.terrain;
+    let k = t.index_at(p.x as f64, (p.y + p.h as i64 - 16) as f64);
+    if p.bonus_flying || !p.alive() || k <= 0 || k as usize >= t.category().len() - 1 {
+        return (0, 0);
+    }
+    rules.terrains[t.category()[k as usize] as usize].sprite_offset
+}
 
 /// `ClsAffApparence.Afficher`: the character's sheets, then the overlays of the objects it
 /// wears. A mount is drawn with its own frame size and walk, behind or in front of the rider
 /// by direction; the rider then stays on its middle frame, shifted per direction and bobbing.
-fn draw_look(p: &Perso, rules: &Rules, textures: &Textures, (x, y): (i32, i32), tint: Color) {
+/// `sunk`: each sheet moved by it and cut by as much on that side (`ClsAffSprite.Afficher`).
+fn draw_look(p: &Perso, rules: &Rules, textures: &Textures, (x, y): (i32, i32), sunk: (i32, i32), tint: Color) {
     let overlay = |i: usize| {
         let o = &rules.objects[p.overlays[i]];
         textures.appearance(&o.appearance[p.female as usize]).and_then(|path| textures.get(path))
     };
+    let (sx, sy) = sunk;
     let blit = |tex: Option<&Sprite>, x: i32, y: i32, (col, row): (i32, i32), (w, h): (i32, i32)| {
         if let Some(tex) = tex {
-            let src = Rect::new((col * w) as f32, (row * h) as f32, w as f32, h as f32);
-            tex.draw_ex(x as f32, y as f32, tint, DrawTextureParams { source: Some(src), ..Default::default() });
+            let (left, top) = (col * w + (-sx).max(0), row * h + (-sy).max(0));
+            let (right, bottom) = ((col + 1) * w - sx.max(0), (row + 1) * h - sy.max(0));
+            let src = Rect::new(left as f32, top as f32, (right - left) as f32, (bottom - top) as f32);
+            tex.draw_ex((x + sx) as f32, (y + sy) as f32, tint, DrawTextureParams { source: Some(src), ..Default::default() });
         }
     };
     let cell = p.sprite_cell();
