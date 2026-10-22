@@ -34,6 +34,11 @@ pub struct Terrain {
     /// shortest difference ([`Terrain::near`]); on a flat map, every helper here does just what
     /// the original does.
     pub torus: bool,
+    /// Not in the original: the land changes as the game goes (compact towns lay streets and
+    /// walls, see [`Terrain::build`]), which the path search's landmarks allow for; set again
+    /// from the world's options on loading.
+    #[serde(skip)]
+    pub builds: bool,
     /// Not in the original: what the path search makes of `category`, when first needed and
     /// again after it changes.
     #[serde(skip)]
@@ -54,6 +59,7 @@ impl Terrain {
             category: vec![0; n],
             shape: vec![0; n],
             torus: false,
+            builds: false,
             prepared: Default::default(),
             cover: Default::default(),
         }
@@ -197,18 +203,43 @@ impl Terrain {
     /// edges, so that patches continue seamlessly.
     pub fn reshape(&mut self) {
         self.prepared = Default::default();
-        let n = self.category.len() as isize;
-        for i in 0..n {
-            if self.category[i as usize] == 0 {
-                continue;
-            }
-            let set = |d: (isize, isize)| self.neighbour(i, d).is_some_and(|j| self.category[j] > 0);
-            let shape = shape(set((0, -1)), set((0, 1)), set((-1, 0)), set((1, 0)));
-            if shape == 0 {
-                self.category[i as usize] = 0;
-            }
-            self.shape[i as usize] = shape;
+        for i in 0..self.category.len() as isize {
+            self.reshape_cell(i);
         }
+    }
+
+    /// [`Terrain::reshape`] of cell `i` alone.
+    fn reshape_cell(&mut self, i: isize) {
+        if self.category[i as usize] == 0 {
+            return;
+        }
+        let set = |d: (isize, isize)| self.neighbour(i, d).is_some_and(|j| self.category[j] > 0);
+        let shape = shape(set((0, -1)), set((0, 1)), set((-1, 0)), set((1, 0)));
+        if shape == 0 {
+            self.category[i as usize] = 0;
+        }
+        self.shape[i as usize] = shape;
+    }
+
+    /// Not in the original: makes cells `cells` (indices on the map) of the types given as the
+    /// game goes (a street, a wall, the land again), and reshapes them and their neighbours;
+    /// what the path search made of the terrain is kept, but for those cells' times (its
+    /// landmarks allow for such changes when [`Terrain::builds`]).
+    pub(crate) fn build(&mut self, rules: &crate::rules::Rules, cells: &[(usize, u8)]) {
+        let around: Vec<usize> = (cells.iter())
+            .flat_map(|&(k, _)| [(0, 0), (0, -1), (0, 1), (-1, 0), (1, 0)].map(|d| self.neighbour(k as isize, d)))
+            .flatten()
+            .collect();
+        let before: Vec<u8> = around.iter().map(|&j| self.category[j]).collect();
+        for &(k, category) in cells {
+            self.category[k] = category;
+        }
+        for &j in &around {
+            self.reshape_cell(j as isize);
+        }
+        // (a neighbour left alone turns plain)
+        let changed: Vec<usize> = around.iter().zip(&before).filter(|&(&j, &b)| self.category[j] != b).map(|(&j, _)| j).collect();
+        self.prepared.rebuilt(rules, &self.category, &changed);
     }
 }
 

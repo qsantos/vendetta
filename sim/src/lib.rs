@@ -22,6 +22,7 @@ pub mod special;
 mod spatial;
 pub mod stats;
 pub mod terrain;
+mod town;
 pub mod treasure;
 pub mod vb;
 pub mod world;

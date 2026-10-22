@@ -5,6 +5,7 @@ use crate::ia_file::Step;
 use crate::perso::action;
 use crate::rules::Rules;
 use crate::terrain::CELL;
+use crate::town::SQUARE;
 use crate::vb::clng;
 use crate::world::{Towns, World};
 
@@ -684,7 +685,7 @@ impl World {
         }
         // (else, when no site is found around the town, the original's, keeping the distances)
         if compact
-            && let Some(site) = self.compact_site(rules, n, w, h)
+            && let Some(site) = self.compact_site(rules, n, t)
         {
             self.ai.obstacle_distance[nf] = castle_w;
             return Some(site);
@@ -743,13 +744,15 @@ impl World {
         None
     }
 
-    /// Not in the original ([`Towns::Compact`]): a site of `w` × `h` for perso `n`'s fief
-    /// beside one of its buildings taken at random, against it or a street or so away, anywhere
-    /// along it; of a few such sites, the nearest to the castle that is free, keeps its
-    /// distances (see [`spaced`]) and leaves every building of the fief a way out of the town
-    /// (see [`ways_out`]): so the town grows from the castle, but untidily. None when there is
-    /// none.
-    fn compact_site(&mut self, rules: &Rules, n: usize, w: i32, h: i32) -> Option<(i32, i32)> {
+    /// Not in the original ([`Towns::Compact`]): a site for a building of type `t` for perso
+    /// `n`'s fief beside one of its buildings taken at random, against it or a street or so
+    /// away, anywhere along it; of a few such sites, the best (see [`site_score`]) that is free,
+    /// keeps its distances (see [`spaced`]), off the square before the castle's gate, makes no
+    /// row of more than [`TERRACE`] buildings and leaves every building of the fief a way out
+    /// of the town (see [`ways_out`]): so the town grows from the castle, but untidily. None
+    /// when there is none.
+    fn compact_site(&mut self, rules: &Rules, n: usize, t: usize) -> Option<(i32, i32)> {
+        let (w, h) = rules.buildings[t].size;
         let (origin, own, others) = self.town(n);
         if own.is_empty() {
             return None;
@@ -757,6 +760,10 @@ impl World {
         let all: Vec<Rect> = own.iter().chain(&others).copied().collect();
         let castle = &self.castles[self.persos[n].fief];
         let centre = (castle.w / 2, castle.h / 2);
+        let square = (castle.w / 2 + castle.entrance.0 - SQUARE.0 / 2, castle.h, SQUARE.0, SQUARE.1);
+        let rows = terraces(&own[castle.visible() as usize..]);
+        let rim = own.iter().map(|&(x, y, w, h)| distance((x + w / 2 - centre.0, y + h / 2 - centre.1))).max().unwrap_or(0);
+        let rural = rules.buildings[t].shop && rules.buildings[t].level == 0;
         let mut sites = Vec::new();
         for _ in 0..SITE_CANDIDATES {
             // (the nearest to the castle of a few taken at random, so that the town fills in)
@@ -782,9 +789,18 @@ impl World {
                 2 => (bx - w + 1 + along, by - gap - h),
                 _ => (bx - w + 1 + along, by + bh + gap),
             };
-            if spaced((x, y, w, h), &all) {
-                let (dx, dy) = ((x + w / 2 - centre.0) as i64, (y + h / 2 - centre.1) as i64);
-                sites.push((dx * dx + dy * dy, x, y));
+            if spaced((x, y, w, h), &all) && !overlap((x, y, w, h), square) && rows.fits((x, y, w, h)) {
+                let d = distance((x + w / 2 - centre.0, y + h / 2 - centre.1));
+                // (the farms and such at the edge of the town, not beyond it, the trades within)
+                let mut score = if rural { (rim - d).max(0) + 3 * (d - rim).max(0) } else { d };
+                let at = self.terrain.wrap32((origin.0 + x, origin.1 + y));
+                if self.beside(at, (w, h), 1, |k| self.road != 0 && k == self.road) {
+                    score -= ROADSIDE;
+                }
+                if self.beside(at, (w, h), WATERSIDE_REACH, |k| k >= crate::landscape::WATER) {
+                    score -= WATERSIDE;
+                }
+                sites.push((score, x, y));
             }
         }
         sites.sort_unstable();
@@ -795,6 +811,21 @@ impl World {
                 && self.clear(rules, n, at.0, at.1, w, h)
                 && ways_out(&own, &others, (x, y, w, h)))
             .then_some(at)
+        })
+    }
+
+    /// Whether a cell of a terrain `kind` lies within `reach` cells round a site at `(x, y)` of
+    /// `size` (not under it).
+    fn beside(&self, (x, y): (i32, i32), (w, h): (i32, i32), reach: i32, kind: impl Fn(u8) -> bool) -> bool {
+        let (c0, r0) = ((x + CELL / 2).div_euclid(CELL), (y + CELL / 2).div_euclid(CELL));
+        let (c1, r1) = ((x + w - 1 + CELL / 2).div_euclid(CELL), (y + h - 1 + CELL / 2).div_euclid(CELL));
+        let category = self.terrain.category();
+        (r0 - reach..=r1 + reach).any(|r| {
+            (c0 - reach..=c1 + reach).any(|c| {
+                let under = (c0..=c1).contains(&c) && (r0..=r1).contains(&r);
+                let k = self.terrain.index_at((c * CELL) as f64, (r * CELL) as f64);
+                !under && usize::try_from(k).ok().and_then(|k| category.get(k)).is_some_and(|&k| kind(k))
+            })
         })
     }
 
@@ -828,14 +859,16 @@ impl World {
         self.obstacle(rules, n, x + 1, y + 1, w - 2, h - 2) == 0 && self.off_road(x, y, w, h)
     }
 
-    /// Whether no road runs on the cells under a site at `(x, y)` of `w` × `h` (cell `c` spans
-    /// from `16c - 8` to `16c + 8`, see [`crate::terrain::Terrain::index_at`]).
+    /// Whether no road (but streets, see [`World::lay_street`]) runs on the cells under a site
+    /// at `(x, y)` of `w` × `h` (cell `c` spans from `16c - 8` to `16c + 8`, see
+    /// [`crate::terrain::Terrain::index_at`]).
     fn off_road(&self, x: i32, y: i32, w: i32, h: i32) -> bool {
         let span = |from: i32, len: i32| (from + CELL / 2).div_euclid(CELL)..=(from + len - 1 + CELL / 2).div_euclid(CELL);
         (span(y, h)).all(|r| {
             (span(x, w)).all(|c| {
                 let t = self.terrain.index_at((c * CELL) as f64, (r * CELL) as f64);
-                usize::try_from(t).ok().and_then(|t| self.terrain.category().get(t)).is_none_or(|&k| self.road == 0 || k != self.road)
+                let street = usize::try_from(t).is_ok_and(|t| self.streets.contains_key(&(t as u32)));
+                street || usize::try_from(t).ok().and_then(|t| self.terrain.category().get(t)).is_none_or(|&k| self.road == 0 || k != self.road)
             })
         })
     }
@@ -858,11 +891,79 @@ type Rect = (i32, i32, i32, i32);
 /// The sites tried around a town for a house.
 const SITE_CANDIDATES: usize = 48;
 /// The buildings of the town drawn for each site, the one nearest the castle kept.
-const ANCHOR_PICKS: usize = 3;
+const ANCHOR_PICKS: usize = 5;
 /// How often a site is tried against a building rather than a street away.
 const AGAINST: f64 = 0.7;
 /// The narrowest way between two buildings: room for a walker, and more.
 const STREET: i32 = 2 * CELL;
+/// The most buildings in a row, standing against one another.
+const TERRACE: usize = 4;
+/// How much nearer a site counts (in pixels) beside a road; and within so many cells of water.
+const ROADSIDE: i32 = 3 * CELL;
+const WATERSIDE: i32 = 2 * CELL;
+const WATERSIDE_REACH: i32 = 3;
+
+/// The length of `(dx, dy)`, rounded down.
+fn distance((dx, dy): (i32, i32)) -> i32 {
+    ((dx as i64 * dx as i64 + dy as i64 * dy as i64) as f64).sqrt() as i32
+}
+
+/// Whether two rectangles overlap.
+fn overlap((x, y, w, h): Rect, (bx, by, bw, bh): Rect) -> bool {
+    x < bx + bw && bx < x + w && y < by + bh && by < y + h
+}
+
+/// Whether two rectangles stand against each other, along a side.
+fn against((x, y, w, h): Rect, (bx, by, bw, bh): Rect) -> bool {
+    let gx = (bx - (x + w)).max(x - (bx + bw));
+    let gy = (by - (y + h)).max(y - (by + bh));
+    gx == 0 && gy < 0 || gy == 0 && gx < 0
+}
+
+/// Buildings in rows: those standing against one another, grouped.
+struct Terraces {
+    buildings: Vec<Rect>,
+    /// The group of each building, and the size of each group.
+    group: Vec<usize>,
+    size: Vec<usize>,
+}
+
+/// The rows the `buildings` make.
+fn terraces(buildings: &[Rect]) -> Terraces {
+    let n = buildings.len();
+    let mut group: Vec<usize> = (0..n).collect();
+    fn root(group: &mut [usize], mut i: usize) -> usize {
+        while group[i] != i {
+            group[i] = group[group[i]];
+            i = group[i];
+        }
+        i
+    }
+    for i in 0..n {
+        for j in i + 1..n {
+            if against(buildings[i], buildings[j]) {
+                let (a, b) = (root(&mut group, i), root(&mut group, j));
+                group[a] = b;
+            }
+        }
+    }
+    let group: Vec<usize> = (0..n).map(|i| root(&mut group, i)).collect();
+    let mut size = vec![0; n];
+    for &g in &group {
+        size[g] += 1;
+    }
+    Terraces { buildings: buildings.to_vec(), group, size }
+}
+
+impl Terraces {
+    /// Whether `site`, with the rows it would join, makes no row longer than [`TERRACE`].
+    fn fits(&self, site: Rect) -> bool {
+        let mut joined: Vec<usize> = (0..self.buildings.len()).filter(|&i| against(site, self.buildings[i])).map(|i| self.group[i]).collect();
+        joined.sort_unstable();
+        joined.dedup();
+        joined.iter().map(|&g| self.size[g]).sum::<usize>() < TERRACE
+    }
+}
 
 /// Whether `site` stands against each of `buildings` (along a side) or a street away from it,
 /// so that no lane too narrow to walk is left between them.

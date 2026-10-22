@@ -76,3 +76,30 @@ fn save_load_continue_with_players_and_orders() {
         }
     }
 }
+
+/// The same with compact towns, which lay streets and walls as they grow (the path search's
+/// landmarks, made again on loading, must lead the same ways as those made before).
+#[test]
+fn save_load_continue_with_compact_towns() {
+    use sim::landscape::Landscape;
+    use sim::path::Paths;
+    use sim::world::Towns;
+    let Some((files, rules)) = load() else { return };
+    let setup = WorldSetup { seed: 5, towns: Towns::Compact, landscape: Landscape::Natural, paths: Paths::Fastest, ..Default::default() };
+    let mut straight = World::create(&rules, &files, &setup).unwrap();
+    let count = |w: &World, k: u8| w.terrain.category().iter().filter(|&&c| c == k).count();
+    let roads = count(&straight, straight.road);
+    for t in 0..3000 {
+        straight.step(&rules, &[]);
+        if t == 2000 {
+            (0..straight.castles.len()).for_each(|f| straight.build_walls(&rules, f));
+        }
+    }
+    assert!(count(&straight, straight.road) > roads && count(&straight, 8) > 0, "streets and walls");
+    let mut resumed = World::load(&rules, &straight.save()).unwrap();
+    for _ in 0..3000 {
+        straight.step(&rules, &[]);
+        resumed.step(&rules, &[]);
+    }
+    assert_eq!(resumed.save(), straight.save());
+}

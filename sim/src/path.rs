@@ -522,6 +522,23 @@ pub fn prepare(rules: &Rules, terrain: &Terrain) {
     Landmarks::of(rules, terrain, (0, 0), &[(0, 0)]);
 }
 
+impl Prepared {
+    /// Cells `cells` of `category` changed: their times again, if they were made.
+    pub(crate) fn rebuilt(&mut self, rules: &Rules, category: &[u8], cells: &[usize]) {
+        if let Some(steps) = self.steps.get_mut() {
+            for &k in cells {
+                steps[k] = step_times(rules.terrains[category[k] as usize].speed);
+            }
+        }
+    }
+}
+
+/// Whether a cell of terrain `k` may become a street or a wall as the game goes (see
+/// [`Terrain::builds`]): of the land, but water and mountains.
+fn buildable_land(rules: &Rules, k: u8) -> bool {
+    !rules.terrains[k as usize].unbuildable || (6..=9).contains(&k)
+}
+
 /// The time to step into each cell of `terrain` (see [`Prepared`]).
 fn steps<'a>(rules: &Rules, terrain: &'a Terrain) -> &'a [(u32, u32)] {
     terrain.prepared.steps.get_or_init(|| {
@@ -589,7 +606,18 @@ impl Landmarks {
         let steps = steps(rules, terrain);
         let (w, h) = (terrain.width as i64, terrain.height as i64);
         let n = (w * h) as usize;
-        let cost: Vec<(u32, u32)> = (0..n as i64).map(|k| step_time(steps, terrain, Free::EVERYWHERE, (k % w, k / w))).collect();
+        let mut cost: Vec<(u32, u32)> = (0..n as i64).map(|k| step_time(steps, terrain, Free::EVERYWHERE, (k % w, k / w))).collect();
+        // On land that changes as the game goes, any cell that may become a street or a wall
+        // counts as the fastest of the land, so that the times from the landmarks stay a lower
+        // bound whatever is built, and are the same made before or after.
+        if terrain.builds {
+            let fastest = (0..rules.terrains.len() as u8).filter(|&k| buildable_land(rules, k)).map(|k| rules.terrains[k as usize].speed).fold(1.0, f64::max);
+            for (k, c) in cost.iter_mut().enumerate() {
+                if buildable_land(rules, terrain.category()[k]) {
+                    *c = step_times(fastest);
+                }
+            }
+        }
         let mut times = vec![[0; LANDMARKS]; n];
         // the time to the nearest landmark so far, the next being the farthest cell
         let mut nearest = vec![u32::MAX; n];

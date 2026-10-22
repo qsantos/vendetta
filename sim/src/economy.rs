@@ -264,6 +264,10 @@ impl World {
             p.craft_progress = 0.0;
             p.set_visible(true);
             self.go_home(rules, owner, h, false);
+            // (not in the original: a street to its door, in a compact town, over those it is
+            // built on)
+            self.clear_streets(rules, h);
+            self.lay_street(rules, h);
         }
         let p = &mut self.persos[owner];
         if !p.invocation() {

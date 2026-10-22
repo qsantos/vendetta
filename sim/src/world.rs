@@ -61,6 +61,9 @@ pub struct World {
     /// The terrain type of this world's roads (`WorldType::road`), 0 for none: compact towns
     /// keep off them.
     pub road: u8,
+    /// Not in the original: the streets compact towns laid (see [`World::lay_street`]), by cell,
+    /// with the terrain type they were laid on: houses may be built over them.
+    pub(crate) streets: std::collections::BTreeMap<u32, u8>,
     /// Not in the original: the searches for paths, spread over the ticks.
     pub(crate) planner: crate::path::Planner,
     /// `NoPerso`: the local player's character, which always says its comments.
@@ -289,6 +292,7 @@ impl World {
             monsters: setup.monsters,
             landscape: setup.landscape,
             road: rules.world_types.get(world_type).map_or(0, |t| t.road),
+            streets: Default::default(),
             player: None,
             ai: Ai::default(),
             victory: false,
@@ -339,6 +343,9 @@ impl World {
                 }
             }
         }
+        // (compact towns lay streets and walls as they grow)
+        world.terrain.builds = setup.towns == Towns::Compact;
+        world.pave_squares(rules);
         world.houses = (0..world.persos.len()).map(|i| Building { owner: i, ..Building::new(rules) }).collect();
         world.start_resources(rules, setup.start_resources);
         world.place_persos();
@@ -603,10 +610,17 @@ impl World {
 
     /// `Comportement_IA_Fiefs`: castle market, repairs and the age timer.
     fn fiefs_tick(&mut self, rules: &Rules) {
+        let epochs: Vec<usize> = self.fiefs.iter().map(|f| f.epoch).collect();
         for (f, c) in self.fiefs.iter_mut().zip(&mut self.castles) {
             f.transaction(rules);
             f.restoration(rules, c);
             c.restoration();
+        }
+        // (not in the original: compact towns wall themselves in, age after age)
+        for f in 0..self.fiefs.len() {
+            if self.fiefs[f].epoch > epochs[f] {
+                self.build_walls(rules, f);
+            }
         }
     }
 

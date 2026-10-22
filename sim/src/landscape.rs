@@ -82,7 +82,8 @@ const EARTH: u8 = 2;
 const DESERT: u8 = 3;
 const MOUNTAIN: u8 = 4;
 const SNOW: u8 = 10;
-const WATER: u8 = 11;
+/// (the first of the waters: the next ones are its animation frames, or more waters)
+pub(crate) const WATER: u8 = 11;
 /// The share of plain (which the original's worlds never grow: it is what is left), against
 /// the world type's `SurfaceTerrain` of the others.
 const PLAIN_SURFACE: f64 = 13.0;

@@ -5,7 +5,7 @@ use crate::world::World;
 
 /// Bump when the layout of the saved types changes, so old saves are discarded instead of
 /// misread.
-const FORMAT: u32 = 10;
+const FORMAT: u32 = 11;
 const MAGIC: &[u8; 4] = b"VNDT";
 
 impl World {
@@ -21,13 +21,14 @@ impl World {
             .strip_prefix(MAGIC.as_slice())
             .and_then(|b| b.strip_prefix(FORMAT.to_le_bytes().as_slice()))
             .ok_or("not a save of this version")?;
-        let world: World = postcard::from_bytes(body).map_err(|e| format!("corrupt save: {e}"))?;
+        let mut world: World = postcard::from_bytes(body).map_err(|e| format!("corrupt save: {e}"))?;
         let consistent = world.persos.iter().all(|p| p.race < rules.races.len())
             && world.fiefs.iter().all(|f| f.people < rules.peoples.len())
             && world.houses.iter().all(|h| h.kind < rules.buildings.len());
         if !consistent {
             return Err("save made with other game data".into());
         }
+        world.terrain.builds = world.towns == crate::world::Towns::Compact;
         world.prepare_paths(rules);
         Ok(world)
     }
