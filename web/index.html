@@ -1101,9 +1101,13 @@
   });
   // miniquad hears the mouse on the canvas only: a button pressed there and released off it
   // (dragging the map past the edge of the page) would stay down for the game. The page passes
-  // its release on, and the moves until then; not those of a press elsewhere (the menus).
+  // its release on, and the moves until then; not those of a press elsewhere (the menus). And
+  // it tells the game when the mouse is off the canvas, where the game hides its cursor.
+  let pointerOut = false;
   {
     const canvas = document.getElementById("glcanvas");
+    canvas.addEventListener("mouseleave", () => (pointerOut = true));
+    canvas.addEventListener("mouseenter", () => (pointerOut = false));
     const held = new Set();
     canvas.addEventListener("mousedown", (e) => held.add(e.button));
     const forward = (e, send) => {
@@ -1459,6 +1463,7 @@
       };
       // The touch interface on phones and tablets (see client/src/layout.rs).
       importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
+      importObject.env.vendetta_pointer_out = () => pointerOut;
       // after the pending writes, so that none is lost
       window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
       importObject.env.vendetta_read = (ptr) => {

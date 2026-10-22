@@ -528,11 +528,11 @@ impl Hud {
             tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
         }
         let touch = touch();
-        if !touch {
+        if !touch && input.hover {
             self.tooltip((input.mouse.0 - 12, input.mouse.1 - 12), &self.selection_lines(world, rules, player).join("#"));
         }
         let held = p.selected_object;
-        if held >= 0 && !touch {
+        if held >= 0 && !touch && input.hover {
             let path = format!("{}.bmp", rules.objects[held as usize].image);
             if let Some(tex) = textures.get(&path) {
                 let src = Rect::new(0.0, 0.0, 32.0, 32.0);
@@ -546,7 +546,7 @@ impl Hud {
         });
         // A finger hides what is under it: the touch interface shows what a tap would do above
         // it, while it is down, and no arrow.
-        let (m, shown) = if touch { ((input.mouse.0 - 12, input.mouse.1 - 64), input.hover && cursor != 0 && placement.is_none()) } else { (input.mouse, true) };
+        let (m, shown) = if touch { ((input.mouse.0 - 12, input.mouse.1 - 64), input.hover && cursor != 0 && placement.is_none()) } else { (input.mouse, input.hover) };
         if let Some(tex) = textures.get(CURSOR).filter(|_| shown) {
             tex.draw_ex(m.0 as f32, m.1 as f32, WHITE, DrawTextureParams { source: Some(Rect::new(24.0 * cursor as f32, 0.0, 24.0, 24.0)), ..Default::default() });
         }

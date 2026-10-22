@@ -17,8 +17,9 @@ pub struct Input {
     pub right_pressed: bool,
     pub ctrl: bool,
     pub shift: bool,
-    /// The pointer is over the screen: always with a mouse, only while a finger is down with
-    /// the touch interface (where the cursor is not shown otherwise).
+    /// The pointer is over the screen: with a mouse, unless off the game's canvas (on the rest
+    /// of the page, or out of it); only while a finger is down with the touch interface (where
+    /// the cursor is not shown otherwise).
     pub hover: bool,
     /// How far a finger dragged this frame, in interface pixels.
     pub drag: (f32, f32),
@@ -43,7 +44,7 @@ impl Input {
     pub fn poll(mouse: (i32, i32)) -> Input {
         Input {
             mouse,
-            hover: true,
+            hover: !crate::storage::pointer_out(),
             drag: (0.0, 0.0),
             left_pressed: is_mouse_button_pressed(MouseButton::Left),
             left_released: is_mouse_button_released(MouseButton::Left),

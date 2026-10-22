@@ -14,6 +14,8 @@ unsafe extern "C" {
     fn vendetta_started() -> bool;
     /// Whether the main pointer is a finger (`pointer: coarse`).
     fn vendetta_touch_screen() -> bool;
+    /// Whether the mouse is off the game's canvas (on the rest of the page, or out of it).
+    fn vendetta_pointer_out() -> bool;
     /// The page's in-game menu: opens it; whether it is open; what it asks of the game (0:
     /// nothing, 1: quit, 2/3: zoom the map out/in, 4/5: the interface smaller/bigger, 100 + N:
     /// the speed N); the
@@ -87,6 +89,15 @@ pub fn touch_screen() -> bool {
     #[cfg(target_arch = "wasm32")]
     // SAFETY: no arguments.
     return unsafe { vendetta_touch_screen() };
+    #[cfg(not(target_arch = "wasm32"))]
+    false
+}
+
+/// Whether the mouse is off the game (natively, never: miniquad hears it everywhere).
+pub fn pointer_out() -> bool {
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: no arguments.
+    return unsafe { vendetta_pointer_out() };
     #[cfg(not(target_arch = "wasm32"))]
     false
 }
