@@ -828,6 +828,11 @@ impl Perso {
         let (dx, dy) = ((wx - self.x) as f64, (wy - self.y) as f64);
         let l = (dx * dx + dy * dy).sqrt();
         if l >= step && l > 0.0 {
+            // (not in the original: facing where it goes, which with the fastest paths may not
+            // be toward its destination, as it faced it when it set off)
+            if paths == Paths::Fastest {
+                self.orient(terrain, wx, wy);
+            }
             toward(self, (wx, wy));
             self.set_visible(true);
         } else if self.path.len() > 1 {
