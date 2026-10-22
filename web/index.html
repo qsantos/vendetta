@@ -52,11 +52,14 @@
   #menu input[type=checkbox] { justify-self: start; margin: 0; }
   /* only a line above, so that its fields stay in the form's columns */
   #menu fieldset { border: none; border-top: 1px solid rgb(120, 150, 70); margin: 14px 0 0; padding: 0; }
-  /* the settings that can be as in the original, in a panel that a button opens */
-  #menu fieldset.original { margin: 0 0 0 12px; padding: 0 0 0 10px; border-top: none;
-                            border-left: 2px solid rgb(120, 150, 70); }
-  #menu fieldset.original[hidden] { display: none; }
-  #menu fieldset.original legend { display: none; }
+  /* the settings that can be as in the original, in a window that a button opens */
+  #menu .original { position: fixed; inset: 0; z-index: 1; display: flex; align-items: center;
+                    justify-content: center; background: rgba(0, 0, 0, 0.6); }
+  #menu .original[hidden] { display: none; }
+  #menu .original .window { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70);
+                            border-radius: 12px; padding: 20px 28px; box-sizing: border-box;
+                            width: min(calc(100vw - 24px), 480px); max-height: calc(100vh - 24px);
+                            overflow-y: auto; }
   #menu .original-open { justify-self: stretch; font: inherit; padding: 1px 6px; text-align: left; }
   #menu .buttons { display: flex; gap: 12px; justify-content: center; margin-top: 18px; }
   #menu button { font: bold 15px Arial, "Liberation Sans", sans-serif; padding: 6px 14px; }
@@ -176,6 +179,7 @@
       "en taches (l'original)": "in patches (the original)",
       "Règles de l'original": "The original's rules",
       "Tout comme l'original": "All as in the original",
+      "Fermer": "Close",
       "aucune": "none",
       "toutes": "all",
       "Villes": "Towns",
@@ -290,6 +294,7 @@
       "en taches (l'original)": "a manchas (el original)",
       "Règles de l'original": "Reglas del original",
       "Tout comme l'original": "Todo como el original",
+      "Fermer": "Cerrar",
       "aucune": "ninguna",
       "toutes": "todas",
       "Villes": "Ciudades",
@@ -407,6 +412,7 @@
       "en taches (l'original)": "まだら（オリジナル）",
       "Règles de l'original": "オリジナルのルール",
       "Tout comme l'original": "すべてオリジナル通り",
+      "Fermer": "閉じる",
       "aucune": "なし",
       "toutes": "すべて",
       "Villes": "町",
@@ -524,6 +530,7 @@
       "en taches (l'original)": "斑块（原版）",
       "Règles de l'original": "原版规则",
       "Tout comme l'original": "全部按原版",
+      "Fermer": "关闭",
       "aucune": "无",
       "toutes": "全部",
       "Villes": "城镇",
@@ -686,7 +693,8 @@
         <label>Peuples <input type="number" name="fiefs" min="2" max="200" placeholder="4"></label>
         <label>Villageois par peuple <input type="number" name="villagers" min="1" max="2000" placeholder="10"></label>
         <label>Règles de l'original <button type="button" class="original-open"></button></label>
-        <fieldset class="original" hidden><legend>Règles de l'original</legend>
+        <div class="original" hidden><div class="window">
+          <h1>Règles de l'original</h1>
           <label>Tout comme l'original <input type="checkbox" class="all-original"></label>
           <label>Routes
             <select name="roads">
@@ -718,7 +726,8 @@
               <option value="">au-devant de la cible</option>
               <option value="direct">droit sur la cible (l'original)</option>
             </select></label>
-        </fieldset>
+          <div class="buttons"><button type="button" class="original-close">Fermer</button></div>
+        </div></div>
         <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
         <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
         <label>Attendre les plus lents
@@ -750,7 +759,8 @@
     <label>Peuples <input type="number" name="fiefs" min="2" max="200" placeholder="4"></label>
     <label>Villageois par peuple <input type="number" name="villagers" min="1" max="2000" placeholder="10"></label>
     <label>Règles de l'original <button type="button" class="original-open"></button></label>
-    <fieldset class="original" hidden><legend>Règles de l'original</legend>
+    <div class="original" hidden><div class="window">
+      <h1>Règles de l'original</h1>
       <label>Tout comme l'original <input type="checkbox" class="all-original"></label>
       <label>Routes
         <select name="roads">
@@ -782,7 +792,8 @@
           <option value="">au-devant de la cible</option>
           <option value="direct">droit sur la cible (l'original)</option>
         </select></label>
-    </fieldset>
+      <div class="buttons"><button type="button" class="original-close">Fermer</button></div>
+    </div></div>
     <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
     <label>Graine <input type="number" name="seed" min="0" placeholder="au hasard"></label>
     <fieldset><legend>Tests</legend>
@@ -1524,7 +1535,7 @@
     const form = document.querySelector("#menu form");
     const fields = ["size", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
     const flags = ["god", "perf"];
-    // The settings that can be as in the original (their value then), in a panel of their own
+    // The settings that can be as in the original (their value then), in a window of their own
     // in `root` (the form, the room's settings), with a switch for them all; the button that
     // opens it tells how many are. Returns what shows that again, after a change from afar.
     const original = { roads: "ring", edges: "closed", land: "original", towns: "scattered", paths: "greedy", chase: "direct" };
@@ -1537,11 +1548,24 @@
         const n = keys.filter((k) => root.elements[k].value === original[k]).length;
         all.checked = n === keys.length;
         const how = n === 0 ? t("aucune") : n === keys.length ? t("toutes") : n + "/" + keys.length;
-        button.textContent = how + (panel.hidden ? " ▸" : " ▾");
+        button.textContent = how + " …";
+      };
+      const close = () => {
+        panel.hidden = true;
+        button.focus();
       };
       button.addEventListener("click", () => {
-        panel.hidden = !panel.hidden;
-        show();
+        panel.hidden = false;
+        panel.querySelector(".original-close").focus();
+      });
+      panel.querySelector(".original-close").addEventListener("click", close);
+      // (a click outside the window, Escape)
+      panel.addEventListener("click", (e) => e.target === panel && close());
+      panel.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        e.preventDefault();
+        e.stopPropagation();
+        close();
       });
       // (before the root hears of it)
       all.addEventListener("input", () => {
