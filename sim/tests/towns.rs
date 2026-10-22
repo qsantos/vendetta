@@ -20,7 +20,7 @@ fn load() -> Option<(Files, Rules)> {
 }
 
 /// The houses standing after a while, by distance (in cells) to their fief's castle; and how
-/// many lie less than a cell from another house of their fief.
+/// many stand against another house of their fief.
 fn towns(files: &Files, rules: &Rules, towns: Towns, torus: bool) -> (Vec<f64>, usize) {
     let fiefs = (0..4).map(|i| FiefSetup { people: 0, team: i + 1, epoch: 0, citizens: 30 }).collect();
     let setup = WorldSetup { seed: 3, width: 192, height: 192, resources: 120, fiefs, towns, torus, landscape: Landscape::Natural, ..Default::default() };
@@ -37,31 +37,37 @@ fn towns(files: &Files, rules: &Rules, towns: Towns, torus: bool) -> (Vec<f64>, 
         })
         .collect();
     distances.sort_by(f64::total_cmp);
-    let cramped = standing
+    let against = standing
         .iter()
         .filter(|&&j| {
             let m = &w.houses[j];
             standing.iter().any(|&k| {
                 let o = &w.houses[k];
-                k != j && w.persos[k].fief == w.persos[j].fief && w.terrain.overlaps((m.x - 15, m.y - 15, m.w + 30, m.h + 30), (o.x, o.y, o.w, o.h))
+                k != j && w.persos[k].fief == w.persos[j].fief && w.terrain.overlaps((m.x - 1, m.y - 1, m.w + 2, m.h + 2), (o.x, o.y, o.w, o.h))
             })
         })
         .count();
-    (distances, cramped)
+    (distances, against)
 }
 
-/// Compact towns keep closer to their castle than the original's, and leave lanes between
-/// their houses.
+/// Compact towns keep closer to their castle than the original's, their houses side by side
+/// in blocks.
 #[test]
 fn compact_towns() {
     let Some((files, rules)) = load() else { return };
     for torus in [false, true] {
-        let (scattered, _) = towns(&files, &rules, Towns::Scattered, torus);
-        let (compact, cramped) = towns(&files, &rules, Towns::Compact, torus);
+        let (scattered, apart) = towns(&files, &rules, Towns::Scattered, torus);
+        let (compact, against) = towns(&files, &rules, Towns::Compact, torus);
         let median = |d: &[f64]| d[d.len() / 2];
-        eprintln!("torus {torus}: {} houses scattered, median {:.1} cells; {} compact, median {:.1}, {cramped} cramped", scattered.len(), median(&scattered), compact.len(), median(&compact));
+        eprintln!(
+            "torus {torus}: {} houses scattered, median {:.1} cells, {apart} against another; {} compact, median {:.1}, {against} against another",
+            scattered.len(),
+            median(&scattered),
+            compact.len(),
+            median(&compact)
+        );
         assert!(compact.len() >= 40);
         assert!(median(&compact) < 0.9 * median(&scattered));
-        assert!(cramped * 10 <= compact.len());
+        assert!(against * 2 >= compact.len() && apart * 5 <= scattered.len());
     }
 }

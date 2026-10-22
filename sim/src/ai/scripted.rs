@@ -675,13 +675,15 @@ impl World {
         let (w, h) = rules.buildings[t].size;
         let (mut x, mut y) = (self.houses[n].x as i64, self.houses[n].y as i64);
         let castle_w = self.castles[nf].w as i64;
-        if self.obstacle(rules, n, x as i32, y as i32, w, h) == 0 {
+        let compact = self.towns == Towns::Compact && !self.persos[n].invocation();
+        if compact && self.in_block(n, x as i32, y as i32, w, h) && self.clear(rules, n, x as i32, y as i32, w, h)
+            || !compact && self.obstacle(rules, n, x as i32, y as i32, w, h) == 0
+        {
             self.ai.obstacle_distance[nf] = castle_w;
             return Some((x as i32, y as i32));
         }
-        // (else, when every site next to the town is taken, the original's)
-        if self.towns == Towns::Compact
-            && !self.persos[n].invocation()
+        // (else, when every block is full, the original's)
+        if compact
             && let Some(site) = self.compact_site(rules, n, w, h)
         {
             self.ai.obstacle_distance[nf] = castle_w;
@@ -739,17 +741,16 @@ impl World {
         None
     }
 
-    /// Not in the original ([`Towns::Compact`]): a site of `w` × `h` for perso `n`'s fief next
-    /// to one of its buildings (its castle, its houses), a cell away from every building, so
-    /// that lanes stay open; the nearest to the castle of those free, so that the town grows
-    /// from it, filling its corners. None when there is none.
+    /// Not in the original ([`Towns::Compact`]): a site of `w` × `h` for perso `n`'s fief in
+    /// the blocks around its castle (see [`blocks`]), the nearest to the castle of those free,
+    /// so that the town grows from it, filling its blocks one after another. None when there
+    /// is none.
     fn compact_site(&self, rules: &Rules, n: usize, w: i32, h: i32) -> Option<(i32, i32)> {
         let nf = self.persos[n].fief;
-        let gap = CELL;
         let castle = &self.castles[nf];
-        let centre = (castle.x + castle.w / 2, castle.y + castle.h / 2);
-        // the buildings, by their offset from the castle's centre (across the edges on a torus)
-        let castle_rect = castle.visible().then_some((castle.x, castle.y, castle.w, castle.h));
+        let (cw, ch) = (castle.w, castle.h);
+        // the buildings, by their offset from the castle (across the edges on a torus)
+        let castle_rect = castle.visible().then_some((castle.x, castle.y, cw, ch));
         let houses = (0..self.houses.len()).filter(|&j| self.houses[j].visible() && self.persos[j].fief == nf).map(|j| {
             let m = &self.houses[j];
             (m.x, m.y, m.w, m.h)
@@ -757,56 +758,102 @@ impl World {
         let rects: Vec<(i32, i32, i32, i32)> = castle_rect
             .into_iter()
             .chain(houses)
-            .map(|(x, y, bw, bh)| (self.terrain.dx(centre.0 as i64, x as i64) as i32, self.terrain.dy(centre.1 as i64, y as i64) as i32, bw, bh))
+            .map(|(x, y, bw, bh)| (self.terrain.dx(castle.x as i64, x as i64) as i32, self.terrain.dy(castle.y as i64, y as i64) as i32, bw, bh))
             .collect();
-        // The cells wholly within a cell less a pixel of a building: a site touching one is
-        // taken, which rules out most of those inside the town without asking `obstacle`.
-        let reach = rects.iter().map(|&(x, y, bw, bh)| x.abs().max(y.abs()) + bw.max(bh)).max()? / CELL + w.max(h) / CELL + 3;
-        let side = 2 * reach + 1;
+        // as far as the town reaches, and a block more
+        let reach = rects.iter().map(|&(x, y, bw, bh)| (x.abs() + bw).max(y.abs() + bh)).max().unwrap_or(0);
+        let r = reach / BLOCK_PERIOD + 2;
+        // The cells wholly within a building: a site on one is taken, which rules out most of
+        // those inside the town without asking `obstacle`.
+        let half = (r + 1) * BLOCK_PERIOD / CELL + cw.max(ch) / CELL + 1;
+        let side = 2 * half;
         let mut taken = vec![false; (side * side) as usize];
-        let at = |c: i32, r: i32| ((c + reach) + (r + reach) * side) as usize;
+        let at = |c: i32, r: i32| ((0..side).contains(&(c + half)) && (0..side).contains(&(r + half))).then(|| ((c + half) + (r + half) * side) as usize);
         for &(x, y, bw, bh) in &rects {
-            let (x0, x1) = ((x - gap + 1).div_euclid(CELL) + 1, (x + bw + gap - 1 - CELL + 1).div_euclid(CELL));
-            let (y0, y1) = ((y - gap + 1).div_euclid(CELL) + 1, (y + bh + gap - 1 - CELL + 1).div_euclid(CELL));
-            for r in y0..=y1 {
-                for c in x0..=x1 {
-                    taken[at(c, r)] = true;
+            for r in (y + CELL - 1).div_euclid(CELL)..(y + bh).div_euclid(CELL) {
+                for c in (x + CELL - 1).div_euclid(CELL)..(x + bw).div_euclid(CELL) {
+                    if let Some(k) = at(c, r) {
+                        taken[k] = true;
+                    }
                 }
             }
         }
         let free = |x: i32, y: i32| {
-            let (c0, c1) = (x.div_euclid(CELL), (x + w - 1).div_euclid(CELL));
-            let (r0, r1) = (y.div_euclid(CELL), (y + h - 1).div_euclid(CELL));
-            (r0..=r1).all(|r| (c0..=c1).all(|c| !taken[at(c, r)]))
+            (y.div_euclid(CELL)..(y + h + CELL - 1).div_euclid(CELL)).all(|r| (x.div_euclid(CELL)..(x + w + CELL - 1).div_euclid(CELL)).all(|c| at(c, r).is_some_and(|k| !taken[k])))
         };
-        let mut sites: Vec<(i64, i32, i32)> = Vec::new();
-        let mut push = |x: i32, y: i32| {
-            if free(x, y) {
-                let (dx, dy) = ((x + w / 2) as i64, (y + h / 2) as i64);
-                sites.push((dx * dx + dy * dy, x, y));
-            }
+        let centre = |x: i32, y: i32, bw: i32, bh: i32| {
+            let (dx, dy) = ((2 * x + bw - cw) as i64, (2 * y + bh - ch) as i64);
+            dx * dx + dy * dy
         };
-        for &(bx, by, bw, bh) in &rects {
-            // beside it, anywhere along each of its sides, a cell at a time
-            for x in [bx - gap - w, bx + bw + gap] {
-                for y in (by - h + CELL..by + bh).step_by(CELL as usize) {
-                    push(x, y);
-                }
-            }
-            for y in [by - gap - h, by + bh + gap] {
-                for x in (bx - w + CELL..bx + bw).step_by(CELL as usize) {
-                    push(x, y);
-                }
-            }
-        }
-        sites.sort_unstable();
-        sites.dedup();
+        let mut around: Vec<(i32, i32)> = (-r..=r).flat_map(|ky| (-r..=r).map(move |kx| (kx, ky))).filter(|&k| k != (0, 0)).collect();
+        around.sort_by_key(|&(kx, ky)| {
+            let ((x, bw), (y, bh)) = (block(kx, cw), block(ky, ch));
+            (centre(x, y, bw, bh), ky, kx)
+        });
         let (mw, mh) = (self.terrain.width as i32 * CELL, self.terrain.height as i32 * CELL);
-        sites.into_iter().map(|(_, x, y)| self.terrain.wrap32((centre.0 + x, centre.1 + y))).find(|&(x, y)| {
-            (self.terrain.torus || x >= 0 && y >= 0 && x <= mw - w && y <= mh - h)
-                && self.obstacle(rules, n, x, y, w, h) == 0
-                // (the cell around it free too, short of the neighbours a cell away)
-                && self.obstacle(rules, n, x - gap + 1, y - gap + 1, w + 2 * gap - 2, h + 2 * gap - 2) == 0
+        around.into_iter().find_map(|(kx, ky)| {
+            let ((bx, bw), (by, bh)) = (block(kx, cw), block(ky, ch));
+            let mut sites: Vec<(i32, i32)> =
+                (places(bx, bw, w)).flat_map(|x| places(by, bh, h).map(move |y| (x, y))).filter(|&(x, y)| free(x, y)).collect();
+            sites.sort_by_key(|&(x, y)| (centre(x, y, w, h), y, x));
+            sites.into_iter().map(|(x, y)| self.terrain.wrap32((castle.x + x, castle.y + y))).find(|&(x, y)| {
+                (self.terrain.torus || x >= 0 && y >= 0 && x <= mw - w && y <= mh - h) && self.clear(rules, n, x, y, w, h)
+            })
         })
     }
+
+    /// Whether nothing stands on a site at `(x, y)` of `w` × `h` for perso `n`, but what only
+    /// touches it (which `obstacle` counts), so that houses stand side by side in a block.
+    fn clear(&self, rules: &Rules, n: usize, x: i32, y: i32, w: i32, h: i32) -> bool {
+        self.obstacle(rules, n, x + 1, y + 1, w - 2, h - 2) == 0
+    }
+
+    /// Whether a site at `(x, y)` of `w` × `h` lies in one of the blocks of perso `n`'s fief
+    /// (see [`blocks`]).
+    fn in_block(&self, n: usize, x: i32, y: i32, w: i32, h: i32) -> bool {
+        let castle = &self.castles[self.persos[n].fief];
+        let (dx, dy) = (self.terrain.dx(castle.x as i64, x as i64) as i32, self.terrain.dy(castle.y as i64, y as i64) as i32);
+        match (in_block(dx, w, castle.w), in_block(dy, h, castle.h)) {
+            (Some(kx), Some(ky)) => (kx, ky) != (0, 0),
+            _ => false,
+        }
+    }
+}
+
+// Not in the original ([`Towns::Compact`]): the blocks of a town, between its streets. Along
+// each axis, the castle makes the middle one, then on each side a street, a block, a street…:
+// a block takes two houses of the commonest size side by side, a street lets walkers by.
+const BLOCK: i32 = 8 * CELL;
+const STREET: i32 = 2 * CELL;
+const BLOCK_PERIOD: i32 = BLOCK + STREET;
+
+/// Where block `k` is along an axis (0 the castle's, the next ones away from it), from the
+/// castle's side and as long as `castle` is: its start and its length.
+fn block(k: i32, castle: i32) -> (i32, i32) {
+    match k {
+        0 => (0, castle),
+        1.. => (castle + STREET + (k - 1) * BLOCK_PERIOD, BLOCK),
+        _ => (-STREET - (-k - 1) * BLOCK_PERIOD - BLOCK, BLOCK),
+    }
+}
+
+/// The block that from `x` for `w` lies in, along an axis where the castle is `castle` long
+/// (see [`block`]); None when in none.
+fn in_block(x: i32, w: i32, castle: i32) -> Option<i32> {
+    let k = if x >= castle {
+        (x - castle - STREET).div_euclid(BLOCK_PERIOD) + 1
+    } else if x < 0 {
+        -((-STREET - x - 1).div_euclid(BLOCK_PERIOD) + 1)
+    } else {
+        0
+    };
+    let (start, len) = block(k, castle);
+    (x >= start && x + w <= start + len).then_some(k)
+}
+
+/// The places for something `w` long in a block at `start`, `len` long: a cell apart, and at
+/// its very end.
+fn places(start: i32, len: i32, w: i32) -> impl Iterator<Item = i32> + Clone {
+    let last = start + len - w;
+    (start..=last).step_by(CELL as usize).chain((last >= start && (last - start) % CELL != 0).then_some(last))
 }
