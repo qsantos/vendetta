@@ -456,3 +456,30 @@ fn ghost_and_ally_cursors() {
     assert_eq!(w.obstacle_dead(a, hx, hy), (12, b));
     assert_eq!(w.obstacle_dead(a, 301, 301), (0, 0));
 }
+
+/// Standard victory and defeat (`FrmMoteur2D.frm:1134-1162`): a team wins when every fief of
+/// the others has lost its castle and all its citizens; a fief that has lost both is defeated.
+#[test]
+fn victory_and_defeat() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = World::create(&rules, &files, &WorldSetup { seed: 3, ..Default::default() }).unwrap();
+    let i = w.player.unwrap();
+    let (team, own) = (w.persos[i].team, w.persos[i].fief);
+    assert!(!w.victorious(team) && !w.defeated(i));
+    let fall = |w: &mut World, f: usize| {
+        w.castles[f].life = 0.0;
+        w.fiefs[f].dead = w.fiefs[f].citizens as i64;
+    };
+    // (a castle fallen is not enough, nor all the citizens dead)
+    w.castles[own].life = 0.0;
+    assert!(!w.defeated(i));
+    fall(&mut w, own);
+    assert!(w.defeated(i));
+    let others: Vec<usize> = (0..w.fiefs.len()).filter(|&f| w.fiefs[f].team != team).collect();
+    for &f in &others[1..] {
+        fall(&mut w, f);
+    }
+    assert!(!w.victorious(team));
+    fall(&mut w, others[0]);
+    assert!(w.victorious(team));
+}

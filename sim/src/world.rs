@@ -564,6 +564,13 @@ impl World {
             && (self.fiefs.iter().zip(&self.castles)).all(|(f, c)| f.team == team || !(c.visible() || f.dead < f.citizens as i64))
     }
 
+    /// Defeat (standard rules) for perso `i`: its fief has lost its castle and all its citizens
+    /// (only when not victorious, which comes first: see [`World::victorious`]).
+    pub fn defeated(&self, i: usize) -> bool {
+        let f = self.persos[i].fief;
+        !self.confrontation && !(self.castles[f].visible() || self.fiefs[f].dead < self.fiefs[f].citizens as i64)
+    }
+
     /// One simulation tick (`FrmMoteur2D.MoteurJeu`, solo branch).
     pub fn step(&mut self, rules: &Rules, orders: &[Order]) {
         self.events.clear();

@@ -115,6 +115,8 @@ pub struct Hud {
     build_slide: i32,
     /// Building type being placed (`NoBatiment`), from a build button.
     pub placing: Option<usize>,
+    /// The victory and defeat banner, in the player's language (see [`banner`]).
+    banner: String,
     /// `rebuild=elsewhere`: as in the original, a new house may not stand over the player's
     /// own (which building it pulls down first).
     pub rebuild_elsewhere: bool,
@@ -163,9 +165,16 @@ pub struct Hud {
     follow_requested: bool,
 }
 
+/// `Fenetres\VictoireDefaite` in the language of suffix `suffix`: "Victoire" over "Défaite",
+/// 320×200 each; only in French and English.
+fn banner(suffix: &str) -> String {
+    format!("Images/Fenetres/VictoireDefaite{}.png", if suffix == "FR" { "FR" } else { "EN" })
+}
+
 /// Images the HUD needs.
 pub fn images(rules: &Rules) -> Vec<String> {
     let mut v: Vec<String> = [INFOS, DEPLACEMENT, OBJETS, CURSOR].map(String::from).to_vec();
+    v.extend(["FR", "EN"].map(banner));
     v.extend(buttons::images(rules));
     v.extend(windows::images(rules));
     v
@@ -288,6 +297,7 @@ impl Hud {
             move_slide: -52,
             build_slide: -80,
             placing: None,
+            banner: banner(&sim::rules::languages(files).into_iter().find(|l| l.folder == lang).map_or_else(|| "FR".to_owned(), |l| l.suffix)),
             rebuild_elsewhere: false,
             // The building window starts enabled (`Actionner_Boutons_Infos 0`).
             info_enabled: [true, false, false, false, false, false, false, false, false],
@@ -510,6 +520,13 @@ impl Hud {
         // cursor (at most what is owned, `Ressources_Verifications`), then the held object.
         // (with the touch interface, on the bar's button that puts them back)
         let p = &world.persos[player];
+        // `AffVictoire`: the game goes on, under the banner (standard rules: victory first)
+        let won = world.victorious(p.team);
+        if let Some(tex) = textures.get(&self.banner).filter(|_| won || world.defeated(player)) {
+            let src = Rect::new(0.0, if won { 0.0 } else { 200.0 }, 320.0, 200.0);
+            let (x, y) = ((crate::layout::screen_w() - 320) / 2, (crate::layout::screen_h() - 200) / 2 - 128);
+            tex.draw_ex(x as f32, y as f32, WHITE, DrawTextureParams { source: Some(src), ..Default::default() });
+        }
         let touch = touch();
         if !touch {
             self.tooltip((input.mouse.0 - 12, input.mouse.1 - 12), &self.selection_lines(world, rules, player).join("#"));

@@ -972,6 +972,8 @@ async fn main() {
         let p = &world.persos[player];
         if world.victorious(p.team) {
             music.play(music::VICTOIRE, false);
+        } else if world.defeated(player) {
+            music.play(music::DEFAITE, false);
         } else if (300..400).contains(&p.action) {
             music.play(if p.action == 302 { music::BOSS } else { music::COMBAT }, false);
         } else if !p.alive() {

@@ -14,6 +14,7 @@ pub const VILLE: usize = 2;
 pub const COMBAT: usize = 3;
 pub const MORT: usize = 4;
 pub const VICTOIRE: usize = 5;
+pub const DEFAITE: usize = 6;
 pub const BOSS: usize = 7;
 pub const EMPEREUR: usize = 8;
 /// `IntervalMusiques`: seconds between two tracks.
