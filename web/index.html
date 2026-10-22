@@ -1375,7 +1375,6 @@
       importObject.env.vendetta_quit = () => {
         writesDone().then(() => {
           if (socket) socket.close();
-          setTab([]);
           // (a link that starts a game: the page without it)
           if (hashItems().some((o) => o === "play" || o.startsWith("room="))) location.replace(location.pathname + location.search);
           else location.reload();
@@ -1391,7 +1390,7 @@
       // The touch interface on phones and tablets (see client/src/layout.rs).
       importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
       // after the pending writes, so that none is lost
-      window.addEventListener("hashchange", () => writesDone().then(() => (setTab([]), location.reload())));
+      window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
       importObject.env.vendetta_read = (ptr) => {
         new Uint8Array(wasm_memory.buffer, ptr, pendingRead.length).set(pendingRead);
         pendingRead = null;
@@ -1401,26 +1400,8 @@
 
   // The options in the URL's hash (see client/src/options.rs), which the game reads as it
   // starts: `play` starts it at once; without it, the pre-game menu shows them. The page never
-  // changes the address: what this tab plays (the options of the game started, a room) is kept
-  // for it alone, with the address it was at, and taken over that address's on a reload (not
-  // on another address). `new` (a new world) applies to one start only: it is not kept, so
-  // that reloading resumes that world.
+  // changes the address, and a reload starts afresh: "Continuer" resumes the saved game.
   const hashItems = () => decodeURIComponent(location.hash.slice(1)).split("&").filter((o) => o);
-  const tabKey = "vendetta-tab";
-  const tabItems = () => {
-    try {
-      const tab = JSON.parse(sessionStorage.getItem(tabKey));
-      return tab && tab.at === location.href ? tab.items : [];
-    } catch (e) {
-      return [];
-    }
-  };
-  const setTab = (items) => {
-    try {
-      if (items.length) sessionStorage.setItem(tabKey, JSON.stringify({ at: location.href, items }));
-      else sessionStorage.removeItem(tabKey);
-    } catch (e) {}
-  };
   // The settings of a world, as the menu shows them (and a link shares them).
   const settingFields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "paths", "chase", "speed", "seed"];
   // The window sharing a link to the page with `items` in its hash (none: the page alone),
@@ -1642,7 +1623,6 @@
     } catch (e) {}
     const named = name && !items.some((o) => o.startsWith("names="));
     startHash = (named ? [...items, "names=" + encodeURIComponent(name)] : items).join("&");
-    setTab(kept);
     document.getElementById("menu").hidden = true;
     loadingScreen.hidden = false;
     bubble.hidden = false;
@@ -2132,7 +2112,6 @@
     const showLobby = (msg) => {
       netRoom = msg.room;
       setNetSlot({ room: msg.room, token: msg.token });
-      setTab(["room=" + msg.room]);
       inRoom(true);
       $("room-code").textContent = msg.room;
       const host = msg.you === msg.host;
@@ -2263,7 +2242,12 @@
     $("join").addEventListener("click", () => {
       const code = $("code").value.trim().toUpperCase();
       if (!code) return fail(t("Entrez le code de la partie."));
-      if (name()) connect({ t: "join", room: code, name: name() });
+      // (one's place back in a game in progress, with its token)
+      const slot = netSlot();
+      if (slot.room === code && slot.token) {
+        netRoom = slot.room;
+        connect({ t: "rejoin", room: slot.room, token: slot.token });
+      } else if (name()) connect({ t: "join", room: code, name: name() });
     });
     $("leave").addEventListener("click", () => {
       setNetSlot(null);
@@ -2271,7 +2255,6 @@
       socket = null;
       if (ws) ws.close();
       inRoom(false);
-      setTab([]);
     });
     $("room-start").addEventListener("click", () => send({ t: "start" }));
     document.querySelector('[data-share="room"]').addEventListener("click", () => share(["room=" + netRoom], "Ce lien rejoint cette partie."));
@@ -2307,8 +2290,7 @@
 
     // The game loads at once, behind the menus.
     startGame();
-    // (this tab's game, on a reload, else the link's)
-    const at = tabItems().length ? tabItems() : hashItems();
+    const at = hashItems();
     const room = roomValue(at, "room");
     if (at.includes("play")) {
       begin(at);
