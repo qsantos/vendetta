@@ -66,6 +66,8 @@
   #main { display: flex; flex-direction: column; gap: 12px; }
   #main[hidden], #menu form[hidden] { display: none; }
   #main button { padding: 10px 14px; }
+  #main .about { margin: 0 0 4px; max-width: 360px; font-size: 13px; line-height: 1.45; color: #c8c8b0; }
+  #main .about a { color: #f0dc90; }
   /* Network play: entering a room, then the room itself. */
   #lobby { background: rgb(52, 70, 34); border: 3px solid rgb(120, 150, 70);
            border-radius: 12px; padding: 20px 28px; min-width: 360px; }
@@ -177,6 +179,7 @@
   const translations = {
     EN: {
       "Continuer": "Continue",
+      "Vendetta est un jeu de rôle en 2D vu de dessus du début des années 2000, centré sur la construction, l'artisanat, le commerce et le combat, bien avant que Minecraft n'existe. Voici un portage récent pour le Web, avec quelques agréments en plus. Pour un jeu plus récent de l'auteur original, voyez": "Vendetta is a 2D top-down RPG game from the early 2000s that focused on building, crafting, trading and fighting, before Minecraft ever existed. This is a recent port for the Web with some niceties added in. For a more recent game by the original author, look at",
       "Nouveau": "New game",
       "Multijoueur": "Multiplayer",
       "Langue": "Language",
@@ -315,6 +318,7 @@
     },
     ES: {
       "Continuer": "Continuar",
+      "Vendetta est un jeu de rôle en 2D vu de dessus du début des années 2000, centré sur la construction, l'artisanat, le commerce et le combat, bien avant que Minecraft n'existe. Voici un portage récent pour le Web, avec quelques agréments en plus. Pour un jeu plus récent de l'auteur original, voyez": "Vendetta es un juego de rol en 2D con vista cenital de principios de los años 2000, centrado en la construcción, la artesanía, el comercio y el combate, antes de que existiera Minecraft. Esta es una adaptación reciente para la Web, con algunas mejoras añadidas. Para un juego más reciente del autor original, mira",
       "Nouveau": "Nueva partida",
       "Multijoueur": "Multijugador",
       "Langue": "Idioma",
@@ -456,6 +460,7 @@
     },
     JA: {
       "Continuer": "続ける",
+      "Vendetta est un jeu de rôle en 2D vu de dessus du début des années 2000, centré sur la construction, l'artisanat, le commerce et le combat, bien avant que Minecraft n'existe. Voici un portage récent pour le Web, avec quelques agréments en plus. Pour un jeu plus récent de l'auteur original, voyez": "Vendetta は2000年代初頭の見下ろし型2Dロールプレイングゲームで、Minecraft が登場する前から建築・クラフト・交易・戦闘を中心にしていました。これはいくつかの改良を加えた、最近のWeb版です。原作者によるより新しいゲームはこちら：",
       "Nouveau": "新規",
       "Multijoueur": "マルチプレイ",
       "Langue": "言語",
@@ -597,6 +602,7 @@
     },
     ZH: {
       "Continuer": "继续",
+      "Vendetta est un jeu de rôle en 2D vu de dessus du début des années 2000, centré sur la construction, l'artisanat, le commerce et le combat, bien avant que Minecraft n'existe. Voici un portage récent pour le Web, avec quelques agréments en plus. Pour un jeu plus récent de l'auteur original, voyez": "Vendetta 是一款2000年代初的俯视角2D角色扮演游戏，早在 Minecraft 出现之前就以建造、制作、交易和战斗为核心。这是最近为网页移植的版本，并加入了一些便利改进。原作者较新的游戏请看：",
       "Nouveau": "新游戏",
       "Multijoueur": "多人游戏",
       "Langue": "语言",
@@ -770,6 +776,7 @@
   <div id="main">
     <button type="button" class="share-open" data-share="game">Partager</button>
     <h1>Vendetta</h1>
+    <p class="about">Vendetta est un jeu de rôle en 2D vu de dessus du début des années 2000, centré sur la construction, l'artisanat, le commerce et le combat, bien avant que Minecraft n'existe. Voici un portage récent pour le Web, avec quelques agréments en plus. Pour un jeu plus récent de l'auteur original, voyez <a href="https://store.steampowered.com/app/397160/Aurora_Dusk_Steam_Age/" target="_blank" rel="noopener">Aurora Dusk: Steam Age</a></p>
     <button type="button" id="continue" disabled>Continuer</button>
     <button type="button" id="new">Nouveau</button>
     <button type="button" id="multi">Multijoueur</button>
