@@ -139,7 +139,7 @@
 </style>
 <script>
   // The language (`Langues.ini` suffix): the menu's choice, else the address's `lang=`, else
-  // the original's French. The page's French texts are translated with `translations`, by
+  // the browser's first that the game has, else the original's French. The page's French texts are translated with `translations`, by
   // their French; the game reads the language as it starts (`vendetta_language`), and again
   // when the menus change it (see `setLanguage`).
   const languageKey = "vendetta-language";
@@ -149,7 +149,11 @@
       chosen = localStorage.getItem(languageKey);
     } catch (e) {}
     const item = decodeURIComponent(location.hash).split(/[#&]/).find((o) => o.startsWith("lang="));
-    return (chosen || (item ? item.slice(5) : "FR")).toUpperCase();
+    const offered = ["FR", "EN", "ES", "JA", "ZH"];
+    const browser = (navigator.languages || [navigator.language || ""])
+      .map((l) => l.slice(0, 2).toUpperCase())
+      .find((l) => offered.includes(l));
+    return (chosen || (item ? item.slice(5) : browser || "FR")).toUpperCase();
   })();
   // The page's texts by language, from their French.
   const translations = {
