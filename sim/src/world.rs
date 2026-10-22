@@ -101,7 +101,9 @@ pub struct WorldSetup {
     /// Map size in cells, ignored when loading a map.
     pub width: usize,
     pub height: usize,
-    pub world_type: usize,
+    /// `TerrainChoisi`: index into `Rules::world_types`; None (not in the original) for one
+    /// taken by chance, from the seed, among those with water or mountains.
+    pub world_type: Option<usize>,
     pub fiefs: Vec<FiefSetup>,
     /// Number of resource nodes is `resources + 1`, like `ReDim Ressources(n)`.
     pub resources: usize,
@@ -122,6 +124,8 @@ pub struct WorldSetup {
     pub torus: bool,
     /// How a random world's land is made.
     pub landscape: crate::landscape::Landscape,
+    /// The overall shape of a natural world's land; None for one taken by chance.
+    pub shape: Option<crate::landscape::Shape>,
     /// How characters find their way.
     pub paths: Paths,
     /// How characters chase a moving target.
@@ -200,7 +204,7 @@ impl Default for WorldSetup {
             seed: 0,
             width: 128,
             height: 128,
-            world_type: 1,
+            world_type: Some(1),
             fiefs: (0..4).map(|i| FiefSetup { people: i, team: i as i64 + 1, epoch: 0, citizens: 10 }).collect(),
             resources: 50,
             map: None,
@@ -212,6 +216,7 @@ impl Default for WorldSetup {
             roads: Roads::Ring,
             torus: false,
             landscape: Default::default(),
+            shape: None,
             paths: Paths::Greedy,
             chase: Chase::Direct,
             towns: Towns::Scattered,
@@ -240,6 +245,11 @@ impl World {
 
     /// `Commencer` for "NouveauMonde", then the start of `MoteurJeu`.
     pub fn create(rules: &Rules, files: &Files, setup: &WorldSetup) -> Result<World, String> {
+        let world_type = setup.world_type.unwrap_or_else(|| {
+            let relief = |t: &crate::rules::WorldType| t.surface.get(4).is_some_and(|&s| s > 0) || t.surface.get(11).is_some_and(|&s| s > 0);
+            let types: Vec<usize> = (0..rules.world_types.len()).filter(|&i| relief(&rules.world_types[i])).collect();
+            types.get((crate::landscape::roll(setup.seed, 0) * types.len() as f64) as usize).copied().unwrap_or(0)
+        });
         let mut world = World {
             rng: Rnd::new(setup.seed),
             terrain: Terrain::with_torus(setup.width, setup.height, setup.torus),
@@ -259,7 +269,7 @@ impl World {
             chase: setup.chase,
             towns: setup.towns,
             landscape: setup.landscape,
-            road: rules.world_types.get(setup.world_type).map_or(0, |t| t.road),
+            road: rules.world_types.get(world_type).map_or(0, |t| t.road),
             player: None,
             ai: Ai::default(),
             victory: false,
@@ -300,13 +310,13 @@ impl World {
                 world.resources = vec![ResourceNode { x: 0, y: 0, kind: 0 }; setup.resources + 1];
                 match setup.landscape {
                     crate::landscape::Landscape::Original => {
-                        world.generate_terrain(rules, setup.world_type);
+                        world.generate_terrain(rules, world_type);
                         world.place_castles_randomly();
                         world.init_castles(rules);
-                        world.build_roads(rules, setup.world_type, setup.roads);
+                        world.build_roads(rules, world_type, setup.roads);
                         world.place_resources(rules);
                     }
-                    crate::landscape::Landscape::Natural => world.generate_natural(rules, setup.world_type, setup.roads),
+                    crate::landscape::Landscape::Natural => world.generate_natural(rules, world_type, setup.roads, setup.shape),
                 }
             }
         }

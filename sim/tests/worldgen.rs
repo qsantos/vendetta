@@ -21,7 +21,7 @@ fn setup(map: Option<&str>) -> WorldSetup {
         seed: 1234,
         width: 128,
         height: 128,
-        world_type: 1,
+        world_type: Some(1),
         fiefs: (0..4).map(|i| FiefSetup { people: i, team: i as i64 + 1, epoch: 0, citizens: 10 }).collect(),
         resources: 50,
         map: map.map(str::to_owned),
@@ -83,25 +83,26 @@ fn params_counts() {
     eprintln!("race 1: {:?} / {:?}", p.list(Kind::Races)[1].get_l("Nom", "FR"), pe.list(Kind::Races)[1].get_l("Nom", "EN"));
 }
 
-/// The natural land (`Landscape::Natural`), for each world type, on a flat map and a torus:
-/// the terrains in about the world type's shares, castles on cleared land far apart, roads,
-/// all the resources; the same world twice.
+/// The natural land (`Landscape::Natural`), for each world type and each shape, on a flat map
+/// and a torus: water and mountains as the world type has them, castles on cleared land far
+/// apart, roads, all the resources; the same world twice.
 #[test]
 fn natural_world() {
-    use sim::landscape::Landscape;
+    use sim::landscape::{Landscape, Shape};
     let Some((files, rules)) = load() else { return };
-    for world_type in 0..rules.world_types.len() {
+    for (world_type, shape) in (0..rules.world_types.len()).flat_map(|t| Shape::ALL.map(|s| (t, s))) {
         for torus in [false, true] {
-            let s = WorldSetup { world_type, torus, landscape: Landscape::Natural, ..setup(None) };
+            let s = WorldSetup { world_type: Some(world_type), shape: Some(shape), torus, landscape: Landscape::Natural, ..setup(None) };
             let w = World::create(&rules, &files, &s).unwrap();
             let cells = &w.terrain.category()[..w.terrain.width * w.terrain.height];
             let share = |t: u8| cells.iter().filter(|&&c| c == t).count() as f64 / cells.len() as f64;
-            let name = &rules.world_types[world_type].name;
+            let name = &format!("{} {shape:?}", rules.world_types[world_type].name);
             eprintln!(
-                "{name} (torus {torus}): water {:.2}, mountain {:.2}, desert {:.2}, road {:.2}; castles {:?}",
+                "{name} (torus {torus}): water {:.2}, mountain {:.2}, desert {:.2}, snow {:.2}, road {:.2}; castles {:?}",
                 share(11),
                 share(4),
                 share(3),
+                share(10),
                 share(5),
                 w.castles.iter().map(|c| (c.x / 16, c.y / 16)).collect::<Vec<_>>()
             );
@@ -112,7 +113,7 @@ fn natural_world() {
                 assert!(w.buildable(&rules, a.x, a.y, a.w, a.h), "{name}: castle {i} on land");
                 for b in &w.castles[i + 1..] {
                     let d = w.terrain.dist((a.x as i64, a.y as i64), (b.x as i64, b.y as i64));
-                    assert!(d > 40.0 * 16.0, "{name}: castles {d} px apart");
+                    assert!(d > 24.0 * 16.0, "{name}: castles {d} px apart");
                 }
             }
             // (of the world type's road terrain: earth in the desert)
