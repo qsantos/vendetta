@@ -47,7 +47,108 @@ pub enum Trained {
     Object(usize),
 }
 
+/// What a character keeps from game to game (the original's `.per`): the XP of its bars and
+/// skills, and its bestiary. Levels are not kept: they follow from the XP.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct Progress {
+    pub bars: Vec<f64>,
+    pub special: Vec<f64>,
+    pub resources: Vec<f64>,
+    pub services: Vec<f64>,
+    pub objects: Vec<f64>,
+    pub bestiary: Vec<i64>,
+}
+
+impl Progress {
+    /// As text: `b=…;s=…;r=…;v=…;o=…;k=…`, the XP of the bars, the special, resource, service
+    /// and object skills, and the kills per race, each a list of numbers (to the hundredth;
+    /// without the trailing zeros, nor an empty list).
+    pub fn text(&self) -> String {
+        fn list(v: impl Iterator<Item = String>) -> String {
+            let mut v: Vec<String> = v.collect();
+            while v.last().is_some_and(|x| x == "0") {
+                v.pop();
+            }
+            v.join(",")
+        }
+        let xp = |v: &[f64]| {
+            list(v.iter().map(|x| {
+                let s = format!("{x:.2}");
+                let s = s.trim_end_matches('0').trim_end_matches('.');
+                if s == "-0" { "0".to_owned() } else { s.to_owned() }
+            }))
+        };
+        let groups = [("b", xp(&self.bars)), ("s", xp(&self.special)), ("r", xp(&self.resources)), ("v", xp(&self.services)), ("o", xp(&self.objects)), ("k", list(self.bestiary.iter().map(i64::to_string)))];
+        groups.iter().filter(|(_, v)| !v.is_empty()).map(|(k, v)| format!("{k}={v}")).collect::<Vec<_>>().join(";")
+    }
+
+    /// From `text`'s form; None when it is not one.
+    pub fn parse(s: &str) -> Option<Progress> {
+        let mut p = Progress::default();
+        for group in s.split(';').filter(|g| !g.is_empty()) {
+            let (k, v) = group.split_once('=')?;
+            let numbers = || v.split(',').filter(|x| !x.is_empty());
+            let xp = || numbers().map(|x| x.parse::<f64>().ok().filter(|x| x.is_finite() && *x >= 0.0)).collect::<Option<Vec<f64>>>();
+            match k {
+                "b" => p.bars = xp()?,
+                "s" => p.special = xp()?,
+                "r" => p.resources = xp()?,
+                "v" => p.services = xp()?,
+                "o" => p.objects = xp()?,
+                "k" => p.bestiary = numbers().map(|x| x.parse().ok().filter(|x| *x >= 0)).collect::<Option<_>>()?,
+                _ => return None,
+            }
+        }
+        Some(p)
+    }
+}
+
 impl Perso {
+    /// What the character would keep (see [`Progress`]).
+    pub fn progress(&self) -> Progress {
+        let xp = |v: &[crate::perso::Skill]| v.iter().map(|s| s.xp.exp).collect();
+        Progress {
+            bars: self.bar_xp.iter().map(|x| x.exp).collect(),
+            special: xp(&self.special),
+            resources: xp(&self.resource_skills),
+            services: xp(&self.services),
+            objects: xp(&self.objects),
+            bestiary: self.bestiary.clone(),
+        }
+    }
+
+    /// `Charger_Sauvegarde_Perso`'s part: the XP of `progress` (what the rules have room for),
+    /// its levels (`Gestion_Tous_Niveaux`), its bestiary, and the bars as full as they were.
+    pub fn set_progress(&mut self, rules: &Rules, progress: &Progress) {
+        let share = |v: f64, max: i64| if max > 0 { v / max as f64 } else { 1.0 };
+        let bars: [f64; 4] = std::array::from_fn(|i| share(self.bars[i], self.bonus_max[i]));
+        let (attack, defense) = (share(self.attack, self.bonus_max[4]), share(self.defense, self.bonus_max[5]));
+        let groups: [(&[f64], fn(usize) -> Trained); 5] = [
+            (&progress.bars, Trained::Bar),
+            (&progress.special, Trained::Special),
+            (&progress.resources, Trained::Resource),
+            (&progress.services, Trained::Service),
+            (&progress.objects, Trained::Object),
+        ];
+        let counts = [6, self.special.len(), self.resource_skills.len(), self.services.len(), self.objects.len()];
+        for ((values, trained), n) in groups.into_iter().zip(counts) {
+            for (i, &v) in values.iter().enumerate().take(n) {
+                let t = trained(i);
+                self.xp_mut(t).1.exp = v;
+                self.train(rules, t, 0.0);
+            }
+        }
+        for (k, &v) in self.bestiary.iter_mut().zip(&progress.bestiary) {
+            *k = v;
+        }
+        self.update_bonus(rules);
+        for (i, s) in bars.into_iter().enumerate() {
+            self.bars[i] = s * self.bonus_max[i] as f64;
+        }
+        self.attack = attack * self.bonus_max[4] as f64;
+        self.defense = defense * self.bonus_max[5] as f64;
+    }
+
     fn xp_mut(&mut self, t: Trained) -> (&mut i64, &mut Xp, f64) {
         let s = match t {
             Trained::Bar(i) => return (&mut self.max[i], &mut self.bar_xp[i], XP_COEFS[i]),

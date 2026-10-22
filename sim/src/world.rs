@@ -159,6 +159,8 @@ pub struct CharacterSetup {
     /// The look's files (keys as `Files` lists them): one of each of the race's lists for the
     /// sex, in order (a single one for a race that has whole sheets).
     pub look: Vec<String>,
+    /// What it kept from its earlier games, if anything.
+    pub progress: Option<crate::stats::Progress>,
 }
 
 impl CharacterSetup {
@@ -354,6 +356,7 @@ impl World {
         // its race (with the race's starting objects only), sex and look (once every character
         // has drawn one, below).
         let mut looks = Vec::new();
+        let mut progressed = Vec::new();
         for (k, &fief) in setup.players.iter().enumerate() {
             if let Some(i) = world.persos.iter().position(|p| p.fief == fief && !p.player) {
                 world.persos[i].player = true;
@@ -368,6 +371,9 @@ impl World {
                     p.change_race(rules, &mut world.rng, c.race, false);
                     p.female = c.female;
                     looks.push((i, look));
+                    if let Some(progress) = &c.progress {
+                        progressed.push((i, progress));
+                    }
                 }
                 world.player.get_or_insert(i);
             }
@@ -421,6 +427,10 @@ impl World {
         }
         for p in &mut world.persos {
             p.update_bonus(rules);
+        }
+        // the characters' XP from their earlier games (`Charger_Sauvegarde_Perso`)
+        for (i, progress) in progressed {
+            world.persos[i].set_progress(rules, progress);
         }
         for f in 0..world.fiefs.len() {
             world.markets_refresh(f);
