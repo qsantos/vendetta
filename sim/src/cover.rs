@@ -36,10 +36,9 @@ impl Free {
     pub const EVERYWHERE: Free = Free { everywhere: true, buildings: [0; 2] };
 }
 
-/// How far a walker's feet are from the corner of the cell its speed is read in (that of its
-/// lowest cell's corner, see `Perso::speed_coef_effect`), give or take: the middle of a
-/// character, near its bottom.
-const FEET: i32 = 20;
+/// How far a walker's feet are from where its speed is read (the corner of its lowest cell,
+/// see `Perso::speed_coef_effect`), give or take: the middle of a character, near its bottom.
+const FEET: i32 = 12;
 
 impl Cover {
     /// Places the `castles` and `houses` standing, changing only where they changed since; or
@@ -110,7 +109,8 @@ impl Cover {
     }
 }
 
-/// The cells whose corner lies in `rect` less [`FEET`].
+/// The cells whose middle lies in `rect` less [`FEET`] (cell `c` spans from `16c - 8` to
+/// `16c + 8`, see [`Terrain::index_at`]).
 fn cells(terrain: &Terrain, (x, y, w, h): Rect) -> impl Iterator<Item = usize> + '_ {
     let span = |from: i32, len: i32| (from - FEET + CELL - 1).div_euclid(CELL)..(from - FEET + len + CELL - 1).div_euclid(CELL);
     let (cols, rows) = (span(x, w), span(y, h));
