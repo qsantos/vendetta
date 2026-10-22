@@ -1,7 +1,6 @@
-//! Not in the original: the buildings slow those who walk through them, like walls, but for
-//! the one they go to or leave (see [`Free`]), with compact towns (`Towns::Compact`), whose
-//! lanes then make streets. Which building stands on each cell, kept up to date as they are
-//! built and fall.
+//! Not in the original: the buildings slow those who walk through them, like walls, with
+//! compact towns (`Towns::Compact`), whose streets then make the ways through a town. Which
+//! building stands on each cell, kept up to date as they are built and fall.
 
 use crate::building::Building;
 use crate::terrain::{CELL, Terrain, wrap_axis};
@@ -23,17 +22,17 @@ pub struct Cover {
     placed: Vec<Option<Rect>>,
 }
 
-/// The buildings that do not slow a walker: the one it goes to and the one it is leaving (or
-/// none at all).
+/// Whether the buildings slow a walker: not one that flies, or where they do not slow at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Free {
     everywhere: bool,
-    buildings: [u32; 2],
 }
 
 impl Free {
-    /// Nothing slows (no building does in the original).
-    pub const EVERYWHERE: Free = Free { everywhere: true, buildings: [0; 2] };
+    /// No building slows (none does in the original).
+    pub const EVERYWHERE: Free = Free { everywhere: true };
+    /// Every building slows.
+    pub const NOWHERE: Free = Free { everywhere: false };
 }
 
 /// How far a walker's feet are from where its speed is read (the corner of its lowest cell,
@@ -80,32 +79,9 @@ impl Cover {
         self.under.is_empty()
     }
 
-    /// What does not slow a walker going to `to` (where its speed would be read there) and
-    /// leaving building `leaving` (as [`Cover::under`] gives it).
-    pub fn free(&self, terrain: &Terrain, to: (i64, i64), leaving: u32) -> Free {
-        if self.is_off() {
-            return Free::EVERYWHERE;
-        }
-        Free { everywhere: false, buildings: [self.under(terrain, to), leaving] }
-    }
-
-    /// The building of a walker whose speed is read at `at`, plus one; 0 for none.
-    pub fn under(&self, terrain: &Terrain, at: (i64, i64)) -> u32 {
-        self.at(terrain.index_at(at.0 as f64, at.1 as f64))
-    }
-
-    /// The building on cell `t` plus one, 0 for none.
-    fn at(&self, t: i64) -> u32 {
-        usize::try_from(t).ok().and_then(|t| self.under.get(t)).copied().unwrap_or(0)
-    }
-
-    /// Whether a building that is not `free` stands on cell `t`.
+    /// Whether a building stands on cell `t`, slowing a walker unless `free`.
     pub fn slows(&self, t: i64, free: Free) -> bool {
-        if free.everywhere {
-            return false;
-        }
-        let b = self.at(t);
-        b != 0 && !free.buildings.contains(&b)
+        !free.everywhere && usize::try_from(t).ok().and_then(|t| self.under.get(t)).is_some_and(|&b| b != 0)
     }
 }
 

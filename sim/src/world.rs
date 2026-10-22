@@ -528,7 +528,6 @@ impl World {
         self.tick += 1;
         self.index_positions(rules);
         self.cover_buildings();
-        self.leave_buildings();
         self.refill_god(rules);
         // Lire_Commandes: a failing command drops the rest of the queue.
         for order in orders {
@@ -623,25 +622,15 @@ impl World {
         self.terrain.cover = cover;
     }
 
-    /// Not in the original: the building each perso is leaving (see [`crate::cover`]): the one
-    /// it stands in while standing still or going there, until it steps out of it.
-    fn leave_buildings(&mut self) {
-        let cover = &self.terrain.cover;
-        for p in &mut self.persos {
-            let under = |(x, y): (i64, i64)| cover.under(&self.terrain, (x, y + p.h as i64 - 16));
-            let b = if cover.is_off() || !p.alive() { 0 } else { under((p.x, p.y)) };
-            p.leaving = if b != 0 && (b == p.leaving || !p.moving || b == under(p.dest)) { b } else { 0 };
-        }
-    }
-
-    /// The buildings that do not slow perso `i` (see [`crate::cover`]): none slows a flying
-    /// one or a projectile.
+    /// Whether the buildings slow perso `i` (see [`crate::cover`]): not a flying one or a
+    /// projectile.
     pub(crate) fn free(&self, i: usize) -> crate::cover::Free {
         let p = &self.persos[i];
-        if p.bonus_flying || p.projectile {
-            return crate::cover::Free::EVERYWHERE;
+        if p.bonus_flying || p.projectile || self.terrain.cover.is_off() {
+            crate::cover::Free::EVERYWHERE
+        } else {
+            crate::cover::Free::NOWHERE
         }
-        self.terrain.cover.free(&self.terrain, (p.dest.0, p.dest.1 + p.h as i64 - 16), p.leaving)
     }
 
     /// On a torus, brings perso `i` back onto the map after it walked off an edge, with its

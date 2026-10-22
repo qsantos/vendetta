@@ -297,9 +297,8 @@ fn head_off() {
     }
 }
 
-/// With compact towns, the buildings slow those who walk through them, but for the one they
-/// leave or go to: a walker goes round a castle, even its own, and out of one it stood in as
-/// fast as with the original's towns, where it goes through.
+/// With compact towns, the buildings slow those who walk through them: a walker goes round a
+/// castle, even its own; through it with the original's towns.
 #[test]
 fn around_a_castle() {
     use sim::orders::Order;
@@ -309,9 +308,9 @@ fn around_a_castle() {
     let Some(rules) = load() else { return };
     let files = Files::from_dir(&root).unwrap();
     let plain = (0..rules.terrains.len()).find(|&k| rules.terrains[k].speed == 1.0).unwrap() as u8;
-    // the ticks walking across the middle of fief `f`'s castle and the ticks to get there,
-    // from `from` cells left of its left side (or inside) to 3 right of its right side
-    let walk = |towns: Towns, own: bool, from: i64| {
+    // the ticks walking across the middle of a castle (the player's own or another's), from
+    // its left to its right
+    let inside = |towns: Towns, own: bool| {
         let setup = WorldSetup { seed: 7, paths: Paths::Fastest, towns, ..Default::default() };
         let mut w = World::create(&rules, &files, &setup).unwrap();
         w.terrain.category_mut().fill(plain);
@@ -322,27 +321,20 @@ fn around_a_castle() {
         let p = &mut w.persos[i];
         p.in_house = false;
         let y = cy + ch / 2 - (p.h as i64 - 16);
-        (p.x, p.y) = (cx - from * cell, y);
-        w.step(&rules, &[]);
-        let to = cx + cw + 3 * cell;
-        w.step(&rules, &[Order::Move { perso: i, x: to, y }]);
-        let (mut inside, mut ticks) = (0, None);
-        for k in 0..300 {
+        (p.x, p.y) = (cx - 3 * cell, y);
+        w.step(&rules, &[Order::Move { perso: i, x: cx + cw + 3 * cell, y }]);
+        let mut inside = 0;
+        for _ in 0..300 {
             w.step(&rules, &[]);
             let p = &w.persos[i];
             let feet = (p.x, p.y + p.h as i64 - 16);
             if (cx + cell..cx + cw - cell).contains(&feet.0) && (cy + cell..cy + ch - cell).contains(&feet.1) {
                 inside += 1;
             }
-            if p.x == to && ticks.is_none() {
-                ticks = Some(k);
-            }
         }
-        (inside, ticks.unwrap())
+        inside
     };
-    assert_eq!(walk(Towns::Compact, false, 3).0, 0);
-    assert_eq!(walk(Towns::Compact, true, 3).0, 0);
-    assert!(walk(Towns::Scattered, false, 3).0 > 0);
-    let centre = -2;
-    assert_eq!(walk(Towns::Compact, false, centre).1, walk(Towns::Scattered, false, centre).1);
+    assert_eq!(inside(Towns::Compact, false), 0);
+    assert_eq!(inside(Towns::Compact, true), 0);
+    assert!(inside(Towns::Scattered, false) > 0);
 }
