@@ -39,6 +39,25 @@ impl World {
         self.soldiers_follow(rules, i, true);
     }
 
+    /// The arrow keys (`ClsIntTouches.cls:302-345`): walk a step in direction (dx, dy) from
+    /// where the character is, as far as it goes in a tick and one more pixel (a ghost's pace
+    /// when dead), within the map; shooting at the ground goes on while walking.
+    pub fn walk_step(&mut self, rules: &Rules, i: usize, dx: i64, dy: i64) {
+        let p = &self.persos[i];
+        let j = if p.alive() { p.bonus_move } else { 6 } + 1;
+        let (mut x, mut y) = (p.x + dx * j, p.y + dy * j);
+        if !self.terrain.torus {
+            let (w, h) = self.terrain.size_px();
+            x = x.clamp(0, (w - p.w as i64).max(0));
+            y = y.clamp(0, (h - p.h as i64).max(0));
+        }
+        let shooting = p.action == crate::combat::ATTACK_GROUND;
+        self.walk_to(rules, i, x, y);
+        if shooting {
+            self.persos[i].action = crate::combat::ATTACK_GROUND;
+        }
+    }
+
     /// `Rentrer_Maison`: walk to house `h` to live or work in it (or to build it).
     pub fn go_home(&mut self, rules: &Rules, i: usize, h: usize, enter: bool) {
         let (p, m) = (&mut self.persos[i], &self.houses[h]);

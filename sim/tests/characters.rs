@@ -105,3 +105,28 @@ fn progress_text() {
     }
     assert_eq!(Progress::parse(""), Some(Progress::default()));
 }
+
+/// The arrow keys walk the character a step at a time, as long as they are held, within the
+/// map.
+#[test]
+fn arrow_keys() {
+    use sim::orders::Order;
+    let Some((files, rules)) = load() else { return };
+    let setup = WorldSetup { seed: 3, ..Default::default() };
+    let mut w = World::create(&rules, &files, &setup).unwrap();
+    let perso = w.player.unwrap();
+    let start = (w.persos[perso].x, w.persos[perso].y);
+    for _ in 0..20 {
+        w.step(&rules, &[Order::Step { perso, dx: 1, dy: -1 }]);
+    }
+    let (x, y) = (w.persos[perso].x, w.persos[perso].y);
+    assert!(x > start.0 + 20 && y < start.1 - 20, "{start:?} → {:?}", (x, y));
+    // released: it stops right away
+    for _ in 0..10 {
+        w.step(&rules, &[]);
+    }
+    let p = &w.persos[perso];
+    assert!((p.x - x).abs() <= 2 * p.bonus_move + 2 && (p.y - y).abs() <= 2 * p.bonus_move + 2);
+    // a bad direction is no order
+    w.step(&rules, &[Order::Step { perso, dx: 2, dy: 0 }]);
+}

@@ -103,6 +103,7 @@ fn sends_character(order: &Order) -> bool {
     matches!(
         order,
         Move { .. }
+            | Step { .. }
             | Harvest { .. }
             | FindResource { .. }
             | GoOwnCastle { .. }
@@ -503,6 +504,8 @@ async fn main() {
     let mut view = (0, 0);
     let mut cam = (0, 0);
     let mut orders = Vec::new();
+    // The tick of the last step the arrow keys made (one a tick).
+    let mut stepped_at = None;
     // When the next tick is due, in solo and in network play.
     let mut next_tick = get_time();
     let mut net_due = 0.0f64;
@@ -690,6 +693,14 @@ async fn main() {
         }
         let radial_was_open = hud.radial_open();
         let given = orders.len();
+        // The arrow keys walk the character while held (`ClsIntTouches.cls:302-345`, there
+        // every frame; here once a tick, which is when it walks).
+        let arrow = |minus, plus| is_key_down(plus) as i64 - is_key_down(minus) as i64;
+        let (dx, dy) = (arrow(KeyCode::Left, KeyCode::Right), arrow(KeyCode::Up, KeyCode::Down));
+        if (dx, dy) != (0, 0) && stepped_at != Some(world.tick) {
+            stepped_at = Some(world.tick);
+            orders.push(Order::Step { perso: player, dx, dy });
+        }
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
         if input.left_pressed {
             pressed_on_map = !on_ui;

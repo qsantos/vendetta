@@ -13,6 +13,9 @@ use serde::{Deserialize, Serialize};
 pub enum Order {
     /// `PersoDeplacer`: walk so that the character's top-left lands on (x, y).
     Move { perso: usize, x: i64, y: i64 },
+    /// `PersoDeplacerSansCommentaire` from the arrow keys: a step in direction (dx, dy), each
+    /// -1, 0 or 1.
+    Step { perso: usize, dx: i64, dy: i64 },
     /// `PersoChercherRessource`: harvest resource node `node`.
     Harvest { perso: usize, node: usize },
     /// `PersoTrouverRessource`: harvest the nearest node of terrain resource type `kind`.
@@ -155,6 +158,7 @@ impl Order {
         use Order::*;
         match *self {
             Move { perso, .. }
+            | Step { perso, .. }
             | Harvest { perso, .. }
             | FindResource { perso, .. }
             | GoOwnCastle { perso }
@@ -230,6 +234,11 @@ impl World {
         let check = |i: usize, n: usize| if i < n { Ok(()) } else { Err(()) };
         match *order {
             Move { x, y, .. } => self.walk_to(rules, perso, x, y),
+            Step { dx, dy, .. } => {
+                check((dx + 1) as usize, 3)?;
+                check((dy + 1) as usize, 3)?;
+                self.walk_step(rules, perso, dx, dy);
+            }
             Harvest { node, .. } => {
                 check(node, self.resources.len())?;
                 self.go_harvest(rules, perso, node);
