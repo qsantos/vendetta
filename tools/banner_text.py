@@ -11,10 +11,11 @@ them is smaller and plainer. The whole of it is dithered to a checkerboard, to b
 
 writes the banner as the game loads it (RGBA, half opacity, colours of a 16-bit display), and
 
-    python3 -I tools/banner_text.py build Donnees/Langues.ini OUT_DIR
+    python3 -I tools/banner_text.py build ASSETS
 
-those of every language of `Langues.ini` with a text in `TEXTS`, as
-`OUT_DIR/VictoireDefaite<suffix>.png`; only those older than this script are redrawn.
+those of every language of `ASSETS/Donnees/Langues.ini`, as
+`ASSETS/Images/Fenetres/Banniere<suffix>.png`, listed in `ASSETS/manifest.txt`; only those
+older than this script are redrawn.
 """
 
 import argparse
@@ -195,19 +196,39 @@ def suffixes(langues_ini):
         return [m.group(1).strip().upper() for m in re.finditer(r"(?im)^\s*Suffixe\s*=\s*(\S+)", f.read())]
 
 
-def build(langues_ini, out_dir, keep):
-    os.makedirs(out_dir, exist_ok=True)
+def fnv1a(data):
+    """assetconv's content hash."""
+    h = 0xCBF29CE484222325
+    for b in data:
+        h = ((h ^ b) * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return h
+
+
+def build(assets):
     here = os.path.getmtime(__file__)
-    for suffix in suffixes(langues_ini):
-        if suffix in keep:
-            continue  # the original's
+    written = []
+    for suffix in suffixes(os.path.join(assets, "Donnees", "Langues.ini")):
         if suffix not in TEXTS:
             raise SystemExit(f"no banner text for language {suffix}: add it to TEXTS in {__file__}")
-        dst = os.path.join(out_dir, f"VictoireDefaite{suffix}.png")
+        rel = f"Images/Fenetres/Banniere{suffix}.png"
+        dst = os.path.join(assets, rel)
+        written.append(rel)
         if os.path.exists(dst) and os.path.getmtime(dst) > here:
             continue
         victory, defeat, under, font, index = TEXTS[suffix]
-        as_loaded(solid(victory, defeat, under, font, index)).save(dst)
+        as_loaded(solid(victory, defeat, under, font, index)).save(dst, optimize=True)
+    manifest = os.path.join(assets, "manifest.txt")
+    with open(manifest, encoding="utf-8") as f:
+        text = f.read()
+    lines = {l.split("\t")[0]: l for l in text.split("\n") if l.strip()}
+    for rel in written:
+        with open(os.path.join(assets, rel), "rb") as f:
+            data = f.read()
+        lines[rel] = f"{rel}\t{len(data)}\t{fnv1a(data):016x}"
+    new = "\n".join(sorted(lines.values())) + "\n"
+    if new != text:
+        with open(manifest, "w", encoding="utf-8") as f:
+            f.write(new)
 
 
 def main():
@@ -222,12 +243,10 @@ def main():
     d.add_argument("--seed", type=int, default=1)
     d.add_argument("--form", choices=["loaded", "solid", "checkerboard"], default="loaded")
     b = sub.add_parser("build", help="every language")
-    b.add_argument("languages", help="Donnees/Langues.ini")
-    b.add_argument("out")
-    b.add_argument("--keep", nargs="*", default=["FR"], help="languages whose original banner is kept")
+    b.add_argument("assets")
     a = p.parse_args()
     if a.command == "build":
-        build(a.languages, a.out, set(a.keep))
+        build(a.assets)
         return
     victory, defeat, under, font, index = TEXTS[a.suffix] if a.suffix else (*a.texts, a.font, a.index)
     rgb = solid(victory, defeat, under, font, index, a.seed)

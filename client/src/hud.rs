@@ -169,16 +169,22 @@ pub struct Hud {
     follow_requested: bool,
 }
 
-/// `Fenetres\VictoireDefaite` in the language of suffix `suffix`: "Victoire" over "Défaite",
-/// 320×200 each; only in French and English.
+/// The victory and defeat banner in the language of suffix `suffix`, "Victoire" over
+/// "Défaite", 320×200 each: the original's `Fenetres\VictoireDefaite` (only in French and
+/// English) redrawn in every language (see tools/banner_text.py).
 fn banner(suffix: &str) -> String {
-    format!("Images/Fenetres/VictoireDefaite{}.png", if suffix == "FR" { "FR" } else { "EN" })
+    format!("Images/Fenetres/Banniere{suffix}.png")
+}
+
+/// The banner of the language in folder `lang`.
+fn banner_of(files: &Files, lang: &str) -> String {
+    banner(&sim::rules::languages(files).into_iter().find(|l| l.folder == lang).map_or_else(|| "FR".to_owned(), |l| l.suffix))
 }
 
 /// Images the HUD needs.
-pub fn images(rules: &Rules) -> Vec<String> {
+pub fn images(rules: &Rules, languages: &[sim::rules::Language]) -> Vec<String> {
     let mut v: Vec<String> = [INFOS, DEPLACEMENT, OBJETS, CURSOR].map(String::from).to_vec();
-    v.extend(["FR", "EN"].map(banner));
+    v.extend(languages.iter().map(|l| banner(&l.suffix)));
     v.extend(buttons::images(rules));
     v.extend(windows::images(rules));
     v
@@ -303,7 +309,7 @@ impl Hud {
             placing: None,
             cursor_css: 24.0,
             browser_cursor: None,
-            banner: banner(&sim::rules::languages(files).into_iter().find(|l| l.folder == lang).map_or_else(|| "FR".to_owned(), |l| l.suffix)),
+            banner: banner_of(files, lang),
             rebuild_elsewhere: false,
             // The building window starts enabled (`Actionner_Boutons_Infos 0`).
             info_enabled: [true, false, false, false, false, false, false, false, false],
@@ -340,6 +346,7 @@ impl Hud {
         self.windows.set_strings(window_strings);
         self.tooltip_labels = tooltip_labels;
         self.messages.set_texts(messages::MessageLog::load(files, lang));
+        self.banner = banner_of(files, lang);
         // the texts made once per tick
         self.cache_tick = None;
     }

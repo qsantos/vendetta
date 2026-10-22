@@ -46,6 +46,8 @@ cargo run --release -q -p sim --example races assets >dist/races.json
 races=$(sha256sum dist/races.json | cut -c1-16)
 sed -i "s|\"races.json\"|\"races.json?v=$races\"|" dist/index.html
 grep -q "races.json?v=$races" dist/index.html
+# The victory and defeat banner, redrawn in every language (see tools/banner_text.py).
+python3 -I tools/banner_text.py build assets
 # The files the game loads as it starts, in a few bundles (see bundle.py), and their index,
 # versioned like the game.
 python3 bundle.py assets dist

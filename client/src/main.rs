@@ -256,7 +256,7 @@ async fn load_game(progress: loading::Progress) -> Result<Loaded, String> {
     }
     let mut textures = assets::Textures::new(&manifest);
     let (terrain, persos) = render::images(&rules, &manifest);
-    let hud = hud::images(&rules);
+    let hud = hud::images(&rules, &languages);
     let all: Vec<String> = terrain.iter().chain(&persos).chain(&hud).cloned().collect();
     let images: u64 = textures.missing(&all).iter().map(|p| assets::image_work(manifest.size(p))).sum();
     progress.set_total(manifest.data_bytes() + images + effects::SOUND_WORK);
