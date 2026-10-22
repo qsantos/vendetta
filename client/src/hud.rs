@@ -115,6 +115,9 @@ pub struct Hud {
     build_slide: i32,
     /// Building type being placed (`NoBatiment`), from a build button.
     pub placing: Option<usize>,
+    /// `rebuild=elsewhere`: as in the original, a new house may not stand over the player's
+    /// own (which building it pulls down first).
+    pub rebuild_elsewhere: bool,
     /// Info buttons' `Enabled` (window open / paused).
     pub info_enabled: [bool; 9],
     windows: windows::Windows,
@@ -285,6 +288,7 @@ impl Hud {
             move_slide: -52,
             build_slide: -80,
             placing: None,
+            rebuild_elsewhere: false,
             // The building window starts enabled (`Actionner_Boutons_Infos 0`).
             info_enabled: [true, false, false, false, false, false, false, false, false],
             windows: windows::Windows::new(window_strings),

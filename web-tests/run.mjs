@@ -250,14 +250,15 @@ async function connect() {
 
 async function play(send, scene) {
   await send("Page.navigate", { url: "about:blank" });
-  // (the original's map with edges, its land and its towns, and French whatever the browser's
-  // language, unless the scene says otherwise)
+  // (the original's map with edges, its land, its towns, its monsters and its building, and
+  // French whatever the browser's language, unless the scene says otherwise)
   const edges = /(^|&)edges=/.test(scene.hash) ? "" : "&edges=closed";
   const land = /(^|&)land=/.test(scene.hash) ? "" : "&land=original";
   const towns = /(^|&)towns=/.test(scene.hash) ? "" : "&towns=scattered";
   const monsters = /(^|&)monsters=/.test(scene.hash) ? "" : "&monsters=wait";
+  const rebuild = /(^|&)rebuild=/.test(scene.hash) ? "" : "&rebuild=elsewhere";
   const lang = /(^|&)lang=/.test(scene.hash) ? "" : "&lang=FR";
-  await send("Page.navigate", { url: `http://127.0.0.1:${SERVER_PORT}/#test&${scene.hash}${edges}${land}${towns}${monsters}${lang}&play` });
+  await send("Page.navigate", { url: `http://127.0.0.1:${SERVER_PORT}/#test&${scene.hash}${edges}${land}${towns}${monsters}${rebuild}${lang}&play` });
   const evaluate = async (expression) => (await send("Runtime.evaluate", { expression, returnByValue: true })).result?.result?.value;
   for (let i = 0; ; i++) {
     if (i > 600) throw new Error(`the game did not load: ${await evaluate("document.body.innerText.slice(0, 300)")} ${errors.join("; ")}`);

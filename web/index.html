@@ -233,6 +233,9 @@
       "Monstres": "Monsters",
       "rôdent vers l'ennemi": "roam toward the enemy",
       "guettent une proie (l'original)": "lie in wait for prey (the original)",
+      "Nouvelle maison": "New home",
+      "aussi à la place de l'ancienne": "also in place of the old one",
+      "ailleurs seulement (l'original)": "only elsewhere (the original)",
       "fermés (l'original)": "closed (as in the original)",
       "Chemins": "Paths",
       "les plus rapides": "the fastest",
@@ -372,6 +375,9 @@
       "Monstres": "Monstruos",
       "rôdent vers l'ennemi": "merodean hacia el enemigo",
       "guettent une proie (l'original)": "acechan una presa (el original)",
+      "Nouvelle maison": "Nueva casa",
+      "aussi à la place de l'ancienne": "también en lugar de la antigua",
+      "ailleurs seulement (l'original)": "solo en otro sitio (el original)",
       "fermés (l'original)": "cerrados (el original)",
       "Chemins": "Trayectos",
       "les plus rapides": "los más rápidos",
@@ -514,6 +520,9 @@
       "Monstres": "モンスター",
       "rôdent vers l'ennemi": "敵に向かってうろつく",
       "guettent une proie (l'original)": "獲物を待ち伏せる（オリジナル）",
+      "Nouvelle maison": "新しい家",
+      "aussi à la place de l'ancienne": "古い家の場所にも",
+      "ailleurs seulement (l'original)": "別の場所のみ（オリジナル）",
       "fermés (l'original)": "閉じている（原作どおり）",
       "Chemins": "経路",
       "les plus rapides": "最速",
@@ -656,6 +665,9 @@
       "Monstres": "怪物",
       "rôdent vers l'ennemi": "向敌人游荡",
       "guettent une proie (l'original)": "伺机等待猎物（原版）",
+      "Nouvelle maison": "新房屋",
+      "aussi à la place de l'ancienne": "也可建在旧房屋原址",
+      "ailleurs seulement (l'original)": "只能建在别处（原版）",
       "fermés (l'original)": "封闭（原版）",
       "Chemins": "路径",
       "les plus rapides": "最快",
@@ -868,6 +880,11 @@
               <option value="">au-devant de la cible</option>
               <option value="direct">droit sur la cible (l'original)</option>
             </select></label>
+          <label>Nouvelle maison
+            <select name="rebuild">
+              <option value="">aussi à la place de l'ancienne</option>
+              <option value="elsewhere">ailleurs seulement (l'original)</option>
+            </select></label>
           <div class="buttons"><button type="button" class="original-close">Fermer</button></div>
         </div></div>
         <label>Vitesse <input type="number" name="speed" min="5" max="30" placeholder="10"></label>
@@ -954,6 +971,11 @@
         <select name="chase">
           <option value="">au-devant de la cible</option>
           <option value="direct">droit sur la cible (l'original)</option>
+        </select></label>
+      <label>Nouvelle maison
+        <select name="rebuild">
+          <option value="">aussi à la place de l'ancienne</option>
+          <option value="elsewhere">ailleurs seulement (l'original)</option>
         </select></label>
       <div class="buttons"><button type="button" class="original-close">Fermer</button></div>
     </div></div>
@@ -1432,7 +1454,7 @@
   // changes the address, and a reload starts afresh: "Continuer" resumes the saved game.
   const hashItems = () => decodeURIComponent(location.hash.slice(1)).split("&").filter((o) => o);
   // The settings of a world, as the menu shows them (and a link shares them).
-  const settingFields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "monsters", "paths", "chase", "speed", "seed"];
+  const settingFields = ["size", "world", "shape", "fiefs", "villagers", "roads", "edges", "land", "towns", "monsters", "paths", "chase", "rebuild", "speed", "seed"];
   // The window sharing a link to the page with `items` in its hash (none: the page alone),
   // as a QR code and an address to copy, `note` saying what it opens.
   const share = (items, note) => {
@@ -1763,7 +1785,7 @@
     // The settings that can be as in the original (their value then), in a window of their own
     // in `root` (the form, the room's settings), with a switch for them all; the button that
     // opens it tells how many are. Returns what shows that again, after a change from afar.
-    const original = { roads: "ring", edges: "closed", land: "original", towns: "scattered", monsters: "wait", paths: "greedy", chase: "direct" };
+    const original = { roads: "ring", edges: "closed", land: "original", towns: "scattered", monsters: "wait", paths: "greedy", chase: "direct", rebuild: "elsewhere" };
     const originalPanel = (root) => {
       const panel = root.querySelector(".original");
       const all = panel.querySelector(".all-original");

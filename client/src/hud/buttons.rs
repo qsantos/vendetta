@@ -710,7 +710,8 @@ impl Hud {
             && y >= 0
             && x + w <= world.terrain.width as i32 * 16
             && y + h <= world.terrain.height as i32 * 16;
-        let ok = inside_map && world.obstacle(rules, player, x, y, w, h) == 0;
+        let obstacle = if self.rebuild_elsewhere { world.obstacle(rules, player, x, y, w, h) } else { world.obstacle_rebuilding(rules, player, x, y, w, h) };
+        let ok = inside_map && obstacle == 0;
         (x, y, ok)
     }
 

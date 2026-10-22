@@ -472,6 +472,7 @@ async fn main() {
     let mut last_save = get_time();
     let mut save_size = 0;
     let mut hud = hud::Hud::new(hud::Strings::load(&files, &lang), hud::WindowStrings::load(&files, &lang), hud::TooltipLabels::load(&files, &lang), &files, &lang, rules.objects.len());
+    hud.rebuild_elsewhere = options.rebuild_elsewhere;
     for (i, &(object, left)) in options.recharges.iter().filter(|&&(o, _)| o < rules.objects.len()).enumerate() {
         let p = &mut world.persos[player];
         p.add_object(&rules, object);

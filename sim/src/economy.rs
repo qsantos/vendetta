@@ -1480,6 +1480,14 @@ impl World {
         self.obstacle_at(rules, i, x, y, w, h).0
     }
 
+    /// Not in the original: [`World::obstacle`] for perso `i` building a new house there, its
+    /// own house (which building pulls down first) counting for nothing.
+    pub fn obstacle_rebuilding(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32) -> i32 {
+        let found = self.obstacle_indexed(rules, i, x, y, w, h, false);
+        debug_assert_eq!(found, self.obstacle_scan(rules, i, x, y, w, h, false), "obstacle_rebuilding({i}, {x}, {y}, {w}, {h})");
+        found.0
+    }
+
     /// Indexes persos, houses and resource nodes by position for [`World::obstacle_at`], at the
     /// start of each tick.
     pub(crate) fn index_positions(&mut self, rules: &Rules) {
@@ -1504,8 +1512,8 @@ impl World {
     /// grids (`spatial.rs`), giving the same answers as scanning them in order, which debug
     /// builds check.
     pub fn obstacle_at(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32) -> (i32, usize) {
-        let found = self.obstacle_indexed(rules, i, x, y, w, h);
-        debug_assert_eq!(found, self.obstacle_scan(rules, i, x, y, w, h), "obstacle_at({i}, {x}, {y}, {w}, {h})");
+        let found = self.obstacle_indexed(rules, i, x, y, w, h, true);
+        debug_assert_eq!(found, self.obstacle_scan(rules, i, x, y, w, h, true), "obstacle_at({i}, {x}, {y}, {w}, {h})");
         found
     }
 
@@ -1516,7 +1524,9 @@ impl World {
         (x - reach - slack, y - reach - slack, x + side + slack, y + side + slack)
     }
 
-    fn obstacle_indexed(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32) -> (i32, usize) {
+    /// (`own`: whether perso `i`'s own house counts.)
+    #[allow(clippy::too_many_arguments)]
+    fn obstacle_indexed(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32, own: bool) -> (i32, usize) {
         let r = (x, y, w, h);
         let team = self.persos.get(i).map(|p| p.team).unwrap_or(0);
         let fief = self.persos.get(i).map(|p| p.fief).unwrap_or(0);
@@ -1548,7 +1558,7 @@ impl World {
         let sp = &self.spatial;
         let house = sp.houses.first(self.houses.len(), Self::reach(r, sp.house_reach, 1), |j| {
             let m = &self.houses[j];
-            m.visible() && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h))
+            (own || j != i) && m.visible() && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h))
         });
         if let Some(j) = house {
             let m = &self.houses[j];
@@ -1579,7 +1589,8 @@ impl World {
 
     /// `ModIA.Obstacle` as the original does it, scanning everything in order: what the grids
     /// must agree with.
-    fn obstacle_scan(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32) -> (i32, usize) {
+    #[allow(clippy::too_many_arguments)]
+    fn obstacle_scan(&self, rules: &Rules, i: usize, x: i32, y: i32, w: i32, h: i32, own: bool) -> (i32, usize) {
         let r = (x, y, w, h);
         let team = self.persos.get(i).map(|p| p.team).unwrap_or(0);
         let fief = self.persos.get(i).map(|p| p.fief).unwrap_or(0);
@@ -1605,7 +1616,7 @@ impl World {
             }
         }
         for (j, m) in self.houses.iter().enumerate() {
-            if m.visible() && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h)) {
+            if (own || j != i) && m.visible() && self.terrain.overlaps(r, (m.x, m.y, m.w, m.h)) {
                 let code = if j == i {
                     if m.complete() { 5 } else { 4 }
                 } else if self.persos[j].team == team {

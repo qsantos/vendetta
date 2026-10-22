@@ -51,6 +51,8 @@ pub struct Options {
     /// `chase=direct`: the original's way of chasing, straight for where the target is,
     /// instead of heading it off.
     pub direct_chase: bool,
+    /// `rebuild=elsewhere`: as in the original, a new house may not stand over the player's own.
+    pub rebuild_elsewhere: bool,
     /// `perf`: show where the time goes (see `perf.rs`).
     pub perf: bool,
     /// `new`: a new world, not the saved one (the page then takes `new` out of the address).
@@ -132,6 +134,7 @@ impl Options {
                 "land" => o.original_land = value.eq_ignore_ascii_case("original"),
                 "towns" => o.scattered_towns = value.eq_ignore_ascii_case("scattered"),
                 "monsters" => o.waiting_monsters = value.eq_ignore_ascii_case("wait"),
+                "rebuild" => o.rebuild_elsewhere = value.eq_ignore_ascii_case("elsewhere"),
                 "paths" => o.greedy_paths = value.eq_ignore_ascii_case("greedy"),
                 "chase" => o.direct_chase = value.eq_ignore_ascii_case("direct"),
                 "fiefs" => o.fiefs = value.parse::<usize>().ok().map(|n| n.clamp(2, 200)),
@@ -179,7 +182,7 @@ impl Options {
         // In network play every copy of the world must be the same: no cheats.
         if o.me.is_some() {
             let me = o.me;
-            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, world: o.world, shape: o.shape, original_land: o.original_land, scattered_towns: o.scattered_towns, waiting_monsters: o.waiting_monsters, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
+            o = Options { size: o.size, seed: o.seed, speed: o.speed, fiefs: o.fiefs, villagers: o.villagers, ring_roads: o.ring_roads, closed_edges: o.closed_edges, world: o.world, shape: o.shape, original_land: o.original_land, scattered_towns: o.scattered_towns, waiting_monsters: o.waiting_monsters, greedy_paths: o.greedy_paths, direct_chase: o.direct_chase, rebuild_elsewhere: o.rebuild_elsewhere, players: o.players, names: o.names, characters: o.characters, perf: o.perf, touch: o.touch, me, room: o.room, resume: o.resume, ..Default::default() };
             o.new = true;
         }
         o

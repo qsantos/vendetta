@@ -415,3 +415,29 @@ fn a_player_gives_to_another() {
     assert_eq!(w.persos[a].selected_object, -1);
     assert_eq!(count(&w, a), 0);
 }
+
+/// Not in the original: a new house may stand over the old one, which goes first (a share of
+/// its cost back), as if pulled down then built anew.
+#[test]
+fn rebuild_in_place() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = player(&mut w);
+    let farm = 0; // Ferme de blé: 5 wood
+    w.persos[i].set_resource(2, 10.0);
+    let (x, y) = site(&w, &rules, i, farm);
+    run(&mut w, &rules, &[Order::BuildHouse { perso: i, x, y, kind: farm }]);
+    run(&mut w, &rules, &[]);
+    let (bw, bh) = rules.buildings[farm].size;
+    let (x2, y2) = (x + 8, y + 8);
+    assert_eq!(w.obstacle(&rules, i, x2, y2, bw, bh), 4, "the own house, being built");
+    assert_eq!(w.obstacle_rebuilding(&rules, i, x2, y2, bw, bh), 0);
+    let wood = w.persos[i].resource(2);
+    run(&mut w, &rules, &[Order::BuildHouse { perso: i, x: x2, y: y2, kind: farm }]);
+    let m = &w.houses[i];
+    assert!(m.visible() && !m.built && (m.x, m.y) == (x2, y2));
+    assert!(w.persos[i].resource(2) >= wood - 5.0, "the new one paid, the old one's share (of what it is worth) back");
+    // (other buildings still count)
+    let c = &w.castles[w.persos[i].fief];
+    assert_ne!(w.obstacle_rebuilding(&rules, i, c.x, c.y, bw, bh), 0);
+}
