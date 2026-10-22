@@ -1,37 +1,38 @@
-//! Not in the original: the buildings slow those who walk through them, like walls, with
-//! compact towns (`Towns::Compact`), whose streets then make the ways through a town. Which
-//! building stands on each cell, kept up to date as they are built and fall.
+//! Not in the original: the houses slow those who walk through them, like walls, with compact
+//! towns (`Towns::Compact`), whose streets then make the ways through a town (not the castles,
+//! which everyone goes in and out of). Which house stands on each cell, kept up to date as
+//! they are built and fall.
 
 use crate::building::Building;
 use crate::terrain::{CELL, Terrain, wrap_axis};
 
-/// The speed through a building (that of the walls).
+/// The speed through a house (that of the walls).
 pub const BUILDING_SPEED: f64 = 0.2;
 
 type Rect = (i32, i32, i32, i32);
 
-/// Which building stands on each cell (none in the original, where they do not slow): a cell
-/// is under a building when the feet of a walker whose speed is read there are (castles and
-/// houses never overlap, so under one at most). Not saved: made again from the buildings.
+/// Which house stands on each cell (none in the original, where they do not slow): a cell is
+/// under a house when the feet of a walker whose speed is read there are (houses never
+/// overlap, so under one at most). Not saved: made again from the houses.
 #[derive(Debug, Clone, Default)]
 pub struct Cover {
-    /// For each cell (as [`Terrain::index_at`] gives them), its building's number plus one, 0
-    /// for none: the castles' first, then the houses'.
+    /// For each cell (as [`Terrain::index_at`] gives them), its house's number plus one, 0 for
+    /// none.
     under: Vec<u32>,
-    /// The place of each building on `under`, None when not standing.
+    /// The place of each house on `under`, None when not standing.
     placed: Vec<Option<Rect>>,
 }
 
-/// Whether the buildings slow a walker: not one that flies, or where they do not slow at all.
+/// Whether the houses slow a walker: not one that flies, or where they do not slow at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Free {
     everywhere: bool,
 }
 
 impl Free {
-    /// No building slows (none does in the original).
+    /// No house slows (none does in the original).
     pub const EVERYWHERE: Free = Free { everywhere: true };
-    /// Every building slows.
+    /// Every house slows.
     pub const NOWHERE: Free = Free { everywhere: false };
 }
 
@@ -40,9 +41,9 @@ impl Free {
 const FEET: i32 = 12;
 
 impl Cover {
-    /// Places the `castles` and `houses` standing, changing only where they changed since; or
-    /// clears it all when `on` is false.
-    pub fn update(&mut self, terrain: &Terrain, on: bool, castles: &[Building], houses: &[Building]) {
+    /// Places the `houses` standing, changing only where they changed since; or clears it all
+    /// when `on` is false.
+    pub fn update(&mut self, terrain: &Terrain, on: bool, houses: &[Building]) {
         if !on {
             *self = Cover::default();
             return;
@@ -51,8 +52,8 @@ impl Cover {
         if self.under.len() != n {
             *self = Cover { under: vec![0; n], placed: Vec::new() };
         }
-        self.placed.resize(castles.len() + houses.len(), None);
-        for (k, b) in castles.iter().chain(houses).enumerate() {
+        self.placed.resize(houses.len(), None);
+        for (k, b) in houses.iter().enumerate() {
             let now = b.visible().then_some((b.x, b.y, b.w, b.h));
             if self.placed[k] == now {
                 continue;
@@ -79,7 +80,7 @@ impl Cover {
         self.under.is_empty()
     }
 
-    /// Whether a building stands on cell `t`, slowing a walker unless `free`.
+    /// Whether a house stands on cell `t`, slowing a walker unless `free`.
     pub fn slows(&self, t: i64, free: Free) -> bool {
         !free.everywhere && usize::try_from(t).ok().and_then(|t| self.under.get(t)).is_some_and(|&b| b != 0)
     }

@@ -297,10 +297,10 @@ fn head_off() {
     }
 }
 
-/// With compact towns, the buildings slow those who walk through them: a walker goes round a
-/// castle, even its own; through it with the original's towns.
+/// With compact towns, the houses slow those who walk through them, not the castles: a walker
+/// goes round a house, through a castle; through both with the original's towns.
 #[test]
-fn around_a_castle() {
+fn around_a_house() {
     use sim::orders::Order;
     use sim::path::Paths;
     use sim::world::{Towns, World, WorldSetup};
@@ -308,15 +308,22 @@ fn around_a_castle() {
     let Some(rules) = load() else { return };
     let files = Files::from_dir(&root).unwrap();
     let plain = (0..rules.terrains.len()).find(|&k| rules.terrains[k].speed == 1.0).unwrap() as u8;
-    // the ticks walking across the middle of a castle (the player's own or another's), from
-    // its left to its right
-    let inside = |towns: Towns, own: bool| {
+    // the ticks walking across the middle of another fief's castle, or of a house put there
+    // instead, from its left to its right
+    let inside = |towns: Towns, house: bool| {
         let setup = WorldSetup { seed: 7, paths: Paths::Fastest, towns, ..Default::default() };
         let mut w = World::create(&rules, &files, &setup).unwrap();
         w.terrain.category_mut().fill(plain);
         let i = w.persos.iter().position(|p| p.player).unwrap();
-        let f = if own { w.persos[i].fief } else { (w.persos[i].fief + 1) % w.castles.len() };
-        let (cx, cy, cw, ch) = (w.castles[f].x as i64, w.castles[f].y as i64, w.castles[f].w as i64, w.castles[f].h as i64);
+        let f = (w.persos[i].fief + 1) % w.castles.len();
+        let (cx, cy, cw, ch) = (w.castles[f].x, w.castles[f].y, w.castles[f].w, w.castles[f].h);
+        if house {
+            let j = (0..w.houses.len()).find(|&j| j != i).unwrap();
+            w.castles[f].life = 0.0;
+            let m = &mut w.houses[j];
+            (m.x, m.y, m.w, m.h, m.life) = (cx, cy, cw, ch, 100.0);
+        }
+        let (cx, cy, cw, ch) = (cx as i64, cy as i64, cw as i64, ch as i64);
         let cell = CELL as i64;
         let p = &mut w.persos[i];
         p.in_house = false;
@@ -334,7 +341,7 @@ fn around_a_castle() {
         }
         inside
     };
-    assert_eq!(inside(Towns::Compact, false), 0);
     assert_eq!(inside(Towns::Compact, true), 0);
-    assert!(inside(Towns::Scattered, false) > 0);
+    assert!(inside(Towns::Compact, false) > 0);
+    assert!(inside(Towns::Scattered, true) > 0);
 }

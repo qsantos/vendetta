@@ -618,15 +618,15 @@ impl World {
         }
     }
 
-    /// Not in the original: where the buildings stand, which slows walkers with compact towns
+    /// Not in the original: where the houses stand, which slows walkers with compact towns
     /// (see [`crate::cover`]).
     fn cover_buildings(&mut self) {
         let mut cover = std::mem::take(&mut self.terrain.cover);
-        cover.update(&self.terrain, self.towns == Towns::Compact, &self.castles, &self.houses);
+        cover.update(&self.terrain, self.towns == Towns::Compact, &self.houses);
         self.terrain.cover = cover;
     }
 
-    /// Whether the buildings slow perso `i` (see [`crate::cover`]): not a flying one or a
+    /// Whether the houses slow perso `i` (see [`crate::cover`]): not a flying one or a
     /// projectile.
     pub(crate) fn free(&self, i: usize) -> crate::cover::Free {
         let p = &self.persos[i];
