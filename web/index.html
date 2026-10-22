@@ -1099,6 +1099,25 @@
   document.addEventListener("contextmenu", (e) => {
     if (!e.target.closest("#menu, #ingame")) e.preventDefault();
   });
+  // miniquad hears the mouse on the canvas only: a button pressed there and released off it
+  // (dragging the map past the edge of the page) would stay down for the game. The page passes
+  // its release on, and the moves until then; not those of a press elsewhere (the menus).
+  {
+    const canvas = document.getElementById("glcanvas");
+    const held = new Set();
+    canvas.addEventListener("mousedown", (e) => held.add(e.button));
+    const forward = (e, send) => {
+      if (e.target === canvas || typeof wasm_exports === "undefined") return;
+      const p = mouse_relative_position(e.clientX, e.clientY);
+      send(p);
+    };
+    window.addEventListener("mousemove", (e) => {
+      if (held.size) forward(e, (p) => wasm_exports.mouse_move(Math.floor(p.x), Math.floor(p.y)));
+    });
+    window.addEventListener("mouseup", (e) => {
+      if (held.delete(e.button)) forward(e, (p) => wasm_exports.mouse_up(p.x, p.y, into_sapp_mousebutton(e.button)));
+    });
+  }
 
   const loadingScreen = document.getElementById("loading");
   const bar = document.getElementById("bar");
