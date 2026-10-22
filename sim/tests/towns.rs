@@ -19,9 +19,11 @@ fn load() -> Option<(Files, Rules)> {
     Some((files, rules))
 }
 
-/// The houses standing after a while, by distance (in cells) to their fief's castle; and how
-/// many stand against another house of their fief.
-fn towns(files: &Files, rules: &Rules, towns: Towns, torus: bool) -> (Vec<f64>, usize) {
+/// The houses standing after a while, by distance (in cells) to their fief's castle; how many
+/// stand against another house of their fief; and how many pairs of them leave a way too
+/// narrow to walk between them (less than two cells; but for the summons', placed as in the
+/// original).
+fn towns(files: &Files, rules: &Rules, towns: Towns, torus: bool) -> (Vec<f64>, usize, usize) {
     let fiefs = (0..4).map(|i| FiefSetup { people: 0, team: i + 1, epoch: 0, citizens: 30 }).collect();
     let setup = WorldSetup { seed: 3, width: 192, height: 192, resources: 120, fiefs, towns, torus, landscape: Landscape::Natural, ..Default::default() };
     let mut w = World::create(rules, files, &setup).unwrap();
@@ -47,27 +49,41 @@ fn towns(files: &Files, rules: &Rules, towns: Towns, torus: bool) -> (Vec<f64>, 
             })
         })
         .count();
-    (distances, against)
+    let narrow = standing
+        .iter()
+        .flat_map(|&j| standing.iter().map(move |&k| (j, k)))
+        .filter(|&(j, k)| {
+            let (m, o) = (&w.houses[j], &w.houses[k]);
+            // (the gaps between them along each axis, negative when they overlap along it)
+            let (dx, dy) = (w.terrain.dx(m.x as i64, o.x as i64) as i32, w.terrain.dy(m.y as i64, o.y as i64) as i32);
+            let (gx, gy) = ((dx - m.w).max(-dx - o.w), (dy - m.h).max(-dy - o.h));
+            let against = gx == 0 && gy < 0 || gy == 0 && gx < 0;
+            let built = |i: usize| !w.persos[i].invocation();
+            j < k && w.persos[k].fief == w.persos[j].fief && built(j) && built(k) && !against && gx.max(gy) < 32
+        })
+        .count();
+    (distances, against, narrow)
 }
 
-/// Compact towns keep closer to their castle than the original's, their houses side by side
-/// in blocks.
+/// Compact towns keep closer to their castle than the original's, many of their houses side by
+/// side, with no way between them too narrow to walk.
 #[test]
 fn compact_towns() {
     let Some((files, rules)) = load() else { return };
     for torus in [false, true] {
-        let (scattered, apart) = towns(&files, &rules, Towns::Scattered, torus);
-        let (compact, against) = towns(&files, &rules, Towns::Compact, torus);
+        let (scattered, apart, _) = towns(&files, &rules, Towns::Scattered, torus);
+        let (compact, against, narrow) = towns(&files, &rules, Towns::Compact, torus);
         let median = |d: &[f64]| d[d.len() / 2];
         eprintln!(
-            "torus {torus}: {} houses scattered, median {:.1} cells, {apart} against another; {} compact, median {:.1}, {against} against another",
+            "torus {torus}: {} houses scattered, median {:.1} cells, {apart} against another; {} compact, median {:.1}, {against} against another, {narrow} narrow ways",
             scattered.len(),
             median(&scattered),
             compact.len(),
             median(&compact)
         );
         assert!(compact.len() >= 40);
-        assert!(median(&compact) < 0.9 * median(&scattered));
-        assert!(against * 2 >= compact.len() && apart * 5 <= scattered.len());
+        assert!(median(&compact) < median(&scattered));
+        assert!(against * 3 >= compact.len() && apart * 5 <= scattered.len());
+        assert_eq!(narrow, 0);
     }
 }
