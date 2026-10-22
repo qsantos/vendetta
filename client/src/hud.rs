@@ -115,6 +115,10 @@ pub struct Hud {
     build_slide: i32,
     /// Building type being placed (`NoBatiment`), from a build button.
     pub placing: Option<usize>,
+    /// How wide the cursor is in CSS pixels, and the one the browser draws (see
+    /// [`crate::storage::cursor`]).
+    pub cursor_css: f32,
+    browser_cursor: Option<(i32, i32)>,
     /// The victory and defeat banner, in the player's language (see [`banner`]).
     banner: String,
     /// `rebuild=elsewhere`: as in the original, a new house may not stand over the player's
@@ -297,6 +301,8 @@ impl Hud {
             move_slide: -52,
             build_slide: -80,
             placing: None,
+            cursor_css: 24.0,
+            browser_cursor: None,
             banner: banner(&sim::rules::languages(files).into_iter().find(|l| l.folder == lang).map_or_else(|| "FR".to_owned(), |l| l.suffix)),
             rebuild_elsewhere: false,
             // The building window starts enabled (`Actionner_Boutons_Infos 0`).
@@ -547,7 +553,15 @@ impl Hud {
         // A finger hides what is under it: the touch interface shows what a tap would do above
         // it, while it is down, and no arrow.
         let (m, shown) = if touch { ((input.mouse.0 - 12, input.mouse.1 - 64), input.hover && cursor != 0 && placement.is_none()) } else { (input.mouse, input.hover) };
-        if let Some(tex) = textures.get(CURSOR).filter(|_| shown) {
+        if !touch && crate::storage::browser_cursor() {
+            let size = (self.cursor_css.round() as i32).clamp(8, 128);
+            if let Some(sheet) = textures.pixels(CURSOR).filter(|_| self.browser_cursor != Some((cursor, size))) {
+                let w = sheet.width as usize;
+                let frame: Vec<u8> = (0..24).flat_map(|y| &sheet.bytes[(y * w + 24 * cursor as usize) * 4..][..24 * 4]).copied().collect();
+                crate::storage::cursor(cursor, size, &frame);
+                self.browser_cursor = Some((cursor, size));
+            }
+        } else if let Some(tex) = textures.get(CURSOR).filter(|_| shown) {
             tex.draw_ex(m.0 as f32, m.1 as f32, WHITE, DrawTextureParams { source: Some(Rect::new(24.0 * cursor as f32, 0.0, 24.0, 24.0)), ..Default::default() });
         }
         if let (None, Some((code, hit)), true) = (placement, hover, input.hover) {

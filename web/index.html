@@ -1464,6 +1464,24 @@
       // The touch interface on phones and tablets (see client/src/layout.rs).
       importObject.env.vendetta_touch_screen = () => matchMedia("(pointer: coarse)").matches;
       importObject.env.vendetta_pointer_out = () => pointerOut;
+      // The game's cursor, drawn by the browser (as a CSS cursor, its tip the hot spot).
+      const cursors = new Map();
+      importObject.env.vendetta_cursor = (kind, size, ptr) => {
+        const key = kind + "/" + size;
+        if (!cursors.has(key)) {
+          const frame = document.createElement("canvas");
+          frame.width = frame.height = 24;
+          const pixels = new Uint8ClampedArray(wasm_memory.buffer, ptr, 24 * 24 * 4).slice();
+          frame.getContext("2d").putImageData(new ImageData(pixels, 24, 24), 0, 0);
+          const scaled = document.createElement("canvas");
+          scaled.width = scaled.height = size;
+          const g = scaled.getContext("2d");
+          g.imageSmoothingEnabled = false;
+          g.drawImage(frame, 0, 0, size, size);
+          cursors.set(key, `url(${scaled.toDataURL()}) 0 0, auto`);
+        }
+        document.getElementById("glcanvas").style.cursor = cursors.get(key);
+      };
       // after the pending writes, so that none is lost
       window.addEventListener("hashchange", () => writesDone().then(() => location.reload()));
       importObject.env.vendetta_read = (ptr) => {

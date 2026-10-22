@@ -380,7 +380,7 @@ impl Textures {
         let page = self.pages.last().unwrap().0.clone();
         page.update_part(&image, x as i32, y as i32, w as i32, h as i32);
         let rect = Rect::new(x as f32, y as f32, w as f32, h as f32);
-        if k.starts_with("images/terrains/") {
+        if k.starts_with("images/terrains/") || k.starts_with("images/curseurs/") {
             self.pixels.insert(k.clone(), image);
         }
         self.loaded.insert(k, Sprite { page, rect });
@@ -395,7 +395,7 @@ impl Textures {
         self.loaded.get(&key(path))
     }
 
-    /// The pixels of an image kept on the CPU (only the terrain tileset).
+    /// The pixels of an image kept on the CPU (only the terrain tileset and the cursors).
     pub fn pixels(&self, path: &str) -> Option<&Image> {
         self.pixels.get(&key(path))
     }

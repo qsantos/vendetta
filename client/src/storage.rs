@@ -16,6 +16,9 @@ unsafe extern "C" {
     fn vendetta_touch_screen() -> bool;
     /// Whether the mouse is off the game's canvas (on the rest of the page, or out of it).
     fn vendetta_pointer_out() -> bool;
+    /// The mouse cursor over the canvas: frame `kind` of the game's cursors (its 24×24 RGBA
+    /// pixels at `pixels`), `size` CSS pixels wide.
+    fn vendetta_cursor(kind: i32, size: i32, pixels: *const u8);
     /// The page's in-game menu: opens it; whether it is open; what it asks of the game (0:
     /// nothing, 1: quit, 2/3: zoom the map out/in, 4/5: the interface smaller/bigger, 100 + N:
     /// the speed N); the
@@ -100,6 +103,26 @@ pub fn pointer_out() -> bool {
     return unsafe { vendetta_pointer_out() };
     #[cfg(not(target_arch = "wasm32"))]
     false
+}
+
+/// Whether the browser draws the mouse cursor (see [`cursor`]): not natively, nor in the
+/// rendering tests, whose screenshots do not show it (the game draws it then).
+pub fn browser_cursor() -> bool {
+    cfg!(target_arch = "wasm32") && !crate::options::test_mode()
+}
+
+/// Has the browser draw the mouse cursor as frame `kind` of the game's cursors, `rgba` its
+/// 24×24 pixels, `size` CSS pixels wide: it then moves with the mouse at once, and off the
+/// page as the mouse leaves it, which the game never hears of.
+pub fn cursor(kind: i32, size: i32, rgba: &[u8]) {
+    assert_eq!(rgba.len(), 24 * 24 * 4);
+    #[cfg(target_arch = "wasm32")]
+    // SAFETY: the page copies the pixels out of wasm memory before returning.
+    unsafe {
+        vendetta_cursor(kind, size, rgba.as_ptr())
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = (kind, size);
 }
 
 /// What the page's in-game menu asks of the game (natively, nothing).
