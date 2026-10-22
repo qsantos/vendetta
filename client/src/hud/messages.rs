@@ -78,11 +78,6 @@ impl MessageLog {
         self.texts = other.texts;
     }
 
-    /// Starts comparing afresh, e.g. with another character.
-    pub fn forget(&mut self) {
-        self.seen = None;
-    }
-
     pub fn load(files: &Files, lang: &str) -> MessageLog {
         let ini = Ini::parse(files.text(&format!("Donnees/{lang}/Messages.ini")).unwrap_or(""));
         let get = |k: &str| ini.find(k).unwrap_or("").to_owned();

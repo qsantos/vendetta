@@ -246,14 +246,6 @@ struct Hit {
 }
 
 impl Windows {
-    /// What is about the controlled character: its caches, the house view, the minimap's view.
-    pub fn forget_character(&mut self) {
-        self.skill_cache.borrow_mut().take();
-        self.minimap.borrow_mut().take();
-        self.house_view = false;
-        self.camera = None;
-    }
-
     pub fn new(strings: WindowStrings) -> Windows {
         Windows { strings, pos: DEFAULT_POS, moved: [false; 8], dragging: None, scroll: 0, craft_scroll: 0, house_view: false, skill_scroll: 0, bestiary_scroll: 0, skill_sort: 1, skill_all: false, skill_cache: Default::default(), minimap: Default::default(), camera: None, view: ((0, 0), (0, 0)) }
     }

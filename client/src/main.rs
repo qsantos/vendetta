@@ -393,15 +393,8 @@ async fn main() {
         },
     };
     let mut net = options.me.map(|me| net::Net::new(&world, &options.players, &options.names, me, world.tick));
-    let mut player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
-    // The player's own character, whose progress is theirs (not one controlled after a switch).
-    let players = if options.players.is_empty() { sim::world::WorldSetup::default().players } else { options.players.clone() };
-    let mine = world.humans(&players).get(options.me.unwrap_or(0)).copied().flatten();
-    let report_progress = |world: &World, new_game: bool| {
-        if let Some(i) = mine {
-            storage::progress(&world.persos[i].progress().text(), new_game);
-        }
-    };
+    let player = net.as_ref().and_then(|n| n.player()).or_else(|| world.persos.iter().position(|p| p.player)).unwrap();
+    let report_progress = |world: &World, new_game: bool| storage::progress(&world.persos[player].progress().text(), new_game);
     report_progress(&world, created);
     // In network play, the world starts with the server's first tick, once the players have made their worlds.
     // Coming back to a game in progress, the ticks missed are played first, as fast as can be.
@@ -539,19 +532,6 @@ async fn main() {
         layout::set_touch(touch);
         simulate_mouse_with_touch(!touch);
         perf.frame();
-        // `ToucheChangerPersonnage`: control the next human character, or the previous one (the
-        // original's key code 41, with Shift for the previous one, is not on today's keyboards;
-        // here Page Down and Page Up).
-        let back = is_key_pressed(KeyCode::PageUp);
-        if back || is_key_pressed(KeyCode::PageDown) {
-            let n = world.persos.len();
-            let next = (1..n).map(|k| if back { (player + n - k) % n } else { (player + k) % n }).find(|&i| world.persos[i].player);
-            if let Some(next) = next {
-                player = next;
-                hud.switch_character();
-                cam = follow(&world, player, view);
-            }
-        }
         // The frame covers the window; the map and the interface each have their own scale.
         // `screen_width()` and the mouse are in CSS pixels; the frame is in physical pixels.
         let dpi = screen_dpi_scale();
