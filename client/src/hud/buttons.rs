@@ -701,19 +701,26 @@ impl Hud {
 
     /// The building's world rectangle under the cursor and whether it can be placed there.
     /// Centred on the cursor's centre (`mouse + 12`: the cursor is 24×24, hot spot top-left).
+    /// Over the own house, when building anew in its place is allowed, the building takes its
+    /// place: centred on it, on the same bottom line (exactly there for the same size), unless
+    /// something is in the way there; aiming at that by hand is too fiddly.
     pub(super) fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, centre: (i32, i32)) -> (i32, i32, bool) {
         let (w, h) = rules.buildings[kind].size;
-        let x = centre.0 - w / 2;
-        let y = centre.1 - h / 2;
-        // (a torus has no edge)
-        let inside_map = world.terrain.torus
-            || x >= 0
-            && y >= 0
-            && x + w <= world.terrain.width as i32 * 16
-            && y + h <= world.terrain.height as i32 * 16;
-        let obstacle = if self.rebuild_elsewhere { world.obstacle(rules, player, x, y, w, h) } else { world.obstacle_rebuilding(rules, player, x, y, w, h) };
-        let ok = inside_map && obstacle == 0;
-        (x, y, ok)
+        let fits = |x: i32, y: i32| {
+            // (a torus has no edge)
+            let inside_map = world.terrain.torus || x >= 0 && y >= 0 && x + w <= world.terrain.width as i32 * 16 && y + h <= world.terrain.height as i32 * 16;
+            let obstacle = if self.rebuild_elsewhere { world.obstacle(rules, player, x, y, w, h) } else { world.obstacle_rebuilding(rules, player, x, y, w, h) };
+            inside_map && obstacle == 0
+        };
+        let home = world.houses.get(player).filter(|m| !self.rebuild_elsewhere && m.visible());
+        if let Some(m) = home.filter(|m| world.terrain.overlaps((centre.0, centre.1, 1, 1), (m.x, m.y, m.w, m.h))) {
+            let (x, y) = (m.x + (m.w - w) / 2, m.y + m.h - h);
+            if fits(x, y) {
+                return (x, y, true);
+            }
+        }
+        let (x, y) = (centre.0 - w / 2, centre.1 - h / 2);
+        (x, y, fits(x, y))
     }
 
     /// `Afficher_Surface_A_Batir`: the hatched footprint, green when free, red when blocked.
