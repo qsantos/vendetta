@@ -126,7 +126,7 @@ fn next_allied_house(world: &World, player: usize, kind: usize) -> Option<usize>
 }
 
 /// How far from lining up with the old house the outline of a new one is drawn to it.
-const MAGNET: i32 = 24;
+const MAGNET: i32 = 12;
 
 /// The place lining up a building of size `(w, h)` with the house `(x, y, w, h)` (centred or
 /// flush on each side) that is closest to `(x, y)`, within [`MAGNET`] and clear (`fits`).
@@ -842,7 +842,7 @@ impl Hud {
     /// Centred on the cursor's centre (`mouse + 12`: the cursor is 24×24, hot spot top-left).
     /// Near the own house, when building anew in its place is allowed, the rectangle is drawn
     /// to it as by a magnet: the way of lining up with the house (centred or flush, on each
-    /// side) that is closest, when it is within a cell and a half and clear.
+    /// side) that is closest, when it is within 12 px and clear.
     pub(super) fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, centre: (i32, i32)) -> (i32, i32, bool) {
         let (w, h) = rules.buildings[kind].size;
         let fits = |x: i32, y: i32| {
@@ -889,12 +889,12 @@ mod tests {
     fn magnet_pulls_close_only() {
         let home = (100, 200, 64, 64);
         let all = |_, _| true;
-        // the same size, off by 20 px: onto the house
-        assert_eq!(magnet(home, (64, 64), (115, 182), all), Some((100, 200)));
+        // the same size, off by 12 px: onto the house
+        assert_eq!(magnet(home, (64, 64), (108, 188), all), Some((100, 200)));
         // too far
-        assert_eq!(magnet(home, (64, 64), (150, 200), all), None);
+        assert_eq!(magnet(home, (64, 64), (113, 200), all), None);
         // smaller: centred, or flush
-        assert_eq!(magnet(home, (32, 32), (116, 216), all), Some((116, 216)));
+        assert_eq!(magnet(home, (32, 32), (120, 220), all), Some((116, 216)));
         assert_eq!(magnet(home, (32, 32), (104, 204), all), Some((100, 200)));
         // the closest clear one
         assert_eq!(magnet(home, (32, 32), (110, 210), |x, _| x != 116), Some((100, 216)));
