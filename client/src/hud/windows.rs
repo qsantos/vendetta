@@ -75,6 +75,9 @@ pub struct WindowStrings {
     scroll: [String; 2],
     price: String,
     money: String,
+    /// `BoutonDevenirEmpereurPrefixe` and `Suffixe`, and the unit of money in lower case.
+    become_emperor: [String; 2],
+    money_unit: String,
     /// The house toggle's tooltips: to the house, to the bag; with an object held, store it in
     /// the house, take it into the bag.
     house_toggle: [String; 4],
@@ -126,6 +129,8 @@ impl WindowStrings {
             craft: s(&f, "BoutonFabriquerEtiquette"),
             scroll: [s(&f, "BoutonDefilement1Etiquette"), s(&f, "BoutonDefilement2Etiquette")],
             price: s(&g, "EtiquettePrix"),
+            become_emperor: ["BoutonDevenirEmpereurPrefixe", "BoutonDevenirEmpereurSuffixe"].map(|k| s(&f, k)),
+            money_unit: s(&g, "EtiquetteArgent").to_lowercase(),
             house_toggle: [
                 "InventaireMaisonMessagePerso",
                 "InventaireMaisonMessageMaison",
@@ -751,7 +756,6 @@ impl Hud {
             } else {
                 Order::HoldObject { perso, slot }
             };
-            // TODO: the full object tooltip (`Definir_InfoBulle_Objet`)
             let tip = object_tooltip(rules, &self.tooltip_labels, p, item.object, item.count, None, Some(InInventory::of(world, player)));
             let equip = Order::EquipObject { perso, slot, right: false };
             hits.push((Rect::new((o.0 + x) as f32, (o.1 + y) as f32, 32.0, 32.0), Hit { toggle: false, object: Some(item.object), frame: true, queue: None, tip, left: Some(left), right: Some(equip) }));
@@ -954,8 +958,20 @@ impl Hud {
         } else {
             let c = &world.castles[p.fief];
             self.text(o.0 + 32, o.1 + 54, &format!("{} : {} / {}", self.windows.strings.character[2], c.life.floor(), c.max_life), BLACK);
-            cell(textures, ACTION, o.0 + 140, o.1 + 16, 10, 1, (24, 24), false);
-            // TODO: emperor button state and order
+            // The crown: gold when the title is free and affordable, else silver.
+            let can = world.can_become_emperor(rules, player);
+            cell(textures, ACTION, o.0 + 140, o.1 + 16, 10, !can as i32, (24, 24), false);
+            let title = &rules.epochs[f.epoch].emperor_title;
+            let tip = match usize::try_from(f.emperor).ok().and_then(|e| world.persos.get(e)) {
+                Some(e) => format!("{} {}", title[e.female as usize], e.shown_name(rules)),
+                None => {
+                    let price = f.emperor_price(rules);
+                    let [prefix, suffix] = &self.windows.strings.become_emperor;
+                    format!("{prefix}{}{suffix}#{}{price} {}", title[p.female as usize].to_lowercase(), if can { "" } else { "&" }, self.windows.strings.money_unit)
+                }
+            };
+            let order = can.then_some(Order::BecomeEmperor { perso });
+            hits.push((rect(140, 16, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip, left: order.clone(), right: order }));
             for j in 0..3 {
                 cell(textures, ACTION, o.0 + 216 + 24 * j, o.1 + 48, 2 + j, dead, (24, 24), true);
                 let q = [5.0, 50.0, p.money().floor()][j as usize];
