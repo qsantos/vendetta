@@ -441,3 +441,55 @@ fn rebuild_in_place() {
     let c = &w.castles[w.persos[i].fief];
     assert_ne!(w.obstacle_rebuilding(&rules, i, c.x, c.y, bw, bh), 0);
 }
+
+/// The three buttons over the resource list: "Tout", "I&C" and ">20", selling or selecting.
+#[test]
+fn global_trade() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = player(&mut w);
+    let n = rules.resources.len();
+    let plain = (0..n).find(|&r| !rules.resources[r].edible && !rules.resources[r].building_material && !rules.resources[r].needed_to_attack).unwrap();
+    let edible = (0..n).find(|&r| rules.resources[r].edible).unwrap();
+    w.persos[i].bonus_max_resources += 100; // (a bag to carry more than 20)
+    for r in 0..n {
+        w.persos[i].set_resource(r, 0.0);
+    }
+    w.persos[i].set_resource(plain, 50.0);
+    w.persos[i].set_resource(edible, 30.0);
+    let order = |kind, sell, back| Order::GlobalTrade { perso: i, kind, sell, back };
+
+    // ">20": the surplus, to take: all but 20 selected; right: down to 20
+    run(&mut w, &rules, &[order(0, false, false)]);
+    assert_eq!(w.persos[i].selected_resources[plain], 30.0);
+    assert_eq!(w.persos[i].selected_resources[edible], 10.0);
+    run(&mut w, &rules, &[order(0, false, true)]);
+    assert_eq!(w.persos[i].selected_resources[plain], 20.0);
+    assert_eq!(w.persos[i].selected_resources[edible], 30.0, "below 20 selected: 20 more, as the original does");
+    for r in [plain, edible] {
+        w.persos[i].select_resource(r, 0.0, true, true);
+    }
+    // "I&C": not the edible ones
+    run(&mut w, &rules, &[order(1, false, false)]);
+    assert_eq!(w.persos[i].selected_resources[plain], 50.0);
+    assert_eq!(w.persos[i].selected_resources[edible], 0.0, "not the edible ones");
+    run(&mut w, &rules, &[order(1, false, true)]);
+    assert_eq!(w.persos[i].selected_resources[plain], 0.0);
+    // "Tout"
+    run(&mut w, &rules, &[order(2, false, false)]);
+    assert_eq!(w.persos[i].selected_resources[edible], 30.0);
+    run(&mut w, &rules, &[order(2, false, true)]);
+    assert_eq!(w.persos[i].selected_resources[edible], 0.0);
+
+    // at a castle: sold
+    let money = w.persos[i].money();
+    run(&mut w, &rules, &[order(0, true, false)]);
+    assert_eq!(w.persos[i].resource(plain), 20.0);
+    assert_eq!(w.persos[i].resource(edible), 20.0);
+    assert!(w.persos[i].money() > money);
+    run(&mut w, &rules, &[order(1, true, false)]);
+    assert_eq!(w.persos[i].resource(plain), 0.0);
+    assert_eq!(w.persos[i].resource(edible), 20.0);
+    run(&mut w, &rules, &[order(2, true, false)]);
+    assert_eq!(w.persos[i].resource(edible), 0.0);
+}

@@ -555,8 +555,8 @@ impl Hud {
         for j in 0..3 {
             cell(textures, COMMERCE, o.0 + 216 + 24 * j, o.1 + 48, 6 + j, dead, (24, 24), true);
             let label = &s.total[(2 - j) as usize + if in_castle { 0 } else { 3 }];
-            // TODO: global sell/take orders
-            hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip: label.clone(), left: None, right: None }));
+            let global = |back| Order::GlobalTrade { perso, kind: 2 - j as u8, sell: in_castle, back };
+            hits.push((rect(216 + 24 * j, 48, 24, 24), Hit { toggle: false, object: None, frame: false, queue: None, tip: label.clone(), left: p.alive().then(|| global(false)), right: p.alive().then(|| global(true)) }));
         }
         let own_house = p.in_own_house && world.houses[player].visible();
         let product = if own_house { rules.buildings[world.houses[player].kind].product } else { -1 };

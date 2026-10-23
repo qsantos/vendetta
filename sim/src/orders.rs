@@ -44,6 +44,10 @@ pub enum Order {
     Eat { perso: usize, resource: usize },
     /// `PersoRessourcesVendreChateau`: sell to the own castle.
     SellResource { perso: usize, resource: usize, quantity: f64 },
+    /// The three buttons above the resource list, for every resource at once: `kind` 2 "Tout",
+    /// 1 "I&C" (neither edible nor needed to build or attack), 0 ">20" (the surplus over 20).
+    /// `sell` at a castle or a market, else select them to take (`back` to put them back).
+    GlobalTrade { perso: usize, kind: u8, sell: bool, back: bool },
     /// `PersoRessourcesAcheterChateau`: buy from the own castle.
     BuyResource { perso: usize, resource: usize, quantity: f64 },
     /// `PersoRessourcesAcheterMaison`: buy the product of a shop.
@@ -173,6 +177,7 @@ impl Order {
             | EatFor { perso, .. }
             | Eat { perso, .. }
             | SellResource { perso, .. }
+            | GlobalTrade { perso, .. }
             | BuyResource { perso, .. }
             | BuyFromHouse { perso, .. }
             | TakeStock { perso, .. }
@@ -277,6 +282,36 @@ impl World {
             SellResource { resource, quantity, .. } => {
                 check(resource, nr)?;
                 self.fiefs[f].sell(rules, resource, quantity, &mut self.persos[perso], false);
+            }
+            GlobalTrade { kind, sell, back, .. } => {
+                check(kind as usize, 3)?;
+                for r in 0..nr {
+                    let res = &rules.resources[r];
+                    let have = self.persos[perso].resource(r);
+                    let p = &mut self.persos[perso];
+                    match kind {
+                        0 if have < 21.0 => {}
+                        1 if res.edible || res.building_material || res.needed_to_attack => {}
+                        0 if sell => self.fiefs[f].sell(rules, r, (have - 20.0).floor(), &mut self.persos[perso], false),
+                        _ if sell => self.fiefs[f].sell(rules, r, have, &mut self.persos[perso], false),
+                        0 => {
+                            let selected = p.selected_resources[r];
+                            if back {
+                                if selected > 20.0 {
+                                    p.select_resource(r, selected - 20.0, false, true);
+                                } else if selected < 20.0 {
+                                    p.select_resource(r, 20.0, false, false);
+                                }
+                            } else if selected > have - 20.0 {
+                                p.selected_resources[r] = 0.0;
+                                p.select_resource(r, (have - 20.0).floor(), false, false);
+                            } else {
+                                p.select_resource(r, (have - 20.0 - selected).floor(), false, false);
+                            }
+                        }
+                        _ => p.select_resource(r, have, false, back),
+                    }
+                }
             }
             BuyResource { resource, quantity, .. } => {
                 check(resource, nr)?;
