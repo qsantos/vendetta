@@ -131,6 +131,90 @@ impl World {
         }
     }
 
+    /// The persos among `list` that chef `c` commands (itself, its soldiers).
+    pub(crate) fn soldiers_of(&self, c: usize, list: &[usize]) -> Vec<usize> {
+        let mut seen = Vec::new();
+        for &s in list {
+            if (s == c || self.persos.get(s).is_some_and(|q| q.chef == c as i64)) && !seen.contains(&s) {
+                seen.push(s);
+            }
+        }
+        seen
+    }
+
+    /// `Ordonner_Arret`: the soldiers `list` (all of chef `c`'s that can be commanded and have
+    /// no AI file if empty) stop and forget their orders.
+    pub fn order_stop(&mut self, rules: &Rules, c: usize, list: &[usize]) {
+        let all = list.is_empty();
+        let soldiers = if all {
+            (0..self.persos.len())
+                .filter(|&i| {
+                    let s = &self.persos[i];
+                    s.chef == c as i64 && s.alive() && !s.incommandable && !s.choose_ai
+                })
+                .collect()
+        } else {
+            self.soldiers_of(c, list)
+        };
+        for s in soldiers {
+            self.stop(rules, s);
+            self.persos[s].ai_order = 0;
+        }
+        self.say_now(rules, c, 21);
+    }
+
+    /// `Ordonner_Deplacement`: the soldiers walk to (x, y), each to its place around it.
+    pub fn order_move(&mut self, rules: &Rules, c: usize, list: &[usize], x: i64, y: i64) {
+        for s in self.soldiers_of(c, list) {
+            let (dx, dy) = self.persos[s].chef_offset;
+            self.walk_to(rules, s, x + dx, y + dy);
+            let q = &mut self.persos[s];
+            q.chef_post = (x + dx, y + dy);
+            q.ai_order = 0;
+            if self.rng.next() < ORDER_REPLY_CHANCE && s != c {
+                self.say(rules, s, 31);
+            }
+        }
+        self.say_now(rules, c, 23);
+    }
+
+    /// `Ordonner_Attaquer_Perso` / `_Maison` / `_Chateau` (`kind` 0, 1, 2).
+    pub fn order_attack(&mut self, rules: &Rules, c: usize, list: &[usize], kind: i64, target: usize) {
+        let soldiers = self.soldiers_of(c, list);
+        for &s in &soldiers {
+            match kind {
+                0 => self.attack_perso(rules, s, target),
+                1 => self.attack_house(rules, s, target),
+                _ => self.attack_castle(rules, s, target),
+            }
+            let q = &mut self.persos[s];
+            q.ai_order = kind + 1;
+            q.ai_target = target;
+            if self.rng.next() < ORDER_REPLY_CHANCE {
+                self.say(rules, s, 31);
+            }
+        }
+        let n = [25, 27, 29][kind.clamp(0, 2) as usize] + (soldiers.len() > 1) as i64;
+        self.say_now(rules, c, n);
+    }
+
+    /// `Ordonner_Garder_Perso`: the soldiers guard perso `target`, walking to it.
+    pub fn order_guard(&mut self, rules: &Rules, c: usize, list: &[usize], target: usize) {
+        let soldiers = self.soldiers_of(c, list);
+        let t = &self.persos[target];
+        // (sic: the width, for the vertical centre too)
+        let (tx, ty, tw) = (t.x, t.y, t.w as i64);
+        for &s in &soldiers {
+            let q = &mut self.persos[s];
+            q.ai_order = 4;
+            q.ai_target = target;
+            let (x, y) = (tx + tw / 2 - q.w as i64 / 2, ty + tw / 2 - q.h as i64 / 2);
+            self.walk_to(rules, s, x, y);
+        }
+        let n = if soldiers.len() > 1 { 39 } else { 38 };
+        self.say_now(rules, c, n);
+    }
+
     /// `Ordonner_Formation(c, ChangerFormation, SansCommentaires)`: chef `c`'s free soldiers
     /// line up in rows around it (formation 0 a block above, 1 and 2 rows above and below, 3
     /// and 4 columns left and right), walking there unless the chef is fighting. `change` first

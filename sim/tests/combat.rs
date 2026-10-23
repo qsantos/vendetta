@@ -483,3 +483,55 @@ fn victory_and_defeat() {
     fall(&mut w, others[0]);
     assert!(w.victorious(team));
 }
+
+/// The orders to selected soldiers (`Ordonner_*`): move, attack, guard, stop, attitude, kill.
+#[test]
+fn army_orders() {
+    let Some((files, rules)) = load() else { return };
+    let mut w = world(&files, &rules);
+    let i = fighter(&mut w, &rules, 0, 300, 300);
+    let n = w.persos.len();
+    use_object(&mut w, &rules, i, GOLEM);
+    let g = n;
+    assert_eq!(w.persos[g].chef, i as i64);
+    let enemy = w.persos.iter().position(|p| p.fief == 1).unwrap();
+    let ally = w.persos.iter().position(|p| p.fief == 0 && p.numero != i).unwrap();
+    let army = |soldiers: &[usize]| soldiers.to_vec();
+    w.persos[g].ai = false;
+
+    // Walking to a point, at its place in the formation; the order is forgotten.
+    w.persos[g].ai_order = 1;
+    w.step(&rules, &[Order::ArmyMove { perso: i, soldiers: army(&[g]), x: 600, y: 400 }]);
+    let off = w.persos[g].chef_offset;
+    assert_eq!(w.persos[g].dest, (600 + off.0, 400 + off.1));
+    assert_eq!(w.persos[g].ai_order, 0);
+    assert_eq!(w.persos[i].dest, (300, 300), "the chief did not move");
+
+    // Attacking: the soldier alone, with the order kept
+    w.step(&rules, &[Order::ArmyAttack { perso: i, soldiers: army(&[g]), kind: 0, target: enemy }]);
+    assert_eq!((w.persos[g].perso_target, w.persos[g].ai_order, w.persos[g].ai_target), (enemy, 1, enemy));
+    assert_eq!(w.persos[i].action, 0, "the chief is not sent");
+
+    // Guarding an ally
+    w.step(&rules, &[Order::ArmyGuard { perso: i, soldiers: army(&[g]), target: ally }]);
+    assert_eq!((w.persos[g].ai_order, w.persos[g].ai_target), (4, ally));
+
+    // Stopping: the selected ones, or all of them
+    w.step(&rules, &[Order::ArmyStop { perso: i, soldiers: army(&[g]) }]);
+    assert_eq!(w.persos[g].ai_order, 0);
+    w.persos[g].ai_order = 1;
+    w.step(&rules, &[Order::ArmyStop { perso: i, soldiers: vec![] }]);
+    assert_eq!(w.persos[g].ai_order, 0);
+
+    // Somebody else's soldiers are not ours to command
+    w.persos[g].ai_order = 1;
+    w.step(&rules, &[Order::ArmyStop { perso: enemy, soldiers: army(&[g]) }]);
+    assert_eq!(w.persos[g].ai_order, 1);
+
+    // Attitude, then the kill
+    w.step(&rules, &[Order::ArmyAttitude { perso: i, soldiers: army(&[g, i]), attitude: 2 }]);
+    assert_eq!((w.persos[g].attitude, w.persos[g].ai_order), (2, 0));
+    w.step(&rules, &[Order::ArmyKill { perso: i, soldiers: army(&[g, i]) }]);
+    assert!(!w.persos[g].alive());
+    assert!(w.persos[i].alive(), "not the chief");
+}

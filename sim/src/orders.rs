@@ -150,6 +150,24 @@ pub enum Order {
     /// `PersoOrdonnerFormation`: line the soldiers up, switching to the next formation with
     /// `change`.
     Formation { perso: usize, change: bool },
+    /// The orders to selected soldiers, `perso` being their chief (see `Ordonner_*` in the
+    /// original; `soldiers` may include the chief):
+    /// `Ordonner_Deplacement`, walk to (x, y), each at its place in the formation.
+    ArmyMove { perso: usize, soldiers: Vec<usize>, x: i64, y: i64 },
+    /// `Ordonner_Attaquer_Perso` / `_Maison` / `_Chateau` (`kind` 0, 1, 2).
+    ArmyAttack { perso: usize, soldiers: Vec<usize>, kind: i64, target: usize },
+    /// The same at the nearest enemy, house or castle (`kind` 0, 1, 2), as the chief sees it.
+    ArmyAttackNearest { perso: usize, soldiers: Vec<usize>, kind: u8 },
+    /// `Ordonner_Garder_Perso`: guard an ally.
+    ArmyGuard { perso: usize, soldiers: Vec<usize>, target: usize },
+    /// `Ordonner_Arret`: stop and forget the order; all the soldiers if `soldiers` is empty.
+    ArmyStop { perso: usize, soldiers: Vec<usize> },
+    /// `PersoDefinirIAAttitude` for each soldier.
+    ArmyAttitude { perso: usize, soldiers: Vec<usize>, attitude: i64 },
+    /// `PersoTuerPerso` for each soldier but the chief (the key Ctrl+Del).
+    ArmyKill { perso: usize, soldiers: Vec<usize> },
+    /// `PersoDefinirIA` for each soldier that has an AI file.
+    ArmyAi { perso: usize, soldiers: Vec<usize>, ai: bool },
     /// `PersoAttaquerAllies`: become hostile to everybody until death.
     AttackAllies { perso: usize },
     /// `PersoEffetTempEffacer`: end temporary effect `effect` (`EffetTemp_Effacer`).
@@ -222,6 +240,14 @@ impl Order {
             | Give { perso, .. }
             | Charge { perso, .. }
             | Formation { perso, .. }
+            | ArmyMove { perso, .. }
+            | ArmyAttack { perso, .. }
+            | ArmyAttackNearest { perso, .. }
+            | ArmyGuard { perso, .. }
+            | ArmyStop { perso, .. }
+            | ArmyAttitude { perso, .. }
+            | ArmyKill { perso, .. }
+            | ArmyAi { perso, .. }
             | AttackAllies { perso }
             | CancelEffect { perso, .. } => perso,
         }
@@ -423,6 +449,49 @@ impl World {
                 self.order_charge(rules, perso, kind, target, ctrl, shift, false);
             }
             Formation { change, .. } => self.order_formation(rules, perso, change, false),
+            ArmyMove { ref soldiers, x, y, .. } => self.order_move(rules, perso, soldiers, x, y),
+            ArmyAttack { ref soldiers, kind, target, .. } => {
+                let n = [self.persos.len(), self.houses.len(), self.castles.len()];
+                check(kind as usize, 3)?;
+                check(target, n[kind as usize])?;
+                self.order_attack(rules, perso, soldiers, kind, target);
+            }
+            ArmyAttackNearest { ref soldiers, kind, .. } => {
+                let target = match kind {
+                    0 => self.nearest_enemy(perso, -1, -1),
+                    1 => self.nearest_enemy_house(perso),
+                    _ => self.nearest_enemy_castle(perso),
+                };
+                if let Some(t) = target {
+                    self.order_attack(rules, perso, soldiers, kind.min(2) as i64, t);
+                }
+            }
+            ArmyGuard { ref soldiers, target, .. } => {
+                check(target, self.persos.len())?;
+                self.order_guard(rules, perso, soldiers, target);
+            }
+            ArmyStop { ref soldiers, .. } => self.order_stop(rules, perso, soldiers),
+            ArmyAttitude { ref soldiers, attitude, .. } => {
+                for s in self.soldiers_of(perso, soldiers) {
+                    self.persos[s].attitude = attitude;
+                    self.persos[s].ai_order = 0;
+                    self.ai_perso(rules, s, false);
+                }
+            }
+            ArmyKill { ref soldiers, .. } => {
+                for s in self.soldiers_of(perso, soldiers) {
+                    if s != perso {
+                        self.kill(rules, s);
+                    }
+                }
+            }
+            ArmyAi { ref soldiers, ai, .. } => {
+                for s in self.soldiers_of(perso, soldiers) {
+                    if self.persos[s].choose_ai {
+                        self.persos[s].ai = ai;
+                    }
+                }
+            }
             AttackAllies { .. } => self.attack_allies(rules, perso, true),
             CancelEffect { effect, .. } => {
                 check(effect, p.effects.len())?;
