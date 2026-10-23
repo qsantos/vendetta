@@ -970,6 +970,7 @@ impl World {
         let w = (self.terrain.width as i32 * CELL - RESOURCE_SIZE) as f64;
         let h = (self.terrain.height as i32 * CELL - RESOURCE_SIZE) as f64;
         let n = rules.terrain_resources.len() as i64;
+        self.index_positions(rules);
         for i in 0..self.resources.len() {
             let (x, y) = loop {
                 let x = clng(self.rng.next() * w) as i32;
@@ -983,7 +984,9 @@ impl World {
                 kind = 0;
             }
             self.resources[i] = ResourceNode { x, y, kind: kind as usize };
+            self.placed_resource(i);
         }
+        self.spatial = Default::default();
     }
 
     /// `ClsJeuMonde.Constructible`

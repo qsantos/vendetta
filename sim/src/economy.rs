@@ -1526,6 +1526,19 @@ impl World {
             .unwrap_or(0);
     }
 
+    /// Resource node `k` was just placed, while the world is made: checked one by one until the
+    /// resource nodes are indexed again, every so many (so that placing thousands, each among
+    /// those placed before, does not scan them all every time). The grids are emptied after.
+    pub(crate) fn placed_resource(&mut self, k: usize) {
+        let (w, h) = (self.terrain.width as i32 * CELL, self.terrain.height as i32 * CELL);
+        let n = &self.resources[k];
+        let s = &mut self.spatial.resources;
+        s.moved_to(k, n.x as i64, n.y as i64, 0);
+        if s.moved.len() >= 256 {
+            s.build(self.resources.iter().map(|n| (n.x, n.y)), w, h, self.terrain.torus);
+        }
+    }
+
     /// [`World::obstacle`] with the index of what was found (perso, treasure, castle, house,
     /// resource node or decor; 0 for terrain). The persos, houses and resource nodes come from
     /// grids (`spatial.rs`), giving the same answers as scanning them in order, which debug

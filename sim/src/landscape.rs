@@ -637,6 +637,7 @@ impl World {
                 },
             }
         };
+        self.index_positions(rules);
         let mut next = 0;
         let starts: Vec<usize> = START.iter().filter_map(|&t| of_type(t)).collect();
         if self.resources.len() >= 2 * starts.len() * self.castles.len() {
@@ -660,6 +661,7 @@ impl World {
                     });
                     if let Some((x, y)) = spot {
                         self.resources[next] = ResourceNode { x, y, kind };
+                        self.placed_resource(next);
                         next += 1;
                     }
                 }
@@ -678,6 +680,8 @@ impl World {
                 }
             };
             self.resources[i] = ResourceNode { x, y, kind };
+            self.placed_resource(i);
         }
+        self.spatial = Default::default();
     }
 }
