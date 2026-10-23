@@ -125,6 +125,20 @@ fn next_allied_house(world: &World, player: usize, kind: usize) -> Option<usize>
     })
 }
 
+/// How far from lining up with the old house the outline of a new one is drawn to it.
+const MAGNET: i32 = 24;
+
+/// The place lining up a building of size `(w, h)` with the house `(x, y, w, h)` (centred or
+/// flush on each side) that is closest to `(x, y)`, within [`MAGNET`] and clear (`fits`).
+fn magnet(home: (i32, i32, i32, i32), (w, h): (i32, i32), (x, y): (i32, i32), fits: impl Fn(i32, i32) -> bool) -> Option<(i32, i32)> {
+    let (hx, hy, hw, hh) = home;
+    [hx, hx + (hw - w) / 2, hx + hw - w]
+        .into_iter()
+        .flat_map(|sx| [hy, hy + (hh - h) / 2, hy + hh - h].map(move |sy| (sx, sy)))
+        .filter(|&(sx, sy)| (sx - x).abs() <= MAGNET && (sy - y).abs() <= MAGNET && fits(sx, sy))
+        .min_by_key(|&(sx, sy)| (sx - x).abs() + (sy - y).abs())
+}
+
 fn build_button_pos(i: usize, slide: i32) -> (i32, i32) {
     (28 * (i as i32 % 3) + slide, 232 + 28 * (i as i32 / 3 + 1))
 }
@@ -828,9 +842,8 @@ impl Hud {
     /// Centred on the cursor's centre (`mouse + 12`: the cursor is 24×24, hot spot top-left).
     /// Near the own house, when building anew in its place is allowed, the rectangle is drawn
     /// to it as by a magnet: the way of lining up with the house (centred or flush, on each
-    /// side) that is closest, when it is within a cell's reach and clear.
+    /// side) that is closest, when it is within a cell and a half and clear.
     pub(super) fn footprint(&self, world: &World, rules: &Rules, player: usize, kind: usize, centre: (i32, i32)) -> (i32, i32, bool) {
-        const REACH: i32 = 12;
         let (w, h) = rules.buildings[kind].size;
         let fits = |x: i32, y: i32| {
             // (a torus has no edge)
@@ -840,14 +853,8 @@ impl Hud {
         };
         let (x, y) = (centre.0 - w / 2, centre.1 - h / 2);
         let home = world.houses.get(player).filter(|m| !self.rebuild_elsewhere && m.visible());
-        if let Some(m) = home {
-            let snaps = [m.x, m.x + (m.w - w) / 2, m.x + m.w - w]
-                .into_iter()
-                .flat_map(|sx| [m.y, m.y + (m.h - h) / 2, m.y + m.h - h].map(move |sy| (sx, sy)))
-                .filter(|&(sx, sy)| (sx - x).abs() <= REACH && (sy - y).abs() <= REACH && fits(sx, sy));
-            if let Some((sx, sy)) = snaps.min_by_key(|&(sx, sy)| (sx - x).abs() + (sy - y).abs()) {
-                return (sx, sy, true);
-            }
+        if let Some((sx, sy)) = home.and_then(|m| magnet((m.x, m.y, m.w, m.h), (w, h), (x, y), fits)) {
+            return (sx, sy, true);
         }
         (x, y, fits(x, y))
     }
@@ -871,5 +878,26 @@ impl Hud {
             d += 8;
         }
         Some(if ok { 2 } else { 3 })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::magnet;
+
+    #[test]
+    fn magnet_pulls_close_only() {
+        let home = (100, 200, 64, 64);
+        let all = |_, _| true;
+        // the same size, off by 20 px: onto the house
+        assert_eq!(magnet(home, (64, 64), (115, 182), all), Some((100, 200)));
+        // too far
+        assert_eq!(magnet(home, (64, 64), (150, 200), all), None);
+        // smaller: centred, or flush
+        assert_eq!(magnet(home, (32, 32), (116, 216), all), Some((116, 216)));
+        assert_eq!(magnet(home, (32, 32), (104, 204), all), Some((100, 200)));
+        // the closest clear one
+        assert_eq!(magnet(home, (32, 32), (110, 210), |x, _| x != 116), Some((100, 216)));
+        assert_eq!(magnet(home, (32, 32), (116, 216), |_, _| false), None);
     }
 }
