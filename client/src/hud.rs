@@ -180,6 +180,8 @@ pub struct Hud {
     pub army: army::Army,
     /// The window asking whether to attack the allies is shown (see `confirm.rs`).
     confirm: bool,
+    /// Backspace: only the map, the windows and the messages are shown (`Affichage_PleinEcran`).
+    pub full_screen: bool,
 }
 
 /// The victory and defeat banner in the language of suffix `suffix`, "Victoire" over
@@ -352,6 +354,7 @@ impl Hud {
             follow_requested: false,
             army: army::Army::default(),
             confirm: false,
+            full_screen: false,
         }
     }
 
@@ -463,7 +466,8 @@ impl Hud {
 
         // Status bars: Moral, Magie, Energie, Vie (bottom to top), then their contours.
         use bars::BAR_Y;
-        for i in (0..4).rev() {
+        let shown = !self.full_screen;
+        for i in (0..4).rev().filter(|_| shown) {
             let (px, py) = (10, ay(BAR_Y[i]));
             let max = p.bonus_max[i] as f64;
             let v = p.bars[i];
@@ -472,22 +476,25 @@ impl Hud {
             let score = format!("{} / {}", v.floor(), p.bonus_max[i]);
             self.text(px - 3 + 108 - score.chars().count() as i32 * 4, py, &score, WHITE_);
         }
-        self.draw_bar_contours();
-
-        self.draw_statistics();
-        self.draw_epoch(world, rules, p);
+        if shown {
+            self.draw_bar_contours();
+            self.draw_statistics();
+            self.draw_epoch(world, rules, p);
+        }
         let touch = touch();
-        if !touch {
+        if !touch && shown {
             self.draw_object_slots(world, rules, textures, player);
         }
-        self.draw_temp_effects(world, rules, textures, player);
+        if shown {
+            self.draw_temp_effects(world, rules, textures, player);
+        }
         // What only changes with the world is made again once per tick.
         if self.cache_tick != Some(world.tick) {
             self.cache_tick = Some(world.tick);
             self.refresh_build_buttons(world, rules, player);
             self.statistics = self.statistics_text(world, rules, player);
         }
-        if !touch {
+        if !touch && shown {
             self.slide_buttons(world, rules, player, input.mouse);
             self.draw_move_buttons(textures, world, player);
             self.draw_build_buttons(textures);
@@ -499,8 +506,10 @@ impl Hud {
             (true, true) => (188, ay(745)),
             _ => (152, ay(745)),
         };
-        self.text(x, y, &self.action_message(rules, p), WHITE_);
-        if !touch {
+        if shown {
+            self.text(x, y, &self.action_message(rules, p), WHITE_);
+        }
+        if !touch && shown {
             self.draw_info_buttons(textures);
         }
         let mut tip = String::new();

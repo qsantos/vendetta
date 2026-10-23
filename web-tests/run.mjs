@@ -31,6 +31,8 @@ const SCENES = {
   // The game as it starts: the player in the castle, its trade window open.
   start: { hash: "seed=1", steps: [["move", 512, 600]] },
   inventory: { hash: "seed=1", steps: [["key", "KeyI"], ["move", 512, 600]] },
+  // Backspace: the map and the window only.
+  hidden: { hash: "seed=1", steps: [["key", "Backspace"], ["move", 512, 600]] },
   // The question "attack your allies?" (H), its No button under the mouse.
   confirm: { hash: "seed=1", steps: [["key", "KeyH"], ["move", 590, 418], ["wait", 0.3]] },
   resources: { hash: "seed=1", steps: [["key", "KeyR"], ["move", 512, 600]] },

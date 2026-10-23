@@ -349,7 +349,8 @@ impl Hud {
         // Build buttons (the hover timer restarts when none is hovered); the touch interface
         // has its own buttons instead of these, the move, info and shortcut ones.
         let touch = crate::layout::touch();
-        let kinds = if touch { Vec::new() } else { build_buttons(rules) };
+        let shown = !self.full_screen;
+        let kinds = if touch || !shown { Vec::new() } else { build_buttons(rules) };
         if !kinds.iter().enumerate().any(|(i, _)| {
             let (x, y) = build_button_pos(i, self.build_slide);
             inside(m, x, y, 28, 28)
@@ -381,7 +382,7 @@ impl Hud {
         }
 
         // Move buttons
-        if !on_ui && !touch {
+        if !on_ui && !touch && shown {
             for i in (0..MOVE_BUTTONS).filter(|&i| self.move_visible(world, player, i)) {
                 let (x, y) = move_button_pos(i, self.move_slide);
                 if !inside(m, x, y, 28, 28) {
@@ -408,7 +409,7 @@ impl Hud {
         }
 
         // Info buttons
-        if !on_ui && !touch {
+        if !on_ui && !touch && shown {
             for i in 0..8 {
                 let (x, y) = info_button_pos(i);
                 if inside(m, x, y, 24, 24) {
@@ -423,21 +424,21 @@ impl Hud {
         }
 
         // Object shortcut slots
-        if !on_ui && !touch {
+        if !on_ui && !touch && shown {
             if let Some(t) = self.object_slot_buttons(world, rules, player, input, orders) {
                 on_ui = true;
                 tip = t;
             }
         }
         // Temporary effect icons
-        if !on_ui {
+        if !on_ui && shown {
             if let Some(t) = self.temp_effect_buttons(world, rules, player, input, orders) {
                 on_ui = true;
                 tip = t;
             }
         }
         // Status bars
-        if !on_ui {
+        if !on_ui && shown {
             if let Some(t) = self.status_bar_buttons(world, player, input, orders) {
                 on_ui = true;
                 tip = t;
@@ -584,6 +585,9 @@ impl Hud {
         // The call to arms (`ToucheAide`, H): attacking one's allies, after a question.
         if is_key_pressed(KeyCode::H) && world.persos[player].alive() {
             self.ask_attack_allies();
+        }
+        if is_key_pressed(KeyCode::Backspace) {
+            self.full_screen = !self.full_screen;
         }
         if is_key_pressed(KeyCode::Enter) || is_key_pressed(KeyCode::KpEnter) {
             self.action_key(world, rules, player, ctrl, orders);
