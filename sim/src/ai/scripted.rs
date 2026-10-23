@@ -735,7 +735,10 @@ impl World {
                 }
             }
             if self.obstacle(rules, n, x as i32, y as i32, w, h) == 0
-                && (!compact || self.spaced_in_town(n, x as i32, y as i32, w, h) && self.off_road(x as i32, y as i32, w, h))
+                && (!compact
+                    || self.spaced_in_town(n, x as i32, y as i32, w, h)
+                        && self.off_road(x as i32, y as i32, w, h)
+                        && self.easy_to_reach(rules, n, (x as i32, y as i32), (w, h)))
             {
                 self.ai.obstacle_distance[nf] = castle_w;
                 return Some((x as i32, y as i32));
@@ -809,9 +812,69 @@ impl World {
             let at = self.terrain.wrap32((origin.0 + x, origin.1 + y));
             ((self.terrain.torus || at.0 >= 0 && at.1 >= 0 && at.0 <= mw - w && at.1 <= mh - h)
                 && self.clear(rules, n, at.0, at.1, w, h)
-                && ways_out(&own, &others, (x, y, w, h)))
+                && ways_out(&own, &others, (x, y, w, h))
+                && self.easy_to_reach(rules, n, at, (w, h)))
             .then_some(at)
         })
+    }
+
+    /// Not in the original ([`Towns::Compact`]): whether a site at `at` of `size` for perso `n`'s
+    /// fief can be walked to from its castle without a long detour, so that nobody builds on an
+    /// island across the water.
+    fn easy_to_reach(&self, rules: &Rules, n: usize, at: (i32, i32), (w, h): (i32, i32)) -> bool {
+        // (from the town's gate, which is where the way there matters, not from wherever the
+        // character happens to be)
+        let c = &self.castles[self.persos[n].fief];
+        let from = (c.x as i64 + c.w as i64 / 2, c.y as i64 + c.h as i64);
+        let to = (at.0 as i64 + w as i64 / 2, at.1 as i64 + h as i64);
+        let to = self.terrain.near(from, to);
+        self.by_land(from, to)
+            && crate::path::detour(rules, &self.terrain, self.free(n), from, to).is_some_and(|(walk, straight)| walk <= MAX_DETOUR * straight + DETOUR_SLACK)
+    }
+
+    /// Whether one can get from `from` to `to` (positions, `to` the copy nearest) wading through
+    /// at most [`WADE`] cells of water, by a way that strays at most [`LAND_MARGIN`] cells out
+    /// of the box between them: a river is crossed, but not to an island.
+    fn by_land(&self, from: (i64, i64), to: (i64, i64)) -> bool {
+        let cell = |(x, y): (i64, i64)| (x.div_euclid(CELL as i64), y.div_euclid(CELL as i64));
+        let (a, b) = (cell(from), cell(to));
+        let (c0, r0) = (a.0.min(b.0) - LAND_MARGIN, a.1.min(b.1) - LAND_MARGIN);
+        let (c1, r1) = (a.0.max(b.0) + LAND_MARGIN, a.1.max(b.1) + LAND_MARGIN);
+        let cols = (c1 - c0 + 1) as usize;
+        let (mw, mh) = (self.terrain.width as i64, self.terrain.height as i64);
+        let category = self.terrain.category();
+        let wet = |c: i64, r: i64| {
+            let k = self.terrain.index_at((c * CELL as i64) as f64, (r * CELL as i64) as f64);
+            usize::try_from(k).ok().and_then(|k| category.get(k)).is_some_and(|&k| k >= crate::landscape::WATER) as usize
+        };
+        // the least water cells to wade through to each cell (0-1 breadth-first search)
+        let mut wading = vec![usize::MAX; cols * (r1 - r0 + 1) as usize];
+        let at = |c: i64, r: i64| (c - c0) as usize + (r - r0) as usize * cols;
+        let mut queue = std::collections::VecDeque::from([a]);
+        wading[at(a.0, a.1)] = 0;
+        while let Some((c, r)) = queue.pop_front() {
+            let here = wading[at(c, r)];
+            if (c, r) == b {
+                return here <= WADE;
+            }
+            for (dc, dr) in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)] {
+                let (nc, nr) = (c + dc, r + dr);
+                let off_map = !self.terrain.torus && (nc < 0 || nr < 0 || nc >= mw || nr >= mh);
+                if nc < c0 || nr < r0 || nc > c1 || nr > r1 || off_map {
+                    continue;
+                }
+                let cost = here + wet(nc, nr);
+                if cost < wading[at(nc, nr)] && cost <= WADE {
+                    wading[at(nc, nr)] = cost;
+                    if cost == here {
+                        queue.push_front((nc, nr));
+                    } else {
+                        queue.push_back((nc, nr));
+                    }
+                }
+            }
+        }
+        false
     }
 
     /// Whether a cell of a terrain `kind` lies within `reach` cells round a site at `(x, y)` of
@@ -888,6 +951,15 @@ impl World {
 type Rect = (i32, i32, i32, i32);
 
 // Not in the original ([`Towns::Compact`]): how towns grow.
+/// The most water cells a way to a site may wade through (a river is crossed, not a lake).
+const WADE: usize = 2;
+/// How far a way to a site may stray out of the box between its ends, in cells, to keep off the
+/// water.
+const LAND_MARGIN: i64 = 24;
+/// How much longer than crossing straight at the top speed the walk to a site may take.
+const MAX_DETOUR: f64 = 2.0;
+/// ... and that many cells more (the buildings and the like slow short walks).
+const DETOUR_SLACK: f64 = 12.0;
 /// The sites tried around a town for a house.
 const SITE_CANDIDATES: usize = 48;
 /// The buildings of the town drawn for each site, the one nearest the castle kept.
@@ -1015,4 +1087,42 @@ fn ways_out(own: &[Rect], others: &[Rect], site: Rect) -> bool {
         let beside = (a0..=a1).flat_map(|c| [(c, b0 - 1), (c, b1 + 1)]).chain((b0..=b1).flat_map(|r| [(a0 - 1, r), (a1 + 1, r)]));
         beside.into_iter().any(|(c, r)| index(c, r).is_some_and(|k| out[k]))
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::files::Files;
+    use crate::rules::Rules;
+    use crate::world::{FiefSetup, Towns, World, WorldSetup};
+
+    /// An island across the water is not a site for a house; the shore is.
+    #[test]
+    fn no_house_on_an_island() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../assets");
+        if !root.exists() {
+            return;
+        }
+        let files = Files::from_dir(&root).unwrap();
+        let rules = Rules::load(&files, "Francais").unwrap();
+        let fiefs = (0..2).map(|i| FiefSetup { people: 0, team: i + 1, epoch: 0, citizens: 4 }).collect();
+        let setup = WorldSetup { seed: 5, width: 96, height: 96, resources: 20, fiefs, towns: Towns::Compact, ..Default::default() };
+        let mut w = World::create(&rules, &files, &setup).unwrap();
+        let n = w.player.unwrap();
+        (w.persos[n].x, w.persos[n].y) = (40 * 16, 48 * 16);
+        let (px, py) = (w.persos[n].x, w.persos[n].y);
+        // a ring of water, 3 cells wide, round a square of ground 10 cells away
+        let (cx, cy) = (px / 16 + 10, py / 16);
+        let width = w.terrain.width as i64;
+        let all = (w.terrain.width * w.terrain.height) as usize;
+        w.terrain.category_mut()[..all].fill(1);
+        let cells: Vec<usize> = (-6i64..=6).flat_map(|dr| (-6i64..=6).map(move |dc| (dc, dr))).filter(|&(dc, dr)| dc.abs() > 2 || dr.abs() > 2).map(|(dc, dr)| ((cy + dr) * width + cx + dc) as usize).collect();
+        for k in cells {
+            w.terrain.category_mut()[k] = crate::landscape::WATER;
+        }
+        let island = (cx * 16, cy * 16);
+        let shore = (px - 16 * 4, py);
+        let size = (64, 64);
+        assert!(!w.easy_to_reach(&rules, n, (island.0 as i32, island.1 as i32), size), "an island");
+        assert!(w.easy_to_reach(&rules, n, (shore.0 as i32, shore.1 as i32), size), "next door");
+    }
 }

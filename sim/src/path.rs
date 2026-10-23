@@ -124,6 +124,15 @@ pub fn fastest(
     straighten(rules, terrain, free, from, path)
 }
 
+/// How long walking from `from` to `to` (feet positions) takes, and how long crossing straight at
+/// the top speed would, both in cells; the first more round a lake or over slow ground. None
+/// when the search finds no way within its reach (across the sea, say).
+pub fn detour(rules: &Rules, terrain: &Terrain, free: Free, from: (i64, i64), to: (i64, i64)) -> Option<(f64, f64)> {
+    let top = top_speed(rules);
+    let (_, time, _) = among(rules, terrain, free, from, &[to], top)?;
+    Some((time as f64 / STRAIGHT, octile(cell(from), cell(to)) / top / STRAIGHT))
+}
+
 /// Which of `goals` (feet positions, the copies nearest to `from` on a torus) is the fastest
 /// to reach from `from`, the first of them on a tie, and the waypoints there as
 /// [`fastest`] gives them; None when none is within the search's reach.
