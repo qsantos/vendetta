@@ -1475,7 +1475,9 @@ impl Hud {
             self.windows.camera = Some((clng(wx) as i32, clng(wy) as i32));
         } else if let (9, enemy) = world.obstacle_at(rules, player, clng(wx) as i32, clng(wy) as i32, p.w, p.h) {
             if input.left_pressed {
-                orders.push(if p.alive() {
+                orders.push(if p.alive() && self.army.on {
+                    Order::ArmyAttack { perso, soldiers: self.army.selected.clone(), kind: 0, target: enemy }
+                } else if p.alive() {
                     Order::AttackPerso { perso, target: enemy }
                 } else {
                     Order::Move { perso, x: clng(wx), y: clng(wy) }
@@ -1483,6 +1485,8 @@ impl Hud {
             } else {
                 *tip = format!("&{} ", world.persos[enemy].shown_name(rules));
             }
+        } else if input.left_pressed && self.army.on {
+            orders.push(Order::ArmyMove { perso, soldiers: self.army.selected.clone(), x: clng(wx), y: clng(wy) });
         } else if input.left_pressed {
             orders.push(Order::Move { perso, x: clng(wx), y: clng(wy) });
         }

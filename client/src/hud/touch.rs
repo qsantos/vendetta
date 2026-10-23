@@ -491,7 +491,7 @@ impl Hud {
             Panel::Build => {}
             Panel::Move => {
                 let i = (0..18).filter(|&i| self.move_visible(world, player, i)).nth(k).unwrap_or(0);
-                orders.extend(self.move_order(world, player, i, false));
+                self.move_order(world, player, i, false, orders);
                 self.touch.panel = None;
             }
             Panel::Auto => {}

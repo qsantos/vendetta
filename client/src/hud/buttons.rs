@@ -8,6 +8,9 @@ use macroquad::prelude::*;
 use sim::rules::Rules;
 use sim::world::{Order, World};
 
+/// The move buttons: the 18 of the character, then the five attitudes of the soldiers.
+const MOVE_BUTTONS: usize = 23;
+
 /// The mouse for one frame, in frame pixels, with the original's press/release edges.
 #[derive(Clone, Copy)]
 pub struct Input {
@@ -137,8 +140,10 @@ impl Hud {
         match i {
             0 => world.castles[p.fief].visible(),
             1 => world.houses[player].visible(),
-            // TODO: soldiers (17), army selected (18..22)
-            17.. => false,
+            // The formation button is for those with soldiers, the five attitudes for when some
+            // are selected.
+            17 => p.soldiers > 0,
+            18.. => p.soldiers > 0 && self.army.on,
             _ => true,
         }
     }
@@ -171,10 +176,11 @@ impl Hud {
         } else if !over_build && self.build_slide > -80 {
             self.build_slide -= 4;
         }
-        let over_move = (0..18).filter(|&i| self.move_visible(world, player, i)).any(|i| {
-            let (x, y) = move_button_pos(i, self.move_slide);
-            inside(m, x, y, 28, 28)
-        });
+        let over_move = self.army.on
+            || (0..MOVE_BUTTONS).filter(|&i| self.move_visible(world, player, i)).any(|i| {
+                let (x, y) = move_button_pos(i, self.move_slide);
+                inside(m, x, y, 28, 28)
+            });
         if over_move && self.move_slide < 0 {
             self.move_slide += 4;
         } else if !over_move && self.move_slide > -52 {
@@ -185,15 +191,25 @@ impl Hud {
     pub(super) fn draw_move_buttons(&self, textures: &Textures, world: &World, player: usize) {
         let Some(tex) = textures.get(DEPLACEMENT) else { return };
         let p = &world.persos[player];
-        for i in (0..18).filter(|&i| self.move_visible(world, player, i)) {
+        for i in (0..MOVE_BUTTONS).filter(|&i| self.move_visible(world, player, i)) {
             let (x, y) = move_button_pos(i, self.move_slide);
-            let row = if i == 14 { p.ai as i32 } else { 0 };
+            // the formation shows in the button 17, the automatic mode in 14
+            let row = match i {
+                14 => p.ai as i32,
+                17 => p.formation as i32,
+                _ => 0,
+            };
             // opaque blit: black is drawn, not keyed
             let w = 28 + x.min(0);
             if w > 0 {
                 draw_rectangle(x.max(0) as f32, y as f32, w as f32, 28.0, BLACK);
             }
             blit(tex, x, y, Rect::new(28.0 * i as f32, 28.0 * row as f32, 28.0, 28.0));
+        }
+        // The soldiers' number, over the attitude buttons.
+        if p.soldiers > 0 {
+            let (x, y) = move_button_pos(18, self.move_slide);
+            self.text(x, y - 28, &format!("Nb:#{}", p.soldiers), BLACK);
         }
     }
 
@@ -366,7 +382,7 @@ impl Hud {
 
         // Move buttons
         if !on_ui && !touch {
-            for i in (0..18).filter(|&i| self.move_visible(world, player, i)) {
+            for i in (0..MOVE_BUTTONS).filter(|&i| self.move_visible(world, player, i)) {
                 let (x, y) = move_button_pos(i, self.move_slide);
                 if !inside(m, x, y, 28, 28) {
                     continue;
@@ -383,11 +399,9 @@ impl Hud {
                 }
                 let click = if i <= 1 { input.left_released } else { input.left_pressed };
                 // Right clicks: the attack buttons also send the soldiers.
-                let right = input.right_pressed && (10..=14).contains(&i);
+                let right = input.right_pressed && ((10..=14).contains(&i) || i == 16);
                 if click || right {
-                    if let Some(o) = self.move_order(world, player, i, right) {
-                        orders.push(o);
-                    }
+                    self.move_order(world, player, i, right, orders);
                 }
                 break;
             }
@@ -432,7 +446,7 @@ impl Hud {
         // The screen border counts as interface.
         on_ui |= m.0 <= 0 || m.1 <= 0 || m.0 >= screen_w() || m.1 >= screen_h();
 
-        self.keyboard(world, player, orders);
+        self.keyboard(world, rules, player, orders);
         self.shortcut_keys(world, rules, player, orders);
         self.tooltip(m, &tip);
         on_ui
@@ -441,30 +455,139 @@ impl Hud {
     /// The command of move button `i` or its key (`ClsInterface.cls:3955-4050`,
     /// `ClsIntTouches.cls:540-610`). With `right` (a right click) or a modifier, the attack
     /// buttons also send the soldiers; Ctrl (or Shift) on the home button enters without repairing.
-    pub(super) fn move_order(&mut self, world: &World, player: usize, i: usize, right: bool) -> Option<Order> {
+    /// With soldiers selected, the attack buttons and Stop are for them.
+    pub(super) fn move_order(&mut self, world: &World, player: usize, i: usize, right: bool, orders: &mut Vec<Order>) {
         let perso = player;
         let p = &world.persos[player];
         let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
         let shift = is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift);
         let alt = is_key_down(KeyCode::LeftAlt) || is_key_down(KeyCode::RightAlt);
         let alive = p.alive();
-        Some(match i {
-            0 => Order::GoOwnCastle { perso },
+        let army = self.army.on && alive;
+        let soldiers = self.army.selected.clone();
+        let order = match i {
+            0 => Some(Order::GoOwnCastle { perso }),
             // Shift too, since browsers keep Ctrl+M (mute the tab).
-            1 => Order::GoHome { perso, enter: (ctrl || shift) && world.houses[player].built },
-            2..=9 if alive => Order::FindResource { perso, kind: i - 2 },
-            10..=12 if alive => Order::AttackNearest { perso, kind: (i - 10) as u8, send: right || ctrl || shift || alt, ctrl, shift },
-            13 if alive => Order::FindTreasure { perso },
-            14 => Order::SetAi { perso, ai: !p.ai },
-            16 if !right => Order::Stop { perso },
-            17 if alive => Order::Formation { perso, change: true },
-            // TODO: 15 attack allies, after the original's confirmation window
-            _ => return None,
-        })
+            1 => Some(Order::GoHome { perso, enter: (ctrl || shift) && world.houses[player].built }),
+            2..=9 if alive => Some(Order::FindResource { perso, kind: i - 2 }),
+            10..=12 if army => Some(Order::ArmyAttackNearest { perso, soldiers, kind: (i - 10) as u8 }),
+            10..=12 if alive => Some(Order::AttackNearest { perso, kind: (i - 10) as u8, send: right || ctrl || shift || alt, ctrl, shift }),
+            13 if alive => Some(Order::FindTreasure { perso }),
+            14 => Some(Order::SetAi { perso, ai: !p.ai }),
+            // Left: stop, the selected soldiers if any; right: all the soldiers.
+            16 if right && alive => Some(Order::ArmyStop { perso, soldiers: Vec::new() }),
+            16 if army => Some(Order::ArmyStop { perso, soldiers }),
+            16 if !right => Some(Order::Stop { perso }),
+            17 if alive => Some(Order::Formation { perso, change: true }),
+            18..=22 => {
+                self.attitude(world, player, (i - 18) as i64, orders);
+                None
+            }
+            15 if alive => {
+                self.ask_attack_allies();
+                None
+            }
+            _ => None,
+        };
+        orders.extend(order);
+    }
+
+    /// `ToucheAction` (Enter): the context action on what the character stands on: become
+    /// ruler in the own castle, use a service, else what a click on it would do.
+    fn action_key(&self, world: &World, rules: &Rules, player: usize, ctrl: bool, orders: &mut Vec<Order>) {
+        let perso = player;
+        let p = &world.persos[perso];
+        let alive = p.alive();
+        let house = if p.in_own_house { perso } else { p.house_target };
+        if p.in_own_castle && world.can_become_emperor(rules, perso) {
+            orders.push(Order::BecomeEmperor { perso });
+        } else if (p.in_house || p.in_own_house) && world.houses.get(house).is_some_and(|m| rules.buildings[m.kind].service > 0) && world.can_use_service(rules, house, perso) {
+            orders.push(Order::UseService { perso, house });
+        } else {
+            let (code, hit) = world.obstacle_at(rules, perso, p.x as i32, p.y as i32, p.w, p.h);
+            let order = match code {
+                1 if alive => Order::Harvest { perso, node: hit },
+                4 | 5 => Order::GoHome { perso, enter: ctrl && world.houses[perso].built },
+                6 => Order::GoOwnCastle { perso },
+                7 if alive => Order::GoToHouse { perso, house: hit, repair: ctrl },
+                8 if alive => Order::GoToCastle { perso, castle: hit },
+                9 if alive => Order::AttackPerso { perso, target: hit },
+                10 if alive => Order::AttackHouse { perso, house: hit },
+                11 if alive => Order::AttackCastle { perso, castle: hit },
+                12 => Order::GoToHouse { perso, house: hit, repair: false },
+                13 if alive => Order::GoToTreasure { perso, treasure: hit },
+                _ => return,
+            };
+            orders.push(order);
+        }
     }
 
     /// The keyboard shortcuts of the buttons (`Touches.ini`).
-    fn keyboard(&mut self, world: &World, player: usize, orders: &mut Vec<Order>) {
+    fn keyboard(&mut self, world: &World, rules: &Rules, player: usize, orders: &mut Vec<Order>) {
+        let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
+        let shift = is_key_down(KeyCode::LeftShift) || is_key_down(KeyCode::RightShift);
+        let alt = is_key_down(KeyCode::LeftAlt) || is_key_down(KeyCode::RightAlt);
+        self.army.prune(world, player);
+        // (without soldiers to command, nothing is selected)
+        if !Hud::army_ready(world, player) && !self.army.selected.is_empty() {
+            self.army.clear(world, player, orders);
+        }
+        // With soldiers, Ctrl and a letter select some of them (`ToucheSoldats*`), which
+        // takes over the other keys.
+        if ctrl && world.persos[player].soldiers > 0 {
+            use super::army::Filter;
+            const SELECT_KEYS: [(KeyCode, Option<Filter>); 13] = [
+                (KeyCode::Q, Some(Filter::All)),
+                (KeyCode::W, Some(Filter::SameRace)),
+                (KeyCode::Z, Some(Filter::Armed)),
+                (KeyCode::E, None),
+                (KeyCode::R, Some(Filter::Rested)),
+                (KeyCode::S, Some(Filter::Idle)),
+                (KeyCode::A, Some(Filter::Fast)),
+                (KeyCode::X, Some(Filter::Unassigned)),
+                (KeyCode::C, Some(Filter::Ground)),
+                (KeyCode::V, Some(Filter::Flying)),
+                (KeyCode::D, Some(Filter::Defensive)),
+                (KeyCode::F, Some(Filter::Offensive)),
+                (KeyCode::I, Some(Filter::Invert)),
+            ];
+            for (key, filter) in SELECT_KEYS {
+                if !is_key_pressed(key) {
+                    continue;
+                }
+                match filter {
+                    Some(f) => self.army.select_by(world, player, f, orders),
+                    // the soldiers in view (`Selectionner_Soldats` over the whole screen)
+                    None => {
+                        let (cam, view) = self.windows.view;
+                        self.army.select(world, player, (cam.0, cam.1, view.0, view.1), (shift, false), true, (false, false), orders);
+                    }
+                }
+                return;
+            }
+            if is_key_pressed(KeyCode::Delete) {
+                self.army.kill(world, player, orders);
+                return;
+            }
+        }
+        // The soldiers' attitudes, Couverture to Berserk (D, Z, L, Q, K on an AZERTY keyboard).
+        for (key, attitude) in [(KeyCode::D, 0), (KeyCode::W, 1), (KeyCode::L, 2), (KeyCode::A, 3), (KeyCode::K, 4)] {
+            if is_key_pressed(key) {
+                self.attitude(world, player, attitude, orders);
+            }
+        }
+        // Stop with a modifier is for all the soldiers.
+        if (shift || alt) && is_key_pressed(KeyCode::S) && world.persos[player].alive() {
+            orders.push(Order::ArmyStop { perso: player, soldiers: Vec::new() });
+            return;
+        }
+        // The call to arms (`ToucheAide`, H): attacking one's allies, after a question.
+        if is_key_pressed(KeyCode::H) && world.persos[player].alive() {
+            self.ask_attack_allies();
+        }
+        if is_key_pressed(KeyCode::Enter) || is_key_pressed(KeyCode::KpEnter) {
+            self.action_key(world, rules, player, ctrl, orders);
+        }
         // `Touches.ini` holds DirectInput scancodes, physical positions like macroquad's key
         // codes, which are named after QWERTY: AZERTY's M is `Semicolon`, W is `Z`, A is `Q`.
         const MOVE_KEYS: [(KeyCode, usize); 17] = [
@@ -488,9 +611,7 @@ impl Hud {
         ];
         for (key, i) in MOVE_KEYS {
             if is_key_pressed(key) && self.move_visible(world, player, i) {
-                if let Some(o) = self.move_order(world, player, i, false) {
-                    orders.push(o);
-                }
+                self.move_order(world, player, i, false, orders);
             }
         }
         const INFO_KEYS: [(KeyCode, usize); 8] = [

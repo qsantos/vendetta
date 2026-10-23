@@ -161,7 +161,7 @@ fn can_zoom_out(world: &World, view: (i32, i32)) -> bool {
 /// (`IndiceCible`), see `FrmMoteur2D.frm:1393-1460`. A ghost can only go to its castle, its
 /// temples and graves (`ObstacleMort`); carrying something, the cursor gives it to allies or
 /// sells it (`ObstacleAmi`).
-fn cursor_type(world: &World, rules: &Rules, player: usize, x: i32, y: i32) -> (i32, usize) {
+fn cursor_type(world: &World, rules: &Rules, player: usize, x: i32, y: i32, army: bool) -> (i32, usize) {
     let p = &world.persos[player];
     let carrying = p.holding();
     if !p.alive() {
@@ -179,8 +179,13 @@ fn cursor_type(world: &World, rules: &Rules, player: usize, x: i32, y: i32) -> (
             _ => (0, 0),
         }
     } else {
-        // Armies are not ported: with one selected, an ally would give 17 (guard).
-        world.obstacle_at(rules, player, x, y, 0, 0)
+        let (cursor, hit) = world.obstacle_at(rules, player, x, y, 0, 0);
+        // With soldiers selected, an ally (or its house) shows the shield: they would guard it.
+        // (Unbuildable ground stays 999 then, where no order goes to the soldiers.)
+        match world.obstacle_ally(player, x, y) {
+            (1 | 2, j) if army && matches!(cursor, 0 | 1 | 7 | 999) => (17, j),
+            _ => (cursor, hit),
+        }
     };
     // Ctrl enters the finished home without repairing it, and repairs a damaged allied house.
     let ctrl = is_key_down(KeyCode::LeftControl) || is_key_down(KeyCode::RightControl);
@@ -595,6 +600,11 @@ async fn main() {
         }
         // (a release that ends a drag is not a click)
         let input = if panning && input.left_released { hud::Input { left_released: false, ..input } } else { input };
+        // With soldiers, a button held on the map drags a rectangle to select them, as in the
+        // original (instead of the map: only the others pan it).
+        let army_ready = !touch && hud::Hud::army_ready(&world, player);
+        let ended = hud.army.update(army_ready, (mx, my), hud::army::MIN_DRAG * ui, is_mouse_button_down(MouseButton::Left), is_mouse_button_down(MouseButton::Right));
+        let input = if ended.is_some_and(|e| e.big && !e.right) { hud::Input { left_released: false, ..input } } else { input };
         if !is_mouse_button_down(MouseButton::Left) && !input.left_released {
             pan_from = None;
             panning = false;
@@ -623,7 +633,7 @@ async fn main() {
         // What is under the cursor on the map (`Obstacle` on the cursor's top-left).
         let to_world = |p: f32, c: i32| c + (p / zoom).floor() as i32;
         let (wx, wy) = (to_world(mx, cam.0), to_world(my, cam.1));
-        let (hover, hit) = cursor_type(&world, &rules, player, wx, wy);
+        let (hover, hit) = cursor_type(&world, &rules, player, wx, wy, hud.army.on);
         // The cursor image is drawn at the interface's scale: its centre on the map. With the
         // touch interface, the building being placed starts in the middle of the screen, then
         // goes where the fingers drag or tap it.
@@ -654,7 +664,7 @@ async fn main() {
         };
         // Zoomed far out, effects, numbers and speech would be illegible clutter.
         let far = overview.is_some();
-        render::draw_world(&world, &rules, &textures, cam, player, view, overview);
+        render::draw_world(&world, &rules, &textures, cam, player, hud.army.on.then_some(hud.army.selected.as_slice()), view, overview);
         if !far {
             for c in render::copies(&world, cam, view) {
                 effects.draw(&textures, c, view, zoom);
@@ -684,16 +694,39 @@ async fn main() {
         let on_ui = hud.frame(&world, &rules, &textures, player, &input, &mut orders);
         if input.left_pressed {
             pressed_on_map = !on_ui;
-            if !touch && !on_ui && hud.placing.is_none() {
+            if !touch && !on_ui && hud.placing.is_none() && !army_ready {
                 pan_from = Some((mx, my));
             }
         }
+        if army_ready && !on_ui && hud.placing.is_none() && (input.left_pressed || input.right_pressed) {
+            hud.army.begin((mx, my), !input.left_pressed);
+        }
+        hud.draw_army_drag(ui);
         let placed = !on_ui && hud.map_input(&world, &rules, player, &input, centre, &mut orders);
         let holding = world.persos[player].selected_object >= 0;
-        if !on_ui && !placed && input.right_pressed && holding {
+        // A rectangle dragged over soldiers selects them; so does a click, one soldier.
+        if let Some(e) = ended.filter(|e| e.big) {
+            let (x0, x1) = (to_world(e.from.0.min(e.to.0), cam.0), to_world(e.from.0.max(e.to.0), cam.0));
+            let (y0, y1) = (to_world(e.from.1.min(e.to.1), cam.1), to_world(e.from.1.max(e.to.1), cam.1));
+            hud.army.select(&world, player, (x0, y0, x1 - x0, y1 - y0), (input.shift, input.ctrl), true, (!e.right, e.right), &mut orders);
+        }
+        // With soldiers, the right button acts when it comes up (so as to tell a click from a
+        // drag), and first selects the soldier under the cursor.
+        let right_click = if army_ready { ended.is_some_and(|e| e.right && !e.big) } else { input.right_pressed };
+        let mut right_acts = right_click;
+        if right_click && army_ready && !on_ui && !placed {
+            let ordering = hud.army.on && matches!(hover, 0 | 4..=11 | 16 | 17);
+            let found = hud.army.select(&world, player, (wx, wy, 0, 0), (input.shift, input.ctrl), false, (false, true), &mut orders);
+            if ordering && !found {
+                // Nothing there: the soldiers go back to their own ways.
+                hud.army.clear(&world, player, &mut orders);
+            }
+            right_acts = !ordering && !hud.army.on;
+        }
+        if !on_ui && !placed && right_acts && holding {
             // Right click while holding an object puts it back.
             orders.push(Order::Unselect { perso: player });
-        } else if !on_ui && !placed && input.right_pressed {
+        } else if !on_ui && !placed && right_acts {
             // Right click on the map: the radial buttons (`FrmMoteur2D.frm:943-961`; the original
             // also moved the cursor onto one, which browsers do not allow).
             match hover {
@@ -718,6 +751,7 @@ async fn main() {
             match hover {
                 // Carrying something: sell it in a castle or a market, else drop it, or put
                 // the held object into the own house.
+                // (soldiers selected: the click is for them, but where nothing is built)
                 0 | 16 | 999 if carrying => {
                     let market = world.houses.get(p.house_target).is_some_and(|m| m.market && m.built);
                     if p.in_own_castle || p.in_castle || p.in_house && market {
@@ -733,6 +767,18 @@ async fn main() {
                     } else {
                         orders.push(Order::DropSelection { perso });
                     }
+                }
+                0 | 16 if hud.army.on => orders.push(Order::ArmyMove {
+                    perso,
+                    soldiers: hud.army.selected.clone(),
+                    x: wx as i64 - p.w as i64 / 2,
+                    y: wy as i64 - p.h as i64 / 2,
+                }),
+                999 if hud.army.on => {}
+                9..=11 if hud.army.on => orders.push(Order::ArmyAttack { perso, soldiers: hud.army.selected.clone(), kind: (hover - 9) as i64, target: hit }),
+                17 => {
+                    orders.push(Order::ArmyGuard { perso, soldiers: hud.army.selected.clone(), target: hit });
+                    hud.army.clear(&world, player, &mut orders);
                 }
                 // Quirk: the market test reads the house of the castle's index too.
                 6 if carrying && world.houses.get(hit).is_some_and(|m| m.market && m.built) => {

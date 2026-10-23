@@ -459,7 +459,9 @@ fn in_view(x: i32, y: i32, w: i32, h: i32, cam: (i32, i32), view: (i32, i32)) ->
 
 /// `overview`: draw the map from it ([`Overview`]), with only the castles and a marker on the
 /// player as sprites.
-pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, view: (i32, i32), overview: Option<&Overview>) {
+///
+/// `army`: the selected soldiers; they have the ellipse, and the player when none is selected.
+pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, i32), player: usize, army: Option<&[usize]>, view: (i32, i32), overview: Option<&Overview>) {
     // Each layer is drawn for every copy of the map in view (on a torus), so that what sticks
     // out of one copy is covered as it would be on a single map.
     let cams = copies(world, cam, view);
@@ -530,8 +532,13 @@ pub fn draw_world(world: &World, rules: &Rules, textures: &Textures, cam: (i32, 
         }
     }
     for &cam in &cams {
-        if let Some(p) = world.persos.get(player) {
-            draw_selection(world, p, rules, cam);
+        match army {
+            Some(selected) => selected.iter().filter_map(|&i| world.persos.get(i)).for_each(|p| draw_selection(world, p, rules, cam)),
+            None => {
+                if let Some(p) = world.persos.get(player) {
+                    draw_selection(world, p, rules, cam);
+                }
+            }
         }
         draw_work_state(world, rules, player, cam);
     }

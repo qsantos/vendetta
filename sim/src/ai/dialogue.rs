@@ -156,11 +156,15 @@ impl World {
         } else {
             self.soldiers_of(c, list)
         };
+        // (the chief only speaks if somebody obeyed)
+        let obeyed = !all || !soldiers.is_empty();
         for s in soldiers {
             self.stop(rules, s);
             self.persos[s].ai_order = 0;
         }
-        self.say_now(rules, c, 21);
+        if obeyed {
+            self.say_now(rules, c, 21);
+        }
     }
 
     /// `Ordonner_Deplacement`: the soldiers walk to (x, y), each to its place around it.
@@ -190,7 +194,7 @@ impl World {
             let q = &mut self.persos[s];
             q.ai_order = kind + 1;
             q.ai_target = target;
-            if self.rng.next() < ORDER_REPLY_CHANCE {
+            if self.rng.next() < ORDER_REPLY_CHANCE && s != c {
                 self.say(rules, s, 31);
             }
         }

@@ -1,8 +1,10 @@
 //! The in-game HUD (`ClsInterface.Afficher`), at the original's 1024×768 positions.
 
+pub(crate) mod army;
 mod bars;
 mod bubbles;
 mod buttons;
+mod confirm;
 mod follow;
 mod messages;
 mod object_tooltip;
@@ -63,6 +65,10 @@ pub struct Strings {
     pub sell: [String; 2],
     pub drop: [String; 2],
     pub move_tips: Vec<String>,
+    /// `MessageConfirmationAttaquer`, `MessageConfirmationOui` and `Non`.
+    pub attack_allies: String,
+    pub yes: String,
+    pub no: String,
 }
 
 impl Strings {
@@ -97,6 +103,9 @@ impl Strings {
             shortcut: interface.find("BoutonRaccourciObjetEtiquette").unwrap_or("").to_owned(),
             threshold: ["BarresStatutSeuilMessage1", "BarresStatutSeuilMessage2"].map(|k| interface.find(k).unwrap_or("").to_owned()),
             info_tips: (1..=9).map(|i| interface.find(&format!("BoutonInfosInfoBulle{i}")).unwrap_or("").to_owned()).collect(),
+            attack_allies: interface.find("MessageConfirmationAttaquer").unwrap_or("").to_owned(),
+            yes: interface.find("MessageConfirmationOui").unwrap_or("").to_owned(),
+            no: interface.find("MessageConfirmationNon").unwrap_or("").to_owned(),
             move_tips: (1..=23)
                 .map(|i| interface.find(&format!("BoutonDeplacementInfoBulle{i}")).unwrap_or("").to_owned())
                 .collect(),
@@ -167,6 +176,10 @@ pub struct Hud {
     free_camera: Option<(i32, i32)>,
     /// Following the character again was asked for (see `take_follow_request`).
     follow_requested: bool,
+    /// The soldiers selected (see `army.rs`).
+    pub army: army::Army,
+    /// The window asking whether to attack the allies is shown (see `confirm.rs`).
+    confirm: bool,
 }
 
 /// The victory and defeat banner in the language of suffix `suffix`, "Victoire" over
@@ -183,7 +196,7 @@ fn banner_of(files: &Files, lang: &str) -> String {
 
 /// Images the HUD needs.
 pub fn images(rules: &Rules, languages: &[sim::rules::Language]) -> Vec<String> {
-    let mut v: Vec<String> = [INFOS, DEPLACEMENT, OBJETS, CURSOR].map(String::from).to_vec();
+    let mut v: Vec<String> = [INFOS, DEPLACEMENT, OBJETS, CURSOR, confirm::WINDOW, confirm::BUTTONS].map(String::from).to_vec();
     v.extend(languages.iter().map(|l| banner(&l.suffix)));
     v.extend(buttons::images(rules));
     v.extend(windows::images(rules));
@@ -337,6 +350,8 @@ impl Hud {
             menu_requested: false,
             free_camera: None,
             follow_requested: false,
+            army: army::Army::default(),
+            confirm: false,
         }
     }
 
@@ -491,6 +506,13 @@ impl Hud {
         let mut tip = String::new();
         if self.swallow_release && input.left_released {
             self.swallow_release = false;
+            return true;
+        }
+        if self.confirm {
+            // (modal: the windows only show)
+            let blocked = Input { left_pressed: false, left_released: false, right_pressed: false, ..*input };
+            self.windows(world, rules, textures, player, &blocked, orders, &mut tip);
+            self.confirmation(textures, player, input, orders);
             return true;
         }
         if self.radial.is_some() {
